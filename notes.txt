@@ -3,3 +3,9 @@ git clone https://github.com/nlohmann/json
 
 build & run:
 g++ prompt.cpp -o prompt && ./prompt
+
+deploy to access anywhere:
+cp ./prompt ~/bin/prompt
+
+build & deploy & run:
+g++ prompt.cpp -o prompt && cp ./prompt ~/bin/prompt && prompt

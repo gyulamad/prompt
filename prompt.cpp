@@ -167,6 +167,7 @@ string str_replace(const map<string, string>& v, const string& s) {
 }
 
 string get_prompt(
+    const string& summary,
     const string& history,
     const string& term_start,
     const string& term_stop,
@@ -179,6 +180,7 @@ string get_prompt(
     const string& notes_stop
 ) {
     string prompt = str_replace({
+        { "{summary}", summary },
         { "{history}", history },
         { "{term_start}", term_start },
         { "{term_stop}", term_stop },
@@ -197,9 +199,10 @@ string get_prompt(
         "Once you finished the script, use {term_stop} marker. So the correct usages for example: {term_start} place your script here... {term_stop}\n"
         "and then the system will send you back what the terminal outputs so that you will know the command(s) results.\n"
         "Note if you intended to talk to the user, do not include the terminal caller magic markers in your output because the user wont see it, only the system.\n"
-        "And never refer to the system terminal output directly to the user because they don't see it. If you want to inform the user about the terminal output, you have to tell them directly.\n"
+        "And never refer to the system terminal output directly to the user because they don't see it. If you want to inform the user about the terminal output, you have to tell/summarise them directly.\n"
         "\n"
-        "You also have a sctipts folder with usefull scripts that you can use any time. Use terminal to see the files.\n"
+        "If you need internet or outside world access you can use curl or other command line programs to interact websites or APIs or any other available information sources.\n"
+        "You also have a scripts folder with usefull scripts that you can use any time. Use the terminal to see the files.\n"
         "If you can not find a script you need, feel free to create one any time in that folder for later use.\n"
         "Available scripts:\n{scripts}\n"
         "\n"
@@ -211,7 +214,8 @@ string get_prompt(
         "You can use the notes as a 'memory' typically for things that are not related to the current objective but good to keep it in mind.\n"
         "Note that, if you delete something from the notes, that will forgotten permanently and you can not recall anymore.\n"
         "{notes}\n"
-        ""
+        "\n"
+        "Summary: {summary}\n"
         "\n"
         "Latest conversation history: {history}\n"
         "\n"
@@ -558,6 +562,37 @@ void run_tests() {
     assert(result8[0] == "\nthis is a\n multi-line text\nhere...\n");
 }
 
+bool confirm(const std::string& message, char def = 'y') {
+    def = std::tolower(def); // Normalize the default to lowercase
+    char choice;
+
+    while (true) {
+        // Display the prompt with the default option
+        std::cout << message << " (" 
+                  << (def == 'y' ? "Y/n" : "y/N") << "): ";
+        choice = std::cin.get();
+
+        // Handle Enter (newline) input for default option
+        if (choice == '\n') {
+            return def == 'y';
+        }
+
+        // Clear the input buffer to handle extra characters after one key press
+        while (std::cin.get() != '\n') { }
+
+        // Normalize choice to lowercase and evaluate
+        choice = std::tolower(choice);
+        if (choice == 'y') {
+            return true;
+        } else if (choice == 'n') {
+            return false;
+        }
+
+        // Invalid input, prompt again
+        std::cout << "Please press 'y' or 'n'." << std::endl;
+    }
+}
+
 
 int main() {
     run_tests();
@@ -565,7 +600,9 @@ int main() {
     string term_start = "[BASH-START->";
     string term_stop = "<-BASH-STOP]";
     int term_timeout = 5;
+    string summary = "";
     string history = "";
+    int history_max_length = 4000;
     string user_prompt = "\n> ";
     string objective = "";
     string obj_start = "[OBJ-START->";
@@ -598,8 +635,17 @@ int main() {
                 skip_user = false;
             }
 
-            str_cut_begin(history, 10000);
+            if (history.length() > history_max_length) {
+                summary = ai(
+                    "Please summarize the followong informations:\n\n"
+                    "** Summary:\n" + summary + "\n\n"
+                    "** Latest conversatin history:\n" + history
+                );
+
+                str_cut_begin(history, history_max_length);
+            }
             string prompt = get_prompt(
+                summary.empty() ? "<empty>" : summary,
                 history.empty() ? "<empty>" : history,
                 term_start,
                 term_stop,
@@ -623,7 +669,14 @@ int main() {
                 // map<string, string> results;
                 for (const string& term: terms) {
                     string trimmed = trim(term);
-                    sysmsg += "\n" + term_start + term + term_stop + "\nResults:\n" + bash(trimmed);
+                    sysmsg += "\n" + term_start + term + term_stop + "\nResults:\n";
+                    if (confirm("The system wants to run the following command:\n" + trimmed + "\nDo you want to proceed?", 'y')) {
+                        string results = bash(trimmed);
+                        sysmsg += results;
+                        cout << results << endl;
+                    } else {
+                        sysmsg += "Execution blocked by user.";
+                    }
                 }
                 // cout << "---SYS---" << sysmsg << endl;
                 // cout << sysmsg;
