@@ -1,0 +1,5 @@
+you will need:
+git clone https://github.com/nlohmann/json
+
+build & run:
+g++ prompt.cpp -o prompt && ./prompt
