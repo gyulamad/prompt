@@ -8,20 +8,21 @@
 #include <memory>
 #include <array>
 #include <regex>
+#include <filesystem>
+#include <csignal>
+#include <cstdlib> 
 
 #include "json/single_include/nlohmann/json.hpp"  // Include the nlohmann JSON library
+
+#include "tools.hpp"
+#include "Agent.hpp"
 
 using namespace std;
 using namespace nlohmann::json_abi_v3_11_3;
 
+namespace fs = std::filesystem;
 
-inline runtime_error error(const string& msg, const string& file, int line) {
-    return runtime_error((file + ":" + to_string(line) + " - " + msg).c_str());
-}
-
-#define ERROR(msg) error(msg, __FILE__, __LINE__)
-
-#define ERR_UNIMP ERROR("Unimplemented")
+//TODO: common function to tools.php
 
 string str_cut_begin(const string& s, int maxch, const string& prepend = "...") {
     // Check if the string is already shorter than or equal to the limit
@@ -48,23 +49,6 @@ bool str_contains(const string& str, const string& substring) {
     return str.find(substring) != string::npos;
 }
 
-vector<string> explode(const string& str, const string& delimiter) {
-    vector<string> result;
-    size_t start = 0;
-    size_t end = str.find(delimiter);
-
-    // Split the string by the delimiter
-    while (end != string::npos) {
-        result.push_back(str.substr(start, end - start));
-        start = end + delimiter.length();
-        end = str.find(delimiter, start);
-    }
-
-    // Add the last part of the string
-    result.push_back(str.substr(start));
-
-    return result;
-}
 
 string esc(const string& input, const string& chars = "\\\"'`") {
     string result = input;
@@ -115,37 +99,7 @@ void chatlog(string who, string note) {
     logfile_append("chat.log", "[" + who + "] " + note);
 }
 
-template <typename T>
-T array_shift(vector<T>& vec) {
-    if (vec.empty()) {
-        throw ERROR("Cannot shift from an empty vector");
-    }
 
-    // Save the first element (to return it)
-    T firstElement = move(vec.front());
-
-    // Remove the first element
-    vec.erase(vec.begin());
-
-    // Return the shifted element
-    return firstElement;
-}
-
-string trim(const string& str) {
-    // Find the first non-whitespace character from the beginning
-    size_t start = str.find_first_not_of(" \t\n\r\f\v");
-    
-    // If there is no non-whitespace character, return an empty string
-    if (start == string::npos) {
-        return "";
-    }
-
-    // Find the first non-whitespace character from the end
-    size_t end = str.find_last_not_of(" \t\n\r\f\v");
-
-    // Return the substring from the first non-whitespace to the last non-whitespace character
-    return str.substr(start, end - start + 1);
-}
 
 string str_replace(const map<string, string>& v, const string& s) {
     // Create a modifiable copy of the input string
@@ -167,6 +121,7 @@ string str_replace(const map<string, string>& v, const string& s) {
 }
 
 string get_prompt(
+    const string& role,
     const string& summary,
     const string& history,
     const string& term_start,
@@ -180,6 +135,7 @@ string get_prompt(
     const string& notes_stop
 ) {
     string prompt = str_replace({
+        { "{role}", role },
         { "{summary}", summary },
         { "{history}", history },
         { "{term_start}", term_start },
@@ -197,7 +153,7 @@ string get_prompt(
         "If you start (or include in) your output with this magic marker the system will recieve it and runs it in a linux terminal as a bash script.\n"
         "If you call the terminal in your response you don't need to address any explanation or specific comment as it wont be seen by the user, only the system.\n"
         "Once you finished the script, use {term_stop} marker. So the correct usages for example: {term_start} place your script here... {term_stop}\n"
-        "and then the system will send you back what the terminal outputs so that you will know the command(s) results.\n"
+        "and then the system will send you back what the terminal outputs so that you will know the command(s) results. - WARNING: whenever you want to show these markers to the user you should escape it, otherwise you call the system bash accidentaly!\n"
         "Note if you intended to talk to the user, do not include the terminal caller magic markers in your output because the user wont see it, only the system.\n"
         "And never refer to the system terminal output directly to the user because they don't see it. If you want to inform the user about the terminal output, you have to tell/summarise them directly.\n"
         "\n"
@@ -205,6 +161,8 @@ string get_prompt(
         "You also have a scripts folder with usefull scripts that you can use any time. Use the terminal to see the files.\n"
         "If you can not find a script you need, feel free to create one any time in that folder for later use.\n"
         "Available scripts:\n{scripts}\n"
+        "\n"
+        "Your main role is: {role}\n"
         "\n"
         "Objective: {objective}\n"
         "Note that you can modify your objective based on the user request combimed with your own thought using the {obj_start} place your new/updated objective here {obj_stop} magic placeholders.\n"
@@ -223,75 +181,6 @@ string get_prompt(
     return prompt;
 }
 
-class Shell {
-private:
-    int timeout_seconds = -1; // Timeout for commands
-    string last_error;
-    int last_exit_code = 0;
-
-public:
-    // Constructor
-    Shell() = default;
-
-    // Set the timeout for commands
-    void timeout(int seconds) {
-        timeout_seconds = seconds;
-    }
-
-    // Execute a command
-    string exec(const string& cmd, bool throws = false) {
-        last_error.clear(); // Clear previous error
-        ostringstream result;
-        array<char, 128> buffer;
-
-        // Add timeout support by wrapping the command with a timeout mechanism
-        string command = cmd;
-        if (timeout_seconds > 0) {
-            command = cmd; // "timeout " + to_string(timeout_seconds) + "s " + cmd;
-        }
-
-        // Use an explicit function pointer for pclose to avoid warnings
-        using PipeCloser = int (*)(FILE*);
-        unique_ptr<FILE, PipeCloser> pipe(popen(command.c_str(), "r"), pclose);
-
-        if (!pipe) {
-            last_error = "Failed to open pipe for command execution.";
-            last_exit_code = -1;
-            const string errmsg = last_error;
-            throw ::ERROR(last_error);
-        }
-
-        // Read the output from the pipe
-        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-            result << buffer.data();
-        }
-
-        // Get the exit status of the command
-        int status = pclose(pipe.release());
-        last_exit_code = WEXITSTATUS(status);
-
-        if (last_exit_code != 0) {
-            last_error = "Command failed with exit code " + to_string(last_exit_code);
-        }
-
-        if (throws && !last_error.empty()) {
-            throw ::ERROR(last_error);
-        }
-
-        return result.str();
-    }
-
-    // Get the last error
-    string error() const {
-        return last_error;
-    }
-
-    // Get the last exit code
-    int result() const {
-        return last_exit_code;
-    }
-};
-
 string execute(Shell& shell, const string &command, int timeout = -1, bool throws = true) {
     logfile_append("exec.log", "\n$ " + command + "\n");
     shell.timeout(timeout);
@@ -301,32 +190,11 @@ string execute(Shell& shell, const string &command, int timeout = -1, bool throw
     if (throws && (res || !err.empty())) {
         throw ERROR("Command error: " + to_string(res) + "\ncommand: $ " + str_cut_end(command) + "\noutput: " + str_cut_end(out) + "\nerror: " + err);
     }
-    logfile_append("exec.log", "\n" + out + err + "\n");
+    logfile_append("exec.log", "\n" + out + err + "\n"); // TODO: log files just for debuging, also colusion happens when multiple AI runs, need some cleanup
     return out + err;
 }
 
-string file_get_contents(const string& filename) {
-    // Open the file in binary mode and position the cursor at the end
-    ifstream file(filename, ios::in | ios::binary);
-    if (!file.is_open()) {
-        throw ios_base::failure("Failed to open file: " + filename);
-    }
-
-    // Seek to the end to determine file size
-    file.seekg(0, ios::end);
-    streamsize size = file.tellg();
-    file.seekg(0, ios::beg);
-
-    // Read file content into a string
-    string content(size, '\0');
-    if (!file.read(&content[0], size)) {
-        throw ios_base::failure("Failed to read file: " + filename);
-    }
-
-    return content;
-}
-
-string ai(const string& prompt) {
+string ai_call(const string& prompt) { // TODO: it's hardcoded to google gemini AI, but it should be configurable with an adapter interface or something..
     string secret = trim(file_get_contents("gemini.key"));
     // secret = "API_KEY";
     // $prompt = esc($prompt);
@@ -502,7 +370,7 @@ std::string bash(const std::string& script, int timeout = -1) {
 
 // Test the find_placeholders function with both old and new markers
 // Test the find_placeholders function with both old and new markers
-void run_tests() {
+void run_tests() { // TODO: put these test to the tests.php
     // Test 1: Simple test with default markers {{}} (Backward compatibility)
     std::string template1 = "Hello, {{name}}! Welcome to {{place}}.";
     auto result1 = find_placeholders(template1, "{{", "}}");
@@ -593,123 +461,147 @@ bool confirm(const std::string& message, char def = 'y') {
     }
 }
 
+// Global pointer to the current agent
+Agent* global_agent = nullptr;
+
+// Signal handler for Ctrl+C
+void handle_sigint(int signal) {
+    if (global_agent) {
+        cout << "\nCtrl+C detected. Saving agent info..." << endl;
+        Agent::cmd_save(*global_agent, {});
+    }
+    exit(signal);
+}
+
+// TODO: problem using multiple prompt for the same agent from different terminals in the same time as they can override themself. need conflict detection (do not run agent if already running, or something...)
 
 int main() {
     run_tests();
 
-    string term_start = "[BASH-START->";
-    string term_stop = "<-BASH-STOP]";
-    int term_timeout = 5;
-    string summary = "";
-    string history = "";
-    int history_max_length = 4000;
-    string user_prompt = "\n> ";
-    string objective = "";
-    string obj_start = "[OBJ-START->";
-    string obj_stop = "<-OBJ-STOP]";
-    string notes = "";
-    string notes_start = "[NOTES-START->";
-    string notes_stop = "<-NOTES-STOP]";
+    // Set up signal handling for Ctrl+C
+    signal(SIGINT, handle_sigint);
 
-    Shell shell;
+    Agent agent;
+    global_agent = &agent; // Assign the global pointer
+
+    // string term_start = "[BASH-START->";
+    // string term_stop = "<-BASH-STOP]";
+    // int term_timeout = 5;
+    // string summary = "";
+    // string history = "";
+    // int history_max_length = 4000;
+    // string user_prompt = "\n> ";
+    // string objective = "";
+    // string obj_start = "[OBJ-START->";
+    // string obj_stop = "<-OBJ-STOP]";
+    // string notes = "";
+    // string notes_start = "[NOTES-START->";
+    // string notes_stop = "<-NOTES-STOP]";
+
+    // Shell shell;
 
 
     remove("request.log");
     remove("exec.log");
     remove("chat.log");
 
+    // TODO: use separated and configurable colours for user texts, AI responses, terminal responses etc.
     try {
+        cout << "Use '/help'..." << endl;
         bool skip_user = false;
-        while (1) {
+        while (1) { // TODO: make asking/conversation mode as options from command line arguments
 
             if (!skip_user) {
-                string inp = input(user_prompt);
+                string inp = input(agent.user_prompt);
                 if (inp.empty()) continue;
                 if (inp[0] == '/') {
                     // TODO: handle the internal command
-                    cout << "\nInternal commands are not supported (yet)...\n";
+                    if (!agent.run_internal(inp)) {
+                        cout << "\nInternal command '" << inp << "' is not recognised.\n";
+                    }
                     continue;
                 }
-                history += "\n<user>: " + user_prompt + inp;
+                agent.history += "\n<user>: " + agent.user_prompt + inp;
                 chatlog("user", inp);
                 skip_user = false;
             }
 
-            if (history.length() > history_max_length) {
-                summary = ai(
+            if (agent.history.length() > agent.history_max_length) {
+                agent.summary = ai_call(
                     "Please summarize the followong informations:\n\n"
-                    "** Summary:\n" + summary + "\n\n"
-                    "** Latest conversatin history:\n" + history
+                    "** Summary:\n" + agent.summary + "\n\n"
+                    "** Latest conversatin history:\n" + agent.history
                 );
 
-                str_cut_begin(history, history_max_length);
+                str_cut_begin(agent.history, agent.history_max_length);
             }
             string prompt = get_prompt(
-                summary.empty() ? "<empty>" : summary,
-                history.empty() ? "<empty>" : history,
-                term_start,
-                term_stop,
-                objective.empty() ? "<none>" : objective,
-                obj_start,
-                obj_stop,
-                bash("ls scrips"),
-                notes,
-                notes_start,
-                notes_stop
+                agent.role.empty() ? "<not specified>" : agent.role,
+                agent.summary.empty() ? "<empty>" : agent.summary,
+                agent.history.empty() ? "<empty>" : agent.history,
+                agent.term_start,
+                agent.term_stop,
+                agent.objective.empty() ? "<none>" : agent.objective,
+                agent.obj_start,
+                agent.obj_stop,
+                bash("ls scrips", 3),
+                agent.notes,
+                agent.notes_start,
+                agent.notes_stop
             );
-            string response = ai(prompt);
+            string response = ai_call(prompt);
             chatlog("ai", response);
 
             // handle terminal command(s)
                 // cout << "---SYS--- response: " << response << endl;
-            vector<string> terms = find_placeholders(response, term_start, term_stop);
+            vector<string> terms = find_placeholders(response, agent.term_start, agent.term_stop);
                 // cout << "---SYS--- terms: " << terms.size() << endl;
             if (!terms.empty()) {
                 string sysmsg = "";
                 // map<string, string> results;
                 for (const string& term: terms) {
                     string trimmed = trim(term);
-                    sysmsg += "\n" + term_start + term + term_stop + "\nResults:\n";
-                    if (confirm("The system wants to run the following command:\n" + trimmed + "\nDo you want to proceed?", 'y')) {
-                        string results = bash(trimmed);
+                    sysmsg += "\n" + agent.term_start + term + agent.term_stop + "\nResults:\n";
+                    if (confirm("The system wants to run the following command:\n" + trimmed + "\nDo you want to proceed?", 'y')) {  // TODO: its supervise the bash commands, but we should be able to turn it off - note unsafe! so it should be turned on by default
+                        string results = bash(trimmed, 3);
                         sysmsg += results;
-                        cout << results << endl;
+                        cout << results << endl; // TODO: also show the inner things that AI says around the bash scripts, because AIs can not always knows who the talking to when they start there responses
                     } else {
                         sysmsg += "Execution blocked by user.";
                     }
                 }
                 // cout << "---SYS---" << sysmsg << endl;
                 // cout << sysmsg;
-                history += "\n<system>: " + sysmsg;
+                agent.history += "\n<system>: " + sysmsg;
                 chatlog("system", sysmsg);
                 skip_user = true;
                 continue;
             }
 
             // handle objectives
-            vector<string> objectives = find_placeholders(response, obj_start, obj_stop);
+            vector<string> objectives = find_placeholders(response, agent.obj_start, agent.obj_stop);
             if (!objectives.empty()) {
-                objective = "";
+                agent.objective = "";
                 for (const string& obj: objectives) {
-                    objective += obj + "\n";
+                    agent.objective += obj + "\n";
                 }
                 skip_user = true;
                 continue;
             }
 
             // handle notes
-            vector<string> notes_updates = find_placeholders(response, notes_start, notes_stop);
+            vector<string> notes_updates = find_placeholders(response, agent.notes_start, agent.notes_stop);
             if (!notes_updates.empty()) {
-                notes = "";
+                agent.notes = "";
                 for (const string& note: notes_updates) {
-                    notes += note + "\n";
+                    agent.notes += note + "\n";
                 }
                 skip_user = true;
                 continue;
             }
 
             cout << response;
-            history += "\n<ai>: " + response;
+            agent.history += "\n<ai>: " + response;
             chatlog("ai", response);
             skip_user = false;
 
