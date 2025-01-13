@@ -14,18 +14,12 @@
 
 #include "json/single_include/nlohmann/json.hpp"  // Include the nlohmann JSON library
 
+#include "tools.hpp"
+#include "Agent.hpp"
+
 using namespace std;
 namespace fs = std::filesystem;
 using namespace nlohmann::json_abi_v3_11_3;
-
-
-inline runtime_error error(const string& msg, const string& file, int line) {
-    return runtime_error((file + ":" + to_string(line) + " - " + msg).c_str());
-}
-
-#define ERROR(msg) error(msg, __FILE__, __LINE__)
-
-#define ERR_UNIMP ERROR("Unimplemented")
 
 string str_cut_begin(const string& s, int maxch, const string& prepend = "...") {
     // Check if the string is already shorter than or equal to the limit
@@ -52,23 +46,6 @@ bool str_contains(const string& str, const string& substring) {
     return str.find(substring) != string::npos;
 }
 
-vector<string> explode(const string& str, const string& delimiter) {
-    vector<string> result;
-    size_t start = 0;
-    size_t end = str.find(delimiter);
-
-    // Split the string by the delimiter
-    while (end != string::npos) {
-        result.push_back(str.substr(start, end - start));
-        start = end + delimiter.length();
-        end = str.find(delimiter, start);
-    }
-
-    // Add the last part of the string
-    result.push_back(str.substr(start));
-
-    return result;
-}
 
 string esc(const string& input, const string& chars = "\\\"'`") {
     string result = input;
@@ -119,21 +96,6 @@ void chatlog(string who, string note) {
     logfile_append("chat.log", "[" + who + "] " + note);
 }
 
-template <typename T>
-T array_shift(vector<T>& vec) {
-    if (vec.empty()) {
-        throw ERROR("Cannot shift from an empty vector");
-    }
-
-    // Save the first element (to return it)
-    T firstElement = move(vec.front());
-
-    // Remove the first element
-    vec.erase(vec.begin());
-
-    // Return the shifted element
-    return firstElement;
-}
 
 string trim(const string& str) {
     // Find the first non-whitespace character from the beginning
@@ -226,75 +188,6 @@ string get_prompt(
     );
     return prompt;
 }
-
-class Shell {
-private:
-    int timeout_seconds = -1; // Timeout for commands
-    string last_error;
-    int last_exit_code = 0;
-
-public:
-    // Constructor
-    Shell() = default;
-
-    // Set the timeout for commands
-    void timeout(int seconds) {
-        timeout_seconds = seconds;
-    }
-
-    // Execute a command
-    string exec(const string& cmd, bool throws = false) {
-        last_error.clear(); // Clear previous error
-        ostringstream result;
-        array<char, 128> buffer;
-
-        // Add timeout support by wrapping the command with a timeout mechanism
-        string command = cmd;
-        if (timeout_seconds > 0) {
-            command = cmd; // "timeout " + to_string(timeout_seconds) + "s " + cmd;
-        }
-
-        // Use an explicit function pointer for pclose to avoid warnings
-        using PipeCloser = int (*)(FILE*);
-        unique_ptr<FILE, PipeCloser> pipe(popen(command.c_str(), "r"), pclose);
-
-        if (!pipe) {
-            last_error = "Failed to open pipe for command execution.";
-            last_exit_code = -1;
-            const string errmsg = last_error;
-            throw ::ERROR(last_error);
-        }
-
-        // Read the output from the pipe
-        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-            result << buffer.data();
-        }
-
-        // Get the exit status of the command
-        int status = pclose(pipe.release());
-        last_exit_code = WEXITSTATUS(status);
-
-        if (last_exit_code != 0) {
-            last_error = "Command failed with exit code " + to_string(last_exit_code);
-        }
-
-        if (throws && !last_error.empty()) {
-            throw ::ERROR(last_error);
-        }
-
-        return result.str();
-    }
-
-    // Get the last error
-    string error() const {
-        return last_error;
-    }
-
-    // Get the last exit code
-    int result() const {
-        return last_exit_code;
-    }
-};
 
 string execute(Shell& shell, const string &command, int timeout = -1, bool throws = true) {
     logfile_append("exec.log", "\n$ " + command + "\n");
@@ -597,184 +490,6 @@ bool confirm(const std::string& message, char def = 'y') {
     }
 }
 
-class Agent {
-public:
-    string term_start = "[BASH-START->";
-    string term_stop = "<-BASH-STOP]";
-    int term_timeout = 5;
-    string summary = "";
-    string history = "";
-    int history_max_length = 4000;
-    string user_prompt = "\n> ";
-    string objective = "";
-    string obj_start = "[OBJ-START->";
-    string obj_stop = "<-OBJ-STOP]";
-    string notes = "";
-    string notes_start = "[NOTES-START->";
-    string notes_stop = "<-NOTES-STOP]";
-    string current_file = ""; // Tracks the current file name
-
-    Shell shell;
-    const string agents_folder = "agents/";
-
-    // Constructor: Load the default agent file
-    Agent(const string& file = "default") {
-        fs::create_directory(agents_folder); // Ensure the `agents/` folder exists
-        if (!cmd_load(*this, {file})) {
-            cout << "No agent file loaded. Starting with a new agent." << endl;
-        }
-    }
-
-    // Command descriptions for /help
-    static map<string, string> command_descriptions() {
-        return {
-            {"/show", "Displays information about the agent (e.g., summary, history, objective, notes)."},
-            {"/save", "Saves all agent info into a file in the 'agents/' folder."},
-            {"/load", "Loads all agent info from a file in the 'agents/' folder."},
-            {"/list", "Lists all saved agent files in the 'agents/' folder."},
-            {"/help", "Lists all available commands and their descriptions."},
-            {"/exit", "Saves the current agent and exits the program."}
-        };
-    }
-
-    // Static command functions
-    static bool cmd_show(Agent& agent, vector<string> params) {
-        const map<string, string> options = {
-            {"summary", agent.summary},
-            {"history", agent.history},
-            {"objective", agent.objective},
-            {"notes", agent.notes},
-            {
-                "all",
-                "summary: " + agent.summary + "\n\n" +
-                "objective: " + agent.objective + "\n\n" +
-                "notes: " + agent.notes + "\n\n"
-            }
-        };
-
-        if (params.empty()) {
-            cout << "Available options:" << endl;
-            for (const auto& pair : options) {
-                cout << " - " << pair.first << endl;
-            }
-        } else {
-            string key = params[0];
-            if (options.find(key) != options.end()) {
-                cout << options.at(key) << endl;
-            } else {
-                cout << "Unknown option: " << key << endl;
-            }
-        }
-        return true;
-    }
-
-    static bool cmd_save(Agent& agent, vector<string> params) {
-        string filename;
-        if (!params.empty()) {
-            filename = agent.agents_folder + params[0];
-            agent.current_file = params[0];
-        } else if (!agent.current_file.empty()) {
-            filename = agent.agents_folder + agent.current_file;
-        } else {
-            filename = agent.agents_folder + "default";
-            agent.current_file = "default";
-        }
-
-        fs::create_directory(agent.agents_folder);
-
-        ofstream file(filename);
-        if (!file) {
-            cout << "Error: Unable to open file for writing." << endl;
-            return false;
-        }
-
-        file << "summary: " << agent.summary << endl;
-        file << "history: " << agent.history << endl;
-        file << "objective: " << agent.objective << endl;
-        file << "notes: " << agent.notes << endl;
-
-        file.close();
-        cout << "Agent info saved to " << filename << endl;
-        return true;
-    }
-
-    static bool cmd_load(Agent& agent, vector<string> params) {
-        string filename = agent.agents_folder + (params.empty() ? "default" : params[0]);
-        ifstream file(filename);
-        if (!file) {
-            cout << "Error: Unable to open file for reading (" << filename << ")." << endl;
-            return false;
-        }
-
-        string line, key, value;
-        while (getline(file, line)) {
-            size_t delimiter_pos = line.find(": ");
-            if (delimiter_pos == string::npos) continue;
-
-            key = line.substr(0, delimiter_pos);
-            value = line.substr(delimiter_pos + 2);
-
-            if (key == "summary") agent.summary = value;
-            else if (key == "history") agent.history = value;
-            else if (key == "objective") agent.objective = value;
-            else if (key == "notes") agent.notes = value;
-        }
-
-        file.close();
-        agent.current_file = params.empty() ? "default" : params[0];
-        cout << "Agent info loaded from " << filename << endl;
-        return true;
-    }
-
-    static bool cmd_list(Agent& agent, vector<string> params) {
-        cout << "Listing all saved agent files in the 'agents/' folder:" << endl;
-        fs::create_directory(agent.agents_folder);
-
-        for (const auto& entry : fs::directory_iterator(agent.agents_folder)) {
-            cout << " - " << entry.path().filename().string() << endl;
-        }
-        return true;
-    }
-
-    static bool cmd_help(Agent& agent, vector<string> params) {
-        auto descriptions = command_descriptions();
-        cout << "Available commands:" << endl;
-        for (const auto& pair : descriptions) {
-            cout << " - " << pair.first << ": " << pair.second << endl;
-        }
-        return true;
-    }
-
-    static bool cmd_exit(Agent& agent, vector<string> params) {
-        cout << "Saving current agent and exiting..." << endl;
-        cmd_save(agent, {});
-        exit(0);
-    }
-
-    bool run_internal(const string& command) {
-        vector<string> words = explode(command, " ");
-        string func = array_shift(words);
-
-        const map<string, function<bool(Agent&, vector<string>)>> funcs = {
-            {"/show", cmd_show},
-            {"/save", cmd_save},
-            {"/load", cmd_load},
-            {"/list", cmd_list},
-            {"/help", cmd_help},
-            {"/exit", cmd_exit},
-        };
-
-        auto it = funcs.find(func);
-        if (it != funcs.end()) {
-            return it->second(*this, words);
-        }
-
-        cout << "Unknown command: " << func << endl;
-        cout << "Use /help to find out more..." << endl;
-        return false;
-    }
-};
-
 // Global pointer to the current agent
 Agent* global_agent = nullptr;
 
@@ -820,6 +535,7 @@ int main() {
     remove("chat.log");
 
     try {
+        cout << "Use '/help'..." << endl;
         bool skip_user = false;
         while (1) {
 
@@ -855,7 +571,7 @@ int main() {
                 agent.objective.empty() ? "<none>" : agent.objective,
                 agent.obj_start,
                 agent.obj_stop,
-                bash("ls scrips"),
+                bash("ls scrips", 3),
                 agent.notes,
                 agent.notes_start,
                 agent.notes_stop
@@ -874,7 +590,7 @@ int main() {
                     string trimmed = trim(term);
                     sysmsg += "\n" + agent.term_start + term + agent.term_stop + "\nResults:\n";
                     if (confirm("The system wants to run the following command:\n" + trimmed + "\nDo you want to proceed?", 'y')) {
-                        string results = bash(trimmed);
+                        string results = bash(trimmed, 3);
                         sysmsg += results;
                         cout << results << endl;
                     } else {

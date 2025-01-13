@@ -9,3 +9,7 @@ cp ./prompt ~/bin/prompt
 
 build & deploy & run:
 g++ prompt.cpp -o prompt && cp ./prompt ~/bin/prompt && prompt
+
+To build and run the tests:
+g++ tests.cpp -o tests && ./tests
+
