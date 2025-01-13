@@ -3,3 +3,6 @@ gemini.key
 scripts/*.sh
 *.log
 prompt
+agents
+tests/agents
+tests/tests
