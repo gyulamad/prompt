@@ -1,18 +1,24 @@
+#include <filesystem>
 #pragma once
 
 #include <string>
 #include <map>
 #include <vector>
 
+#include "json/single_include/nlohmann/json.hpp"  // Include the nlohmann JSON library
+
 #include "tools.hpp"
 #include <functional>
 #include "Shell.hpp"
 
 using namespace std;
+using namespace nlohmann::json_abi_v3_11_3;
+
 namespace fs = std::filesystem;
 
 class Agent {
 public:
+    string role = "";
     string term_start = "[BASH-START->";
     string term_stop = "<-BASH-STOP]";
     int term_timeout = 5;
@@ -54,12 +60,14 @@ public:
     // Static command functions
     static bool cmd_show(Agent& agent, vector<string> params) {
         const map<string, string> options = {
+            {"role", agent.role},
             {"summary", agent.summary},
             {"history", agent.history},
             {"objective", agent.objective},
             {"notes", agent.notes},
             {
                 "all",
+                "role: " + agent.role + "\n\n" +
                 "summary: " + agent.summary + "\n\n" +
                 "objective: " + agent.objective + "\n\n" +
                 "notes: " + agent.notes + "\n\n"
@@ -67,6 +75,7 @@ public:
         };
 
         if (params.empty()) {
+            cout << "Current Agent: " << agent.current_file << endl;
             cout << "Available options:" << endl;
             for (const auto& pair : options) {
                 cout << " - " << pair.first << endl;
@@ -82,8 +91,10 @@ public:
         return true;
     }
 
+
+    // Modified cmd_save function to use JSON
     static bool cmd_save(Agent& agent, vector<string> params) {
-        string filename;
+        std::string filename;
         if (!params.empty()) {
             filename = agent.agents_folder + params[0];
             agent.current_file = params[0];
@@ -94,51 +105,61 @@ public:
             agent.current_file = "default";
         }
 
+        // Ensure the agents folder exists
         fs::create_directory(agent.agents_folder);
 
-        ofstream file(filename);
-        if (!file) {
-            cout << "Error: Unable to open file for writing." << endl;
-            return false;
+        // Truncate history to history_max_length before saving
+        if (agent.history.length() > agent.history_max_length) {
+            agent.history = agent.history.substr(0, agent.history_max_length);
         }
 
-        file << "summary: " << agent.summary << endl;
-        file << "history: " << agent.history << endl;
-        file << "objective: " << agent.objective << endl;
-        file << "notes: " << agent.notes << endl;
+        json j = {
+            {"role", agent.role},
+            {"summary", agent.summary},
+            {"history", agent.history},
+            {"objective", agent.objective},
+            {"notes", agent.notes}
+        };
 
-        file.close();
-        cout << "Agent info saved to " << filename << endl;
-        return true;
+        try {
+            file_put_contents(filename, j.dump(4)); // Pretty print JSON
+            std::cout << "Agent info saved to " << filename << std::endl;
+            return true;
+        } catch (const std::exception& e) {
+            std::cout << "Error saving file: " << e.what() << std::endl;
+            return false;
+        }
     }
 
+
+    // Modified cmd_load function to use JSON
     static bool cmd_load(Agent& agent, vector<string> params) {
-        string filename = agent.agents_folder + (params.empty() ? "default" : params[0]);
-        ifstream file(filename);
-        if (!file) {
-            cout << "Error: Unable to open file for reading (" << filename << ")." << endl;
+        std::string filename = agent.agents_folder + (params.empty() ? "default" : params[0]);
+
+        try {
+            std::string content = file_get_contents(filename);
+            json j = json::parse(content);
+
+            agent.role = j.value("role", "");
+            agent.summary = j.value("summary", "");
+            agent.history = j.value("history", "");
+            agent.objective = j.value("objective", "");
+            agent.notes = j.value("notes", "");
+
+            // Truncate history to history_max_length after loading
+            if (agent.history.length() > agent.history_max_length) {
+                agent.history = agent.history.substr(0, agent.history_max_length);
+            }
+
+            agent.current_file = params.empty() ? "default" : params[0];
+            std::cout << "Agent info loaded from " << filename << std::endl;
+            return true;
+        } catch (const std::exception& e) {
+            std::cout << "Error loading file: " << e.what() << std::endl;
             return false;
         }
-
-        string line, key, value;
-        while (getline(file, line)) {
-            size_t delimiter_pos = line.find(": ");
-            if (delimiter_pos == string::npos) continue;
-
-            key = line.substr(0, delimiter_pos);
-            value = line.substr(delimiter_pos + 2);
-
-            if (key == "summary") agent.summary = value;
-            else if (key == "history") agent.history = value;
-            else if (key == "objective") agent.objective = value;
-            else if (key == "notes") agent.notes = value;
-        }
-
-        file.close();
-        agent.current_file = params.empty() ? "default" : params[0];
-        cout << "Agent info loaded from " << filename << endl;
-        return true;
     }
+
 
     static bool cmd_list(Agent& agent, vector<string> params) {
         cout << "Listing all saved agent files in the 'agents/' folder:" << endl;
@@ -165,26 +186,57 @@ public:
         exit(0);
     }
 
-    bool run_internal(const string& command) {
-        vector<string> words = explode(command, " ");
-        string func = array_shift(words);
+    static bool cmd_role(Agent& agent, vector<string> params) {
+        if (params.empty()) {
+            // If no role is specified, display the current role or an error if none exists
+            if (!agent.role.empty()) {
+                std::cout << "Current role: " << agent.role << std::endl;
+            } else {
+                std::cout << "No role specified. Use '/role <role>' to set one." << std::endl;
+            }
+            return true;
+        }
 
-        const map<string, function<bool(Agent&, vector<string>)>> funcs = {
+        // Concatenate the provided parameters into a single role string
+        std::string new_role = implode(" ", params);
+        agent.role = new_role;
+        std::cout << "Role updated to: " << agent.role << std::endl;
+        return true;
+    }
+
+    bool run_internal(const std::string& command) {
+        // Trim the command to remove leading/trailing whitespace
+        std::string trimmed_command = trim(command);
+
+        if (trimmed_command.empty()) {
+            std::cout << "Error: Command is empty or whitespace only." << std::endl;
+            return false;
+        }
+
+        // Split the command into words
+        std::vector<std::string> words = explode(" ", trimmed_command);
+        std::string func = array_shift(words);
+
+        // Command-function map
+        const std::map<std::string, std::function<bool(Agent&, std::vector<std::string>)>> funcs = {
             {"/show", cmd_show},
             {"/save", cmd_save},
             {"/load", cmd_load},
             {"/list", cmd_list},
             {"/help", cmd_help},
             {"/exit", cmd_exit},
+            {"/role", cmd_role},
         };
 
+        // Find and execute the corresponding function
         auto it = funcs.find(func);
         if (it != funcs.end()) {
             return it->second(*this, words);
         }
 
-        cout << "Unknown command: " << func << endl;
-        cout << "Use /help to find out more..." << endl;
+        std::cout << "Unknown command: " << func << std::endl;
+        std::cout << "Use /help to find out more..." << std::endl;
         return false;
     }
+
 };

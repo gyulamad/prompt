@@ -18,8 +18,9 @@
 #include "Agent.hpp"
 
 using namespace std;
-namespace fs = std::filesystem;
 using namespace nlohmann::json_abi_v3_11_3;
+
+namespace fs = std::filesystem;
 
 string str_cut_begin(const string& s, int maxch, const string& prepend = "...") {
     // Check if the string is already shorter than or equal to the limit
@@ -97,21 +98,6 @@ void chatlog(string who, string note) {
 }
 
 
-string trim(const string& str) {
-    // Find the first non-whitespace character from the beginning
-    size_t start = str.find_first_not_of(" \t\n\r\f\v");
-    
-    // If there is no non-whitespace character, return an empty string
-    if (start == string::npos) {
-        return "";
-    }
-
-    // Find the first non-whitespace character from the end
-    size_t end = str.find_last_not_of(" \t\n\r\f\v");
-
-    // Return the substring from the first non-whitespace to the last non-whitespace character
-    return str.substr(start, end - start + 1);
-}
 
 string str_replace(const map<string, string>& v, const string& s) {
     // Create a modifiable copy of the input string
@@ -133,6 +119,7 @@ string str_replace(const map<string, string>& v, const string& s) {
 }
 
 string get_prompt(
+    const string& role,
     const string& summary,
     const string& history,
     const string& term_start,
@@ -146,6 +133,7 @@ string get_prompt(
     const string& notes_stop
 ) {
     string prompt = str_replace({
+        { "{role}", role },
         { "{summary}", summary },
         { "{history}", history },
         { "{term_start}", term_start },
@@ -163,7 +151,7 @@ string get_prompt(
         "If you start (or include in) your output with this magic marker the system will recieve it and runs it in a linux terminal as a bash script.\n"
         "If you call the terminal in your response you don't need to address any explanation or specific comment as it wont be seen by the user, only the system.\n"
         "Once you finished the script, use {term_stop} marker. So the correct usages for example: {term_start} place your script here... {term_stop}\n"
-        "and then the system will send you back what the terminal outputs so that you will know the command(s) results.\n"
+        "and then the system will send you back what the terminal outputs so that you will know the command(s) results. - WARNING: whenever you want to show these markers to the user you should escape it, otherwise you call the system bash accidentaly!\n"
         "Note if you intended to talk to the user, do not include the terminal caller magic markers in your output because the user wont see it, only the system.\n"
         "And never refer to the system terminal output directly to the user because they don't see it. If you want to inform the user about the terminal output, you have to tell/summarise them directly.\n"
         "\n"
@@ -171,6 +159,8 @@ string get_prompt(
         "You also have a scripts folder with usefull scripts that you can use any time. Use the terminal to see the files.\n"
         "If you can not find a script you need, feel free to create one any time in that folder for later use.\n"
         "Available scripts:\n{scripts}\n"
+        "\n"
+        "Your main role is: {role}\n"
         "\n"
         "Objective: {objective}\n"
         "Note that you can modify your objective based on the user request combimed with your own thought using the {obj_start} place your new/updated objective here {obj_stop} magic placeholders.\n"
@@ -200,27 +190,6 @@ string execute(Shell& shell, const string &command, int timeout = -1, bool throw
     }
     logfile_append("exec.log", "\n" + out + err + "\n");
     return out + err;
-}
-
-string file_get_contents(const string& filename) {
-    // Open the file in binary mode and position the cursor at the end
-    ifstream file(filename, ios::in | ios::binary);
-    if (!file.is_open()) {
-        throw ios_base::failure("Failed to open file: " + filename);
-    }
-
-    // Seek to the end to determine file size
-    file.seekg(0, ios::end);
-    streamsize size = file.tellg();
-    file.seekg(0, ios::beg);
-
-    // Read file content into a string
-    string content(size, '\0');
-    if (!file.read(&content[0], size)) {
-        throw ios_base::failure("Failed to read file: " + filename);
-    }
-
-    return content;
 }
 
 string ai_call(const string& prompt) {
@@ -564,6 +533,7 @@ int main() {
                 str_cut_begin(agent.history, agent.history_max_length);
             }
             string prompt = get_prompt(
+                agent.role.empty() ? "<not specified>" : agent.role,
                 agent.summary.empty() ? "<empty>" : agent.summary,
                 agent.history.empty() ? "<empty>" : agent.history,
                 agent.term_start,
