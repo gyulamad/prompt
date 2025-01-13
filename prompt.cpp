@@ -22,6 +22,8 @@ using namespace nlohmann::json_abi_v3_11_3;
 
 namespace fs = std::filesystem;
 
+//TODO: common function to tools.php
+
 string str_cut_begin(const string& s, int maxch, const string& prepend = "...") {
     // Check if the string is already shorter than or equal to the limit
     if (s.length() <= maxch) {
@@ -188,11 +190,11 @@ string execute(Shell& shell, const string &command, int timeout = -1, bool throw
     if (throws && (res || !err.empty())) {
         throw ERROR("Command error: " + to_string(res) + "\ncommand: $ " + str_cut_end(command) + "\noutput: " + str_cut_end(out) + "\nerror: " + err);
     }
-    logfile_append("exec.log", "\n" + out + err + "\n");
+    logfile_append("exec.log", "\n" + out + err + "\n"); // TODO: log files just for debuging, also colusion happens when multiple AI runs, need some cleanup
     return out + err;
 }
 
-string ai_call(const string& prompt) {
+string ai_call(const string& prompt) { // TODO: it's hardcoded to google gemini AI, but it should be configurable with an adapter interface or something..
     string secret = trim(file_get_contents("gemini.key"));
     // secret = "API_KEY";
     // $prompt = esc($prompt);
@@ -368,7 +370,7 @@ std::string bash(const std::string& script, int timeout = -1) {
 
 // Test the find_placeholders function with both old and new markers
 // Test the find_placeholders function with both old and new markers
-void run_tests() {
+void run_tests() { // TODO: put these test to the tests.php
     // Test 1: Simple test with default markers {{}} (Backward compatibility)
     std::string template1 = "Hello, {{name}}! Welcome to {{place}}.";
     auto result1 = find_placeholders(template1, "{{", "}}");
@@ -471,7 +473,7 @@ void handle_sigint(int signal) {
     exit(signal);
 }
 
-
+// TODO: problem using multiple prompt for the same agent from different terminals in the same time as they can override themself. need conflict detection (do not run agent if already running, or something...)
 
 int main() {
     run_tests();
@@ -503,10 +505,11 @@ int main() {
     remove("exec.log");
     remove("chat.log");
 
+    // TODO: use separated and configurable colours for user texts, AI responses, terminal responses etc.
     try {
         cout << "Use '/help'..." << endl;
         bool skip_user = false;
-        while (1) {
+        while (1) { // TODO: make asking/conversation mode as options from command line arguments
 
             if (!skip_user) {
                 string inp = input(agent.user_prompt);
@@ -559,10 +562,10 @@ int main() {
                 for (const string& term: terms) {
                     string trimmed = trim(term);
                     sysmsg += "\n" + agent.term_start + term + agent.term_stop + "\nResults:\n";
-                    if (confirm("The system wants to run the following command:\n" + trimmed + "\nDo you want to proceed?", 'y')) {
+                    if (confirm("The system wants to run the following command:\n" + trimmed + "\nDo you want to proceed?", 'y')) {  // TODO: its supervise the bash commands, but we should be able to turn it off - note unsafe! so it should be turned on by default
                         string results = bash(trimmed, 3);
                         sysmsg += results;
-                        cout << results << endl;
+                        cout << results << endl; // TODO: also show the inner things that AI says around the bash scripts, because AIs can not always knows who the talking to when they start there responses
                     } else {
                         sysmsg += "Execution blocked by user.";
                     }

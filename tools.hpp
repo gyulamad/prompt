@@ -4,6 +4,8 @@
 
 using namespace std;
 
+// TODO: write tests to tools
+
 vector<string> explode(const string& delimiter, const string& str) {
     vector<string> result;
     size_t start = 0;
