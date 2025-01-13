@@ -41,7 +41,7 @@ public:
         unique_ptr<FILE, PipeCloser> pipe(popen(command.c_str(), "r"), pclose);
 
         if (!pipe) {
-            last_error = "Failed to open pipe for command execution.";
+            last_error = "Failed to open pipe for command execution."; // Command was:\n" + cmd;
             last_exit_code = -1;
             const string errmsg = last_error;
             throw ::ERROR(last_error);

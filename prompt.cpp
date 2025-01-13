@@ -156,6 +156,7 @@ string get_prompt(
         "and then the system will send you back what the terminal outputs so that you will know the command(s) results. - WARNING: whenever you want to show these markers to the user you should escape it, otherwise you call the system bash accidentaly!\n"
         "Note if you intended to talk to the user, do not include the terminal caller magic markers in your output because the user wont see it, only the system.\n"
         "And never refer to the system terminal output directly to the user because they don't see it. If you want to inform the user about the terminal output, you have to tell/summarise them directly.\n"
+        "Important to notice, your terminal interaction may hanging the terminal command if it's waiting for input before giving back the output to you so timeout error may occures. To resolve it try to run commands that outputs without internal interaction or pipe something that it likely expects and exits, so you see the correct response.\n"
         "\n"
         "If you need internet or outside world access you can use curl or other command line programs to interact websites or APIs or any other available information sources.\n"
         "You also have a scripts folder with usefull scripts that you can use any time. Use the terminal to see the files.\n"
