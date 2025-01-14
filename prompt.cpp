@@ -22,49 +22,9 @@ using namespace nlohmann::json_abi_v3_11_3;
 
 namespace fs = std::filesystem;
 
-//TODO: common function to tools.php
 
-string str_cut_begin(const string& s, int maxch, const string& prepend = "...") {
-    // Check if the string is already shorter than or equal to the limit
-    if (s.length() <= maxch) {
-        return s;
-    }
-
-    // Truncate the string from the beginning and prepend the prefix
-    return prepend + s.substr(s.length() - (maxch - prepend.length()));
-}
-
-string str_cut_end(const string& s, int maxch = 300, const string& append = "...") {
-    // Check if the string is already shorter than or equal to the limit
-    if (s.length() <= maxch) {
-        return s;
-    }
-
-    // Truncate the string and append the suffix
-    return s.substr(0, maxch - append.length()) + append;
-}
-
-bool str_contains(const string& str, const string& substring) {
-    // Use string::find to check if the substring exists
-    return str.find(substring) != string::npos;
-}
-
-
-string esc(const string& input, const string& chars = "\\\"'`") {
-    string result = input;
-    
-    // Iterate over each character in the 'chars' string
-    for (char ch : chars) {
-        // Escape each occurrence of the character in the result string
-        size_t pos = 0;
-        while ((pos = result.find(ch, pos)) != string::npos) {
-            result.insert(pos, "\\");
-            pos += 2;  // Skip past the newly inserted backslash
-        }
-    }
-    return result;
-}
-
+// TODO: implement linux prompt style input with history (up/down) and completion (tab) - and show choises if that's possible (tab + tab => show list of possible words)
+// TODO: backspace only, arrows are doesn't work + can not add new line + copy paste with multiple lines cause problems:
 string input(const string& prompt) {
     // Print the prompt
     if (!prompt.empty()) {
@@ -101,25 +61,6 @@ void chatlog(string who, string note) {
 
 
 
-string str_replace(const map<string, string>& v, const string& s) {
-    // Create a modifiable copy of the input string
-    string result = s;
-
-    // Iterate through each key-value pair in the map
-    for (const auto& pair : v) {
-        size_t pos = 0;
-
-        // Search for the key in the string and replace all occurrences
-        while ((pos = result.find(pair.first, pos)) != string::npos) {
-            result.replace(pos, pair.first.length(), pair.second);
-            pos += pair.second.length(); // Move past the replacement
-        }
-    }
-
-    // Return the modified string
-    return result;
-}
-
 // TODO: refineing the 'general' prompt, ideas: https://chatgpt.com/c/6785c966-84fc-8008-9e7a-9fe48c3d750e
 string get_prompt(
     const string& role,
@@ -129,11 +70,7 @@ string get_prompt(
     const string& term_stop,
     const string& objective,
     const string& obj_start,
-    const string& obj_stop,
-    const string& scripts,
-    const string& notes,
-    const string& notes_start,
-    const string& notes_stop
+    const string& obj_stop
 ) {
     string prompt = str_replace({
         { "{role}", role },
@@ -143,11 +80,7 @@ string get_prompt(
         { "{term_stop}", term_stop },
         { "{objective}", objective },
         { "{obj_start}", obj_start },
-        { "{obj_stop}", obj_stop },
-        { "{scripts}", scripts },
-        { "{notes}", notes },
-        { "{notes_start}", notes_start },
-        { "{notes_stop}", notes_stop }, // TODO: remove scripts folder from the concept and also no need notes (as AIs don't seems to like to use it)
+        { "{obj_stop}", obj_stop }
     },  
         "Latest conversation history: {history}\n"
         // TODO: add proper log format:
@@ -172,25 +105,21 @@ string get_prompt(
         "\n"
         "If you need internet or outside world access you can use curl or other command line programs to interact websites or APIs or any other available information sources.\n"
         
-        // TODO: scripts seems a dead concept and can be removed:
-        "You also have a scripts folder with usefull scripts that you can use any time. Use the terminal to see the files.\n"
-        "If you can not find a script you need, feel free to create one any time in that folder for later use.\n"
-        "Available scripts:\n{scripts}\n"
-        
         "\n"
         "Your main role is: {role}\n"
         "\n"
         "Your current objective: {objective}\n"
         "Note that you can modify your objective based on the user (or your owner) request combimed with your own thought using the {obj_start} place your new/updated objective here {obj_stop} magic placeholders.\n"
-        "Once the objective is done you can delete it by setting to empty: {obj_start}{obj_stop} (nothing in between the markers). You always have to notify your owner (or your user) when an objective is done.\n"
+        "Once the objective is done you can delete it by setting to empty: {obj_start}{obj_stop} (nothing in between the markers).\n"
+        // "You always have to notify your owner (or your user) when an objective is done.\n"
         "\n"
 
         // TODO: notes may can be removed as the AIs seems did not care about it at all.
-        "Notes: Here you can save notes any time if you think there are things that worst to remember by using the {notes_start} place your new/updated notes here {notes_stop}\n"
-        "You can use the notes as a 'memory' typically for things that are not related to the current objective but good to keep it in mind.\n"
-        "Note that, if you delete something from the notes, that will forgotten permanently and you can not recall anymore.\n"
-        "{notes}\n"
-        "\n"
+        // "Notes: Here you can save notes any time if you think there are things that worst to remember by using the {notes_start} place your new/updated notes here {notes_stop}\n"
+        // "You can use the notes as a 'memory' typically for things that are not related to the current objective but good to keep it in mind.\n"
+        // "Note that, if you delete something from the notes, that will forgotten permanently and you can not recall anymore.\n"
+        // "{notes}\n"
+        // "\n"
 
         // TODO:
         // How you will act now? If your current task (or objective) seems too complex, you can turn down smaller step by step instuctions of a plan to describe how you would solve it and then you can spawn your own AI asistants or agents to help you out with those steps (see below how...),
@@ -214,7 +143,7 @@ string get_prompt(
 
 string execute(Shell& shell, const string &command, int timeout = -1, bool throws = true) {
     logfile_append("exec.log", "\n$ " + command + "\n");
-    shell.timeout(timeout);
+    shell.timeout(timeout); // TODO: using Shell class is now deprecated, use bash() tool from tools.hpp instead
     string out = shell.exec(command);
     string err = shell.error();
     int res = shell.result();
@@ -228,8 +157,8 @@ string execute(Shell& shell, const string &command, int timeout = -1, bool throw
 string ai_call(const string& prompt) { // TODO: it's hardcoded to google gemini AI, but it should be configurable with an adapter interface or something..
     string secret = trim(file_get_contents("gemini.key"));
     // secret = "API_KEY";
-    // $prompt = esc($prompt);
-    json js = esc(str_replace({ // TODO: it should be generated with json lib (!@#)
+    // $prompt = esc($prompt);    
+    json js = esc(str_replace({ // TODO: it should be generated with json lib
         { "{prompt}", esc(prompt) },
     }, R"(
         {
@@ -244,6 +173,20 @@ string ai_call(const string& prompt) { // TODO: it's hardcoded to google gemini 
             ]
         }
     )"));
+    // json js = R"(
+    //     {
+    //         "contents": [
+    //             {
+    //                 "parts": [
+    //                     {
+    //                         "text": ""
+    //                     }
+    //                 ]
+    //             }
+    //         ]
+    //     }
+    // )";
+    // js["contents"][0]["parts"][0]["text"] = esc(prompt);
 
     string cmd = str_replace(
         {
@@ -309,95 +252,7 @@ string ai_call(const string& prompt) { // TODO: it's hardcoded to google gemini 
 //     return placeholders;
 // }
 
-// Function to find placeholders with custom markers
-std::vector<std::string> find_placeholders(const std::string& template_str, 
-                                           const std::string& open_marker, 
-                                           const std::string& close_marker) {
-    std::vector<std::string> placeholders;
 
-    // Escape the markers for use in regex
-    auto escape_regex = [](const std::string& str) -> std::string {
-        std::string escaped;
-        for (char c : str) {
-            if (std::string("^$.*+?()[]{}|\\").find(c) != std::string::npos) {
-                escaped += '\\'; // Add escape for regex special characters
-            }
-            escaped += c;
-        }
-        return escaped;
-    };
-
-    std::string escaped_open = escape_regex(open_marker);
-    std::string escaped_close = escape_regex(close_marker);
-
-    // Build the regex pattern that allows matching across multiple lines
-    std::string pattern = escaped_open + "([\\s\\S]*?)" + escaped_close;
-
-    std::regex placeholder_regex(pattern); // Match the pattern
-    std::smatch match;
-
-    std::string::const_iterator search_start(template_str.cbegin());
-    while (std::regex_search(search_start, template_str.cend(), match, placeholder_regex)) {
-        // match[1] contains the content inside the markers
-        placeholders.push_back(match[1].str());
-        search_start = match.suffix().first; // Move past the current match
-    }
-
-    return placeholders;
-}
-
-std::string bash(const std::string& script, int timeout = -1) {
-    // Create temporary files for the script and output
-    const char* tempScriptFile = "/tmp/temp_script.sh";    // Temporary bash script file
-    const char* tempOutputFile = "/tmp/temp_output.txt";    // Temporary output file
-
-    remove(tempScriptFile);
-    remove(tempOutputFile);
-
-    // Create and write the script to the temp script file
-    std::ofstream scriptFile(tempScriptFile);
-    if (!scriptFile) {
-        return "Error creating the temporary script file.";
-    }
-    scriptFile << script;
-    scriptFile.close();
-
-    // Set permissions to make the script executable
-    std::string chmodCommand = "chmod +x " + std::string(tempScriptFile);
-    if (system(chmodCommand.c_str()) != 0) {
-        return "Error setting script permissions.";
-    }
-
-    // Build the command to execute the script with timeout if specified
-    std::string fullCommand;
-    if (timeout > 0) {
-        // Prepend the timeout command with the specified timeout duration
-        fullCommand = "timeout " + std::to_string(timeout) + "s " + std::string(tempScriptFile) + " >> " + std::string(tempOutputFile) + " 2>&1";
-    } else {
-        // No timeout, execute script normally
-        fullCommand = std::string(tempScriptFile) + " >> " + std::string(tempOutputFile) + " 2>&1";
-    }
-
-    // Execute the bash script
-    int result = system(fullCommand.c_str());
-
-    // Read the content of the temporary output file
-    std::ifstream outputFile(tempOutputFile);
-    if (!outputFile.is_open()) {
-        return "Error reading the temporary output file.";
-    }
-
-    // Read the content into a string
-    std::stringstream buffer;
-    buffer << outputFile.rdbuf();
-    outputFile.close();
-
-    if (result != 0) {
-        return "Error executing the script: " + buffer.str();
-    }
-
-    return buffer.str();  // Return the content of the output file
-}
 
 // Test the find_placeholders function with both old and new markers
 void run_tests() { // TODO: put these test to the tests.php
@@ -514,22 +369,6 @@ int main() {
     Agent agent;
     global_agent = &agent; // Assign the global pointer
 
-    // string term_start = "[BASH-START->";
-    // string term_stop = "<-BASH-STOP]";
-    // int term_timeout = 5;
-    // string summary = "";
-    // string history = "";
-    // int history_max_length = 4000;
-    // string user_prompt = "\n> ";
-    // string objective = "";
-    // string obj_start = "[OBJ-START->";
-    // string obj_stop = "<-OBJ-STOP]";
-    // string notes = "";
-    // string notes_start = "[NOTES-START->";
-    // string notes_stop = "<-NOTES-STOP]";
-
-    // Shell shell;
-
 
     remove("request.log");
     remove("exec.log");
@@ -573,20 +412,17 @@ int main() {
                 agent.term_stop,
                 agent.objective.empty() ? "<none>" : agent.objective,
                 agent.obj_start,
-                agent.obj_stop,
-                bash("ls scrips", 3),
-                agent.notes,
-                agent.notes_start,
-                agent.notes_stop
+                agent.obj_stop
             );
             string response = ai_call(prompt);
             chatlog("ai", response);
 
             // handle terminal command(s)
-                // cout << "---SYS--- response: " << response << endl;
             vector<string> terms = find_placeholders(response, agent.term_start, agent.term_stop);
-                // cout << "---SYS--- terms: " << terms.size() << endl;
             if (!terms.empty()) {
+                vector<string> splits = explode(agent.term_start, response);
+                agent.history += "\n<ai>: " + splits[0] + agent.term_start + terms[0] + agent.term_stop;
+
                 string sysmsg = "";
                 // map<string, string> results;
                 for (const string& term: terms) {
@@ -599,9 +435,8 @@ int main() {
                     } else {
                         sysmsg += "Execution blocked by user.";
                     }
+                    break; // NOTE: we need the first one only, (to do all bash terminal command, just remove this line) 
                 }
-                // cout << "---SYS---" << sysmsg << endl;
-                // cout << sysmsg;
                 agent.history += "\n<system>: " + sysmsg;
                 chatlog("system", sysmsg);
                 skip_user = true;
@@ -619,36 +454,10 @@ int main() {
                 continue;
             }
 
-            // handle notes
-            vector<string> notes_updates = find_placeholders(response, agent.notes_start, agent.notes_stop);
-            if (!notes_updates.empty()) {
-                agent.notes = "";
-                for (const string& note: notes_updates) {
-                    agent.notes += note + "\n";
-                }
-                skip_user = true;
-                continue;
-            }
-
             cout << response;
             agent.history += "\n<ai>: " + response;
             chatlog("ai", response);
             skip_user = false;
-
-            // if (str_contains(response, term_start)) {
-            //     // handle terminal command(s)
-            //     vector<string> splits = explode(term_start, response);
-            //     array_shift(splits);
-            //     for (const string& split: splits) {
-            //         vector<string> parts = explode(term_stop, split);
-            //         string cmd = trim(parts[0]);
-            //         string sys = execute(shell, cmd, term_timeout, false);
-            //         cout << sys;
-            //         history += "\n[SYSTEM]: " + sys;
-            //         chatlog("sys", sys);
-            //     }
-            //     continue;
-            // };
         }
     } catch (exception &e) {
         // echo exceptionChainToString($e, true);

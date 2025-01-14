@@ -15,13 +15,12 @@ void cleanup_environment(const std::string& folder) {
 
 // Test 1: Initialize agent and ensure default state
 void test_initialize_agent() {
-    cleanup_environment("agents/");
+    cleanup_environment(".agents/");
 
     Agent agent;
     assert(agent.summary == "");
     assert(agent.history == "");
     assert(agent.objective == "");
-    assert(agent.notes == "");
     assert(agent.current_file == "");
 }
 
@@ -29,7 +28,7 @@ void test_initialize_agent() {
 void test_save_default_agent() {
     Agent agent;
     assert(agent.run_internal("/save"));
-    assert(fs::exists("agents/default"));
+    assert(fs::exists(agent.agents_folder + "default.json"));
 }
 
 // Test 3: Add data and save
@@ -38,14 +37,12 @@ void test_add_data_and_save() {
     agent.summary = "Test Summary";
     agent.history = "Test History";
     agent.objective = "Test Objective";
-    agent.notes = "Test Notes";
     assert(agent.run_internal("/save"));
 
-    std::string content = file_get_contents("agents/default");
+    std::string content = file_get_contents(agent.agents_folder + "default.json");
     assert(content.find("Test Summary") != std::string::npos);
     assert(content.find("Test History") != std::string::npos);
     assert(content.find("Test Objective") != std::string::npos);
-    assert(content.find("Test Notes") != std::string::npos);
 }
 
 // Test 4: Load agent
@@ -54,7 +51,6 @@ void test_load_agent() {
     agent.summary = "Test Summary";
     agent.history = "Test History";
     agent.objective = "Test Objective";
-    agent.notes = "Test Notes";
     agent.run_internal("/save");
 
     Agent new_agent;
@@ -62,7 +58,6 @@ void test_load_agent() {
     assert(new_agent.summary == "Test Summary");
     assert(new_agent.history == "Test History");
     assert(new_agent.objective == "Test Objective");
-    assert(new_agent.notes == "Test Notes");
 }
 
 // Test 5: List saved agents
@@ -75,7 +70,7 @@ void test_list_saved_agents() {
     agent.run_internal("/list");
     std::cout.rdbuf(original_cout);
 
-    assert(output.str().find("default") != std::string::npos);
+    assert(output.str().find("default.json") != std::string::npos);
 }
 
 // Test 6: Save and load with custom file name
@@ -123,16 +118,16 @@ void test_large_file_handling() {
         {"summary", std::string(1024 * 1024, 'a')}, // 1MB string
         {"history", "Large test history"},
         {"objective", "Large test objective"},
-        {"notes", "Large test notes"}
     };
 
-    std::ofstream largeFile("agents/large.json");
+    Agent agent;
+
+    std::ofstream largeFile(agent.agents_folder + "large.json");
     largeFile << large_data.dump(4); // Pretty-print JSON with indentation
     largeFile.close();
 
-    Agent agent;
-    assert(agent.run_internal("/load large.json"));
-    fs::remove("agents/large.json");
+    assert(agent.run_internal("/load large"));
+    fs::remove(agent.agents_folder + "large.json");
 }
 
 // Command edge cases
@@ -173,7 +168,7 @@ void test_file_format_robustness() {
 
     Agent agent;
     assert(!agent.run_internal("/load malformed.txt"));
-    fs::remove("agents/malformed.txt");
+    fs::remove(agent.agents_folder + "malformed.txt");
 }
 
 // Main test runner

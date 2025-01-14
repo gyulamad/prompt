@@ -18,40 +18,41 @@ namespace fs = std::filesystem;
 
 class Agent {
 public:
+    // TODO build up the ownership tree:
+    string name; 
+    string owner;
+
     string role = "";
-    string term_start = "[BASH-START->";
-    string term_stop = "<-BASH-STOP]";
+    string term_start = "[BASH-START]:";
+    string term_stop = ":[BASH-STOP]";
     int term_timeout = 5;
     string summary = "";
     string history = "";
     int history_max_length = 1000000;
     string user_prompt = "\n> ";
     string objective = "";
-    string obj_start = "[OBJ-START->";
-    string obj_stop = "<-OBJ-STOP]";
-    string notes = "";
-    string notes_start = "[NOTES-START->";
-    string notes_stop = "<-NOTES-STOP]";
+    string obj_start = "[OBJ-START]:";
+    string obj_stop = ":[OBJ-STOP]";
     string current_file = ""; // Tracks the current file name
 
     Shell shell;
-    const string agents_folder = "agents/";
+    const string agents_folder = ".agents/";
 
     // Constructor: Load the default agent file
     Agent(const string& file = "default") {
-        fs::create_directory(agents_folder); // Ensure the `agents/` folder exists
+        fs::create_directory(agents_folder); // Ensure the agents_folder exists
         if (!cmd_load(*this, {file})) {
             cout << "No agent file loaded. Starting with a new agent." << endl;
         }
     }
 
     // Command descriptions for /help
-    static map<string, string> command_descriptions() {
+    const map<string, string> command_descriptions() {
         return {
             {"/show", "Displays information about the agent (e.g., summary, history, objective, notes)."},
-            {"/save", "Saves all agent info into a file in the 'agents/' folder."},
-            {"/load", "Loads all agent info from a file in the 'agents/' folder."},
-            {"/list", "Lists all saved agent files in the 'agents/' folder."},
+            {"/save", str_replace("{agents_folder}", agents_folder, "Saves all agent info into a file in the '{agents_folder}' folder.")},
+            {"/load", str_replace("{agents_folder}", agents_folder, "Loads all agent info from a file in the '{agents_folder}' folder.")},
+            {"/list", str_replace("{agents_folder}", agents_folder, "Lists all saved agent files in the '{agents_folder}' folder.")},
             {"/help", "Lists all available commands and their descriptions."},
             {"/exit", "Saves the current agent and exits the program."}
         };
@@ -64,13 +65,11 @@ public:
             {"summary", agent.summary},
             {"history", agent.history},
             {"objective", agent.objective},
-            {"notes", agent.notes},
             {
                 "all",
-                "role: " + agent.role + "\n\n" +
-                "summary: " + agent.summary + "\n\n" +
-                "objective: " + agent.objective + "\n\n" +
-                "notes: " + agent.notes + "\n\n"
+                "role: " + agent.role + "\n" +
+                "summary: " + agent.summary + "\n" +
+                "objective: " + agent.objective + "\n"
             }
         };
 
@@ -96,13 +95,13 @@ public:
     static bool cmd_save(Agent& agent, vector<string> params) {
         std::string filename;
         if (!params.empty()) {
-            filename = agent.agents_folder + params[0];
-            agent.current_file = params[0];
+            filename = agent.agents_folder + params[0] + ".json";
+            agent.current_file = params[0] + ".json";
         } else if (!agent.current_file.empty()) {
             filename = agent.agents_folder + agent.current_file;
         } else {
-            filename = agent.agents_folder + "default";
-            agent.current_file = "default";
+            filename = agent.agents_folder + "default.json";
+            agent.current_file = "default.json";
         }
 
         // Ensure the agents folder exists
@@ -118,7 +117,6 @@ public:
             {"summary", agent.summary},
             {"history", agent.history},
             {"objective", agent.objective},
-            {"notes", agent.notes}
         };
 
         try {
@@ -134,7 +132,7 @@ public:
 
     // Modified cmd_load function to use JSON
     static bool cmd_load(Agent& agent, vector<string> params) {
-        std::string filename = agent.agents_folder + (params.empty() ? "default" : params[0]);
+        std::string filename = agent.agents_folder + (params.empty() ? "default" : params[0]) + ".json";
 
         try {
             std::string content = file_get_contents(filename);
@@ -144,14 +142,13 @@ public:
             agent.summary = j.value("summary", "");
             agent.history = j.value("history", "");
             agent.objective = j.value("objective", "");
-            agent.notes = j.value("notes", "");
 
             // Truncate history to history_max_length after loading
             if (agent.history.length() > agent.history_max_length) {
                 agent.history = agent.history.substr(0, agent.history_max_length);
             }
 
-            agent.current_file = params.empty() ? "default" : params[0];
+            agent.current_file = (params.empty() ? "default" : params[0]) + ".json";
             std::cout << "Agent info loaded from " << filename << std::endl;
             return true;
         } catch (const std::exception& e) {
@@ -162,7 +159,7 @@ public:
 
 
     static bool cmd_list(Agent& agent, vector<string> params) {
-        cout << "Listing all saved agent files in the 'agents/' folder:" << endl;
+        cout << "Listing all saved agent files in the '" << agent.agents_folder << "' folder:" << endl;
         fs::create_directory(agent.agents_folder);
 
         for (const auto& entry : fs::directory_iterator(agent.agents_folder)) {
@@ -172,7 +169,7 @@ public:
     }
 
     static bool cmd_help(Agent& agent, vector<string> params) {
-        auto descriptions = command_descriptions();
+        auto descriptions = agent.command_descriptions();
         cout << "Available commands:" << endl;
         for (const auto& pair : descriptions) {
             cout << " - " << pair.first << ": " << pair.second << endl;
