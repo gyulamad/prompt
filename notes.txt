@@ -14,5 +14,5 @@ To build and run the tests:
 cd tests && g++ tests.cpp -o tests && ./tests && cd ..
 
 //TODO: need more sophisticated and strict building system and test coverage
-
-//TODO: make "type" ai-s, make 'generic' prompt and other, make 'image-analizer' type prompt, make 'desktop-interactor' type ai and prompt to take screenshot, interact with mouse and keyboard etc.. (make 'speach-recognizer', 'sound-analizer' etc)
+//TODO: add search api as system calls: https://chatgpt.com/c/6785b6ae-4290-8008-91c6-3df14926946a
+//TODO: make "role-typed" ai-s, make 'generic' prompt and other, make 'research' type that has internet search access, make 'brainstorm' type, make 'image-analizer' type prompt, make 'desktop-interactor' type ai and prompt to take screenshot, interact with mouse and keyboard etc.. (make 'speach-recognizer', 'sound-analizer' etc)
