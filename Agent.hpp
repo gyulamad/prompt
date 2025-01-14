@@ -24,7 +24,7 @@ public:
     int term_timeout = 5;
     string summary = "";
     string history = "";
-    int history_max_length = 1000;
+    int history_max_length = 1000000;
     string user_prompt = "\n> ";
     string objective = "";
     string obj_start = "[OBJ-START->";

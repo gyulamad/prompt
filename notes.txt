@@ -15,3 +15,4 @@ cd tests && g++ tests.cpp -o tests && ./tests && cd ..
 
 //TODO: need more sophisticated and strict building system and test coverage
 
+//TODO: make "type" ai-s, make 'generic' prompt and other, make 'image-analizer' type prompt, make 'desktop-interactor' type ai and prompt to take screenshot, interact with mouse and keyboard etc.. (make 'speach-recognizer', 'sound-analizer' etc)

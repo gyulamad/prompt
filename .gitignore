@@ -1,6 +1,5 @@
 json
 gemini.key
-scripts/*.sh
 *.log
 prompt
 tests/agents
