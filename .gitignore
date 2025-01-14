@@ -3,4 +3,5 @@ gemini.key
 *.log
 prompt
 tests/agents
-tests/tests
+tests/tests.agents
+tests/.agents
