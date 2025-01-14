@@ -120,6 +120,7 @@ string str_replace(const map<string, string>& v, const string& s) {
     return result;
 }
 
+// TODO: refineing the 'general' prompt, ideas: https://chatgpt.com/c/6785c966-84fc-8008-9e7a-9fe48c3d750e
 string get_prompt(
     const string& role,
     const string& summary,
@@ -149,6 +150,11 @@ string get_prompt(
         { "{notes_stop}", notes_stop }, // TODO: remove scripts folder from the concept and also no need notes (as AIs don't seems to like to use it)
     },  
         "Latest conversation history: {history}\n"
+        // TODO: add proper log format:
+        // [LOG NOTE BEGIN] [YYYY-MM-DD HH:MM:SS.mmm] [sender] [recipien]  
+        // ....
+        // [LOG NOTE END]
+        // Explain the AI that: The log history can be large an we don't know the context window size and that latest log note may overflows at the top of the latest history, so we have to summarize it time to time. if the AI doesn't see any log note that is summarization sent by the summarizer or it's already almost in the top few log notes then the AI should ask for summarization by using the {sum_request} token in it's output.
         "\n"
         "Summary of events preceding the conversation: {summary}\n"
         "\n"
@@ -194,6 +200,7 @@ string get_prompt(
         // If your agent(s) are keep failing to achive the goal or they are having trouble you can help them but also you can restart them if they are continuisly failing by using the followings: {respawn_start}{"name":"helper-name","role":"...","objective":"...","prompt":"..."}{respawn_stop} it will recreate them,
         // Or if your agent seems totally useless or you don't need the agent anymore, you can kill them by using the {kill_start}helper-name{kill_stop} marker. (to kill, no need JSON format, only the unique name)
         // Please note that the helper-name should be unique and should only contains letters, numbers and '-' charater. When you create them, you have to generate their unique name and the convention for name generation is using (your name) following by a '-' charater and then the agent own name part. So for example: {agent_name}-helper123
+        // Note: if you keep encounter into an implossible issue that you can not solve even with the help of your asistants AI agents (for example a system error or permission issues) and you have to give up on your objective you can do so but you have to inform your owner or user.
         // AI agents you already own (and their roles):
         // {agents}
 
