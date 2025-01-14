@@ -8,14 +8,14 @@ deploy to access anywhere:
 cp ./prompt ~/bin/prompt
 
 build & deploy & run:
-g++ prompt.cpp -o prompt && cp ./prompt ~/bin/prompt && prompt
+g++ prompt.cpp -o prompt -DDEBUG_JSON && cp ./prompt ~/bin/prompt && prompt
 
 To build and run the tests:
-cd tests && g++ tests.cpp -o tests && ./tests && cd ..
+cd tests && g++ tests.cpp -o tests && ./tests -DDEBUG_JSON && cd ..
 
 All in one:
 Build and run tests then build and deploy and run the prompt:
-cd tests && g++ tests.cpp -o tests && ./tests && cd .. && g++ prompt.cpp -o prompt && cp ./prompt ~/bin/prompt && prompt
+cd tests && g++ tests.cpp -o tests -DDEBUG_JSON && ./tests && cd .. && g++ prompt.cpp -o prompt -DDEBUG_JSON && cp ./prompt ~/bin/prompt && prompt
 
 //TODO: need more sophisticated and strict building system and test coverage
 //TODO: add search api as system calls: https://chatgpt.com/c/6785b6ae-4290-8008-91c6-3df14926946a

@@ -9,7 +9,7 @@
 
 #include "tools.hpp"
 #include <functional>
-#include "Shell.hpp"
+// #include "Shell.hpp"
 
 using namespace std;
 using namespace nlohmann::json_abi_v3_11_3;
@@ -35,7 +35,7 @@ public:
     string obj_stop = ":[OBJ-STOP]";
     string current_file = ""; // Tracks the current file name
 
-    Shell shell;
+    // Shell shell;
     const string agents_folder = ".agents/";
 
     // Constructor: Load the default agent file

@@ -97,7 +97,12 @@ string get_prompt(
         "Whenever you need (or want) to use the terminal, just start your response with a {term_start} marker and write your bash script command(s) you want to run.\n"
         "If you start (or include in) your output within this magic markers the system will recieve it and runs it in a linux terminal as a bash script.\n"
         "If you call the terminal in your response you don't need to address any explanation or specific comment(s) as it wont be seen by your owner or asistants, but only the system.\n"
-        "Once you finished the bash script, use {term_stop} marker. So the correct usages for example: {term_start} place your script here... {term_stop}\n"
+        "Once you finished the bash script, use {term_stop} marker. So the correct usages for example:\n"
+        "{term_start}\n"
+        "Place your script here...\n"
+        "It will be run line by line\n"
+        "as a temporary bash script.\n"
+        "{term_stop}\n"
         "and then the system will send you back what the terminal outputs so that you will know the command(s) results. - WARNING: whenever you want to show these markers to your owner or other agents (or the user) you should escape it, otherwise you will call the system bash accidentaly!\n"
         "Note if you intended to talk to your owner (or user), do not include the terminal caller magic markers without escapes in your output because the user wont see it, only the system (or maybe the guards).\n"
         "And never refer to the system terminal output directly to the user because they don't see it. If you want to inform the user about the terminal output, you have to tell/summarise them directly.\n" // TODO: <- this line maybe not true anymore
@@ -141,20 +146,20 @@ string get_prompt(
     return prompt;
 }
 
-string execute(Shell& shell, const string &command, int timeout = -1, bool throws = true) {
-    logfile_append("exec.log", "\n$ " + command + "\n");
-    shell.timeout(timeout); // TODO: using Shell class is now deprecated, use bash() tool from tools.hpp instead
-    string out = shell.exec(command);
-    string err = shell.error();
-    int res = shell.result();
-    if (throws && (res || !err.empty())) {
-        throw ERROR("Command error: " + to_string(res) + "\ncommand: $ " + str_cut_end(command) + "\noutput: " + str_cut_end(out) + "\nerror: " + err);
-    }
-    logfile_append("exec.log", "\n" + out + err + "\n"); // TODO: log files just for debuging, also colusion happens when multiple AI runs, need some cleanup
-    return out + err;
-}
+// string execute(Shell& shell, const string &command, int timeout = -1, bool throws = true) {
+//     logfile_append("exec.log", "\n$ " + command + "\n");
+//     shell.timeout(timeout); // TODO: using Shell class is now deprecated, use bash() tool from tools.hpp instead
+//     string out = shell.exec(command);
+//     string err = shell.error();
+//     int res = shell.result();
+//     if (throws && (res || !err.empty())) {
+//         throw ERROR("Command error: " + to_string(res) + "\ncommand: $ " + str_cut_end(command) + "\noutput: " + str_cut_end(out) + "\nerror: " + err);
+//     }
+//     logfile_append("exec.log", "\n" + out + err + "\n"); // TODO: log files just for debuging, also colusion happens when multiple AI runs, need some cleanup
+//     return out + err;
+// }
 
-string ai_call(const string& prompt) { // TODO: it's hardcoded to google gemini AI, but it should be configurable with an adapter interface or something..
+string ai_call(const string& prompt, int timeout = 30) { // TODO: it's hardcoded to google gemini AI, but it should be configurable with an adapter interface or something..
     string secret = trim(file_get_contents("gemini.key"));
     // secret = "API_KEY";
     // $prompt = esc($prompt);    
@@ -195,8 +200,9 @@ string ai_call(const string& prompt) { // TODO: it's hardcoded to google gemini 
         },
         "curl \"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={secret}\" -H 'Content-Type: application/json' -X POST -d \"{js}\" -s"
     );// | jq .candidates[0].content.parts[0].text';
-    Shell shell;
-    string res = shell.exec(cmd);
+    // Shell shell;
+    // string res = shell.exec(cmd);
+    string res = bash(cmd, timeout);
     logfile_append("request.log", "\n$ " + cmd + "\n" + res + "\n");
     js = json::parse(res);
     //.candidates[0].content.parts[0].text
@@ -429,7 +435,7 @@ int main() {
                     string trimmed = trim(term);
                     sysmsg += "\n" + agent.term_start + term + agent.term_stop + "\nResults:\n";
                     if (confirm("The system wants to run the following command:\n" + trimmed + "\nDo you want to proceed?", 'y')) {  // TODO: its supervise the bash commands, but we should be able to turn it off - note unsafe! so it should be turned on by default
-                        string results = bash(trimmed, 3);
+                        string results = bash(trimmed, 5); // TODO: add command timeout settings, it's just hardcoded here now
                         sysmsg += results;
                         cout << results << endl; // TODO: also show the inner things that AI says around the bash scripts, because AIs can not always knows who the talking to when they start there responses
                     } else {
