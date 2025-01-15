@@ -1,0 +1,8 @@
+json
+gemini.key
+*.log
+prompt
+tests/agents
+tests/tests
+.agents
+tests/.agents
