@@ -262,3 +262,11 @@ std::string bash(const std::string& script, int timeout = -1) {
 
     return output;  // Return the content of the output file
 }
+
+std::string timef(const std::string& format = "%Y-%m-%d %H:%M:%S", const std::time_t* timestamp = nullptr) {
+    std::time_t currentTime = (timestamp == nullptr) ? std::time(nullptr) : *timestamp;
+    std::tm* localTime = std::localtime(&currentTime);
+    std::stringstream ss;
+    ss << std::put_time(localTime, format.c_str());
+    return ss.str();
+}

@@ -14,18 +14,19 @@
 
 #include "json/single_include/nlohmann/json.hpp"  // Include the nlohmann JSON library
 
+#include "JSON.hpp"
 #include "tools.hpp"
 #include "Agent.hpp"
 
 using namespace std;
-using namespace nlohmann::json_abi_v3_11_3;
+using namespace nlohmann::json_abi_v3_11_3; // TODO: use JSON wrapper class instead
 
 namespace fs = std::filesystem;
 
 
 // TODO: implement linux prompt style input with history (up/down) and completion (tab) - and show choises if that's possible (tab + tab => show list of possible words)
 // TODO: backspace only, arrows are doesn't work + can not add new line + copy paste with multiple lines cause problems:
-string input(const string& prompt) {
+string input(const string& prompt, const string& defval = "") {
     // Print the prompt
     if (!prompt.empty()) {
         cout << prompt;
@@ -35,7 +36,7 @@ string input(const string& prompt) {
     string input;
     getline(cin, input);
     
-    return input;
+    return input.empty() ? defval : input;
 }
 
 void logfile_append(const string& filename, const string& lognote) {
@@ -70,7 +71,9 @@ string get_prompt(
     const string& term_stop,
     const string& objective,
     const string& obj_start,
-    const string& obj_stop
+    const string& obj_stop,
+    const string& datetime,
+    const string& pwd
 ) {
     string prompt = str_replace({
         { "{role}", role },
@@ -80,7 +83,9 @@ string get_prompt(
         { "{term_stop}", term_stop },
         { "{objective}", objective },
         { "{obj_start}", obj_start },
-        { "{obj_stop}", obj_stop }
+        { "{obj_stop}", obj_stop },
+        { "{datetime}", datetime },
+        { "{pws}", pwd },
     },  
         "Latest conversation history: {history}\n"
         // TODO: add proper log format:
@@ -95,36 +100,29 @@ string get_prompt(
         "You are an AI assistant/agent as part of an AI system and while you are communicating with your owner your helper AI agents and also you have system/terminal access as well, here is how:\n"
         "Your outputs are connected to not only your owner but to a system also and you can decide who do you talking to, to your owner or to your helpers or to the system/terminal.\n"
         "Whenever you need (or want) to use the terminal, just start your response with a {term_start} marker and write your bash script command(s) you want to run.\n"
-        "If you start (or include in) your output within this magic markers the system will recieve it and runs it in a linux terminal as a bash script.\n"
+        //"Be aware and carful: The system are not intelligent, just an algorithm that reads your output and whenever it recognise the {term_start} marker, it starts execute your output as a bash script without understanding the context. To avoid accidental execution, use standard markdown code blocks (````bash ... ````) for all bash command and bash script examples.\n"
         "If you call the terminal in your response you don't need to address any explanation or specific comment(s) as it wont be seen by your owner or asistants, but only the system.\n"
-        "Once you finished the bash script, use {term_stop} marker. So the correct usages for example:\n"
-        "{term_start}\n"
-        "Place your script here...\n"
-        "It will be run line by line\n"
-        "as a temporary bash script.\n"
-        "{term_stop}\n"
+        "If possible try to avoid commands, that waits for user interaction, however the commands are running with a timeout, so the output always will returned for you, even if the command waits for a user input."
+        "Once you finished the bash script, use {term_stop} marker. So the correct usages for example: {term_start}ls -l /example/path {term_stop}\n"
+        // "Runing multiple lines at once:\n"
+        // "{term_start}echo \"Place your script here...\"\n"
+        // "{term_start}echo \"It will be run line by line\"\n"
+        // "{term_start}echo \"as a temporary bash script.\"\n"
+        // "{term_stop}\n"
+        "\n"
         "and then the system will send you back what the terminal outputs so that you will know the command(s) results. - WARNING: whenever you want to show these markers to your owner or other agents (or the user) you should escape it, otherwise you will call the system bash accidentaly!\n"
         "Note if you intended to talk to your owner (or user), do not include the terminal caller magic markers without escapes in your output because the user wont see it, only the system (or maybe the guards).\n"
         "And never refer to the system terminal output directly to the user because they don't see it. If you want to inform the user about the terminal output, you have to tell/summarise them directly.\n" // TODO: <- this line maybe not true anymore
         "Important to notice, your terminal interaction may hanging the terminal command if it's waiting for input before giving back the output to you so timeout error may occures. To resolve it try to run commands that outputs without internal interaction or pipe something it likely expects and exits, so you see the correct response.\n"
         "\n"
         "If you need internet or outside world access you can use curl or other command line programs to interact websites or APIs or any other available information sources.\n"
-        
         "\n"
         "Your main role is: {role}\n"
         "\n"
         "Your current objective: {objective}\n"
         "Note that you can modify your objective based on the user (or your owner) request combimed with your own thought using the {obj_start} place your new/updated objective here {obj_stop} magic placeholders.\n"
         "Once the objective is done you can delete it by setting to empty: {obj_start}{obj_stop} (nothing in between the markers).\n"
-        // "You always have to notify your owner (or your user) when an objective is done.\n"
         "\n"
-
-        // TODO: notes may can be removed as the AIs seems did not care about it at all.
-        // "Notes: Here you can save notes any time if you think there are things that worst to remember by using the {notes_start} place your new/updated notes here {notes_stop}\n"
-        // "You can use the notes as a 'memory' typically for things that are not related to the current objective but good to keep it in mind.\n"
-        // "Note that, if you delete something from the notes, that will forgotten permanently and you can not recall anymore.\n"
-        // "{notes}\n"
-        // "\n"
 
         // TODO:
         // How you will act now? If your current task (or objective) seems too complex, you can turn down smaller step by step instuctions of a plan to describe how you would solve it and then you can spawn your own AI asistants or agents to help you out with those steps (see below how...),
@@ -139,7 +137,8 @@ string get_prompt(
         // {agents}
 
         // TODO: check if the ai understand the concept of ai hierarhy, ask, if they can recognise it's an ownership tree and they are one element in it?
-
+        "Current date and time: {datetime}\b"
+        "Current working directory (pwd): {pwd}\n"
         "Now it's really your turn to continue the conversation.\n"
         "\n"
     );
@@ -418,7 +417,9 @@ int main() {
                 agent.term_stop,
                 agent.objective.empty() ? "<none>" : agent.objective,
                 agent.obj_start,
-                agent.obj_stop
+                agent.obj_stop,
+                timef(),
+                bash("pwd")
             );
             string response = ai_call(prompt);
             chatlog("ai", response);
@@ -427,6 +428,7 @@ int main() {
             vector<string> terms = find_placeholders(response, agent.term_start, agent.term_stop);
             if (!terms.empty()) {
                 vector<string> splits = explode(agent.term_start, response);
+                terms[0] = str_replace(agent.term_start, "\n", terms[0]);
                 agent.history += "\n<ai>: " + splits[0] + agent.term_start + terms[0] + agent.term_stop;
 
                 string sysmsg = "";
@@ -439,7 +441,7 @@ int main() {
                         sysmsg += results;
                         cout << results << endl; // TODO: also show the inner things that AI says around the bash scripts, because AIs can not always knows who the talking to when they start there responses
                     } else {
-                        sysmsg += "Execution blocked by user.";
+                        sysmsg += "Execution blocked by user. Reason: " + input("Provide a reason: ", "<no reason>");
                     }
                     break; // NOTE: we need the first one only, (to do all bash terminal command, just remove this line) 
                 }

@@ -12,7 +12,7 @@
 // #include "Shell.hpp"
 
 using namespace std;
-using namespace nlohmann::json_abi_v3_11_3;
+using namespace nlohmann::json_abi_v3_11_3; // TODO: use the JSON wrapper
 
 namespace fs = std::filesystem;
 
@@ -49,7 +49,7 @@ public:
     // Command descriptions for /help
     const map<string, string> command_descriptions() {
         return {
-            {"/show", "Displays information about the agent (e.g., summary, history, objective, notes)."},
+            {"/show", "Displays information about the agent (e.g., summary, history, objective, etc.)."},
             {"/save", str_replace("{agents_folder}", agents_folder, "Saves all agent info into a file in the '{agents_folder}' folder.")},
             {"/load", str_replace("{agents_folder}", agents_folder, "Loads all agent info from a file in the '{agents_folder}' folder.")},
             {"/list", str_replace("{agents_folder}", agents_folder, "Lists all saved agent files in the '{agents_folder}' folder.")},
