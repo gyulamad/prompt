@@ -1,8 +1,2 @@
-json
-gemini.key
-*.log
-prompt
-tests/agents
-tests/tests
-.agents
-tests/.agents
+# TODO: old should be removed (it's temporary for refactoring only)
+old

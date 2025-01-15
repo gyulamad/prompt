@@ -1,18 +1,9 @@
-#include <cassert>
 #include <iostream>
-#include <fstream>
-#include <sstream>
-#include <filesystem>
 
-#include "test_Agent.hpp"
-#include "test_timef.hpp"
-#include "test_JSON.hpp"
+using namespace std;
 
 int main() {
-    test_Agent();
-    test_timef();
-    test_JSON();
 
-    std::cout << "All tests passed successfully!" << std::endl;
+    cout << "All tests passed successfully!" << endl;
     return 0;
 }

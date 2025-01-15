@@ -8,8 +8,7 @@
                 "/usr/local/include/**"
             ],
             "defines": [
-                // "USE_CANDLES_AS_FLOAT"
-                // "USE_CANDLES_AS_DOUBLE", 
+                 
             ],
             "compilerPath": "/usr/bin/g++",
             "cStandard": "c17",
