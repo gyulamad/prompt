@@ -15,6 +15,8 @@
 #include <poll.h>
 #include <errno.h>
 
+#include "ERROR.hpp"
+
 using namespace std;
 
 class Terminal {
@@ -176,7 +178,7 @@ public:
     }
 
     // Terminal interface implementation
-    string read() override {
+    string read() override { // TODO: implement reading with blocking mode for e.g. readln(string token = "\n") ...
         lock_guard<mutex> lock(buffer_mutex);
         if (accumulated_buffer.empty()) {
             return "";
@@ -187,6 +189,7 @@ public:
     }
 
     char getc() override {
+        // TODO: I am not sure about the char_buffer, perhaps we should use the accumulated_buffer here?
         lock_guard<mutex> lock(buffer_mutex);
         if (char_buffer.empty()) {
             return '\0';
@@ -203,16 +206,11 @@ public:
     }
 
     void writeln(string input) override {
-        if (is_running) {
-            input += '\n';
-            ::write(master_fd, input.c_str(), input.length());
-        }
+        write(input + "\n");
     }
 
     void putc(char c) override {
-        if (is_running) {
-            ::write(master_fd, &c, 1);
-        }
+        write(to_string(c));
     }
 
     bool update() {

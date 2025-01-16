@@ -1,2 +1,6 @@
 # TODO: old should be removed (it's temporary for refactoring only)
 old
+prompt/prompt
+tests/tests
+*.gdb
+json
