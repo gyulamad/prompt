@@ -27,7 +27,7 @@ public:
     virtual ~Terminal() = default;
 };
 
-// New base class to handle common terminal functionality
+// Base class to handle common terminal functionality
 class TerminalBase : public Terminal {
 protected:
     termios original_termios;
@@ -81,28 +81,6 @@ private:
     static void signal_handler(int sig) {
         g_running = 0;
     }
-    
-    // void save_terminal_settings() {
-    //     if (tcgetattr(STDIN_FILENO, &original_termios) == 0) {
-    //         terminal_saved = true;
-    //     }
-    // }
-
-    // void restore_terminal() {
-    //     if (terminal_saved) {
-    //         tcsetattr(STDIN_FILENO, TCSANOW, &original_termios);
-    //         terminal_saved = false;
-    //     }
-    // }
-
-    // void setup_terminal() {
-    //     save_terminal_settings();
-        
-    //     termios raw = original_termios;
-    //     raw.c_iflag &= ~(ICRNL | IXON);
-    //     raw.c_lflag &= ~(ECHO | ICANON | ISIG);
-    //     tcsetattr(STDIN_FILENO, TCSANOW, &raw);
-    // }
 
     void io_loop() {
         vector<char> buffer(4096);
@@ -136,8 +114,7 @@ public:
     TerminalEmulator() :
         child_pid(-1), 
         master_fd(-1), 
-        is_running(false)//,
-        // terminal_saved(false) 
+        is_running(false)
     {
         struct sigaction sa;
         sa.sa_handler = signal_handler;
@@ -284,41 +261,8 @@ volatile sig_atomic_t TerminalEmulator::g_running = 1;
 
 class TerminalIO: public TerminalBase {
 private:
-    // termios original_termios;
-    // bool terminal_saved = false;
     queue<char> input_buffer;
     mutex buffer_mutex;
-
-    // void save_terminal_settings() {
-    //     if (tcgetattr(STDIN_FILENO, &original_termios) == 0) {
-    //         terminal_saved = true;
-    //     }
-    // }
-
-    // void restore_terminal() {
-    //     if (terminal_saved) {
-    //         // Restore terminal settings
-    //         tcsetattr(STDIN_FILENO, TCSANOW, &original_termios);
-    //         // Restore blocking mode
-    //         int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-    //         fcntl(STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
-    //         terminal_saved = false;
-    //     }
-    // }
-
-    // void setup_terminal() {
-    //     save_terminal_settings();
-        
-    //     // Set up non-blocking input
-    //     int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-    //     fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
-        
-    //     // Set up raw mode
-    //     termios raw = original_termios;
-    //     raw.c_iflag &= ~(ICRNL | IXON);
-    //     raw.c_lflag &= ~(ECHO | ICANON | ISIG);
-    //     tcsetattr(STDIN_FILENO, TCSANOW, &raw);
-    // }
 
 public:
     TerminalIO() {
