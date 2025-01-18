@@ -1,9 +1,9 @@
 # build && run
-g++  -std=c++11 -pthread prompt.cpp -o prompt && ./prompt
+g++ -std=c++23 prompt.cpp -o prompt && ./prompt
 
 # test
-g++  -std=c++11 -pthread tests/tests.cpp -o tests/tests && tests/tests
+g++ -std=c++23 tests/tests.cpp -o tests/tests && tests/tests
 
 
 # test debug
-g++  -std=c++11 -pthread tests/tests.cpp -o tests/tests.gdb -g && tests/tests.gdb
+g++ -std=c++23 tests/tests.cpp -o tests/tests.gdb -g && tests/tests.gdb

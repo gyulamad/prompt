@@ -175,6 +175,16 @@ public:
     // Destructor (no special cleanup needed here)
     ~JSON() {}
 
+    string dump(const int indent = -1, const char indent_char = ' ') {
+        try {
+            json j = json::parse(jstring);  // Parse the JSON string
+            string dump = j.dump(indent, indent_char);
+            return dump;
+        } catch (const exception& e) {
+            throw ERROR("JSON Error, reason: " + string(e.what()) + "\njson-string was: " + jstring);
+        }
+    }
+
     // Method to check if a selector is defined in the JSON (exists)
     bool isDefined(string jselector) {
         try {
@@ -204,8 +214,12 @@ public:
             json::json_pointer ptr = _json_selector(jselector);  // Convert selector to pointer
             return j.at(ptr).get<T>();  // Return the value
         } catch (const exception& e) {
-            throw ERROR("JSON Error at: " + jselector + ", reason: " + string(e.what()));
+            throw ERROR("JSON Error at: " + jselector + ", reason: " + string(e.what()) + "\njson-string was: " + jstring);
         }
+    }
+
+    void set(string value) {
+        jstring = value;
     }
 
     template<typename T>
@@ -216,7 +230,7 @@ public:
             j[ptr] = value;
             jstring = j.dump();
         } catch (const json::exception& e) {
-            throw ERROR("JSON Error at: " + jselector + ", reason: " + string(e.what()));
+            throw ERROR("JSON Error at: " + jselector + ", reason: " + string(e.what()) + "\njson-string was: " + jstring);
         }
     }
 

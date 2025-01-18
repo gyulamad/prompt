@@ -21,7 +21,7 @@
 using namespace std;
 using namespace nlohmann::json_abi_v3_11_3; // TODO: use JSON wrapper class instead
 
-namespace fs = std::filesystem;
+namespace fs = filesystem;
 
 
 // TODO: implement linux prompt style input with history (up/down) and completion (tab) - and show choises if that's possible (tab + tab => show list of possible words)
@@ -262,46 +262,46 @@ string ai_call(const string& prompt, int timeout = 30) { // TODO: it's hardcoded
 // Test the find_placeholders function with both old and new markers
 void run_tests() { // TODO: put these test to the tests.php
     // Test 1: Simple test with default markers {{}} (Backward compatibility)
-    std::string template1 = "Hello, {{name}}! Welcome to {{place}}.";
+    string template1 = "Hello, {{name}}! Welcome to {{place}}.";
     auto result1 = find_placeholders(template1, "{{", "}}");
     assert(result1.size() == 2); 
     assert(result1[0] == "name"); 
     assert(result1[1] == "place");
 
     // Test 2: No placeholders in the template (Backward compatibility)
-    std::string template2 = "No placeholders here.";
+    string template2 = "No placeholders here.";
     auto result2 = find_placeholders(template2, "{{", "}}");
     assert(result2.empty()); // Expected: (empty)
 
     // Test 3: Template with malformed markers (e.g., unmatched opening marker) (Backward compatibility)
-    std::string template3 = "Some text {{placeholder1} and some text {{placeholder2}}";
+    string template3 = "Some text {{placeholder1} and some text {{placeholder2}}";
     auto result3 = find_placeholders(template3, "{{", "}}");
     assert(result3.size() == 1); 
     assert(result3[0] == "placeholder1} and some text {{placeholder2");
 
     // Test 4: Using different markers [[START]] and [[STOP]]
-    std::string template4 = "The placeholder is [[VALUE-START]]value[[VALUE-STOP]].";
+    string template4 = "The placeholder is [[VALUE-START]]value[[VALUE-STOP]].";
     auto result4 = find_placeholders(template4, "[[VALUE-START]]", "[[VALUE-STOP]]");
     assert(result4.size() == 1);
     assert(result4[0] == "value");
 
     // Test 5: Template with placeholders containing empty strings [[START]] [[STOP]]
-    std::string template5 = "Here is an empty [[START]][[STOP]] placeholder.";
+    string template5 = "Here is an empty [[START]][[STOP]] placeholder.";
     auto result5 = find_placeholders(template5, "[[START]]", "[[STOP]]");
     assert(result5.size() == 1);
-    // for (const auto& r :result3)  std::cout << r << " "; cout << endl;
+    // for (const auto& r :result3)  cout << r << " "; cout << endl;
     // cout << "[" << result5[0] << "]" << endl;
     assert(result5[0].empty()); // Expected: (empty string)
 
     // Test 6: Multiple placeholders with custom markers
-    std::string template6 = "Here are multiple values: [[START]]first[[STOP]], [[START]]second[[STOP]].";
+    string template6 = "Here are multiple values: [[START]]first[[STOP]], [[START]]second[[STOP]].";
     auto result6 = find_placeholders(template6, "[[START]]", "[[STOP]]");
     assert(result6.size() == 2);
     assert(result6[0] == "first");
     assert(result6[1] == "second");
 
     // Test 7: Multiple placeholders using both default and custom markers
-    std::string template7 = "Here is a mix: {{first}} and [[START]]second[[STOP]]!";
+    string template7 = "Here is a mix: {{first}} and [[START]]second[[STOP]]!";
     auto result7_1 = find_placeholders(template7, "{{", "}}");
     auto result7_2 = find_placeholders(template7, "[[START]]", "[[STOP]]");
     
@@ -311,24 +311,24 @@ void run_tests() { // TODO: put these test to the tests.php
     assert(result7_2[0] == "second");
 
     // Test 8: Template with placeholders containing multiple lines [[START]]...[[STOP]]
-    std::string template8 = "Here is an empty \n[[START]]\nthis is a\n multi-line text\nhere...\n[[STOP]]\n placeholder.";
+    string template8 = "Here is an empty \n[[START]]\nthis is a\n multi-line text\nhere...\n[[STOP]]\n placeholder.";
     auto result8 = find_placeholders(template8, "[[START]]", "[[STOP]]");
     // cout << "[" << result5[0].size() << "]" << endl;
-    // for (const auto& r :result3)  std::cout << r << " "; cout << endl;
+    // for (const auto& r :result3)  cout << r << " "; cout << endl;
     // cout << "[" << result5[0] << "]" << endl;
     assert(result8.size() == 1);
     assert(result8[0] == "\nthis is a\n multi-line text\nhere...\n");
 }
 
-bool confirm(const std::string& message, char def = 'y') {
-    def = std::tolower(def); // Normalize the default to lowercase
+bool confirm(const string& message, char def = 'y') {
+    def = tolower(def); // Normalize the default to lowercase
     char choice;
 
     while (true) {
         // Display the prompt with the default option
-        std::cout << message << " (" 
+        cout << message << " (" 
                   << (def == 'y' ? "Y/n" : "y/N") << "): ";
-        choice = std::cin.get();
+        choice = cin.get();
 
         // Handle Enter (newline) input for default option
         if (choice == '\n') {
@@ -336,10 +336,10 @@ bool confirm(const std::string& message, char def = 'y') {
         }
 
         // Clear the input buffer to handle extra characters after one key press
-        while (std::cin.get() != '\n') { }
+        while (cin.get() != '\n') { }
 
         // Normalize choice to lowercase and evaluate
-        choice = std::tolower(choice);
+        choice = tolower(choice);
         if (choice == 'y') {
             return true;
         } else if (choice == 'n') {
@@ -347,7 +347,7 @@ bool confirm(const std::string& message, char def = 'y') {
         }
 
         // Invalid input, prompt again
-        std::cout << "Please press 'y' or 'n'." << std::endl;
+        cout << "Please press 'y' or 'n'." << endl;
     }
 }
 

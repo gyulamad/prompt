@@ -18,7 +18,7 @@
 #include "ERROR.hpp"
 
 using namespace std;
-
+// TODO: this file in YAGNI and can be removed
 class Terminal {
 public:
     virtual string read() = 0;         // read until a next line (or empty string)
@@ -51,7 +51,6 @@ protected:
     void setup_terminal(bool non_blocking = false) {
         save_terminal_settings();
         
-        // Set up raw mode
         termios raw = original_termios;
         raw.c_iflag &= ~(ICRNL | IXON);
         raw.c_lflag &= ~(ECHO | ICANON | ISIG);
@@ -68,24 +67,66 @@ protected:
     }
 };
 
+class SignalHandler {
+private:
+    struct sigaction old_int;
+    struct sigaction old_term;
+    volatile sig_atomic_t* running_flag;  // Pointer instead of reference
+
+    static void handler(int sig) {
+        // We'll set this up in the constructor
+        if (instance) {
+            *(instance->running_flag) = 0;
+        }
+    }
+
+    static SignalHandler* instance;  // For handler access
+
+public:
+    SignalHandler(volatile sig_atomic_t* flag) : running_flag(flag) {
+        instance = this;  // Set instance for static handler
+        
+        struct sigaction sa;
+        sa.sa_handler = &SignalHandler::handler;
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = 0;
+        
+        // Save old handlers and set new ones
+        sigaction(SIGINT, &sa, &old_int);
+        sigaction(SIGTERM, &sa, &old_term);
+    }
+
+    ~SignalHandler() {
+        // Restore original signal handlers
+        sigaction(SIGINT, &old_int, nullptr);
+        sigaction(SIGTERM, &old_term, nullptr);
+        if (instance == this) {
+            instance = nullptr;
+        }
+    }
+
+    // Prevent copying
+    SignalHandler(const SignalHandler&) = delete;
+    SignalHandler& operator=(const SignalHandler&) = delete;
+};
+
+// Define the static member
+SignalHandler* SignalHandler::instance = nullptr;
+
 class TerminalEmulator: public TerminalBase {
 private:
     static volatile sig_atomic_t g_running;
+    SignalHandler signal_handler;
+    static constexpr chrono::microseconds POLL_INTERVAL{10000};
     pid_t child_pid;
     int master_fd;
     bool is_running;
     thread io_thread;
     mutex buffer_mutex;
-    string accumulated_buffer;
-    queue<char> char_buffer;
-    chrono::microseconds poll_interval{10000};  // 10ms default
-    
-    static void signal_handler(int sig) {
-        g_running = 0;
-    }
+    string buffer;
 
     void io_loop() {
-        vector<char> buffer(4096);
+        vector<char> temp_buffer(4096);
         struct pollfd fds[1] = {
             {master_fd, POLLIN, 0}
         };
@@ -96,14 +137,11 @@ private:
             if (ret <= 0) continue;
 
             if (fds[0].revents & POLLIN) {
-                ssize_t n = ::read(master_fd, buffer.data(), buffer.size());
+                ssize_t n = ::read(master_fd, temp_buffer.data(), temp_buffer.size());
                 if (n <= 0) break;
                 
                 lock_guard<mutex> lock(buffer_mutex);
-                accumulated_buffer += string(buffer.data(), n);
-                for (size_t i = 0; i < n; i++) {
-                    char_buffer.push(buffer[i]);
-                }
+                buffer.append(temp_buffer.data(), n);
             }
 
             if (fds[0].revents & (POLLHUP | POLLERR)) {
@@ -113,34 +151,27 @@ private:
     }
 
 public:
-    TerminalEmulator() :
+    TerminalEmulator(const string& command = "bash") : 
+        signal_handler(&g_running),
         child_pid(-1), 
         master_fd(-1), 
-        is_running(false)
+        is_running(false) 
     {
-        struct sigaction sa;
-        sa.sa_handler = signal_handler;
-        sigemptyset(&sa.sa_mask);
-        sa.sa_flags = 0;
-        sigaction(SIGINT, &sa, nullptr);
-        sigaction(SIGTERM, &sa, nullptr);
-    }
-
-    bool start(const string& command = "bash") {
         setup_terminal();
 
         master_fd = posix_openpt(O_RDWR);
-        if (master_fd < 0) return false;
+        if (master_fd < 0) 
+            throw ERROR("//TODO add proper error message1");
 
         if (grantpt(master_fd) < 0 || unlockpt(master_fd) < 0) {
             close(master_fd);
-            return false;
+            throw ERROR("//TODO add proper error message2");
         }
 
         int slave_fd = open(ptsname(master_fd), O_RDWR);
         if (slave_fd < 0) {
             close(master_fd);
-            return false;
+            throw ERROR("//TODO add proper error message3");
         }
 
         winsize ws;
@@ -152,7 +183,7 @@ public:
         if (child_pid == -1) {
             close(master_fd);
             close(slave_fd);
-            return false;
+            throw ERROR("//TODO add proper error message4");
         }
 
         if (child_pid == 0) {
@@ -173,29 +204,26 @@ public:
         close(slave_fd);
         is_running = true;
         io_thread = thread(&TerminalEmulator::io_loop, this);
-        
-        return true;
     }
 
     // Terminal interface implementation
     string read() override { // TODO: implement reading with blocking mode for e.g. readln(string token = "\n") ...
         lock_guard<mutex> lock(buffer_mutex);
-        if (accumulated_buffer.empty()) {
+        if (buffer.empty()) {
             return "";
         }
-        string result = accumulated_buffer;
-        accumulated_buffer.clear();
+        string result = buffer;
+        buffer.clear();
         return result;
     }
 
     char getc() override {
-        // TODO: I am not sure about the char_buffer, perhaps we should use the accumulated_buffer here?
         lock_guard<mutex> lock(buffer_mutex);
-        if (char_buffer.empty()) {
+        if (buffer.empty()) {
             return '\0';
         }
-        char c = char_buffer.front();
-        char_buffer.pop();
+        char c = buffer[0];
+        buffer.erase(0, 1);  // Remove first character
         return c;
     }
 
@@ -210,19 +238,22 @@ public:
     }
 
     void putc(char c) override {
-        write(to_string(c));
+        if (is_running) {
+            ::write(master_fd, &c, 1);
+        }
     }
 
     bool update() {
         if (!is_alive() || !g_running) {
             return false;
         }
-        this_thread::sleep_for(poll_interval);
+        this_thread::sleep_for(POLL_INTERVAL);  // Use the constant instead
         return true;
     }
 
     void set_poll_interval(chrono::microseconds interval) {
-        poll_interval = interval;
+        // This method should probably be removed since POLL_INTERVAL is now const
+        throw runtime_error("Cannot modify constant poll interval");
     }
 
     bool is_alive() const {
@@ -254,25 +285,35 @@ public:
     }
 };
 
-// Initialize static member
+// Initialize static members
 volatile sig_atomic_t TerminalEmulator::g_running = 1;
+constexpr chrono::microseconds TerminalEmulator::POLL_INTERVAL;  // Definition
 
 class TerminalIO: public TerminalBase {
 private:
-    queue<char> input_buffer;
+    static constexpr size_t INITIAL_BUFFER_SIZE = 4096;
     mutex buffer_mutex;
 
 public:
     TerminalIO() {
         setup_terminal(true);
     }
-
-    string read() override {
-        char buffer[256];
+    
+    string read() {
+        vector<char> buffer(INITIAL_BUFFER_SIZE);
         string result;
-        ssize_t nread = ::read(STDIN_FILENO, buffer, sizeof(buffer));
-        if (nread > 0) {
-            result = string(buffer, nread);
+        
+        while (true) {
+            ssize_t nread = ::read(STDIN_FILENO, buffer.data(), buffer.size());
+            if (nread <= 0) break;  // Error or no more data
+            
+            result.append(buffer.data(), nread);
+            
+            // Check if there might be more data
+            if (nread == buffer.size()) {
+                continue;  // Try reading more
+            }
+            break;
         }
         return result;
     }

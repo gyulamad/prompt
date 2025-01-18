@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "../TEST.hpp"
 #include "../JSON.hpp"
 
 void test_JSON_is_valid_json() {
@@ -172,16 +173,16 @@ void test_JSON_set() {
 
 
 void test_JSON() {
-    test_JSON_json_selector();
-    test_JSON_is_valid_json();
-    test_JSON_get_json_error();
-    test_JSON_get_json_value_type();
-    test_JSON_json_get_string();
-    test_JSON_json_get_int();
-    test_JSON_json_get_double();
-    test_JSON_json_get_bool();
-    test_JSON_json_get_array();
-    test_JSON_json_get_object();
-    test_JSON_get();
-    test_JSON_set();
+    TEST(test_JSON_json_selector);
+    TEST(test_JSON_is_valid_json);
+    TEST(test_JSON_get_json_error);
+    TEST(test_JSON_get_json_value_type);
+    TEST(test_JSON_json_get_string);
+    TEST(test_JSON_json_get_int);
+    TEST(test_JSON_json_get_double);
+    TEST(test_JSON_json_get_bool);
+    TEST(test_JSON_json_get_array);
+    TEST(test_JSON_json_get_object);
+    TEST(test_JSON_get);
+    TEST(test_JSON_set);
 }

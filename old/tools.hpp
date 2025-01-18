@@ -146,7 +146,6 @@ string esc(const string& input, const string& chars = "\\\"'`") {
     return result;
 }
 
-
 string str_replace(const map<string, string>& v, const string& s) {
     // Create a modifiable copy of the input string
     string result = s;
