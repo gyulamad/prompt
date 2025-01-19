@@ -13,10 +13,15 @@ using namespace std;
 
 class Proc {
 private:
-    int to_child[2];
-    int from_child[2];
+    int to_child[2];    // Pipe for parent-to-child communication
+    int from_child[2];  // Pipe for child-to-parent communication
+    int err_child[2];   // Pipe for child's stderr
     pid_t pid;
     string program;
+    bool read_error;
+    bool read_output;
+    __useconds_t __useconds;
+    size_t buffsize;
 
     void cleanup() {
         if (pid > 0) {
@@ -24,10 +29,11 @@ private:
         }
         close(to_child[1]);
         close(from_child[0]);
+        close(err_child[0]);
     }
 
     void start_child_process() {
-        if (pipe(to_child) == -1 || pipe(from_child) == -1)
+        if (pipe(to_child) == -1 || pipe(from_child) == -1 || pipe(err_child) == -1)
             throw runtime_error("Failed to create pipes");
 
         pid = fork();
@@ -37,13 +43,15 @@ private:
         if (pid == 0) { // Child process
             close(to_child[1]);
             close(from_child[0]);
+            close(err_child[0]);
 
             dup2(to_child[0], STDIN_FILENO);   // Redirect stdin
             dup2(from_child[1], STDOUT_FILENO); // Redirect stdout
-            dup2(from_child[1], STDERR_FILENO); // Redirect stderr to stdout
+            dup2(err_child[1], STDERR_FILENO); // Redirect stderr
 
             close(to_child[0]);
             close(from_child[1]);
+            close(err_child[1]);
 
             execlp(program.c_str(), program.c_str(), nullptr);
             perror("execlp failed");
@@ -51,11 +59,28 @@ private:
         } else { // Parent process
             close(to_child[0]);
             close(from_child[1]);
+            close(err_child[1]);
+
+            // Set pipes to non-blocking mode
+            // fcntl(from_child[0], F_SETFL, O_NONBLOCK);
+            // fcntl(err_child[0], F_SETFL, O_NONBLOCK);
         }
     }
 
 public:
-    Proc(const string& program) : program(program) {
+    Proc(
+        const string& program = "bash", 
+        bool read_error = true, 
+        bool read_output = true, 
+        __useconds_t __useconds = 20000L,
+        size_t buffsize = 4096
+    ): 
+        program(program),
+        read_error(read_error),
+        read_output(read_output),
+        __useconds(__useconds),
+        buffsize(buffsize)
+    {
         start_child_process();
     }
 
@@ -63,48 +88,73 @@ public:
         cleanup();
     }
 
-    void write(const string& input, __useconds_t __useconds = 20000L) {
+    void write(const string& input) {
         if (::write(to_child[1], input.c_str(), input.size()) == -1)
             throw runtime_error("Failed to write to child");
         usleep(__useconds);
     }
 
-    void writeln(const string& input, __useconds_t __useconds = 20000L) {
-        write(input + "\n", __useconds);
+    void writeln(const string& input) {
+        write(input + "\n");
     }
 
-    string read_chunk(const size_t buffsize = 4096) {
+    string read_chunk(int fd) {
         char buffer[buffsize];
-        ssize_t n = ::read(from_child[0], buffer, sizeof(buffer) - 1);
+        ssize_t n = ::read(fd, buffer, sizeof(buffer) - 1);
         if (n == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK)
                 return ""; // No data available
-            throw runtime_error("Failed to read from child");
+            throw runtime_error("Failed to read from child, program: " + program);
         }
         buffer[n] = '\0';
         return string(buffer);
     }
 
-    string read(__useconds_t __useconds = 20000L) {
+    string read() {
         string results = "";
         string chunk = "";
-        while (ready(__useconds) && !(chunk = read_chunk()).empty()) results += chunk;
+
+        while (true) {
+            int status = ready();
+            if (status == 0) break; // No data available
+
+            if ((status & PIPE_STDOUT) && read_output) {
+                chunk = read_chunk(from_child[0]);
+                if (!chunk.empty()) results += chunk;
+            }
+            if ((status & PIPE_STDERR) && read_error) {
+                chunk = read_chunk(err_child[0]);
+                if (!chunk.empty()) results += chunk;
+            }
+            if (chunk.empty()) break; // No more data
+        }
+
         return results;
     }
 
-    bool ready(__useconds_t __useconds = 20000L) {
+    enum PipeStatus {
+        PIPE_STDOUT = 1 << 0, // Bit 0: stdout has data
+        PIPE_STDERR = 1 << 1  // Bit 1: stderr has data
+    };
+
+    int ready() {
         usleep(__useconds);
 
         fd_set readfds;
         FD_ZERO(&readfds);
-        FD_SET(from_child[0], &readfds);
+        if (read_output) FD_SET(from_child[0], &readfds);
+        if (read_error) FD_SET(err_child[0], &readfds);
 
         struct timeval timeout = {0, 0}; // Non-blocking check
 
-        int result = select(from_child[0] + 1, &readfds, nullptr, nullptr, &timeout);
+        int result = select(max(from_child[0], err_child[0]) + 1, &readfds, nullptr, nullptr, &timeout);
         if (result == -1)
             throw runtime_error("Failed to check readiness with select");
-        return result > 0; // Returns true if data is available
+
+        int status = 0;
+        if (read_output && FD_ISSET(from_child[0], &readfds)) status |= PIPE_STDOUT;
+        if (read_error && FD_ISSET(err_child[0], &readfds)) status |= PIPE_STDERR;
+        return status;
     }
 
     void kill() {

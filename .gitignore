@@ -6,3 +6,5 @@ tests/tests
 json
 gemini.key
 *.log
+hugging.key
+speach.wav
