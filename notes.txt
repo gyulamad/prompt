@@ -1,6 +1,15 @@
 # build && run
 g++ -std=c++23 prompt.cpp -o prompt && ./prompt
 
+# deploy
+cp ./prompt ~/bin/prompt
+
+# build && deploy
+g++ -std=c++23 prompt.cpp -o prompt && cp ./prompt ~/bin/prompt
+
+# build && deploy && run
+g++ -std=c++23 prompt.cpp -o prompt && cp ./prompt ~/bin/prompt && ./prompt
+
 # test
 g++ -std=c++23 tests/tests.cpp -o tests/tests && tests/tests
 

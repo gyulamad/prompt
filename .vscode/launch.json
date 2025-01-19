@@ -28,7 +28,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/prompt.gdb", // Update this path if needed
-            "args": [], // Add program arguments if necessary
+            "args": ["--voice"], // Add program arguments if necessary
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

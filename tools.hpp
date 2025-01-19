@@ -1,8 +1,24 @@
 #pragma once
 
+#include <iostream>
+#include <string>
+#include <vector>
+#include <functional>
 #include <fstream>
 #include <regex>
 #include <iomanip>
+#include <atomic>  // For std::atomic
+#include <thread>  // For std::thread and std::this_thread
+#include <chrono>  // For std::chrono
+#include <cstring>
+
+#include <sys/wait.h>
+#include <stdexcept>
+#include <sys/select.h>
+#include <fcntl.h>
+
+#include <unistd.h> // For read(), STDIN_FILENO
+#include <termios.h> // For tcgetattr(), tcsetattr()
 
 #include "ERROR.hpp"
 
@@ -312,4 +328,64 @@ string readln(const string& prompt = "\n> ", const string& defval = "") {
     cout << prompt << flush;
     getline(cin, input);
     return input.empty() ? defval : input;
+}
+
+
+// Function to check if a key has been pressed (non-blocking)
+bool kbhit() {
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+
+    // Get the current terminal settings
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+
+    // Disable canonical mode and echo
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    // Check if a key has been pressed
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+    ch = getchar();
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+    // Restore the terminal settings
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+
+    if (ch != EOF) {
+        ungetc(ch, stdin); // Put the character back into the input buffer
+        return true;
+    }
+
+    return false;
+}
+
+
+
+inline string str_to_lower(const string& str) {
+    string ret = "";
+    for (size_t i = 0; i < str.length(); i++)
+        if (isupper(str[i])) ret += (char)tolower(str[i]);
+        else ret += str[i];
+    return ret;
+}
+
+inline bool parse_bool(const string& str) {
+    if (str.empty()) return false;
+    if (str == "0") return false;
+    string lower = str_to_lower(str);
+    if (lower == "false") return false;
+    if (lower == "no") return false;
+    return true;
+}
+
+template<typename T>
+inline T parse(const string& s) {
+    stringstream ss(s);
+    T result;
+    if (!(ss >> result)) 
+        throw runtime_error("parse error"); // ERROR("Invalid value" + (s.empty() ? "" : ": " + s));
+    return result;
 }

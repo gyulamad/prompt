@@ -10,6 +10,7 @@ using namespace std;
 
 class Speech {
 private:
+    Proc proc;
     const string speechf;
     const string elogf;
 
@@ -27,7 +28,6 @@ public:
     string rec(int timeout = 20) {
         const string secret = trim(file_get_contents("hugging.key"));
 
-        Proc proc;
         string output;
 
         while (true) {
@@ -82,6 +82,9 @@ public:
         return output;
     }
 
+    void tell(const string& text) {
+        proc.writeln("espeak -vhu \"" + esc(text) + "\"");
+    }
 
 };
 
@@ -133,6 +136,7 @@ int main() {
     while (true) {
         said = speech.rec();
         cout << "USER SAY:" << said << endl;
+        speech.tell(said);
     }
     // string output_file = "speach.wav";
     // start_recording(output_file);

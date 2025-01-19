@@ -1,7 +1,5 @@
 TODO: !@# ask this next ot https://chatgpt.com/c/678bb7b1-97ec-8008-94f6-33805bc130b5
 
-my reply:
-3 Background Processes and Blocking Tasks:
-Background Processes: AIs must monitor long-running processes in the background and periodically check their status. <- here also tell them that they can interact with a running blocking process if it's requires a user interaction.
-
-reiterate your Suggested Adjustments
+Yes, splittng the full template into smaller chunks and give only the context-relevant parts to the AIs is a good idea.
+Also, introducong specific pre-defined AI rules to split the responsibility so that each AI can focus on the relevant part of the system-prompt only seems benefitial.
+What type of pre-defined AI rules would you suggest?

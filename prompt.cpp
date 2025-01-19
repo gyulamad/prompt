@@ -2,10 +2,16 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <atomic>  // For std::atomic
+#include <thread>  // For std::thread and std::this_thread
+#include <chrono>  // For std::chrono
 
 #include "tools.hpp"
 #include "JSON.hpp"
 #include "Proc.hpp"
+#include "Speech.hpp"
+#include "Arguments.hpp"
+#include "regx.hpp"
 
 using namespace std;
 
@@ -15,7 +21,40 @@ private:
 public:
     Agent(const string& name): name(name) {}
 
-    string request(const string& prompt, int timeout = 30) {
+    string request_qwen(const string& prompt, int timeout = 30) {
+        // TODO: it's hardcoded to huggingface, but it should be configurable with an adapter interface or something..
+        string secret = trim(file_get_contents("hugging.key"));
+        JSON json(R"({
+            "model": "Qwen/Qwen2.5-Coder-32B-Instruct",
+            "messages": [
+                {"role": "system", "content": ""}
+            ],
+            "max_tokens": 500,
+            "stream": false
+        })");
+        // json.set("messages[0].content", prompt);
+        cout << json.dump(4) << endl;
+        string cmd = str_replace(
+            {
+                { "{secret}", secret },
+                { "{json}", esc(json.dump(4)) },
+            },
+            "curl 'https://api-inference.huggingface.co/models/Qwen/Qwen2.5-Coder-32B-Instruct/v1/chat/completions' \
+                -H 'Authorization: Bearer {secret}' \
+                -H 'Content-Type: application/json' \
+                --data \"{json}\" -s"
+        );
+        cout << cmd << endl;
+        string resp = bash(cmd, timeout); // TODO: use Proc
+        cout << resp << endl;
+        json.set(resp);
+        cout << json.dump(4) << endl;
+        if (!json.isDefined("choices[0].message")) 
+            throw ERROR("AI error response: " + json.dump(4));
+        return json.get<string>("choices[0].message.content");
+    }
+
+    string request_gemini(const string& prompt, int timeout = 30) {
         // TODO: it's hardcoded to google gemini AI, but it should be configurable with an adapter interface or something..
         string secret = trim(file_get_contents("gemini.key"));
         JSON json("{}");
@@ -78,6 +117,62 @@ public:
     }
 };
 
+// Atomic flag to control the blinking thread
+atomic<bool> blinking(true);
+
+// Function to hide the cursor
+void hide_cursor() {
+    cout << "\033[?25l" << flush; // ANSI escape code to hide the cursor
+}
+
+// Function to show the cursor
+void show_cursor() {
+    cout << "\033[?25h" << flush; // ANSI escape code to show the cursor
+}
+
+// Function to calculate the visible length of the text (excluding ANSI escape codes)
+size_t visible_length(const string& text) {
+    size_t length = 0;
+    bool in_escape = false;
+
+    for (size_t i = 0; i < text.length(); i++) {
+        if (text[i] == '\033') {
+            in_escape = true;
+        } else if (in_escape && text[i] == 'm') {
+            in_escape = false;
+        } else if (!in_escape) {
+            // Handle multi-byte Unicode characters
+            if ((text[i] & 0xC0) != 0x80) { // Count only the first byte of a multi-byte character
+                length++;
+            }
+        }
+    }
+
+    return length;
+}
+
+void blink_text(const string& text, int delay_ms = 400) {
+    hide_cursor(); // Hide the cursor when blinking starts
+
+    size_t text_length = visible_length(text); // Calculate visible length
+
+    while (blinking) {
+        // Print the text in red
+        cout << "\033[91m" << text << "\033[0m" << flush;
+        this_thread::sleep_for(chrono::milliseconds(delay_ms));
+
+        // Clear the text
+        cout << "\r" << string(text_length, ' ') << "\r" << flush;
+        this_thread::sleep_for(chrono::milliseconds(delay_ms));
+    }
+
+    // Print the text one last time
+    cout << "\r\033[91m" << text << "\033[0m" << flush;
+
+    show_cursor(); // Restore the cursor when blinking stops
+}
+
+
 class Prompt {
 private:
     Proc proc = Proc("bash");
@@ -95,16 +190,67 @@ public:
         // }
     }
 
-    void run(const string& agentname = "assistant") {
+    void run(bool voice_input, bool voice_output) {
+        const string agentname = "assistant";     
+        const string username = "user";
+        const string userlang = "Hungarian";
+        int voice_output_speed = 200;
+
+        Speech speech;
         Parser parser;
-        Agent agent(agentname);        
-        string username = "user";
+        Agent agent(agentname);  
+
         while (true) {
             term_state = str_cut_begin(term_state, 10000); // TODO: max size to parameter - roll out the old stuff
 
             if (!skipuser) {
-                string input = readln();
-                log.note(username, input);
+                string input = "";
+                while (trim(input).empty()) {
+                    if (voice_input) { 
+                        cout << endl << " rec>\r" << flush;
+
+    // Start the blinking thread
+    blinking = true;
+    thread blink_thread(blink_text, "\033[91m\033[5m●\033[0m", 400);
+
+                        input = speech.rec(); 
+                        if (input.empty() || speech.is_interrupted()) {                    
+                            voice_input = false;
+                            cout << "\r     " << flush;
+                        }
+
+    // Stop the blinking thread
+    blinking = false;
+    blink_thread.join(); // Wait for the thread to finish
+
+                        cout << "\r> " << flush; 
+                        cout << input << endl; 
+                    }
+                    else input = readln();
+                }
+                if (!str_starts_with(input, "/")) log.note(username, input);
+                else {
+                    if (input == "/voice") {
+                        voice_input = true;
+                        voice_output = true;
+                    }
+                    if (input == "/voice input on") voice_input = true;
+                    if (input == "/voice input off") voice_input = false;
+                    if (input == "/voice output on") voice_output = true;
+                    if (input == "/voice output off") voice_output = false;
+                    if (str_starts_with(input, "/voice output speed")) {
+                        if (input == "/voice output speed") cout << "Speed: " << voice_output_speed << endl;
+                        else {
+                            vector<string> matches;
+                            if (regx_match("^\\/voice output speed\\s+(\\d+)s*$", input, &matches)) {
+                                voice_output_speed = parse<int>(matches[1]);
+                            } else {
+                                cout << "Use: /voice output speed [N] " << endl;
+                            }
+                        }
+                    }
+                    continue;
+                }
             }
             skipuser = false;
 
@@ -122,13 +268,14 @@ public:
                 term_state += output; 
             }
 
-            string response = agent.request(
+            string response = agent.request_gemini(
                 str_replace(
                     {
                         { "{log}", log.dump() },
                         { "{name}", agentname },
                         { "{owner}", username },
                         { "{term}", term_state },
+                        { "{lang}", userlang },
                     }, 
                     "{log}"
                     "\n[LOG ENDS]"
@@ -139,6 +286,7 @@ public:
                     "\n"
                     "\nYour name is {name}."
                     "\nYou are an AI assistant, and you asist {owner}."
+                    "\n- {owner} language is {lang}, talk to his/her on his/her own language."
                     "\n"
                     "\n*Your terminal usage abilities:*"
                     "\n"
@@ -176,19 +324,21 @@ public:
                     "\n - if you have any confusion ar ambiguity about the system instructions"
                     "\n - if you have strugle to complete the given objective be transparent about the limitations, and explain why."
                     "\n"
-                    "\nNow, it's your turn to continue the conversation from the log or use/react to your terminal latest output. (Do not simulate the log prefixes)."
+                    "\nNow, it's your turn to continue the conversation from the log or use/react to your terminal latest output. (Do not simulate the log prefixes in your response, always be short and concise)."
                 )
             );
 
             // dirty but we don't care what AI would say after the terminal, need to wait for the terminal outputs first...
             if (str_contains(response, "[/TERM]")) {
-                response = explode("[/TERM]", response)[0];
+                response = explode("[/TERM]", response)[0] + "[/TERM]";
             }
             vector<string> splits = explode("[TERM]", response);
             if (splits.size() > 0 && !splits[0].empty()) {
-                cout << splits[0] << flush; // actual response to the user (rest is to the terminal)
+                cout << "\033[92m\033[3m" << splits[0] << "\033[0m" << flush; // actual response to the user (rest is to the terminal)
+                if (voice_output) speech.say(splits[0], voice_output_speed);
             }
             log.note(agentname, response);
+            response = explode("[/TERM]", response)[0];
 
             // TODO: change the token parsing mechanism to read through the AI response and use state-machine like interpreter.
              
@@ -205,7 +355,8 @@ public:
                             }, term
                         );
                         string inputln = "$ " + term + "\nThis terminal input was blocked by the safeguard.\n";
-                        string confirm = prompt->safeguard ? readln("The following are attempt to be forwarded to the terminal:\n" + term + "\nDo you want to send? (Y/n): ", "Y") : "Y";
+                        string confirm = prompt->safeguard ? readln("\n\033[33mThe following are attempt to be forwarded to the terminal:\033[0m\n" + term + "\n\033[33mDo you want to send? (Y/n):\033[0m ", "Y") : "Y";
+                        prompt->skipuser = false;
                         if (confirm == "Y") {
                             inputln = term;
                             prompt->log.note("terminal", inputln);
@@ -234,9 +385,12 @@ public:
     }
 };
 
-int main() {
+int main(int argc, char *argv[]) {
+    Arguments args(argc, argv);
+    const bool voice_input = args.has("voice-input") ? args.getBool("voice-input") : args.getBool("voice");
+    const bool voice_output = args.has("voice-output") ? args.getBool("voice-output") : args.getBool("voice");
     Prompt prompt;
-    prompt.run();
+    prompt.run(voice_input, voice_output);
     
     return 0;
 }
