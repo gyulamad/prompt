@@ -1,5 +1,2 @@
 TODO: !@# ask this next ot https://chatgpt.com/c/678bb7b1-97ec-8008-94f6-33805bc130b5
 
-Yes, splittng the full template into smaller chunks and give only the context-relevant parts to the AIs is a good idea.
-Also, introducong specific pre-defined AI rules to split the responsibility so that each AI can focus on the relevant part of the system-prompt only seems benefitial.
-What type of pre-defined AI rules would you suggest?
