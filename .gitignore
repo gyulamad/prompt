@@ -1,6 +1,7 @@
 json
-gemini.key
+*.key
 *.log
 prompt
 tests/agents
 tests/tests
+*.gdb
