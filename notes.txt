@@ -1,0 +1,9 @@
+install dependencies:
+git clone https://github.com/nlohmann/json libs/nlohmann/json
+
+build && run:
+g++ -std=c++23 src/prompt.cpp -o builds/prompt && builds/prompt
+
+build && deploy:
+g++ -std=c++23 src/prompt.cpp -o builds/prompt && \
+cp builds//prompt ~/bin/prompt
