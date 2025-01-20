@@ -1,10 +1,9 @@
 # TODO: old should be removed (it's temporary for refactoring only)
+json
+*.key
+*.log
 old
 prompt
+tests/agents
 tests/tests
 *.gdb
-json
-gemini.key
-*.log
-hugging.key
-speach.wav
