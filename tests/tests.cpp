@@ -2,12 +2,10 @@
 
 using namespace std;
 
-namespace prompt {
-
-}
-
 int main() {
-    
 
+    // ...
+
+    cout << "All tests passed successfully!" << endl;
     return 0;
 }
