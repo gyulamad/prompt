@@ -5,3 +5,5 @@ prompt
 tests/agents
 tests/tests
 *.gdb
+agents
+scripts
