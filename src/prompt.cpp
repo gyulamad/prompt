@@ -195,24 +195,24 @@ using namespace prompt;
 int main() {
     const string gemini_api_key = "AIzaSyCAzTiA8DW_aP71mwEj6AMPiG536c-SJGg";
     const string& gemini_system = "You are a creative helper designer who always should came up with the simpliest possible solution no mather what even if you don't know the correct answer you quess.";
-    bool gemini_remember = false;
+    bool gemini_remember = true;
     const string& gemini_memory = "";
     size_t gemini_memory_max = 100000;
     double gemini_memory_loss_ratio = 0.5;
-    int gemini_think_steps = 1;
-    int gemini_think_deep = 2;
+    int gemini_think_steps = 0;
+    int gemini_think_deep = 1;
 
-    Model::think_reporter_func_t gemini_default_think_reporter = 
-        [](Model*, const string& thoughts) { 
-            // cout << ansi_fmt(ANSI_FMT_MODEL_THINKS, ".") << flush;
-            cout << endl << ansi_fmt(ANSI_FMT_MODEL_THINKS, thoughts) << endl; 
-        };
+    // Model::think_reporter_func_t gemini_default_think_reporter = 
+    //     [](Model*, const string& thoughts) { 
+    //         // cout << ansi_fmt(ANSI_FMT_MODEL_THINKS, ".") << flush;
+    //         cout << endl << ansi_fmt(ANSI_FMT_MODEL_THINKS, thoughts) << endl; 
+    //     };
 
-    Model::think_interruptor_func_t gemini_default_think_interruptor = 
-        [](Model*) {
-            cout << ansi_fmt(ANSI_FMT_MODEL_THINKS, ".") << flush; 
-            return kbhit(); 
-        }; // TODO: find and use Rotary
+    // Model::think_interruptor_func_t gemini_default_think_interruptor = 
+    //     [](Model*) {
+    //         cout << ansi_fmt(ANSI_FMT_MODEL_THINKS, ".") << flush; 
+    //         return kbhit(); 
+    //     }; // TODO: find and use Rotary
 
     User user;
     Gemini model(
@@ -223,21 +223,11 @@ int main() {
         gemini_memory_max,
         gemini_memory_loss_ratio,
         gemini_think_steps,
-        gemini_think_deep,
-        gemini_default_think_reporter,
-        gemini_default_think_interruptor
+        gemini_think_deep //,
+        // gemini_default_think_reporter,
+        // gemini_default_think_interruptor
     );
 
-        // #define MODEL_ARGS \
-        //     const string& system = "", \
-        //     bool remember = false, \
-        //     const string& memory = "", \
-        //     size_t memory_max = 100000, \
-        //     double memory_loss_ratio = 0.5, \
-        //     int think_steps = 1, \
-        //     int think_deep = 2, \
-        //     think_reporter_func_t default_think_reporter = [](Model*, const string&) { }, \
-        //     think_interruptor_func_t default_think_interruptor = [](Model*) { return false; }
     // Gemini helper(
     //     gemini_api_key,
     //     "You are a creative helper designer who always should came up with the simpliest possible solution no mather what "
@@ -285,7 +275,8 @@ int main() {
 
     // Create an arduino application that works as a usb stick but I can store my passowrd on it and act like a keybord, so that I don't have to memorize nor store my password on the computer. I need a cheepest/simplies design, output screen and buttons to manage/generate/delete/use passwords. I really only need an output (number) which password is selected and I can generate and reuse any time. (other settings, like password complexity etc will be through serial monitor but it's out of scope for now, if you have to use config variable just hard-code them in a central place in the code for now) - no need to be secure, it's only a proof-of-concept and wont be used in real life scenarios
     
-    // 
+    // create a step by step development plan for an esp32 usb keyboard emulator for automatic password typing so that I dont have to store my password on the computer and also don't have to keep them in mind. the esp have to store/generate/delete etc. the passwords and when I push a button it just types in like a keyboard. design a project and a main instruction step to create an MVP proof of concept version. Do not create a production ready system just make something that works for testing and for a better understanding what effort would the full project involve. use espressif lib (Do not utilize Arduino related things)
+
     // Write a simple linux terminal application in python3 that has a server and clients side, the clients can send a websocket text and the server forward each message to the other clients.
 
     // Write me a simple websocket server/clients custom wrapper library with a chat demo in C++ that works from linux terminal command line (Use the most simplicistic websoket lib, that is header only lightweight, easy to use (e.g wslay or utilize any usefull linux command if are aweare of any) - Do not use Boost library). No need authentication or special errorhandling etc. this will be only a small example/demonstration, focus on simplicity. The client layout is simply a one line user input (no need line editing or text formatting library, just use the standard I/O), when user hits enter the message sent to the server that forwards the message to the other clients. No need any additional info presented on terminal screen for client, this program is just a proof of concept example for communication. Do not use cmake or other build system, only use the g++ command.
@@ -293,30 +284,29 @@ int main() {
     // Write me a simple socket server/clients custom wrapper library with a chat demo in C++ that works from linux terminal command line (Use the most simplicistic socket lib(s) that is header only lightweight, easy to use (or utilize any usefull linux command if you are aweare of any) - Do not use Boost library). No need authentication or special errorhandling etc. this will be only a small example/demonstration, focus on simplicity. The client layout is simply a one line user input (no need line editing or text formatting library, just use the standard I/O), when user hits enter the message sent to the server that forwards the message to the other clients. No need any extre info presented on terminal screen for clients, only show the received message. We need multiple client so I quess the client input should be non-blocking or you will need some sort of thread-management this program is just a proof of concept example for communication. Do not use cmake or other build system, only use the g++ command.
 
 
-    Model::think_reporter_func_t detailed_think_reporter = 
-        [](Model*, const string& thoughts) { 
-            cout << endl << ansi_fmt(ANSI_FMT_MODEL_THINKS, thoughts) << endl; 
-        };
+    // Model::think_reporter_func_t detailed_think_reporter = 
+    //     [](Model*, const string& thoughts) { 
+    //         cout << endl << ansi_fmt(ANSI_FMT_MODEL_THINKS, thoughts) << endl; 
+    //     };
 
-    Model::think_interruptor_func_t detailed_think_interruptor = 
-        [](Model*) {
-            cout << ansi_fmt(ANSI_FMT_MODEL_THINKS, ".") << flush; 
-            return kbhit(); 
-        }; // TODO: find and use Rotary
+    // Model::think_interruptor_func_t detailed_think_interruptor = 
+    //     [](Model*) {
+    //         cout << ansi_fmt(ANSI_FMT_MODEL_THINKS, ".") << flush; 
+    //         return kbhit(); 
+    //     }; // TODO: find and use Rotary
 
     while (true) {
         string input = user.prompt();
         if (user.exits()) break;        
-        if (input.empty()) continue;
-        string response = model.solve(input, detailed_think_reporter, detailed_think_interruptor);
+        if (input.empty()) continue;        
+        string response = model.solve(input);
         cout << response << endl;
     }
     return 0;
 }
 
 /*
-1: A simple game - minimal game state for players locations and items, users should be informed when an other user takes an action in the same location. 2 - networking: socketing preferred (tcp/ip sockets or websocket if C++ has minimal libs). 3 - game session is ok in the memory. 4 - C++ preferred, 5: real-time exploration. game has locations and items users have to solve pussles by taking items and actions with items on certain locations. game is solved when certain condition are met in the game state. 6: small amount of players are expected. 7:Starting with a minimal viable product (MVP) 8:less powerful hardware   
-
+1: 
 1: locations are a simple tree (or graph) each location connected with other locations and the user can choose where to go from a list. 2 - A simple system might use string comparisons is how puzzles be defined 3 - Handling disconnections, invalid input, and potential exploits is crucial; 4: mechanism will be used to synchronize game? - simple server - clients broadcast I guess, or the simplest as possible. 5: - libraries or frameworks: minimal libraries, lightweigt, header only libs always prefered - json encoder/decoder we already have implemented, we can re-use that. 6: simple command-line interface - we already has a cpp-linenoise utilized, we can reuse it's wrapper here. 7 - for managing items (inventory, item properties, item interactions): I think classes would be better, we like the object oriented code.
 
 1: player movement and location updates be handled as simple as possible, (erver constantly track and update every player's location I guess). 2: I am not sure What strategies will be used to prevent cheating but my idea is that the users are just sending and receiving simple commands and the server responses and notifies when action happens. everything is managed on the server so the only thing user can not send too many command to the server (ddos prevention, or too many action is taken) so that you can not automate game actions pragmatically to speed up your character for eg, - 3: handle disconnections gracefully: we are developing MVC now, simple soution I think if user disconnect then the game keep it state for a while (configurable) and if the player dont connecting back the "dies/disappear" from the game (which is an other action, close players should be notified by the server) - maybe dead players items are leaving in the location so others can collect. 4 - testing: unit tests are essencial (must), integration tests is a (could), - I don't know what is the system testing you mean? - for now unit testing with simple cassert test will be oke, integration testing also can go with cassert if we emulate a network environment locally, if that is a good idea? - 5: the estimated development: solo dev. --- Note: always choose the more simple soltion in the future, related to anything
