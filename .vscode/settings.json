@@ -81,6 +81,7 @@
         "variant": "cpp",
         "format": "cpp",
         "stdfloat": "cpp",
-        "strstream": "cpp"
+        "strstream": "cpp",
+        "*.ipp": "cpp"
     }
 }

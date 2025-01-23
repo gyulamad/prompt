@@ -1,5 +1,6 @@
 install dependencies:
 git clone https://github.com/nlohmann/json libs/nlohmann/json
+git clone https://github.com/yhirose/cpp-linenoise.git libs/yhirose/cpp-linenoise
 
 build && run:
 g++ -std=c++23 src/prompt.cpp -o builds/prompt && builds/prompt

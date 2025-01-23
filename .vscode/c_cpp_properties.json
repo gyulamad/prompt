@@ -12,7 +12,7 @@
                 // "USE_CANDLES_AS_DOUBLE", 
             ],
             "compilerPath": "/usr/bin/g++",
-            "cStandard": "c17",
+            "cStandard": "c23",
             "cppStandard": "c++23",
             "intelliSenseMode": "linux-gcc-x64"
         }
