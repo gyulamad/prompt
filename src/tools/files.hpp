@@ -1,8 +1,10 @@
 #pragma once
 
+#include <iostream>
 #include <string>
 #include <fstream>
 #include <filesystem> // Requires C++17 or later
+#include <sys/stat.h> // For chmod (permissions)
 
 using namespace std;
 
@@ -42,14 +44,72 @@ namespace tools {
         return content;
     }
 
-    void file_put_contents(const string& filename, const string& content) {
-        ofstream file(filename, ios::out | ios::binary);
+    void file_put_contents(const string& filename, const string& content, bool append = false) {
+        // Open the file in the appropriate mode
+        ios_base::openmode mode = ios::out | ios::binary;
+        if (append) {
+            mode |= ios::app; // Append to the file if it exists
+        }
+
+        ofstream file(filename, mode);
         if (!file.is_open()) {
             throw ios_base::failure("Failed to open file: " + filename);
         }
 
-        if (!file.write(content.data(), content.size())) {
+        // Write the content to the file
+        file.write(content.data(), content.size());
+
+        // Check if the write operation failed
+        if (file.fail()) {
+            file.close(); // Close the file before throwing the exception
             throw ios_base::failure("Failed to write to file: " + filename);
+        }
+
+        // Flush the stream to ensure the data is written to the file
+        file.flush();
+
+        // Close the file
+        file.close();
+    }
+
+    // Function to check if a directory exists
+    bool is_dir(const string& path) {
+        return fs::exists(path) && fs::is_directory(path);
+    }
+
+    // Function to create a directory with PHP-like parameters
+    bool mkdir(const string& directoryPath, int permissions = 0777, bool recursive = false) {
+        try {
+            bool created = false;
+
+            if (recursive) {
+                // Create nested directories
+                created = fs::create_directories(directoryPath);
+            } else {
+                // Create a single directory
+                created = fs::create_directory(directoryPath);
+            }
+
+            if (created) {
+                // Set permissions (only on Unix-like systems)
+                #ifdef __unix__
+                if (chmod(directoryPath.c_str(), permissions) != 0) {
+                    cerr << "Warning: Failed to set permissions for " << directoryPath << endl;
+                }
+                #endif
+
+                // Directory created
+                return true;
+            } else if (fs::exists(directoryPath)) {
+                // Directory already exists
+                return true;
+            } else {
+                // Failed to create directory
+                return false;
+            }
+        } catch (const fs::filesystem_error& e) {
+            // Error
+            return false;
         }
     }
 

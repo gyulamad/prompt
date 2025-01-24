@@ -130,7 +130,7 @@ namespace tools {
 
         static vector<RotaryFrames> getDefaultAnimations() {
             return {
-                RotaryFrames({ "/", "-", "\\", "|" }, 1), // Rotary sticks
+                RotaryFrames({ "/", "-", "\\", "|" }, 1), // Sticks
                 // RotaryFrames({ "🤔", "🧠", "💭" }, 2),     // Emojis
                 // RotaryFrames({ ".", "..", "..." }, 3)     // Dots
             };

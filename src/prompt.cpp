@@ -11,6 +11,8 @@
 #include "tools/JSON.hpp"
 #include "tools/CommandLine.hpp"
 #include "tools/Process.hpp"
+#include "tools/Logger.hpp"
+#include "tools/system.hpp"
 
 #include "tools/llm/Model.hpp"
 
@@ -108,6 +110,7 @@ namespace prompt {
     class Gemini: public Model {
     private:
         int err_retry = 10;
+        Logger& logger;
         string secret;
 
         const vector<string> variants = {
@@ -150,19 +153,27 @@ namespace prompt {
                 try {
                     JSON request;
                     request.set("contents[0].parts[0].text", prompt);
-                    string command = "curl \"https://generativelanguage.googleapis.com/v1beta/models/" + variant + ":generateContent?key=" + escape(secret) + "\" -H 'Content-Type: application/json' -X POST -d \"" + escape(request.dump()) + "\" -s";
+                    const string tmpfile = "temps/temp.json";
+                    file_put_contents(tmpfile, request.dump(4));
+                    //string command = "curl \"https://generativelanguage.googleapis.com/v1beta/models/" + variant + ":generateContent?key=" + escape(secret) + "\" -H 'Content-Type: application/json' -X POST -d \"" + escape(request.dump()) + "\" -s";
+                    string command = "curl -s \"https://generativelanguage.googleapis.com/v1beta/models/" + variant + ":generateContent?key=" + escape(secret) + "\" -H 'Content-Type: application/json' -X POST --data-binary @" + tmpfile;
                     JSON response = Process::execute(command);
                     if (response.isDefined("error") || !response.isDefined("candidates[0].content.parts[0].text"))
                         throw ERROR("Gemini error: " + response.dump());
                     // DEBUG(response.get<string>("candidates[0].content.parts[0].text"));
-                    sleep(3); // TODO: for api rate limit
+                    //sleep(3); // TODO: for api rate limit
                     return response.get<string>("candidates[0].content.parts[0].text");    
                 } catch (exception &e) {
-                    // TODO: write it to the logs
-                    cerr << "Gemini API (" << variant << ") request failed: " << e.what() << endl;
+                    string usrmsg = "Gemini API failure, switching variant from " + variant + " to ";
+                    string errmsg = 
+                        "Gemini API (" + variant + ") request failed: " + e.what();
                     bool next_variant_found = next_variant();
-                    cerr << "Continue with variant " << variant << endl;
-                    // cerr << "Prompt was: " << str_cut_end(prompt) << endl;
+                    usrmsg += variant + ".";                    
+                    cerr << usrmsg << endl;
+                    errmsg += 
+                        "\nContinue with variant " + variant + 
+                        "\nPrompt was: " + str_cut_end(prompt);
+                    logger.warning(errmsg);
                     if (!next_variant_found) {
                         cerr << "Retry after " << err_retry << " second(s)..." << endl;
                         sleep(err_retry);
@@ -174,13 +185,13 @@ namespace prompt {
         }
 
     public:
-        Gemini(const string& secret, MODEL_ARGS): Model(MODEL_ARGS_PASS),
-            secret(file_exists(secret) ? file_get_contents(secret) : secret)
+        Gemini(Logger& logger, const string& secret, MODEL_ARGS): Model(MODEL_ARGS_PASS),
+            logger(logger), secret(file_exists(secret) ? file_get_contents(secret) : secret)
         {}
 
         // make it as a factory - caller should delete spawned model using kill()
         void* spawn(MODEL_ARGS) override {
-            return new Gemini(secret, MODEL_ARGS_PASS);
+            return new Gemini(logger, secret, MODEL_ARGS_PASS);
         }
 
         void kill(Model* gemini) override { 
@@ -193,14 +204,19 @@ namespace prompt {
 using namespace prompt;
 
 int main() {
+    const string basedir = get_exec_path() + "/.prompt/";
+    mkdir(basedir);
+    Logger logger("prompt", basedir + "prompt.log");
+    logger.info("Prompt started");
+
     const string gemini_api_key = "AIzaSyCAzTiA8DW_aP71mwEj6AMPiG536c-SJGg";
-    const string& gemini_system = "You are a creative helper designer who always should came up with the simpliest possible solution no mather what even if you don't know the correct answer you quess.";
+    const string& gemini_system = "You are a creative helper designer who always should came up with the simpliest possible solution no mather what even if you don't know the correct answer you guess.";
     bool gemini_remember = true;
     const string& gemini_memory = "";
     size_t gemini_memory_max = 100000;
     double gemini_memory_loss_ratio = 0.5;
-    int gemini_think_steps = 0;
-    int gemini_think_deep = 1;
+    int gemini_think_steps = 1;
+    int gemini_think_deep = 2;
 
     // Model::think_reporter_func_t gemini_default_think_reporter = 
     //     [](Model*, const string& thoughts) { 
@@ -216,6 +232,7 @@ int main() {
 
     User user;
     Gemini model(
+        logger,
         gemini_api_key, 
         gemini_system,
         gemini_remember,
@@ -231,7 +248,7 @@ int main() {
     // Gemini helper(
     //     gemini_api_key,
     //     "You are a creative helper designer who always should came up with the simpliest possible solution no mather what "
-    //     "even if you don't know the correct answer you quess.",
+    //     "even if you don't know the correct answer you guess.",
     //     true
     // );
 
@@ -269,7 +286,9 @@ int main() {
     // model.solve("5+5=?");
 
     // model.solve("
+    
     // Create a terminal-based text choose your adventure style  multiplayer game. The game should be very simple and minimalistic, with a graph of locations and items, very basic fight system. Simplify every possible technical solutions. Use C++. the basic idea is, server traks the game, players can send commands to interact with the game world. game contains puzzles and quests that can score up the players the last man stands or the best scored player is the winner. the game design is simple, in the bottom line of the terminal an input prompt (cpp-linenoise) and on the screen scrolls up as event happens by other player interactions. players can interact like go/use/take/talk actions and the actions parameters are item/places/players every action a player does, the others in the same room will be notified. I don't need the full implementation, just a simple game design skeleton of classes (be object oriented)
+    // once you are done, then dive deeper and create the full source code implementation for server and clients as well. Remember it should be interactive with a non-blocking game loop so that the client users can be notified when a "real-time" event happens. Use simple websocket server/clients custom wrapper library with a chat demo in C++ that works from linux terminal command line (Use the most simplicistic websoket lib, that is header only lightweight, easy to use (e.g wslay or utilize any usefull linux command if are aweare of any) - Do not use Boost library). No need authentication or special errorhandling etc. this will be only a small example/demonstration, focus on simplicity. The client layout is simply a one line user input (no need line editing or text formatting library, just use the standard I/O), when user hits enter the message sent to the server that forwards the message to the other clients. No need any additional info presented on terminal screen for client, this program is just a proof of concept example for communication. Do not use cmake or other build system, only use the g++ command.
 
     // Create a simple linux terminal based chat app. that use the bottom line for message sending and the screen to print out and scroll the incoming messages. use the minimalistic header only, simple libraris whenever it's possible. for networking the websocket server is preffered, but DO NOT USE BOOST!! keep simple with the libs. for input message you can use cpp-lineoise and for json nholman::json (if needed) - however, if you keep if as simple as possible you may can avoid json at all. - Do not use cmake or other build system, just use g++ command to build the project for now (we have own build system), use header only inlcudes with .hpp extensions
 
@@ -281,7 +300,7 @@ int main() {
 
     // Write me a simple websocket server/clients custom wrapper library with a chat demo in C++ that works from linux terminal command line (Use the most simplicistic websoket lib, that is header only lightweight, easy to use (e.g wslay or utilize any usefull linux command if are aweare of any) - Do not use Boost library). No need authentication or special errorhandling etc. this will be only a small example/demonstration, focus on simplicity. The client layout is simply a one line user input (no need line editing or text formatting library, just use the standard I/O), when user hits enter the message sent to the server that forwards the message to the other clients. No need any additional info presented on terminal screen for client, this program is just a proof of concept example for communication. Do not use cmake or other build system, only use the g++ command.
 
-    // Write me a simple socket server/clients custom wrapper library with a chat demo in C++ that works from linux terminal command line (Use the most simplicistic socket lib(s) that is header only lightweight, easy to use (or utilize any usefull linux command if you are aweare of any) - Do not use Boost library). No need authentication or special errorhandling etc. this will be only a small example/demonstration, focus on simplicity. The client layout is simply a one line user input (no need line editing or text formatting library, just use the standard I/O), when user hits enter the message sent to the server that forwards the message to the other clients. No need any extre info presented on terminal screen for clients, only show the received message. We need multiple client so I quess the client input should be non-blocking or you will need some sort of thread-management this program is just a proof of concept example for communication. Do not use cmake or other build system, only use the g++ command.
+    // Write me a simple socket server/clients custom wrapper library with a chat demo in C++ that works from linux terminal command line (Use the most simplicistic socket lib(s) that is header only lightweight, easy to use (or utilize any usefull linux command if you are aweare of any) - Do not use Boost library). No need authentication or special errorhandling etc. this will be only a small example/demonstration, focus on simplicity. The client layout is simply a one line user input (no need line editing or text formatting library, just use the standard I/O), when user hits enter the message sent to the server that forwards the message to the other clients. No need any extre info presented on terminal screen for clients, only show the received message. We need multiple client so I guess the client input should be non-blocking or you will need some sort of thread-management this program is just a proof of concept example for communication. Do not use cmake or other build system, only use the g++ command.
 
 
     // Model::think_reporter_func_t detailed_think_reporter = 
