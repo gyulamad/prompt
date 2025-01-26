@@ -137,7 +137,7 @@ namespace prompt {
                 if (commandLine.is_exited()) break;        
                 if (input.empty()) continue;
                 if (input == "/exit") break;
-                if (speech->is_say_interrupted()) {
+                if (speech && speech->is_say_interrupted()) {
                     // cout << "AI TTS was interrupted" << endl;
                     input = speech_interrupt_info + "\n" + input;    
                 }
@@ -266,7 +266,7 @@ int main() {
 
     const string gemini_api_key = "AIzaSyCAzTiA8DW_aP71mwEj6AMPiG536c-SJGg";
     const string gemini_system = 
-        "Your persona is a man and you behave like a simple human, you have a sense of humor, your personality is entertaining. You answers are succinct and focusing on the core of your conversation but like a normal human chat would looks like. You always helpful but also concise in answers."
+        "Your persona is a mid age man and you behave like a simple human, you have a sense of humor, your personality is entertaining. Your answers are succinct and focusing on the core of your conversation but like a normal human chat would looks like. You always helpful but also concise in answers."
         // + "\nYou are a creative helper designer who always should came up with the simpliest possible solution no mather what even if you don't know the correct answer you guess."
         + (speech ?
             "\nThe user is using a text-to-speech software for communication. It should be taken into account that the user's responses are being read aloud by a text-to-speech program that can be interrupted by background noise or user interruption, then the following will appear in the context window to inform you about it: " + User::speech_interrupt_info + "\n"

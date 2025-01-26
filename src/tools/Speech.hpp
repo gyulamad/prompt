@@ -33,22 +33,23 @@ namespace tools {
         Rotary* rotary = nullptr;
 
     private:
+        // -------------- configs -----------------
+        const string base_path = "/tmp/";
+        const string voice_check_sh_path = base_path + "voice_check.sh";
+        const string speechf = base_path + "testrec.wav";
+        const string tempf = base_path + "sox-temp.wav";//"/tmp/temp-record-copy.wav";
+        const int kHz = 16000;
+        // ----------------------------------------
+
+
         Process pkiller;
         Process proc;
         const string secret;
         string lang;
-        const string speechf;
-        const int kHz;
 
         bool rec_interrupted;
         bool say_interrupted;
-
-        // string misschars() {
-        //     interrupted = true;
-        //     rotary.clear();
-        //     while (kbhit()) getchar();
-        //     return "";
-        // }
+        
 
         long long reclastms = 0;
         void recstat(int timeout_ms = 150) {
@@ -60,8 +61,6 @@ namespace tools {
         }
 
         // ------- voice check -------
-
-        const string voice_check_sh_path = "/tmp/voice_check.sh";
 
         void create_voice_check_sh() { 
             rec_close();           
@@ -80,7 +79,7 @@ done
 
         void remove_voice_check_sh() {
             rec_close();
-            remove(voice_check_sh_path);
+            if (!remove(voice_check_sh_path)) cerr << "Unable to remove: " << voice_check_sh_path << endl;
         }
 
         // -----------------------------
@@ -88,14 +87,10 @@ done
     public:
         Speech( // TODO: pop up those millions of parameters that used in this class
             const string& secret, 
-            const string& lang = "en",
-            const string& speechf = "testrec.wav", //"/tmp/temp-record.wav", 
-            const int kHz = 16000
+            const string& lang = "en"
         ): 
             secret(secret),
-            lang(lang),
-            speechf(speechf),
-            kHz(kHz)
+            lang(lang)
         {
             create_voice_check_sh();
             cleanprocs();
@@ -104,6 +99,7 @@ done
         ~Speech() {
             cleanprocs();
             remove_voice_check_sh();
+            // TODO: remove all files;
             proc.kill();
             pkiller.kill();
         }
@@ -147,31 +143,40 @@ done
         
         // transcribe, override if you need to
         virtual string stt() {
-            // transcribe
-// cout << "transcribe..." << endl;
+            int retry = 10;
+            while (retry) {
+                try {
+                    // transcribe
+        // cout << "transcribe..." << endl;
 
-            proc.writeln(
-                "curl https://api-inference.huggingface.co/models/jonatasgrosman/wav2vec2-large-xlsr-53-" + langs.at(lang) + " \
-                    -X POST \
-                    --data-binary '@" + speechf + "' \
-                    -H 'Authorization: Bearer " + secret + "' -s");
+                    proc.writeln(
+                        "curl https://api-inference.huggingface.co/models/jonatasgrosman/wav2vec2-large-xlsr-53-" + langs.at(lang) + " \
+                            -X POST \
+                            --data-binary '@" + speechf + "' \
+                            -H 'Authorization: Bearer " + secret + "' -s");
 
-            string output;
-            while ((output = proc.read()).empty());// if (kbhit()) return misschars(); // waiting for transcriptions
-// cout << "resp: " << output << endl;
+                    string output;
+                    while ((output = proc.read(100)).empty());// if (kbhit()) return misschars(); // waiting for transcriptions
+        // cout << "resp: " << output << endl;
 
-            // extract text
+                    // extract text
 
-            JSON json(output);
-            if (!json.isDefined("text")) {
-                cerr << "STT transcibe failed." << endl;
-                DEBUG(json.dump());
-                return "";
-                //break;  // TODO throw ERROR("STT transcibe failed:" + json.dump());
+                    JSON json(output);
+                    // while (!json.isDefined("text")) {
+                    //     DEBUG(json.dump());
+                    //     //break;  // TODO throw ERROR("STT transcibe failed:" + json.dump());
+                    // }
+                    output = json.get<string>("text");
+
+                    return output;
+                } catch (exception &e) {
+                    cerr << "STT transcibe failed. (" << retry << " retry left...)" << endl;
+                    sleep(6);
+                    retry--;
+                    if (retry <= 0 || kbhit()) break;
+                }
             }
-            output = json.get<string>("text");
-
-            return output;
+            return "";
         }
 
         string rec() {
@@ -180,7 +185,6 @@ done
 
             rec_interrupted = false;
             string output;
-            const string tempf = "temp.wav";//"/tmp/temp-record-copy.wav";
             fs::remove(speechf);
             fs::remove(tempf);
 
@@ -205,7 +209,7 @@ done
                     if (!output.empty()) {
                         if (output == "[record_done]") break;
                         if (str_contains(output, "[record_done]")) {
-                            cerr << "\nrecord: " << output << endl;                           
+                            //TODO: cerr << "\nrecord: " << output << endl;                           
                             break;
                         }
                     }
@@ -287,21 +291,21 @@ done
         // RotaryFrames({ ANSI_FMT(ANSI_FMT_C_RED ANSI_FMT_T_BOLD, "🔴"/*"●"*/), "  "}, 2),     // Emojis
         RotaryFrames({ 
 
-    #define _X_ ANSI_FMT_RESET ANSI_FMT_C_GREEN "●"
+    #define _X_ ANSI_FMT_RESET ANSI_FMT_C_GREEN "═"
     #define _O_ ANSI_FMT_RESET ANSI_FMT_C_GREEN "-"
     #define _o_ ANSI_FMT_T_DIM ANSI_FMT_C_GREEN "-"
-    #define ___ ANSI_FMT_T_DIM ANSI_FMT_C_GREEN " "
+    #define ___ ANSI_FMT_T_DIM ANSI_FMT_C_BLACK "-"
 
-            ANSI_FMT("[", _O_ _O_ _X_ ___ ___ ) + "]",
-            ANSI_FMT("[", _o_ _O_ _O_ _X_ " " ) + "]",
-            ANSI_FMT("[", _o_ _o_ _O_ _O_ _X_ ) + "]",
+            ANSI_FMT("[", _o_ _O_ _X_ ___ ___ ) + "]",
+            ANSI_FMT("[", _o_ _o_ _O_ _X_ " " ) + "]",
             ANSI_FMT("[", _o_ _o_ _o_ _O_ _X_ ) + "]",
+            ANSI_FMT("[", _o_ _o_ _o_ _o_ _X_ ) + "]",
             ANSI_FMT("[", ___ _o_ _o_ _o_ _X_ ) + "]",
             ANSI_FMT("[", ___ ___ _o_ _X_ _O_ ) + "]",
-            ANSI_FMT("[", ___ ___ _X_ _O_ _O_ ) + "]",
-            ANSI_FMT("[", " " _X_ _O_ _O_ _o_ ) + "]",
-            ANSI_FMT("[", _X_ _O_ _O_ _o_ _o_ ) + "]",
+            ANSI_FMT("[", ___ ___ _X_ _O_ _o_ ) + "]",
+            ANSI_FMT("[", " " _X_ _O_ _o_ _o_ ) + "]",
             ANSI_FMT("[", _X_ _O_ _o_ _o_ _o_ ) + "]",
+            ANSI_FMT("[", _X_ _o_ _o_ _o_ _o_ ) + "]",
             ANSI_FMT("[", _X_ _o_ _o_ _o_ ___ ) + "]",
             ANSI_FMT("[", _O_ _X_ _o_ ___ ___ ) + "]",
 
@@ -346,22 +350,22 @@ done
 
         RotaryFrames({ 
             ANSI_FMT("[", ___ ___ _X_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _O_ ___ ___ ) + "]",
+            ANSI_FMT("[", ___ ___ _O_ _o_ ___ ) + "]",
+            ANSI_FMT("[", _X_ ___ _o_ ___ ___ ) + "]",
+            ANSI_FMT("[", _O_ ___ _O_ ___ _O_ ) + "]",
+            ANSI_FMT("[", _o_ ___ _X_ ___ _X_ ) + "]",
+            ANSI_FMT("[", ___ ___ _o_ _X_ _O_ ) + "]",
+            ANSI_FMT("[", ___ ___ _X_ _o_ _o_ ) + "]",
+            ANSI_FMT("[", ___ _o_ _O_ _O_ ___ ) + "]",
+            ANSI_FMT("[", ___ ___ _o_ _o_ ___ ) + "]",
             ANSI_FMT("[", ___ ___ _o_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _O_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _X_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _o_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _X_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _O_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _o_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _o_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ ___ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _X_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _X_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _O_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _o_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _o_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ ___ ___ ___ ) + "]",
+            ANSI_FMT("[", _o_ ___ ___ ___ _O_ ) + "]",
+            ANSI_FMT("[", ___ ___ _X_ ___ _o_ ) + "]",
+            ANSI_FMT("[", _O_ ___ _X_ ___ ___ ) + "]",
+            ANSI_FMT("[", _o_ _O_ _O_ ___ _o_ ) + "]",
+            ANSI_FMT("[", ___ _X_ _o_ ___ ___ ) + "]",
+            ANSI_FMT("[", ___ _O_ _o_ ___ _o_ ) + "]",
+            ANSI_FMT("[", _o_ _o_ ___ ___ ___ ) + "]",
         }, 1),     // Sticks
     #undef _X_
     #undef _O_
