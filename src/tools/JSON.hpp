@@ -168,22 +168,44 @@ namespace tools {
 
     class JSON {
     protected:
+        string* _error = nullptr;
         string jstring;
-        
+        json _json;
+
     public:
         // Constructor to initialize the JSON string (can be empty)
-        JSON(string jstring = "{}") : jstring(jstring.empty() ? "{}" : jstring) {}
+        JSON(string jstring = "{}") : jstring(jstring.empty() ? "{}" : jstring) {
+            try {
+                _json = json::parse(jstring);
+            } catch (const exception &e) {
+                _error = new string(e.what());
+            }
+        }
 
         // Destructor (no special cleanup needed here)
-        ~JSON() {}
+        ~JSON() {
+            if (_error) delete _error;
+        }
+
+        bool isValid(string* error = nullptr) {
+            if (error) error = _error;
+            return _error;
+        }     
 
         string dump(const int indent = -1, const char indent_char = ' ') {
             try {
-                json j = json::parse(jstring);  // Parse the JSON string
+                json j;
+                try {
+                    j = json::parse(jstring);  // Parse the JSON string
+                } catch (const exception &e) {
+                    cerr << "JSON parse error: " << e.what() << endl;
+                    DEBUG(jstring);
+                    return "";
+                }
                 string dump = j.dump(indent, indent_char);
                 return dump;
             } catch (const exception& e) {
-                throw ERROR("JSON Error, reason: " + string(e.what()) + "\njson-string was: " + jstring);
+                throw ERROR("JSON dump error: " + string(e.what()) + "\nJSON was:\n" + jstring);
             }
         }
 

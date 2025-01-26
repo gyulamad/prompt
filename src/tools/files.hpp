@@ -6,6 +6,9 @@
 #include <filesystem> // Requires C++17 or later
 #include <sys/stat.h> // For chmod (permissions)
 
+#include "ERROR.hpp"
+#include "strings.hpp"
+
 using namespace std;
 
 namespace fs = filesystem; // Alias for convenience
@@ -111,6 +114,12 @@ namespace tools {
             // Error
             return false;
         }
+    }
+
+    bool remove(const string& path, bool throws = true) {
+        bool ok = fs::remove(path);
+        if (!ok && throws) throw ERROR("Unable to remove: " + str_cut_begin(path));
+        return ok;
     }
 
 }

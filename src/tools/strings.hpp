@@ -5,6 +5,8 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <stdexcept>
+#include <type_traits>
 
 using namespace std;
 
@@ -129,18 +131,57 @@ namespace tools {
      * @param ratio The ratio at which to split the string (default is 0.5).
      * @return A pair of strings representing the two parts.
      */
-    std::pair<std::string, std::string> str_cut_ratio(const std::string& str, double ratio = 0.5) {
+    pair<string, string> str_cut_ratio(const string& str, double ratio = 0.5) {
         // Ensure the ratio is between 0 and 1
         if (ratio < 0.0 || ratio > 1.0) {
-            throw std::invalid_argument("Ratio must be between 0.0 and 1.0");
+            throw invalid_argument("Ratio must be between 0.0 and 1.0");
         }
 
         size_t splitPoint = static_cast<size_t>(str.length() * ratio);
 
         // Split the string into two parts
-        std::string firstPart = str.substr(0, splitPoint);
-        std::string secondPart = str.substr(splitPoint);
+        string firstPart = str.substr(0, splitPoint);
+        string secondPart = str.substr(splitPoint);
 
         return {firstPart, secondPart};
     }
+
+    string trim(const string& str) {
+        // Find the first non-whitespace character from the beginning
+        size_t start = str.find_first_not_of(" \t\n\r\f\v");
+        
+        // If there is no non-whitespace character, return an empty string
+        if (start == string::npos) {
+            return "";
+        }
+
+        // Find the first non-whitespace character from the end
+        size_t end = str.find_last_not_of(" \t\n\r\f\v");
+
+        // Return the substring from the first non-whitespace to the last non-whitespace character
+        return str.substr(start, end - start + 1);
+    }
+
+    bool str_starts_with(const string& str, const string& prefix) {
+        return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
+    }
+    
+    bool str_contains(const string& str, const string& substring) {
+        // Use string::find to check if the substring exists
+        return str.find(substring) != string::npos;
+    }
+    
+
+    template <typename T>
+    T parse(const string& str) {
+        static_assert(is_arithmetic<T>::value, "T must be an arithmetic type");
+        stringstream ss(str);
+        T num;
+        if (ss >> num) {
+            return num;
+        } else {
+            throw ERROR("Invalid input string (not a number): " + str_cut_end(str));
+        }
+    }
+
 }

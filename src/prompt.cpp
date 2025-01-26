@@ -86,24 +86,70 @@ namespace prompt {
 
     class User {
     private:
+        Model& model;
         CommandLine commandLine;
+        Speech* speech = nullptr;
+        bool voice_in, voice_out;
     public:
+        static const string speech_interrupt_info;
 
-        User(const string& prompt = "> "): commandLine(prompt) {}
+        User(
+            Model& model,
+            const string& prompt = "> ", 
+            Speech* speech = nullptr
+        ): 
+            model(model),
+            commandLine(prompt),         
+            speech(speech),
+            voice_in(speech),
+            voice_out(speech) 
+        {}
 
         ~User() {}
 
-        bool exits() {
-            return commandLine.is_exited();
-        }
+        // bool exits() {
+        //     return commandLine.is_exited();
+        // }
 
-        string prompt() {            
-            // while (!commandLine.is_exited())
-            //     cout << "[DOIT: " << commandLine.readln() << "]" << endl;
-            return commandLine.readln(); 
+        string prompt(const string& response = "") {
+            if (!response.empty()) cout << response << endl;
+            if (speech) {
+                if (voice_out) speech->say(response, 175, true);
+                if (voice_in) {
+                    string input = speech->rec();
+                    if (!speech->is_rec_interrupted() && !input.empty()) {
+                        cout << commandLine.get_prompt() << input << endl; // emulate command line
+                        return input;
+                    }
+                }
+                speech->cleanprocs();
+            }
+
+            return commandLine.readln();
+
+            
         }
         
+
+        void start() {
+            string response = "";
+            while (true) {
+                string input = prompt(response); 
+                response = "";      
+                if (commandLine.is_exited()) break;        
+                if (input.empty()) continue;
+                if (input == "/exit") break;
+                if (speech->is_say_interrupted()) {
+                    // cout << "AI TTS was interrupted" << endl;
+                    input = speech_interrupt_info + "\n" + input;    
+                }
+                response = model.prompt(input); //model.solve(input);
+                // cout << response << endl;
+            }
+        }
+
     };
+    const string User::speech_interrupt_info = "\n[SYSTEM-MESSAGE: AI PREVIOUS RESPONSE TEXT-TO-SPEECH WAS INTERRUPTED BY USER]\n";
 
     // ------------------------
     
@@ -113,27 +159,11 @@ namespace prompt {
         Logger& logger;
         string secret;
 
-        const vector<string> variants = {
-            "gemini-2.0-flash-exp",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-001",
-            "gemini-1.5-flash-002",
-            "gemini-1.5-flash-8b-latest",
-            "gemini-1.5-flash-8b",
-            "gemini-1.5-flash-8b-001",
-            "gemini-1.5-pro-latest",
-            "gemini-1.5-pro",
-            "gemini-1.5-pro-001",
-            "gemini-1.5-pro-002",
-            "gemini-1.0-pro-latest", // gemini-1.0-pro models are deprecated on 2/15/2025
-            "gemini-1.0-pro", 
-            "gemini-1.0-pro-001", 
-        };
-        size_t current_variant = 0;
-        string variant = variants[current_variant];
+        static const vector<string> variants;
+        static size_t current_variant;
+        static string variant;
 
-        bool next_variant() {
+        static bool next_variant() {
             bool next_variant_found = true;
             current_variant++;
             if (current_variant >= variants.size()) {
@@ -147,7 +177,6 @@ namespace prompt {
     protected:
         
         virtual string request(const string& prompt) {
-            // DEBUG(prompt);
             int restarts = 2;
             while (restarts) {
                 try {
@@ -155,12 +184,10 @@ namespace prompt {
                     request.set("contents[0].parts[0].text", prompt);
                     const string tmpfile = "temps/temp.json";
                     file_put_contents(tmpfile, request.dump(4));
-                    //string command = "curl \"https://generativelanguage.googleapis.com/v1beta/models/" + variant + ":generateContent?key=" + escape(secret) + "\" -H 'Content-Type: application/json' -X POST -d \"" + escape(request.dump()) + "\" -s";
                     string command = "curl -s \"https://generativelanguage.googleapis.com/v1beta/models/" + variant + ":generateContent?key=" + escape(secret) + "\" -H 'Content-Type: application/json' -X POST --data-binary @" + tmpfile;
                     JSON response = Process::execute(command);
                     if (response.isDefined("error") || !response.isDefined("candidates[0].content.parts[0].text"))
                         throw ERROR("Gemini error: " + response.dump());
-                    // DEBUG(response.get<string>("candidates[0].content.parts[0].text"));
                     //sleep(3); // TODO: for api rate limit
                     return response.get<string>("candidates[0].content.parts[0].text");    
                 } catch (exception &e) {
@@ -178,7 +205,7 @@ namespace prompt {
                         cerr << "Retry after " << err_retry << " second(s)..." << endl;
                         sleep(err_retry);
                         restarts--;
-                    }
+                    } else sleep(3); // TODO: for api rate limit
                 }
             }
             throw ERROR("Gemini API error. See more in log...");
@@ -199,6 +226,26 @@ namespace prompt {
         }
     };
 
+    const vector<string> Gemini::variants = {
+        "gemini-2.0-flash-exp",
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-001",
+        "gemini-1.5-flash-002",
+        "gemini-1.5-flash-8b-latest",
+        "gemini-1.5-flash-8b",
+        "gemini-1.5-flash-8b-001",
+        "gemini-1.5-pro-latest",
+        "gemini-1.5-pro",
+        "gemini-1.5-pro-001",
+        "gemini-1.5-pro-002",
+        "gemini-1.0-pro-latest", // gemini-1.0-pro models are deprecated on 2/15/2025
+        "gemini-1.0-pro", 
+        "gemini-1.0-pro-001", 
+    };
+    size_t Gemini::current_variant = 0;
+    string Gemini::variant = variants[current_variant];
+
 }
 
 using namespace prompt;
@@ -206,31 +253,37 @@ using namespace prompt;
 int main() {
     const string basedir = get_exec_path() + "/.prompt/";
     mkdir(basedir);
-    Logger logger("prompt", basedir + "prompt.log");
+    Logger logger("Prompt-log", basedir + "prompt.log");
     logger.info("Prompt started");
 
+
+    const string user_prompt = "> ";
+    const string hugging_secret = "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";
+    const string user_lang = "hu";
+
+    Speech* speech = new Speech(
+        hugging_secret,
+        user_lang
+    );
+
     const string gemini_api_key = "AIzaSyCAzTiA8DW_aP71mwEj6AMPiG536c-SJGg";
-    const string& gemini_system = "You are a creative helper designer who always should came up with the simpliest possible solution no mather what even if you don't know the correct answer you guess.";
+    const string gemini_system = 
+        "Your persona is a man and you behave like a simple human, you have a sense of humor, your personality is entertaining. You answers are succinct and focusing on the core of your conversation but like a normal human chat would looks like. You always helpful but also concise in answers."
+        // + "\nYou are a creative helper designer who always should came up with the simpliest possible solution no mather what even if you don't know the correct answer you guess."
+        + (speech ?
+            "\nThe user is using a text-to-speech software for communication. It should be taken into account that the user's responses are being read aloud by a text-to-speech program. If the user interrupts the text-to-speech, then the following will appear in the context window to inform you: " + User::speech_interrupt_info + "\n"
+            "\nRepeated user interruption changes how you act, your responses are becaming more consise if you intterupted more often recently but you can put more context otherwise if it's necessary, tune your response style accordingly."
+            : "")
+        + "\nThe user language is [" + user_lang + "] - use this language to talk to the user. "
+    ;
     bool gemini_remember = true;
-    const string& gemini_memory = "";
-    size_t gemini_memory_max = 100000;
+    const string gemini_memory = "";
+    size_t gemini_memory_max = 1000000;
     double gemini_memory_loss_ratio = 0.5;
     int gemini_think_steps = 1;
-    int gemini_think_deep = 2;
+    int gemini_think_deep = 3;
 
-    // Model::think_reporter_func_t gemini_default_think_reporter = 
-    //     [](Model*, const string& thoughts) { 
-    //         // cout << ansi_fmt(ANSI_FMT_MODEL_THINKS, ".") << flush;
-    //         cout << endl << ansi_fmt(ANSI_FMT_MODEL_THINKS, thoughts) << endl; 
-    //     };
 
-    // Model::think_interruptor_func_t gemini_default_think_interruptor = 
-    //     [](Model*) {
-    //         cout << ansi_fmt(ANSI_FMT_MODEL_THINKS, ".") << flush; 
-    //         return kbhit(); 
-    //     }; // TODO: find and use Rotary
-
-    User user;
     Gemini model(
         logger,
         gemini_api_key, 
@@ -240,17 +293,17 @@ int main() {
         gemini_memory_max,
         gemini_memory_loss_ratio,
         gemini_think_steps,
-        gemini_think_deep //,
-        // gemini_default_think_reporter,
-        // gemini_default_think_interruptor
+        gemini_think_deep
     );
 
-    // Gemini helper(
-    //     gemini_api_key,
-    //     "You are a creative helper designer who always should came up with the simpliest possible solution no mather what "
-    //     "even if you don't know the correct answer you guess.",
-    //     true
-    // );
+    User user(model, user_prompt, speech);
+
+    user.start();
+
+    delete speech;
+    return 0;
+}
+
 
     // array_dump(model.options("All the planets of the solar system?"));
     // array_dump(model.options("All the complementer colors?"));
@@ -301,28 +354,6 @@ int main() {
     // Write me a simple websocket server/clients custom wrapper library with a chat demo in C++ that works from linux terminal command line (Use the most simplicistic websoket lib, that is header only lightweight, easy to use (e.g wslay or utilize any usefull linux command if are aweare of any) - Do not use Boost library). No need authentication or special errorhandling etc. this will be only a small example/demonstration, focus on simplicity. The client layout is simply a one line user input (no need line editing or text formatting library, just use the standard I/O), when user hits enter the message sent to the server that forwards the message to the other clients. No need any additional info presented on terminal screen for client, this program is just a proof of concept example for communication. Do not use cmake or other build system, only use the g++ command.
 
     // Write me a simple socket server/clients custom wrapper library with a chat demo in C++ that works from linux terminal command line (Use the most simplicistic socket lib(s) that is header only lightweight, easy to use (or utilize any usefull linux command if you are aweare of any) - Do not use Boost library). No need authentication or special errorhandling etc. this will be only a small example/demonstration, focus on simplicity. The client layout is simply a one line user input (no need line editing or text formatting library, just use the standard I/O), when user hits enter the message sent to the server that forwards the message to the other clients. No need any extre info presented on terminal screen for clients, only show the received message. We need multiple client so I guess the client input should be non-blocking or you will need some sort of thread-management this program is just a proof of concept example for communication. Do not use cmake or other build system, only use the g++ command.
-
-
-    // Model::think_reporter_func_t detailed_think_reporter = 
-    //     [](Model*, const string& thoughts) { 
-    //         cout << endl << ansi_fmt(ANSI_FMT_MODEL_THINKS, thoughts) << endl; 
-    //     };
-
-    // Model::think_interruptor_func_t detailed_think_interruptor = 
-    //     [](Model*) {
-    //         cout << ansi_fmt(ANSI_FMT_MODEL_THINKS, ".") << flush; 
-    //         return kbhit(); 
-    //     }; // TODO: find and use Rotary
-
-    while (true) {
-        string input = user.prompt();
-        if (user.exits()) break;        
-        if (input.empty()) continue;        
-        string response = model.solve(input);
-        cout << response << endl;
-    }
-    return 0;
-}
 
 /*
 1: 

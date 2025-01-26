@@ -7,12 +7,13 @@
 #include "../strings.hpp"
 #include "../vectors.hpp"
 #include "../Rotary.hpp"
+#include "../Speech.hpp"
 
 using namespace std;
 
 namespace tools::llm {
 
-    #define ANSI_FMT_MODEL_THINKS ANSI_FMT_C_BLACK ANSI_FMT_T_DIM
+    #define ANSI_FMT_MODEL_THINKS ANSI_FMT_C_BLACK // ANSI_FMT_T_DIM
 
     class Model {
     // public:
@@ -21,8 +22,8 @@ namespace tools::llm {
     private:
         static Rotary rotary;
     protected:
-        const string opt_prefix = "[[OPTION-START]]";
-        const string opt_suffix = "[[OPTION-END]]";
+        const string opt_prefix = "[OPTION-START]";
+        const string opt_suffix = "[OPTION-END]";
         string system;
         bool remember;
         string memory;
@@ -35,7 +36,7 @@ namespace tools::llm {
 
         virtual void think_reporter(const string& thought = "") {
             cout << "\r\033[2K";
-            if (!thought.empty()) cout << ansi_fmt(ANSI_FMT_MODEL_THINKS, thought) << endl;
+            if (!thought.empty()) cout << ANSI_FMT(ANSI_FMT_MODEL_THINKS, thought) << endl;
             rotary.tick();
         }
 
@@ -217,27 +218,6 @@ namespace tools::llm {
                 results.push_back(which(selection, options));
             }
             return array_unique(results);
-                //return defopt; // couldn't
-                //return -options.size() - 1; // < -options - 1 means couldn't select at all
-                // throw ERROR("No selection.\nPrompt: " + prompt);
-                
-            // if (selections.size() > 1) {
-            //     kill(helper);
-            //     return -selections.size(); // < -1 means multiple selected
-            //     // throw ERROR("Multiple selection, prompt: " + prompt);
-            // }
-            // int selection = -1; // -1 means no decision.
-            // int distance_min = INT_MAX;
-            // for (size_t nth = 0; nth < options.size(); nth++) {
-            //     int distance = levenshtein(selections[0], options[nth]);
-            //     if (distance <= distance_min) {
-            //         distance_min = distance;
-            //         selection = nth;
-            //     }
-            // }
-            
-            // kill(helper);
-            // return selection;
         }
 
         vector<string> choices(const string& prmpt) {
@@ -248,16 +228,6 @@ namespace tools::llm {
             );
             return explode_options(response);
         }
-        // vector<string> options(const string& prmpt, const vector<string>& options = {}) {
-        //     Model* helper = (Model*)clone();
-        //     string response = helper->prompt(prmpt, 
-        //         (options.empty() ? "" : "Your options to choose from: \n" + implode_options(options)) + 
-        //         "List your response in the following format:" +
-        //         implode_options({ "Your selection..", "Other option (if multiple apply)" }) + "etc.."
-        //     );
-        //     kill(helper);
-        //     return explode_options(response);
-        // }
 
         bool decide(const string& prmpt, const vector<string>& options = {"Yes", "No"}) {
             int resp = choose(prmpt, options);
@@ -297,15 +267,10 @@ namespace tools::llm {
             think_reporter();
             if (!remember) return prompt(task);
             if (think_deeper == -1) think_deeper = think_deep;
-            // if (!think_reporter) think_reporter = default_think_reporter;
-            // if (!think_interruptor) think_interruptor = default_think_interruptor;
-            // DEBUG("Current task:\n" + task + "\nThinking of a solution... (deep thinking: " + to_string(think_deep) + ")");
-            if (think_deeper <= 0 || think_interruptor()) 
-                return prompt(task);
+            if (think_deeper <= 0 || think_interruptor()) return prompt(task);
             think_deeper--;
 
             Model* helper = (Model*)clone();
-            // helper->remember = true;
 
             think_reporter();
             if (!helper->decide("Is it even a task?:\n" + task)) {
@@ -324,10 +289,6 @@ namespace tools::llm {
                 if (!questions.empty()) {
                     // there are questions:
 
-                    // DEBUG(questions.size() > 1 ? 
-                    //     "There are several questions:\n" + implode("\n", questions) + "\n" :
-                    //     "There there is only one questions:\n" + questions[0] + "\n"
-                    // );
                     string answers;
                     for (const string& question: questions) {
                         if (think_interruptor()) break;
@@ -335,8 +296,6 @@ namespace tools::llm {
                         answers += question + "\n";
 
                         Model* creative = (Model*)helper->clone();
-                        // creative->remember = true;
-                        // creative->amnesia();
 
                         vector<string> options = creative->choices(
                             "Because the task:\n" + task + "\n" + 
@@ -356,19 +315,12 @@ namespace tools::llm {
                         }
                         // there are next question, there are options:
                         
-                        // DEBUG(options.size() > 1 ? 
-                        //     "There are several possible answer:\n" + implode("\n", options) + "\n" :
-                        //     "There is only one option:\n" + options[0] + "\n"
-                        // );
                         string previous_option = options[0];
                         string previous_thoughts;
                         int best_option = 0, nth = 0;
                         for (const string& option: options) {
 
                             Model* thinker = (Model*)helper->clone();
-                            // thinker->remember = true;
-                            // thinker->amnesia();
-
                             
                             string thoughts = thinker->think(
                                 "Because the task:\n" + task + "\n" + 
@@ -383,9 +335,7 @@ namespace tools::llm {
                             if (previous_thoughts.empty()) best_option = nth;
                             else {
                                 Model* chooser = (Model*)helper->clone();
-                                // chooser->remember = true;
-                                // chooser->amnesia();
-
+                                
                                 int choice = chooser->decide(
                                     "Because the task:\n" + task + "\n" + 
                                     "The main question now:\n" + question + "\n" + 
@@ -436,15 +386,9 @@ namespace tools::llm {
                     
                     memorize(task);
                     memorize(answers);
-                    // kill(helper);
-                    //return answers;
                 }
                 // no question...
 
-                // kill(helper);
-                // return prompt(task);
-                //return helper->solve(answers, think_steps, think_deep);
-                //return implode("\n", questions);
             }
             // no question...
 
@@ -452,7 +396,6 @@ namespace tools::llm {
             if (helper->decide("Is the task too complex, so have to be break down smaller steps?")) {
                 vector<string> small_steps = helper->multiple_str("What are smaller steps to get this task done?");
                 if (!small_steps.empty()) {
-                    // DEBUG("Task too complex, have to be break down smaller steps:\n" + implode("\n", small_steps) + "\n");                    
                     string results;
                     for (const string& step: small_steps) {
                         think_reporter(step);
@@ -461,7 +404,7 @@ namespace tools::llm {
                         results += step + "\n" + solution + "\n";
                         if (think_interruptor()) break;
                     }
-                    // results = helper->prompt("Summarize the followings: \b" + results);
+                    
                     kill(helper);
                     memorize(task);
                     memorize(results);
@@ -493,18 +436,18 @@ namespace tools::llm {
             "💡"  // Light Bulb (perfect for representing ideas or inspiration)
         }, 4),     // Emojis
         RotaryFrames({ 
-            "[ " + ansi_fmt(ANSI_FMT_MODEL_THINKS, "Thinking     "), 
-            "[ " + ansi_fmt(ANSI_FMT_MODEL_THINKS, "Thinking.    "), 
-            "[ " + ansi_fmt(ANSI_FMT_MODEL_THINKS, "Thinking..   "), 
-            "[ " + ansi_fmt(ANSI_FMT_MODEL_THINKS, "Thinking...  "), 
-            "[ " + ansi_fmt(ANSI_FMT_MODEL_THINKS, "Thinking.... "), 
-            "[ " + ansi_fmt(ANSI_FMT_MODEL_THINKS, "Thinking....."), 
+            "[ " + ANSI_FMT(ANSI_FMT_MODEL_THINKS, "Thinking     "), 
+            "[ " + ANSI_FMT(ANSI_FMT_MODEL_THINKS, "Thinking.    "), 
+            "[ " + ANSI_FMT(ANSI_FMT_MODEL_THINKS, "Thinking..   "), 
+            "[ " + ANSI_FMT(ANSI_FMT_MODEL_THINKS, "Thinking...  "), 
+            "[ " + ANSI_FMT(ANSI_FMT_MODEL_THINKS, "Thinking.... "), 
+            "[ " + ANSI_FMT(ANSI_FMT_MODEL_THINKS, "Thinking....."), 
         }, 1),     // Dots
         RotaryFrames({ 
-           ansi_fmt(ANSI_FMT_MODEL_THINKS, "-") + " ]", 
-           ansi_fmt(ANSI_FMT_MODEL_THINKS, "\\") + " ]", 
-           ansi_fmt(ANSI_FMT_MODEL_THINKS, "|") + " ]", 
-           ansi_fmt(ANSI_FMT_MODEL_THINKS, "/") + " ]",
+           ANSI_FMT(ANSI_FMT_MODEL_THINKS, "-") + " ]", 
+           ANSI_FMT(ANSI_FMT_MODEL_THINKS, "\\") + " ]", 
+           ANSI_FMT(ANSI_FMT_MODEL_THINKS, "|") + " ]", 
+           ANSI_FMT(ANSI_FMT_MODEL_THINKS, "/") + " ]",
         }, 1),     // Sticks
     });
 }

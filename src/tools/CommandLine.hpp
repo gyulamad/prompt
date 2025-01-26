@@ -39,6 +39,10 @@ namespace tools {
             this->prompt = prompt;
         }
 
+        string get_prompt() const {
+            return this->prompt;
+        }
+
         string readln() {
             // Setup completion words every time when a user types
             // linenoise::SetCompletionCallback([](const char* editBuffer, std::vector<std::string>& completions) {

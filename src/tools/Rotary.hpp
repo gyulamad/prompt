@@ -120,12 +120,10 @@ namespace tools {
             ticks++;
         }
 
-        void done(const string& done_text = "Done!") {
+        void clear(const string& done_text = "\r\033[2K") {
             lock_guard<::mutex> lock(mutex);
-
-            cout << "\r" << done_text << string(longest_output_length - done_text.length(), ' ') << "\n";
-
-            longest_output_length = 0;
+            cout << "\r\033[2K" << flush;
+            longest_output_length = 0; // TODO: lonest output may not needed anymore...
         }
 
         static vector<RotaryFrames> getDefaultAnimations() {

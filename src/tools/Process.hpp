@@ -9,15 +9,34 @@
 #include <cstring>
 #include <fcntl.h>
 
+#include "system.hpp"
+
 using namespace std;
 
 namespace tools {
+    int __pcnt = 0;
+
+    class Pipe {
+        int fd[2];
+    public:
+        Pipe() {
+            if (pipe(fd) == -1)
+                throw runtime_error("Failed to create pipe");
+        }
+        ~Pipe() {
+            close(fd[0]);
+            close(fd[1]);
+        }
+        int read_fd() const { return fd[0]; }
+        int write_fd() const { return fd[1]; }
+    };
 
     class Process {
     private:
-        int to_child[2];    // Pipe for parent-to-child communication
-        int from_child[2];  // Pipe for child-to-parent communication
-        int err_child[2];   // Pipe for child's stderr
+        Pipe to_child, from_child, err_child;
+        // int to_child[2];    // Pipe for parent-to-child communication
+        // int from_child[2];  // Pipe for child-to-parent communication
+        // int err_child[2];   // Pipe for child's stderr
         pid_t pid;
         string program;
         bool read_error;
@@ -26,49 +45,76 @@ namespace tools {
         size_t buffsize;
 
         void cleanup() {
-            if (pid > 0) {
+            // if (pid > 0) {
                 kill(); // Terminate the child process if it's running
-            }
-            close(to_child[0]);
-            close(to_child[1]);
-            close(from_child[0]);
-            close(from_child[1]);
-            close(err_child[0]);
-            close(err_child[1]);
+            // }
+            // close(to_child[0]);
+            // close(to_child[1]);
+            // close(from_child[0]);
+            // close(from_child[1]);
+            // close(err_child[0]);
+            // close(err_child[1]);
         }
 
-        void start_child_process() {
-            if (pipe(to_child) == -1 || pipe(from_child) == -1 || pipe(err_child) == -1)
-                throw runtime_error("Failed to create pipes");
+        // void start_child_process() {
+        //     if (pipe(to_child) == -1 || pipe(from_child) == -1 || pipe(err_child) == -1)
+        //         throw runtime_error("Failed to create pipes");
 
+        //     pid = fork();
+        //     if (pid == -1)
+        //         throw runtime_error("Failed to fork process");
+
+        //     if (pid == 0) { // Child process
+        //         close(to_child[1]);
+        //         close(from_child[0]);
+        //         close(err_child[0]);
+
+        //         dup2(to_child[0], STDIN_FILENO);   // Redirect stdin
+        //         dup2(from_child[1], STDOUT_FILENO); // Redirect stdout
+        //         dup2(err_child[1], STDERR_FILENO); // Redirect stderr
+
+        //         close(to_child[0]);
+        //         close(from_child[1]);
+        //         close(err_child[1]);
+
+        //         execlp(program.c_str(), program.c_str(), nullptr);
+        //         perror("execlp failed");
+        //         exit(1);
+        //     } else { // Parent process
+        //         close(to_child[0]);
+        //         close(from_child[1]);
+        //         close(err_child[1]);
+
+        //         // Set pipes to non-blocking mode
+        //         // fcntl(from_child[0], F_SETFL, O_NONBLOCK);
+        //         // fcntl(err_child[0], F_SETFL, O_NONBLOCK);
+        //     }
+        // }
+        void start_child_process() {
             pid = fork();
             if (pid == -1)
                 throw runtime_error("Failed to fork process");
 
             if (pid == 0) { // Child process
-                close(to_child[1]);
-                close(from_child[0]);
-                close(err_child[0]);
+                close(to_child.write_fd());
+                close(from_child.read_fd());
+                close(err_child.read_fd());
 
-                dup2(to_child[0], STDIN_FILENO);   // Redirect stdin
-                dup2(from_child[1], STDOUT_FILENO); // Redirect stdout
-                dup2(err_child[1], STDERR_FILENO); // Redirect stderr
+                dup2(to_child.read_fd(), STDIN_FILENO);
+                dup2(from_child.write_fd(), STDOUT_FILENO);
+                dup2(err_child.write_fd(), STDERR_FILENO);
 
-                close(to_child[0]);
-                close(from_child[1]);
-                close(err_child[1]);
+                close(to_child.read_fd());
+                close(from_child.write_fd());
+                close(err_child.write_fd());
 
                 execlp(program.c_str(), program.c_str(), nullptr);
                 perror("execlp failed");
                 exit(1);
             } else { // Parent process
-                close(to_child[0]);
-                close(from_child[1]);
-                close(err_child[1]);
-
-                // Set pipes to non-blocking mode
-                // fcntl(from_child[0], F_SETFL, O_NONBLOCK);
-                // fcntl(err_child[0], F_SETFL, O_NONBLOCK);
+                close(to_child.read_fd());
+                close(from_child.write_fd());
+                close(err_child.write_fd());
             }
         }
 
@@ -86,15 +132,24 @@ namespace tools {
             __useconds(__useconds),
             buffsize(buffsize)
         {
+            // cout << "++[__pcnt:" <<__pcnt << "]" << endl;
+            __pcnt++;
             start_child_process();
         }
 
-        ~Process() {
+        virtual ~Process() {
             cleanup();
+            __pcnt--;
+            // cout << "--[__pcnt:" <<__pcnt << "]" << endl;
         }
 
+        // void write(const string& input) {
+        //     if (::write(to_child[1], input.c_str(), input.size()) == -1)
+        //         throw runtime_error("Failed to write to child");
+        //     usleep(__useconds);
+        // }
         void write(const string& input) {
-            if (::write(to_child[1], input.c_str(), input.size()) == -1)
+            if (::write(to_child.write_fd(), input.c_str(), input.size()) == -1)
                 throw runtime_error("Failed to write to child");
             usleep(__useconds);
         }
@@ -115,20 +170,53 @@ namespace tools {
             return string(buffer);
         }
 
-        string read() {
+        // string read() {
+        //     string results = "";
+        //     string chunk = "";
+
+        //     while (true) {
+        //         int status = ready();
+        //         if (status == 0) break; // No data available
+
+        //         if ((status & PIPE_STDOUT) && read_output) {
+        //             chunk = read_chunk(from_child[0]);
+        //             if (!chunk.empty()) results += chunk;
+        //         }
+        //         if ((status & PIPE_STDERR) && read_error) {
+        //             chunk = read_chunk(err_child[0]);
+        //             if (!chunk.empty()) results += chunk;
+        //         }
+        //         if (chunk.empty()) break; // No more data
+        //     }
+
+        //     return results;
+        // }
+        // non-blocking read but add timeout for blocking read
+        string read(int timeout_ms = 0) {
             string results = "";
             string chunk = "";
 
+            long long read_start_ms = get_time_ms();
+
             while (true) {
                 int status = ready();
-                if (status == 0) break; // No data available
+                if (status == 0) { // No data available
+                    if (!timeout_ms) break; // non-blocking read
+                    
+                    // blocking read with timeout
+                    long long now_ms = get_time_ms();
+                    if (now_ms > read_start_ms + timeout_ms) break; // timeout interrupts
+                
+                    continue;
+                }
+                
 
                 if ((status & PIPE_STDOUT) && read_output) {
-                    chunk = read_chunk(from_child[0]);
+                    chunk = read_chunk(from_child.read_fd());
                     if (!chunk.empty()) results += chunk;
                 }
                 if ((status & PIPE_STDERR) && read_error) {
-                    chunk = read_chunk(err_child[0]);
+                    chunk = read_chunk(err_child.read_fd());
                     if (!chunk.empty()) results += chunk;
                 }
                 if (chunk.empty()) break; // No more data
@@ -142,30 +230,75 @@ namespace tools {
             PIPE_STDERR = 1 << 1  // Bit 1: stderr has data
         };
 
+        // int ready() {
+        //     usleep(__useconds);
+
+        //     fd_set readfds;
+        //     FD_ZERO(&readfds);
+        //     if (read_output) FD_SET(from_child[0], &readfds);
+        //     if (read_error) FD_SET(err_child[0], &readfds);
+
+        //     struct timeval timeout = {0, 0}; // Non-blocking check
+
+        //     int result = select(max(from_child[0], err_child[0]) + 1, &readfds, nullptr, nullptr, &timeout);
+        //     if (result == -1)
+        //         throw runtime_error("Failed to check readiness with select (non-blocking)");
+
+        //     int status = 0;
+        //     if (read_output && FD_ISSET(from_child[0], &readfds)) status |= PIPE_STDOUT;
+        //     if (read_error && FD_ISSET(err_child[0], &readfds)) status |= PIPE_STDERR;
+        //     return status;
+        // }
         int ready() {
             usleep(__useconds);
 
-            fd_set readfds;
-            FD_ZERO(&readfds);
-            if (read_output) FD_SET(from_child[0], &readfds);
-            if (read_error) FD_SET(err_child[0], &readfds);
+            fd_set read_fds;
+            FD_ZERO(&read_fds);
+            if (read_output) FD_SET(from_child.read_fd(), &read_fds);
+            if (read_error) FD_SET(err_child.read_fd(), &read_fds);
 
             struct timeval timeout = {0, 0}; // Non-blocking check
+            int max_fd = std::max(from_child.read_fd(), err_child.read_fd());
 
-            int result = select(max(from_child[0], err_child[0]) + 1, &readfds, nullptr, nullptr, &timeout);
-            if (result == -1)
-                throw runtime_error("Failed to check readiness with select (non-blocking)");
+            int result = select(max_fd + 1, &read_fds, nullptr, nullptr, &timeout);
+            if (result == -1) {
+                throw runtime_error("select failed");
+            }
 
             int status = 0;
-            if (read_output && FD_ISSET(from_child[0], &readfds)) status |= PIPE_STDOUT;
-            if (read_error && FD_ISSET(err_child[0], &readfds)) status |= PIPE_STDERR;
+            if (read_output && FD_ISSET(from_child.read_fd(), &read_fds)) {
+                status |= PIPE_STDOUT;
+            }
+            if (read_error && FD_ISSET(err_child.read_fd(), &read_fds)) {
+                status |= PIPE_STDERR;
+            }
+
             return status;
         }
 
+        // void kill() {
+        //     if (pid > 0) {
+        //         ::kill(pid, SIGKILL);
+        //         waitpid(pid, nullptr, 0);
+        //         pid = -1;
+        //     }
+        // }
         void kill() {
             if (pid > 0) {
-                ::kill(pid, SIGKILL);
-                waitpid(pid, nullptr, 0);
+                if (::kill(pid, SIGTERM) == -1) {
+                    perror("kill(SIGTERM) failed");
+                } else {
+                    int status;
+                    if (waitpid(pid, &status, WNOHANG) == 0) {
+                        sleep(1);
+                        if (waitpid(pid, &status, WNOHANG) == 0) {
+                            if (::kill(pid, SIGKILL) == -1) {
+                                perror("kill(SIGKILL) failed");
+                            }
+                            waitpid(pid, nullptr, 0);
+                        }
+                    }
+                }
                 pid = -1;
             }
         }
@@ -178,6 +311,27 @@ namespace tools {
 
         // for blocking executions:
 
+        // string read_blocking() {
+        //     string results = "";
+        //     string chunk = "";
+
+        //     while (true) {
+        //         int status = ready_blocking(); // Use a blocking version of ready()
+        //         if (status == 0) break; // No data available (shouldn't happen in blocking mode)
+
+        //         if ((status & PIPE_STDOUT) && read_output) {
+        //             chunk = read_chunk(from_child[0]);
+        //             if (!chunk.empty()) results += chunk;
+        //         }
+        //         if ((status & PIPE_STDERR) && read_error) {
+        //             chunk = read_chunk(err_child[0]);
+        //             if (!chunk.empty()) results += chunk;
+        //         }
+        //         if (chunk.empty()) break; // No more data
+        //     }
+
+        //     return results;
+        // }
         string read_blocking() {
             string results = "";
             string chunk = "";
@@ -187,11 +341,11 @@ namespace tools {
                 if (status == 0) break; // No data available (shouldn't happen in blocking mode)
 
                 if ((status & PIPE_STDOUT) && read_output) {
-                    chunk = read_chunk(from_child[0]);
+                    chunk = read_chunk(from_child.read_fd());
                     if (!chunk.empty()) results += chunk;
                 }
                 if ((status & PIPE_STDERR) && read_error) {
-                    chunk = read_chunk(err_child[0]);
+                    chunk = read_chunk(err_child.read_fd());
                     if (!chunk.empty()) results += chunk;
                 }
                 if (chunk.empty()) break; // No more data
@@ -200,28 +354,52 @@ namespace tools {
             return results;
         }
 
+        // int ready_blocking() {
+        //     fd_set readfds;
+        //     FD_ZERO(&readfds);
+        //     if (read_output) FD_SET(from_child[0], &readfds);
+        //     if (read_error) FD_SET(err_child[0], &readfds);
+
+        //     // Block indefinitely until data is available
+        //     int result = select(max(from_child[0], err_child[0]) + 1, &readfds, nullptr, nullptr, nullptr);
+        //     if (result == -1)
+        //         throw runtime_error("Failed to check readiness with select (blocking)");
+
+        //     int status = 0;
+        //     if (read_output && FD_ISSET(from_child[0], &readfds)) status |= PIPE_STDOUT;
+        //     if (read_error && FD_ISSET(err_child[0], &readfds)) status |= PIPE_STDERR;
+        //     return status;
+        // }
         int ready_blocking() {
             fd_set readfds;
             FD_ZERO(&readfds);
-            if (read_output) FD_SET(from_child[0], &readfds);
-            if (read_error) FD_SET(err_child[0], &readfds);
+            if (read_output) FD_SET(from_child.read_fd(), &readfds);
+            if (read_error) FD_SET(err_child.read_fd(), &readfds);
 
             // Block indefinitely until data is available
-            int result = select(max(from_child[0], err_child[0]) + 1, &readfds, nullptr, nullptr, nullptr);
+            int result = select(max(from_child.read_fd(), err_child.read_fd()) + 1, &readfds, nullptr, nullptr, nullptr);
             if (result == -1)
                 throw runtime_error("Failed to check readiness with select (blocking)");
 
             int status = 0;
-            if (read_output && FD_ISSET(from_child[0], &readfds)) status |= PIPE_STDOUT;
-            if (read_error && FD_ISSET(err_child[0], &readfds)) status |= PIPE_STDERR;
+            if (read_output && FD_ISSET(from_child.read_fd(), &readfds)) status |= PIPE_STDOUT;
+            if (read_error && FD_ISSET(err_child.read_fd(), &readfds)) status |= PIPE_STDERR;
             return status;
         }
 
+        // static string execute(const string& command, const string& program = "bash") {
+        //     Process process(program); // Create a new Process instance
+        //     process.writeln(command); // Write the command
+        //     close(process.to_child[1]); // Close the write end to signal EOF
+        //     return process.read_blocking(); // Read the output
+        // }
         static string execute(const string& command, const string& program = "bash") {
             Process process(program); // Create a new Process instance
             process.writeln(command); // Write the command
-            close(process.to_child[1]); // Close the write end to signal EOF
-            return process.read_blocking(); // Read the output
+            close(process.to_child.write_fd()); // Close the write end to signal EOF
+            string output = process.read_blocking(); // Read the output
+            process.cleanup();
+            return output;
         }
 
     };

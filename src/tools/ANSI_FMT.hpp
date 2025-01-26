@@ -38,10 +38,12 @@
 #define ANSI_FMT_ERROR ANSI_FMT_T_BOLD ANSI_FMT_C_RED
 #define ANSI_FMT_DEBUG ANSI_FMT_C_BLACK
 
+#define ANSI_FMT(fmt, text) (string(fmt) + text + ANSI_FMT_RESET)
+
 using namespace std;
 
 namespace tools {
-    string ansi_fmt(const string& fmt, const string& text) {
-        return fmt + text + ANSI_FMT_RESET;
-    }
+    // string ansi_fmt(const string& fmt, const string& text) {
+    //     return fmt + text + ANSI_FMT_RESET;
+    // }
 }
