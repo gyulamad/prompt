@@ -75,6 +75,7 @@ done
                 )");            
             }
             if (chmod(voice_check_sh_path.c_str(), 0x777) != 0) throw ERROR("Unable to create voice checker to listen...");
+            sleep(1);
         }
 
         void remove_voice_check_sh() {
@@ -85,7 +86,7 @@ done
         // -----------------------------
 
     public:
-        Speech(
+        Speech( // TODO: pop up those millions of parameters that used in this class
             const string& secret, 
             const string& lang = "en",
             const string& speechf = "testrec.wav", //"/tmp/temp-record.wav", 
@@ -138,7 +139,7 @@ done
             if (!is_speaking()) return;
             pkiller.writeln("pkill -9 espeak");            
             say_interrupted = true;
-            rotary = &rotary_listen;
+            if (rotary != &rotary_record) rotary = &rotary_listen;
             // cout << "SHHHHH!" << endl;
             // proc.writeln("pkill -9 espeak");
             // rec_close();
@@ -148,6 +149,7 @@ done
         virtual string stt() {
             // transcribe
 // cout << "transcribe..." << endl;
+
             proc.writeln(
                 "curl https://api-inference.huggingface.co/models/jonatasgrosman/wav2vec2-large-xlsr-53-" + langs.at(lang) + " \
                     -X POST \
@@ -203,8 +205,8 @@ done
                     if (!output.empty()) {
                         if (output == "[record_done]") break;
                         if (str_contains(output, "[record_done]")) {
-                            //cerr << "\nrecord: " << output << endl;                            
-                            continue;
+                            cerr << "\nrecord: " << output << endl;                           
+                            break;
                         }
                     }
 
@@ -215,7 +217,7 @@ done
                         if (ampl > 0.2 && ampl < 0.99) {
                             shtup();
                             rotary = &rotary_record;
-                        } else if (!is_speaking()) rotary = &rotary_listen;
+                        } else if (!is_speaking()) if (rotary != &rotary_record) rotary = &rotary_listen;
 
                         // if (!str_starts_with(check, "0.0") && 
                         //     !str_starts_with(check, "0.1") && 
@@ -241,10 +243,12 @@ done
                 rotary->clear();
 
                 if (!is_silence(tempf)) {
+                    proc.writeln("sox -v 0.1 beep.wav -t wav - | aplay -q -N");
                     shtup();
                     rec_close();
                     checker.kill();
-                    return stt();
+                    string userin = stt();
+                    return userin;
                 }
             }
 
@@ -253,8 +257,9 @@ done
         
         bool is_silence(const string& recordf) {
             proc.writeln("sox " + recordf + " -n stat 2>&1 | grep \"Maximum amplitude\" | awk '{print $3}'");
-            string output = "";
-            while ((output = trim(proc.read())).empty());
+            string output = proc.read();
+            // string output = "";
+            // while ((output = trim(proc.read())).empty());
             return str_starts_with(output, "0.0"); // TODO: convert to double
         }
 
@@ -318,9 +323,6 @@ done
     Rotary Speech::rotary_record({
 
     #define _X_ ANSI_FMT_RESET ANSI_FMT_C_RED "●"
-    #define _O_ ANSI_FMT_T_DIM ANSI_FMT_C_RED "o"
-    #define _o_ ANSI_FMT_T_DIM ANSI_FMT_C_RED "-"
-    #define ___ ANSI_FMT_T_DIM ANSI_FMT_C_RED " "
 
         RotaryFrames({ 
             ANSI_FMT("[", ANSI_FMT_RESET ANSI_FMT_C_RED "● " ANSI_FMT_RESET ANSI_FMT_C_BLACK "rec" ) + "]",
@@ -338,16 +340,16 @@ done
     Rotary Speech::rotary_speech({
 
     #define _X_ ANSI_FMT_RESET ANSI_FMT_C_BLUE "●"
-    #define _O_ ANSI_FMT_T_DIM ANSI_FMT_C_BLUE "o"
-    #define _o_ ANSI_FMT_T_DIM ANSI_FMT_C_BLUE "-"
-    #define ___ ANSI_FMT_T_DIM ANSI_FMT_C_BLUE " "
+    #define _O_ ANSI_FMT_T_DIM ANSI_FMT_C_BLUE "◎"
+    #define _o_ ANSI_FMT_T_DIM ANSI_FMT_C_BLUE "○"
+    #define ___ ANSI_FMT_T_DIM ANSI_FMT_C_BLUE "-"
 
         RotaryFrames({ 
             ANSI_FMT("[", ___ ___ _X_ ___ ___ ) + "]",
             ANSI_FMT("[", ___ ___ _O_ ___ ___ ) + "]",
             ANSI_FMT("[", ___ ___ _o_ ___ ___ ) + "]",
-            ANSI_FMT("[", ___ ___ _X_ ___ ___ ) + "]",
             ANSI_FMT("[", ___ ___ _O_ ___ ___ ) + "]",
+            ANSI_FMT("[", ___ ___ _X_ ___ ___ ) + "]",
             ANSI_FMT("[", ___ ___ _o_ ___ ___ ) + "]",
             ANSI_FMT("[", ___ ___ _X_ ___ ___ ) + "]",
             ANSI_FMT("[", ___ ___ _O_ ___ ___ ) + "]",

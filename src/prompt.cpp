@@ -126,8 +126,6 @@ namespace prompt {
             }
 
             return commandLine.readln();
-
-            
         }
         
 
@@ -149,7 +147,7 @@ namespace prompt {
         }
 
     };
-    const string User::speech_interrupt_info = "\n[SYSTEM-MESSAGE: AI PREVIOUS RESPONSE TEXT-TO-SPEECH WAS INTERRUPTED BY USER]\n";
+    const string User::speech_interrupt_info = "\n[SYSTEM-MESSAGE: TEXT-TO-SPEECH WAS INTERRUPTED]\n";
 
     // ------------------------
     
@@ -271,8 +269,8 @@ int main() {
         "Your persona is a man and you behave like a simple human, you have a sense of humor, your personality is entertaining. You answers are succinct and focusing on the core of your conversation but like a normal human chat would looks like. You always helpful but also concise in answers."
         // + "\nYou are a creative helper designer who always should came up with the simpliest possible solution no mather what even if you don't know the correct answer you guess."
         + (speech ?
-            "\nThe user is using a text-to-speech software for communication. It should be taken into account that the user's responses are being read aloud by a text-to-speech program. If the user interrupts the text-to-speech, then the following will appear in the context window to inform you: " + User::speech_interrupt_info + "\n"
-            "\nRepeated user interruption changes how you act, your responses are becaming more consise if you intterupted more often recently but you can put more context otherwise if it's necessary, tune your response style accordingly."
+            "\nThe user is using a text-to-speech software for communication. It should be taken into account that the user's responses are being read aloud by a text-to-speech program that can be interrupted by background noise or user interruption, then the following will appear in the context window to inform you about it: " + User::speech_interrupt_info + "\n"
+            "\nRepeated interruption changes how you act, your responses are becaming more consise if you intterupted more often recently but you can put more context otherwise if it's necessary, tune your response style accordingly."
             : "")
         + "\nThe user language is [" + user_lang + "] - use this language to talk to the user. "
     ;
