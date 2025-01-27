@@ -17,6 +17,121 @@ using namespace nlohmann;
 
 namespace tools {
 
+    // Function to remove single-line and multi-line comments
+    string removeComments(const string& json) {
+        string result;
+        bool inString = false; // Track if we're inside a string
+        bool escapeNext = false; // Track if the next character is escaped
+        bool inSingleLineComment = false; // Track if we're in a single-line comment
+        bool inMultiLineComment = false; // Track if we're in a multi-line comment
+
+        for (size_t i = 0; i < json.size(); ++i) {
+            char ch = json[i];
+
+            // Handle escape sequences inside strings
+            if (inString && ch == '\\' && !escapeNext) {
+                escapeNext = true;
+                result += ch;
+                continue;
+            }
+
+            // Handle string literals
+            if (ch == '"' && !escapeNext && !inSingleLineComment && !inMultiLineComment) {
+                inString = !inString; // Toggle string state
+            }
+
+            // Handle single-line comments
+            if (!inString && !inMultiLineComment && ch == '/' && i + 1 < json.size() && json[i + 1] == '/') {
+                inSingleLineComment = true;
+                i++; // Skip the second '/'
+                continue;
+            }
+
+            // Handle multi-line comments
+            if (!inString && !inSingleLineComment && ch == '/' && i + 1 < json.size() && json[i + 1] == '*') {
+                inMultiLineComment = true;
+                i++; // Skip the '*'
+                continue;
+            }
+
+            // End of single-line comment
+            if (inSingleLineComment && ch == '\n') {
+                inSingleLineComment = false;
+            }
+
+            // End of multi-line comment
+            if (inMultiLineComment && ch == '*' && i + 1 < json.size() && json[i + 1] == '/') {
+                inMultiLineComment = false;
+                i++; // Skip the '/'
+                continue;
+            }
+
+            // Append characters that are not part of comments
+            if (!inSingleLineComment && !inMultiLineComment) {
+                result += ch;
+            }
+
+            // Reset escape flag
+            escapeNext = false;
+        }
+
+        return result;
+    }
+
+    // Function to fix JSON by removing trailing commas
+    string fixJson(string json) {
+        json = removeComments(json);
+        string result;
+        bool inString = false; // Track if we're inside a string
+        bool escapeNext = false; // Track if the next character is escaped
+        stack<char> scopeStack; // Track the current scope (object or array)
+
+        for (size_t i = 0; i < json.size(); ++i) {
+            char ch = json[i];
+
+            // Handle string literals
+            if (ch == '"' && !escapeNext) {
+                inString = !inString; // Toggle string state
+            }
+
+            // Handle escape sequences
+            if (ch == '\\' && !escapeNext) {
+                escapeNext = true;
+            } else {
+                escapeNext = false;
+            }
+
+            // Handle scopes (objects and arrays)
+            if (!inString) {
+                if (ch == '{' || ch == '[') {
+                    scopeStack.push(ch);
+                } else if (ch == '}' || ch == ']') {
+                    if (!scopeStack.empty()) {
+                        scopeStack.pop();
+                    }
+                }
+            }
+
+            // Remove trailing commas outside strings
+            if (!inString && ch == ',') {
+                // Look ahead to see if the next non-whitespace character is a closing brace or bracket
+                size_t j = i + 1;
+                while (j < json.size() && (json[j] == ' ' || json[j] == '\t' || json[j] == '\n' || json[j] == '\r')) {
+                    ++j;
+                }
+                if (j < json.size() && (json[j] == '}' || json[j] == ']')) {
+                    // Skip this comma (it's a trailing comma)
+                    continue;
+                }
+            }
+
+            // Append the character to the result
+            result += ch;
+        }
+
+        return result;
+    }
+
     enum json_type {
         JSON_TYPE_UNDEFINED,
         JSON_TYPE_NULL,
@@ -174,7 +289,7 @@ namespace tools {
 
     public:
         // Constructor to initialize the JSON string (can be empty)
-        JSON(string jstring = "{}") : jstring(jstring.empty() ? "{}" : jstring) {
+        JSON(string jstring = "{}") : jstring(jstring.empty() ? "{}" : fixJson(jstring)) {
             try {
                 _json = json::parse(jstring);
             } catch (const exception &e) {
@@ -238,7 +353,8 @@ namespace tools {
                 json::json_pointer ptr = _json_selector(jselector);  // Convert selector to pointer
                 return j.at(ptr).get<T>();  // Return the value
             } catch (const exception& e) {
-                throw ERROR("JSON Error at: " + jselector + ", reason: " + string(e.what()) + "\njson-string was: " + jstring);
+                DEBUG(jstring);
+                throw ERROR("JSON Error at: " + jselector + ", reason: " + string(e.what()));
             }
         }
 

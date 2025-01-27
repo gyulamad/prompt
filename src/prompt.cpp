@@ -417,26 +417,31 @@ namespace prompt {
 using namespace prompt;
 
 int main(int argc, char *argv[]) {
+    // args
     Arguments args(argc, argv);
     const bool voice = args.getBool("voice");
 
+    // configs
+    JSON config(file_get_contents("config.json"));
+
+    // logger
     const string basedir = get_exec_path() + "/.prompt/";
     mkdir(basedir);
     Logger logger("Prompt-log", basedir + "prompt.log");
     logger.info("Prompt started");
 
-
-    const string user_prompt = "> ";
-    const string hugging_secret = "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";
-    const string user_lang = "hu";
+    // settings
+    const string user_prompt = config.get<string>("prompt");;
+    const string hugging_secret = config.get<string>("secrets.hugging-face"); // TODO: hugging-face (and other third party) config into separated json
+    const string user_lang = config.get<string>("language");
 
     Speech* speech = voice ? new Speech(
         hugging_secret,
         user_lang
     ) : nullptr;
 
-    const string gemini_api_key = "AIzaSyCAzTiA8DW_aP71mwEj6AMPiG536c-SJGg";
-    const string gemini_system = 
+    const string gemini_api_key = config.get<string>("secrets.google-gemini"); // TODO: google (and other third party) config into separated json
+    const string gemini_system = // TODO: goes to the config:
         "Your persona is a mid age man and you behave like a simple human, you have a sense of humor, your personality is entertaining. Your answers are succinct and focusing on the core of your conversation but like a normal human chat would looks like. You always helpful but also concise in answers."
         // + "\nYou are a creative helper designer who always should came up with the simpliest possible solution no mather what even if you don't know the correct answer you guess."
         + (speech ?
@@ -445,12 +450,12 @@ int main(int argc, char *argv[]) {
             : "")
         + "\nThe user language is [" + user_lang + "] - use this language to talk to the user. "
     ;
-    bool gemini_remember = true;
-    const string gemini_memory = "";
-    size_t gemini_memory_max = 1000000;
-    double gemini_memory_loss_ratio = 0.5;
-    int gemini_think_steps = 1;
-    int gemini_think_deep = 3;
+    bool gemini_remember = config.get<bool>("model.remember");
+    const string gemini_memory = config.get<string>("model.memory");
+    size_t gemini_memory_max = config.get<size_t>("model.memory_max");
+    double gemini_memory_loss_ratio = config.get<double>("model.memory_loss_ratio");
+    int gemini_think_steps = config.get<int>("model.think_steps");
+    int gemini_think_deep = config.get<int>("model.think_deep");
 
 
     Gemini model(
