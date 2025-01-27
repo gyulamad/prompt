@@ -29,8 +29,6 @@ namespace tools::llm {
         string memory;
         size_t memory_max; 
         double memory_loss_ratio;
-        const int think_steps;
-        const int think_deep;
         // think_reporter_func_t default_think_reporter;
         // think_interruptor_func_t default_think_interruptor;
 
@@ -68,6 +66,8 @@ namespace tools::llm {
         }
 
     public:
+        int think_steps;
+        int think_deep;
 
         #define MODEL_ARGS \
             const string& system = "", \
@@ -256,12 +256,12 @@ namespace tools::llm {
             return response;
         }
 
-        string deep_think(const string& task) {
-            Model* solver = (Model*)clone();
-            string result = solver->solve(task);
-            kill(solver);
-            return result;
-        }
+        // string deep_think(const string& task) {
+        //     Model* solver = (Model*)clone();
+        //     string result = solver->solve(task);
+        //     kill(solver);
+        //     return result;
+        // }
         
         string solve(const string& task, int think_deeper = -1) {
             think_reporter();

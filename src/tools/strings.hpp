@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include <type_traits>
 
+#include "ERROR.hpp"
+
 using namespace std;
 
 namespace tools {
@@ -180,8 +182,43 @@ namespace tools {
         if (ss >> num) {
             return num;
         } else {
-            throw ERROR("Invalid input string (not a number): " + str_cut_end(str));
+            throw ERROR("Invalid input string (not a number): " + (str.empty() ? "<empty>" : str_cut_end(str)));
         }
     }
 
+    vector<string> split(const string& s) {
+        vector<string> parts;
+        stringstream ss(s);
+        string part;
+        while (ss >> part) {
+            parts.push_back(part);
+        }
+        return parts;
+    }
+
+    bool is_numeric(const string& s) {
+        if (s.empty()) return false;
+        
+        size_t start = (s[0] == '+' || s[0] == '-') ? 1 : 0;
+        bool hasDecimal = false;
+        
+        for (size_t i = start; i < s.length(); i++) {
+            if (s[i] == '.') {
+                if (hasDecimal) return false;  // Multiple decimals
+                hasDecimal = true;
+            }
+            else if (!isdigit(s[i])) return false;
+        }
+        
+        return s.length() > start && !s.ends_with(".");
+    }
+
+    bool is_integer(const string& s) {
+        if (s.empty()) return false;
+        size_t start = (s[0] == '+' || s[0] == '-') ? 1 : 0;
+        return s.length() > start && all_of(s.begin() + start, s.end(), ::isdigit);
+    }
+    bool is_int(const string& s) {
+        return is_integer(s);
+    }
 }

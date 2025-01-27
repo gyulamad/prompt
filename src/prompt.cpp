@@ -13,6 +13,7 @@
 #include "tools/Process.hpp"
 #include "tools/Logger.hpp"
 #include "tools/system.hpp"
+#include "tools/Arguments.hpp"
 
 #include "tools/llm/Model.hpp"
 
@@ -86,6 +87,8 @@ namespace prompt {
 
     class User {
     private:
+        enum Mode {MODE_CHAT, MODE_THINK, MODE_SOLVE};
+        Mode mode = MODE_CHAT;
         Model& model;
         CommandLine commandLine;
         Speech* speech = nullptr;
@@ -112,17 +115,21 @@ namespace prompt {
         // }
 
         string prompt(const string& response = "") {
-            if (!response.empty()) cout << response << endl;
+            string resp = trim(response);
+            if (!resp.empty()) cout << resp << endl;
             if (speech) {
-                if (voice_out) speech->say(response, 175, true);
+                if (voice_out && !resp.empty()) speech->say(resp, 175, true);
                 if (voice_in) {
                     string input = speech->rec();
-                    if (!speech->is_rec_interrupted() && !input.empty()) {
-                        cout << commandLine.get_prompt() << input << endl; // emulate command line
-                        return input;
-                    }
+                    if (speech->is_rec_interrupted()) voice_in = false;
+                    // if (!speech->is_rec_interrupted() && !input.empty()) {
+                    //     //cout << commandLine.get_prompt() << input << endl; // emulate command line
+                    //     commandLine.show(input + "\n");
+                    // }
+                    speech->cleanprocs();
+                    commandLine.show(input + "\n");
+                    return input;
                 }
-                speech->cleanprocs();
             }
 
             return commandLine.readln();
@@ -130,18 +137,179 @@ namespace prompt {
         
 
         void start() {
+            CompletionMatcher cmatcher;
+            cmatcher.command_patterns = {
+                "/help",
+                "/exit",
+                "/voice",
+                "/voice input {switch}",
+                "/voice output {switch}",
+                "/send {filename}",
+                "/send {string} {filename}",
+                "/mode",
+                "/mode chat",
+                "/mode think",
+                "/mode solve",
+                "/think {number}",
+                "/solve {number}"
+                // "/set volume {number}",
+                // "/set voice-input {switch}",
+                // "/cat {filename}",
+                // "/print {string}",
+                // "/print {string} {filename}"
+            };
+            commandLine.set_completion_matcher(cmatcher);
+
             string response = "";
             while (true) {
                 string input = prompt(response); 
                 response = "";      
                 if (commandLine.is_exited()) break;        
                 if (input.empty()) continue;
-                if (input == "/exit") break;
+                else if (input[0] == '/') {
+                    bool trlspc;
+                    vector<string> input_parts = array_filter(cmatcher.parse_input(input, trlspc, false));
+                    input = "";
+                    if (input_parts[0] == "/exit") break;
+                    if (input_parts[0] == "/help") {
+                        cout << "Usages:" << endl;
+                        array_dump(cmatcher.command_patterns, false);
+                        continue;
+                    }
+                    if (input_parts[0] == "/voice") {
+                        if (!speech) {
+                            cout << "No voice I/O loaded. - Add --voice argument from command line." << endl; // TODO 
+                            continue;                           
+                        }
+                        if (input_parts.size() > 1) {
+                            string voice_usage = "Use: /voice (input/output) [on/off]";
+                            if (input_parts.size() < 3) cout << voice_usage << endl;
+                            else if (input_parts[1] == "input") {
+                                if (input_parts[2] == "on") voice_in = true;
+                                else if (input_parts[2] == "off") voice_in = false;
+                                else cout << "Invalid argument: " << input_parts[2] << endl;
+                            }
+                            else if (input_parts[1] == "output") {
+                                if (input_parts[2] == "on") voice_out = true;
+                                else if (input_parts[2] == "off") voice_out = false;
+                                else cout << "Invalid argument: " << input_parts[2] << endl;
+                            } else cout << voice_usage << endl;
+                        }
+
+                        cout << "Voice input:\t[" << (voice_in ? "On" : "Off") << "]" << endl;
+                        cout << "Voice output:\t[" << (voice_out ? "On" : "Off") << "]" << endl;
+                        continue;
+                    }
+                    if (input_parts[0] == "/send") {
+                        if (input_parts.size() == 1) {
+                            cout << "Filename is missing" << endl;
+                            continue;
+                        }
+                        string message = "", filename;
+                        if (input_parts.size() == 2) {
+                            filename = input_parts[1];
+                        }
+                        if (input_parts.size() == 3) {
+                            message = input_parts[1];
+                            filename = input_parts[2];
+                        }
+                        if (input_parts.size() > 3) {
+                            cout << "Too many arguments" << endl;
+                            continue;
+                        }
+
+                        if (!file_exists(filename)) {
+                            cout << "File not found: " << filename << endl;
+                            continue;
+                        }
+                        string contents = file_get_contents(filename);
+                        if (contents.empty()) contents = "<empty>";
+                        input = message + "\nFile '" + filename + "' contents:\n" + contents;
+                    }
+                    if (input_parts[0] == "/mode") {
+                        if (input_parts.size() >= 2) {
+                            if (input_parts[1] == "chat") {
+                                mode = MODE_CHAT;
+                            }
+                            else if (input_parts[1] == "think") {
+                                mode = MODE_THINK;
+                            }
+                            else if (input_parts[1] == "solve") {
+                                mode = MODE_SOLVE;
+                            }
+                            else {
+                                cout << "Invalid mode: " << input_parts[1] << endl;
+                                continue;
+                            }
+                        }
+                        string mode_s = "";
+                        switch (mode)
+                        {
+                            case MODE_CHAT:
+                                mode_s = "chat";
+                                break;
+
+                            case MODE_THINK:
+                                mode_s = "think (steps: " + to_string(model.think_steps) + ")";
+                                break;
+
+                            case MODE_SOLVE:
+                                mode_s = "solve (deep: " + to_string(model.think_deep) + ")";
+                                break;
+                        
+                            default:
+                                throw ERROR("Invalid mode");
+                        }
+
+                        cout << "Mode: " << mode_s << endl;
+                        continue;
+                    }
+                    if (input_parts[0] == "/think") {
+                        if (input_parts.size() == 2) {
+                            if (is_integer(input_parts[1]))
+                                model.think_steps = parse<int>(input_parts[1]);
+                            else cout << "Invalid parameter." << endl;
+                        }
+                        cout << "Extracting steps: " << model.think_steps << endl;
+                        continue;
+                    }
+                    if (input_parts[0] == "/solve") {
+                        if (input_parts.size() == 2) {
+                            if (is_integer(input_parts[1]))
+                                model.think_deep = parse<int>(input_parts[1]);
+                            else cout << "Invalid parameter." << endl;
+                        }
+                        cout << "Deep thinking solution tree depth max: " << model.think_deep << endl;
+                        continue;
+                    }
+                    if (input.empty()) {
+                        cout << "Invalid command/arguments or syntax: " << input_parts[0] << endl;
+                        continue; 
+                    }
+                    commandLine.show(input + "\n");
+                }
                 if (speech && speech->is_say_interrupted()) {
                     // cout << "AI TTS was interrupted" << endl;
                     input = speech_interrupt_info + "\n" + input;    
                 }
-                response = model.prompt(input); //model.solve(input);
+                switch (mode)
+                {
+                    case MODE_CHAT:
+                        response = model.prompt(input);
+                        break;
+
+                    case MODE_THINK:
+                        response = model.think(input);
+                        break;
+
+                    case MODE_SOLVE:
+                        response = model.solve(input);
+                        break;
+                
+                    default:
+                        throw ERROR("Invalid mode");
+                }
+                //response = model.prompt(input); //model.solve(input);
                 // cout << response << endl;
             }
         }
@@ -248,7 +416,10 @@ namespace prompt {
 
 using namespace prompt;
 
-int main() {
+int main(int argc, char *argv[]) {
+    Arguments args(argc, argv);
+    const bool voice = args.getBool("voice");
+
     const string basedir = get_exec_path() + "/.prompt/";
     mkdir(basedir);
     Logger logger("Prompt-log", basedir + "prompt.log");
@@ -259,10 +430,10 @@ int main() {
     const string hugging_secret = "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";
     const string user_lang = "hu";
 
-    Speech* speech = new Speech(
+    Speech* speech = voice ? new Speech(
         hugging_secret,
         user_lang
-    );
+    ) : nullptr;
 
     const string gemini_api_key = "AIzaSyCAzTiA8DW_aP71mwEj6AMPiG536c-SJGg";
     const string gemini_system = 
@@ -298,7 +469,7 @@ int main() {
 
     user.start();
 
-    delete speech;
+    if (speech) delete speech;
     return 0;
 }
 

@@ -47,12 +47,13 @@ namespace tools {
         const string secret;
         string lang;
 
-        bool rec_interrupted;
-        bool say_interrupted;
+        bool rec_interrupted = false;
+        bool say_interrupted = false;
         
 
         long long reclastms = 0;
         void recstat(int timeout_ms = 150) {
+            if (!rotary) return;
             long long nowms = get_time_ms();
             if (nowms > reclastms + timeout_ms) {
                 reclastms = nowms;
@@ -67,8 +68,8 @@ namespace tools {
             if (!file_exists(voice_check_sh_path)) {
                 file_put_contents(voice_check_sh_path, R"(
 while true; do
-    timeout 0.3 arecord -f cd -t wav -r 16000 -c 1 2>/dev/null > silent_check.wav
-    sox silent_check.wav -n stat 2>&1  | grep "Maximum amplitude" | awk '{print $3}'
+    timeout 0.3 arecord -f cd -t wav -r 16000 -c 1 2>/dev/null > /tmp/silent_check.wav
+    sox /tmp/silent_check.wav -n stat 2>&1  | grep "Maximum amplitude" | awk '{print $3}'
     sleep 0.1
 done
                 )");            
@@ -143,39 +144,49 @@ done
         
         // transcribe, override if you need to
         virtual string stt() {
-            int retry = 10;
+            if (is_silence(tempf)) return "";
+            while (kbhit()) getchar(); // TODO ??
+            int retry = 1;
+            string cmd = "";
             while (retry) {
                 try {
                     // transcribe
         // cout << "transcribe..." << endl;
 
-                    proc.writeln(
-                        "curl https://api-inference.huggingface.co/models/jonatasgrosman/wav2vec2-large-xlsr-53-" + langs.at(lang) + " \
+                    Process proc;
+                    cmd = "curl https://api-inference.huggingface.co/models/jonatasgrosman/wav2vec2-large-xlsr-53-" + langs.at(lang) + " \
                             -X POST \
-                            --data-binary '@" + speechf + "' \
-                            -H 'Authorization: Bearer " + secret + "' -s");
+                            --data-binary '@" + tempf + "' \
+                            -H 'Authorization: Bearer " + secret + "' -s";
+                    proc.writeln(cmd);
 
                     string output;
-                    while ((output = proc.read(100)).empty());// if (kbhit()) return misschars(); // waiting for transcriptions
+                    while((output = proc.read()).empty());// if (kbhit()) return misschars(); // waiting for transcriptions
+                    proc.kill();
         // cout << "resp: " << output << endl;
 
                     // extract text
 
                     JSON json(output);
+                    if (json.isDefined("error")) throw ERROR("STT error: " + json.dump());
                     // while (!json.isDefined("text")) {
                     //     DEBUG(json.dump());
                     //     //break;  // TODO throw ERROR("STT transcibe failed:" + json.dump());
                     // }
                     output = json.get<string>("text");
 
+                    while (kbhit()) getchar(); // TODO ??
                     return output;
                 } catch (exception &e) {
-                    cerr << "STT transcibe failed. (" << retry << " retry left...)" << endl;
-                    sleep(6);
-                    retry--;
+                    cerr 
+                        << "STT transcibe failed: " << e.what() << endl
+                        << --retry << " retry left, press a key to break..." << endl;
+                    DEBUG("command: " + cmd);
+                    sleep(5);
                     if (retry <= 0 || kbhit()) break;
                 }
             }
+            while (kbhit()) getchar(); // TODO ??
             return "";
         }
 
@@ -192,13 +203,16 @@ done
             checker.writeln(voice_check_sh_path); //("voice_check.sh"); // TODO: create if not exists            
 
             while (true) { 
+                string recerr = "";
+                bool recdone = false;
 
                 // recording the speech
+                // cout << "RECSTART!" << endl;
                 proc.writeln(
                     //"timeout " + to_string(timeout) + " "
                     "arecord -f cd -t wav -r " + to_string(kHz) + " -c 1 2>/dev/null | " // TODO error to a log that is "/dev/null" by default + add every parameter cusomizable
                     "sox -t wav - -t wav " + speechf + " silence 1 0.1 2% 1 0.9 2%  && "
-                    "sox " + speechf + " " + tempf + " trim 0.2 && "
+                    "sox " + speechf + " " + tempf + " trim 0.01 && "
                     // "mv -f " + tempf + " " + speechf + " && "
                     "echo \"[record_done]\"");
 
@@ -207,9 +221,11 @@ done
                     recstat();
                     output = trim(proc.read());
                     if (!output.empty()) {
+                        recdone = true;
                         if (output == "[record_done]") break;
                         if (str_contains(output, "[record_done]")) {
-                            //TODO: cerr << "\nrecord: " << output << endl;                           
+                            //TODO: cerr << "\nrecord: " << output << endl;  
+                            recerr = output;                       
                             break;
                         }
                     }
@@ -238,7 +254,9 @@ done
                         rotary->clear();
                         shtup();
                         rec_close();
+                        cleanprocs();                    
                         checker.kill();
+                        rec_interrupted = true;
                         return "";
                     }
 
@@ -246,8 +264,8 @@ done
 
                 rotary->clear();
 
-                if (!is_silence(tempf)) {
-                    proc.writeln("sox -v 0.1 beep.wav -t wav - | aplay -q -N");
+                if (recdone && recerr.empty() && !is_silence(tempf)) {
+                    proc.writeln("sox -v 0.1 beep.wav -t wav - | aplay -q -N &");
                     shtup();
                     rec_close();
                     checker.kill();
@@ -260,11 +278,22 @@ done
         }
         
         bool is_silence(const string& recordf) {
-            proc.writeln("sox " + recordf + " -n stat 2>&1 | grep \"Maximum amplitude\" | awk '{print $3}'");
-            string output = proc.read();
+            string output = trim(
+                Process::execute("sox " + recordf + " -n stat 2>&1 | grep \"Maximum amplitude\" | awk '{print $3}'")
+            );
+            // proc.writeln("sox " + recordf + " -n stat 2>&1 | grep \"Maximum amplitude\" | awk '{print $3}'");
+            // string output = "";
+            // output = trim(proc.read());
+            // int i = 10;
+            // while (output.empty() && i--)
+            //     output = trim(proc.read());
+                
+            if (!is_numeric(output)) return true;
+            double ampl = parse<double>(output);
+            return ampl < 0.1; // TODO: parameter!!!
             // string output = "";
             // while ((output = trim(proc.read())).empty());
-            return str_starts_with(output, "0.0"); // TODO: convert to double
+            // return str_starts_with(output, "0.0"); // TODO: convert to double
         }
 
         void say(const string& text, int speed = 175, bool async = false) {

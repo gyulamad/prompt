@@ -42,12 +42,51 @@ namespace tools {
 
         return result;
     }
+    
+    // Function to merge two vectors
+    template <typename T>
+    vector<T> array_merge(const vector<T>& vec1, const vector<T>& vec2) {
+        vector<T> result;
+
+        // Reserve space to avoid repeated reallocations
+        result.reserve(vec1.size() + vec2.size());
+
+        // Add elements from the first vector
+        result.insert(result.end(), vec1.begin(), vec1.end());
+
+        // Add elements from the second vector
+        result.insert(result.end(), vec2.begin(), vec2.end());
+
+        return result;
+    }
 
     template<typename T>
-    void array_dump(vector<T> vec) {
-        DEBUG("dump vector(" + to_string(vec.size()) + "):");
+    void array_dump(vector<T> vec, bool dbg = true) {
+        if (dbg) {
+            DEBUG("dump vector(" + to_string(vec.size()) + "):");
+        }
         size_t nth = 0;
         for (const T& elem: vec) cout << nth++ << ": " << elem << endl;
     }
+    
 
+    template <typename T>
+    void sort(vector<T>& vec) {
+        sort(vec.begin(), vec.end()); // Sorts in ascending order
+    }
+
+    template <typename T>
+    void rsort(vector<T>& vec) {
+        sort(vec.begin(), vec.end(), greater<T>()); // Sorts in descending order
+    }
+
+    template<typename T>
+    vector<T> array_filter(const vector<T>& input, function<bool(const T&)> predicate = [](const T& val) { 
+        return !val.empty(); 
+    }) {
+        vector<T> result;
+        copy_if(input.begin(), input.end(), back_inserter(result), predicate);
+        return result;
+    }
+    
 };
