@@ -254,7 +254,7 @@ namespace prompt {
                                 break;
 
                             case MODE_SOLVE:
-                                mode_s = "solve (deep: " + to_string(model.think_deep) + ")";
+                                mode_s = "solve (steps: " + to_string(model.think_steps) + ", deep: " + to_string(model.think_deep) + ")";
                                 break;
                         
                             default:
@@ -295,15 +295,15 @@ namespace prompt {
                 switch (mode)
                 {
                     case MODE_CHAT:
-                        response = model.prompt(input);
+                        response = model.prompt("user", input);
                         break;
 
                     case MODE_THINK:
-                        response = model.think(input);
+                        response = model.think("user", input);
                         break;
 
                     case MODE_SOLVE:
-                        response = model.solve(input);
+                        response = model.solve("user", input);
                         break;
                 
                     default:

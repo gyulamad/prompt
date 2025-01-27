@@ -61,7 +61,7 @@ namespace tools::llm {
         void compress_memory() {
             Model* helper = (Model*)spawn();
             auto [firstHalf, secondHalf] = str_cut_ratio(memory, memory_loss_ratio);
-            memory = helper->prompt("Summarize this:\n" + firstHalf) + secondHalf;
+            memory = helper->prompt("system", "Summarize this:\n" + firstHalf) + secondHalf;
             kill(helper);
         }
 
@@ -120,23 +120,25 @@ namespace tools::llm {
 
 
 
-        string prompt(const string& prmpt, const string& suffix) {
-            if (!remember) return request(prmpt + "\n" + system + "\n" + suffix);
-            memorize(prmpt);
+        string prompt(string from, const string& prmpt/*, const string& suffix*/) {
+            const string suffix = "";
+            if (!from.empty()) from += ": ";
+            if (!remember) return request(from + prmpt + "\n" + system + "\n" + suffix);
+            memorize(from + prmpt);
             string response = request(memory + "\n" + system + "\n" + suffix);
             memorize(response);
             return response;
         }
-        string prompt(const string& prmpt, const char* sffx = nullptr) {
-            string suffix(sffx ? sffx : "");
-            return prompt(prmpt, suffix);
-        }
+        // string prompt(const string& prmpt, const char* sffx = nullptr) {
+        //     string suffix(sffx ? sffx : "");
+        //     return prompt(prmpt, suffix);
+        // }
 
         string choose_str(const string& prmpt, const vector<string>& options) {
             if (options.empty()) ERROR("No options to choose from.");
             if (options.size() == 1) return options[0];
             
-            string selection = prompt(
+            string selection = prompt("system", 
                 prmpt + "\n" + 
                 "Your options are the followings:\n" +           
                 " - " + implode("\n - ", options) + "\n" +
@@ -150,7 +152,7 @@ namespace tools::llm {
                     selection = selections[0];
                     break;
                 }
-                selection = prompt("To many. Select only ONE!");
+                selection = prompt("system", "To many. Select only ONE!");
             }
 
             return selection;
@@ -188,7 +190,7 @@ namespace tools::llm {
             if (options.empty()) ERROR("No options to choose from.");
             if (options.size() == 1) return { options[0] };
             
-            string response = prompt(
+            string response = prompt("system", 
                 prmpt + "\n" + 
                 (
                     options.empty() ? "" :
@@ -221,7 +223,7 @@ namespace tools::llm {
         }
 
         vector<string> choices(const string& prmpt) {
-            string response = prompt(
+            string response = prompt("system", 
                 prmpt + "\n"
                 "List your response in the following format:\n" +
                 implode_options({ "Your selection..", "Other option (if multiple apply)..." })
@@ -236,15 +238,15 @@ namespace tools::llm {
             throw ERROR("Model was unable to decide. Prompt: " + str_cut_end(prmpt));
         }
 
-        string think(const string& prmpt) {
+        string think(const string& from, const string& prmpt) {
             think_reporter();
 
             Model* thinker = (Model*)clone();
 
-            string response = thinker->prompt(prmpt);
+            string response = thinker->prompt(from, prmpt);
             think_reporter();
             for (int step = 0; step < think_steps; step++) {
-                response = thinker->prompt("Think deeply and refine the response.");
+                response = thinker->prompt("system", "Think deeply and refine the response.");
                 think_reporter();
                 if (think_interruptor()) break;
             }
@@ -263,11 +265,11 @@ namespace tools::llm {
         //     return result;
         // }
         
-        string solve(const string& task, int think_deeper = -1) {
+        string solve(const string& from, const string& task, int think_deeper = -1) {
             think_reporter();
-            if (!remember) return prompt(task);
+            if (!remember) return prompt(from, task);
             if (think_deeper == -1) think_deeper = think_deep;
-            if (think_deeper <= 0 || think_interruptor()) return prompt(task);
+            if (think_deeper <= 0 || think_interruptor()) return prompt(from, task);
             think_deeper--;
 
             Model* helper = (Model*)clone();
@@ -277,7 +279,7 @@ namespace tools::llm {
                 // It's not even a task:
                 kill(helper);
                 think_reporter();
-                return prompt(task);
+                return prompt(from, task);
             }
             // it's a valid task...
 
@@ -322,7 +324,7 @@ namespace tools::llm {
 
                             Model* thinker = (Model*)helper->clone();
                             
-                            string thoughts = thinker->think(
+                            string thoughts = thinker->think("system",
                                 "Because the task:\n" + task + "\n" + 
                                 "The main question now:\n" + question + "\n" + 
                                 "One possible solution is:\n" + option + "\n" +
@@ -399,7 +401,7 @@ namespace tools::llm {
                     string results;
                     for (const string& step: small_steps) {
                         think_reporter(step);
-                        string solution = helper->solve(task + "\n" + step, think_deeper);
+                        string solution = helper->solve("system", task + "\n" + step, think_deeper);
                         // think_reporter(solution);
                         results += step + "\n" + solution + "\n";
                         if (think_interruptor()) break;
@@ -417,7 +419,7 @@ namespace tools::llm {
 
             kill(helper);
             think_reporter();
-            return prompt(task);
+            return prompt(from, task);
         }
     };
 
