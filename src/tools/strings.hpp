@@ -9,6 +9,8 @@
 #include <type_traits>
 
 #include "ERROR.hpp"
+#include "regx.hpp"
+#include "vectors.hpp"
 
 using namespace std;
 
@@ -58,27 +60,9 @@ namespace tools {
         return result;
     }
     
-
-    string str_replace(const map<string, string>& v, const string& s) {
-        // Create a modifiable copy of the input string
-        string result = s;
-
-        // Iterate through each key-value pair in the map
-        for (const auto& pair : v) {
-            size_t pos = 0;
-
-            // Search for the key in the string and replace all occurrences
-            while ((pos = result.find(pair.first, pos)) != string::npos) {
-                result.replace(pos, pair.first.length(), pair.second);
-                pos += pair.second.length(); // Move past the replacement
-            }
-        }
-
-        // Return the modified string
-        return result;
-    }
-    string str_replace(const string& from, const string& to, const string& subject) {
-        return str_replace({{from, to}}, subject);
+    bool str_contains(const string& str, const string& substring) {
+        // Use string::find to check if the substring exists
+        return str.find(substring) != string::npos;
     }
 
     int levenshtein(const string &s1, const string &s2) {
@@ -168,11 +152,65 @@ namespace tools {
         return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
     }
     
-    bool str_contains(const string& str, const string& substring) {
-        // Use string::find to check if the substring exists
-        return str.find(substring) != string::npos;
+    
+    
+    string str_replace(const map<string, string>& v, const string& s) {
+        // Create a modifiable copy of the input string
+        string result = s;
+
+        // Iterate through each key-value pair in the map
+        for (const auto& pair : v) {
+            size_t pos = 0;
+
+            // Search for the key in the string and replace all occurrences
+            while ((pos = result.find(pair.first, pos)) != string::npos) {
+                result.replace(pos, pair.first.length(), pair.second);
+                pos += pair.second.length(); // Move past the replacement
+            }
+        }
+
+        // Return the modified string
+        return result;
+    }
+    string str_replace(const string& from, const string& to, const string& subject) {
+        return str_replace({{from, to}}, subject);
     }
     
+    string tpl_replace(const map<string, string>& replacements, const string& template_str, const string& placeholder_ptrn = "\\{\\{[^}]+\\}\\}") {
+        
+        // Check if all provided replacements exist in template        
+        for (const auto& pair : replacements) {
+            if (!regx_match("^" + placeholder_ptrn + "$", pair.first))
+                throw ERROR(
+                    "Replacement variable provided that does not match to the placeholder regex: " + pair.first + 
+                    ", pattern: ^" + placeholder_ptrn + "$" + 
+                    "\nTemplate: " + str_cut_end(template_str));
+            if (!str_contains(template_str, pair.first))
+                throw ERROR(
+                    "Replacement variable provided for a template that is not having this placeholder: " + pair.first + 
+                    "\nTemplate: " + str_cut_end(template_str));
+        }
+        
+        // Check if all template expected variable are provided
+        vector<string> matches;
+        regx_match_all(placeholder_ptrn, template_str, &matches);
+        vector<string> variables = array_keys(replacements);
+        for (const string& match: matches) {
+            if (!in_array(match, variables))
+                throw ERROR(
+                    "Replacement value is not provided for the following placeholder(s): " + 
+                    implode(", ", matches) + 
+                    "\nTemplate: " + str_cut_end(template_str));
+        }
+
+        // If validation passes, use the existing str_replace function
+        return str_replace(replacements, template_str);
+    }
+    // Overload for single replacement
+    string tpl_replace(const string& from, const string& to, const string& subject, const string& placeholder_ptrn = "\\{\\{([^}]+)\\}\\}") {
+        return tpl_replace({{from, to}}, subject);
+    }
+
 
     template <typename T>
     T parse(const string& str) {
@@ -220,5 +258,9 @@ namespace tools {
     }
     bool is_int(const string& s) {
         return is_integer(s);
+    }
+    
+    inline string json_escape(const string& s) {
+        return str_replace("\n", "\\n", escape(s, "\""));
     }
 }

@@ -7,7 +7,7 @@ g++ -std=c++23 src/prompt.cpp -o builds/prompt && builds/prompt
 
 build && deploy:
 g++ -std=c++23 src/prompt.cpp -o builds/prompt && \
-cp builds//prompt ~/bin/prompt
+cp builds/prompt ~/bin/prompt
 
 build && run tests:
 g++ -std=c++23 tests/tests.cpp -o builds/tests && builds/tests

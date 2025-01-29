@@ -284,14 +284,16 @@ namespace tools {
     class JSON {
     protected:
         string* _error = nullptr;
-        string jstring;
-        json _json;
+        // string jstring;
+        json j;
 
     public:
+        JSON(const json& j): j(j) {}
+
         // Constructor to initialize the JSON string (can be empty)
-        JSON(string jstring = "{}") : jstring(jstring.empty() ? "{}" : fixJson(jstring)) {
+        JSON(string jstring = "{}") {
             try {
-                _json = json::parse(jstring);
+                j = json::parse(jstring.empty() ? "{}" : fixJson(jstring));
             } catch (const exception &e) {
                 _error = new string(e.what());
             }
@@ -302,6 +304,10 @@ namespace tools {
             if (_error) delete _error;
         }
 
+        json get_json() const {
+            return j;
+        }
+
         bool isValid(string* error = nullptr) {
             if (error) error = _error;
             return _error;
@@ -309,27 +315,29 @@ namespace tools {
 
         string dump(const int indent = -1, const char indent_char = ' ') {
             try {
-                json j;
-                try {
-                    j = json::parse(jstring);  // Parse the JSON string
-                } catch (const exception &e) {
-                    cerr << "JSON parse error: " << e.what() << endl;
-                    DEBUG(jstring);
-                    return "";
-                }
+                // json j;
+                // try {
+                //     j = json::parse(jstring);  // Parse the JSON string
+                // } catch (const exception &e) {
+                //     cerr << "JSON parse error: " << e.what() << endl;
+                //     DEBUG(jstring);
+                //     return "";
+                // }
+                // string dump = j.dump(indent, indent_char);
                 string dump = j.dump(indent, indent_char);
                 return dump;
             } catch (const exception& e) {
-                throw ERROR("JSON dump error: " + string(e.what()) + "\nJSON was:\n" + jstring);
+                throw ERROR("JSON dump error: " + string(e.what()));
             }
         }
 
         // Method to check if a selector is defined in the JSON (exists)
         bool isDefined(string jselector) {
             try {
-                json j = json::parse(jstring);  // Parse the JSON string
+                // json j = json::parse(jstring);  // Parse the JSON string
                 json::json_pointer ptr = _json_selector(jselector);  // Convert selector to pointer
-                return j.contains(ptr);  // Check if the pointer exists in the JSON
+                // return j.contains(ptr);  // Check if the pointer exists in the JSON
+                return j.contains(ptr);
             } catch (...) {
                 return false;  // If parsing fails or any error occurs, consider undefined
             }
@@ -338,9 +346,10 @@ namespace tools {
         // Method to check if a selector is null in the JSON
         bool isNull(string jselector) {
             try {
-                json j = json::parse(jstring);  // Parse the JSON string
+                // json j = json::parse(jstring);  // Parse the JSON string
                 json::json_pointer ptr = _json_selector(jselector);  // Convert selector to pointer
-                return j.at(ptr).is_null();  // Check if the value at the pointer is null
+                // return j.at(ptr).is_null();  // Check if the value at the pointer is null
+                return j.at(ptr).is_null(); 
             } catch (...) {
                 return false;  // If an error occurs, assume null
             }
@@ -349,28 +358,31 @@ namespace tools {
         template<typename T>
         T get(string jselector) {
             try {
-                json j = json::parse(jstring);  // Parse the JSON string
+                // json j = json::parse(jstring);  // Parse the JSON string
                 json::json_pointer ptr = _json_selector(jselector);  // Convert selector to pointer
-                return j.at(ptr).get<T>();  // Return the value
+                // return j.at(ptr).get<T>();  // Return the value
+                return j.at(ptr).get<T>();
             } catch (const exception& e) {
-                DEBUG(jstring);
+                //DEBUG(j.dump());
                 throw ERROR("JSON Error at: " + jselector + ", reason: " + string(e.what()));
             }
         }
 
-        void set(string value) {
-            jstring = value;
-        }
+        // void set(string value) {
+        //     jstring = value;
+        // }
 
         template<typename T>
         void set(string jselector, T value) {
             try {
-                json j = json::parse(jstring);
+                // json j = json::parse(jstring);
                 json::json_pointer ptr = _json_selector(jselector);
+                // j[ptr] = value;
+                // jstring = j.dump();
                 j[ptr] = value;
-                jstring = j.dump();
             } catch (const json::exception& e) {
-                throw ERROR("JSON Error at: " + jselector + ", reason: " + string(e.what()) + "\njson was: " + jstring);
+                //DEBUG(j.dump());
+                throw ERROR("JSON Error at: " + jselector + ", reason: " + string(e.what()));
             }
         }
 

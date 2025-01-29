@@ -28,7 +28,6 @@ int main() {
 #include <iostream>
 #include <vector>
 #include <string>
-#include <thread>
 #include <chrono>
 #include <algorithm>
 #include <mutex>

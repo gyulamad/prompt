@@ -3,7 +3,9 @@
 #include <iostream>
 #include <string>
 // #include <fstream>
-
+#include <vector>
+#include <cstdlib>
+#include <ctime>
 
 #include "io.hpp"
 #include "strings.hpp"
@@ -14,23 +16,85 @@
 #include "ANSI_FMT.hpp"
 #include "system.hpp"
 
+#include "llm/Model.hpp"
+
 using namespace std;
 
 namespace tools {
 
     class Speech {
     public:
-        map<string, string> langs = {
-            { "en", "english" },
-            { "hu", "hungarian" },
-            // add more languages if you need
-        };
 
         static Rotary rotary_listen;
         static Rotary rotary_record;
         static Rotary rotary_speech;
 
         Rotary* rotary = nullptr;
+
+        map<string, string> langs = {
+            { "en", "english" },
+            { "hu", "hungarian" },
+            // add more languages if you need
+        };
+        int speed;
+        double noise_treshold;
+        bool stalling = true;
+        vector<string> hesitors = {
+            // "Hmm, talán.",
+            // "Nos, oké.",
+            // "Oké, várjunk.",
+            // "Lássuk, hát.",
+            // "Talán, értem.",
+            // "Hát, rendben.",
+            // "Értem, persze.",
+            // "Rendben, aha.",
+            // "Persze, jó.",
+            // "Aha, tényleg.",
+            // "Jó, na...",
+            // "Tényleg, hm...",
+            // "Na, oké.",
+            // "Hm, persze.",
+            // "Várjunk, jó.",
+            // "Értem, hmm.",
+            // "Hmm, hadd gondoljam.",
+            // "Nos, meglátjuk.",
+            // "Oké, rendben van.",
+            // "Lássuk csak, mi lesz.",
+            // "Talán, ezt megbeszéljük.",
+            // "Hát, ez érdekes kérdés.",
+            // "Értem, de hadd gondolkozzak.",
+            // "Rendben, erre még visszatérünk.",
+            // "Persze, most nézem.",
+            // "Aha, valóban így van.",
+            // "Jó, értem már.",
+            // "Tényleg? Akkor nézzük.",
+            // "Na, lássuk a dolgokat.",
+            // "Hm, ez bonyolultnak tűnik.",
+            // "Várjunk csak, mi is a kérdés?",
+            // "Értem, de ehhez idő kell.",
+            // "Hmm, egy percet kérek.",
+            // "Nos, akkor lássuk.",
+            // "Oké, induljunk ki ebből.",
+            // "Lássuk, mit tehetünk.",
+            // "Talán, van rá megoldás.",
+            // "Hát, ezt át kell gondolnom.",
+            // "Értem, de kérek egy kis időt.",
+            // "Nos, hadd gondoljam át ezt egy pillanatra, hogy biztos legyek a válaszomban.",
+            // "Érdekes kérdés/kérés. Hadd nézzem meg alaposabban, hogy a legjobb választ tudjam adni.",
+            // "Ez egy jó gondolat, engedjék meg, hogy egy kicsit elmerüljek a részletekben.",
+            // "Rendben, értem a kérdést/kérést. Adj egy kis időt, amíg átgondolom a lehetőségeket.",
+            // "Hadd mérlegeljem a különböző szempontokat, hogy biztosan a megfelelő választ adjam.",
+            // "Éppen most próbálom átgondolni, hogy hogyan tudnám ezt a legjobban megközelíteni.",
+            // "Ez egy összetett dolog, hadd szánjak rá egy kis időt, hogy alaposan megvizsgáljam.",
+            // "Rendben, hadd fejtsem ki ezt a gondolatot egy picit bővebben, hogy jobban megértsem magam is.",
+            // "Engedd meg, hogy egy picit elidőzzek ezen, hogy ne kapkodjam el a választ.",
+            // "Nos, ez valóban elgondolkodtató. Adj egy pillanatot, amíg formálom a gondolataimat.",
+            // "Értem, mit kérdezel. Lássuk csak, hogy is van ez.",
+            // "Hmm, ez egy érdekes felvetés. Hadd gondolkodjak rajta egy percig.",
+            // "Oké, vágom. Hadd vessem össze az információkat, és mindjárt válaszolok.",
+            // "Értem, mire gondolsz. Adj egy pillanatot, hadd pontosítsam a válaszomat.",
+            // "Hát persze, természetesen. Hadd gondoljam át a legjobb megoldást."
+        };
 
     private:
         // -------------- configs -----------------
@@ -65,16 +129,17 @@ namespace tools {
 
         void create_voice_check_sh() { 
             rec_close();           
-            if (!file_exists(voice_check_sh_path)) {
-                file_put_contents(voice_check_sh_path, R"(
-while true; do
-    timeout 0.3 arecord -f cd -t wav -r 16000 -c 1 2>/dev/null > /tmp/silent_check.wav
-    sox /tmp/silent_check.wav -n stat 2>&1  | grep "Maximum amplitude" | awk '{print $3}'
-    sleep 0.1
-done
-                )");            
-            }
-            if (chmod(voice_check_sh_path.c_str(), 0x777) != 0) throw ERROR("Unable to create voice checker to listen...");
+            if (file_exists(voice_check_sh_path)) remove_voice_check_sh();
+            if (!file_put_contents(voice_check_sh_path, R"(
+                while true; do
+                    timeout 0.3 arecord -f cd -t wav -r 16000 -c 1 2>/dev/null > /tmp/silent_check.wav
+                    sox /tmp/silent_check.wav -n stat 2>&1  | grep "Maximum amplitude" | awk '{print $3}'
+                    sleep 0.1
+                done
+            )")) 
+                throw ERROR("Unable to create: " + voice_check_sh_path);
+            if (chmod(voice_check_sh_path.c_str(), 0x777) != 0) 
+                throw ERROR("Unable to create voice checker to listen...");
             sleep(1);
         }
 
@@ -88,10 +153,14 @@ done
     public:
         Speech( // TODO: pop up those millions of parameters that used in this class
             const string& secret, 
-            const string& lang = "en"
+            const string& lang, // = "en",
+            int speed, // = 175,
+            double noise_treshold // = 0.2
         ): 
             secret(secret),
-            lang(lang)
+            lang(lang),
+            speed(speed),
+            noise_treshold(noise_treshold)
         {
             create_voice_check_sh();
             cleanprocs();
@@ -146,7 +215,7 @@ done
         virtual string stt() {
             if (is_silence(tempf)) return "";
             while (kbhit()) getchar(); // TODO ??
-            int retry = 1;
+            int retry = 3;
             string cmd = "";
             while (retry) {
                 try {
@@ -208,36 +277,59 @@ done
 
                 // recording the speech
                 // cout << "RECSTART!" << endl;
+                if (is_process_running("arecord")) {
+                    pkiller.writeln("pkill -9 arecord");
+                    continue;
+                }
                 proc.writeln(
                     //"timeout " + to_string(timeout) + " "
+                    //"arecord -f cd -t wav -r " + to_string(kHz) + " -c 1 2>&1 | " ///dev/null | " // TODO error to a log that is "/dev/null" by default + add every parameter cusomizable
                     "arecord -f cd -t wav -r " + to_string(kHz) + " -c 1 2>/dev/null | " // TODO error to a log that is "/dev/null" by default + add every parameter cusomizable
                     "sox -t wav - -t wav " + speechf + " silence 1 0.1 2% 1 0.9 2%  && "
                     "sox " + speechf + " " + tempf + " trim 0.01 && "
                     // "mv -f " + tempf + " " + speechf + " && "
-                    "echo \"[record_done]\"");
+                    "echo \"[record_done]\""
+                );
 
-                while (true) { // waiting for "done"  
+                while (true) { // waiting for "done"
 
                     recstat();
                     output = trim(proc.read());
                     if (!output.empty()) {
-                        recdone = true;
+                        // if (str_contains(output, "[record_done]")) 
+                            recdone = true;
                         if (output == "[record_done]") break;
                         if (str_contains(output, "[record_done]")) {
                             //TODO: cerr << "\nrecord: " << output << endl;  
                             recerr = output;                       
                             break;
                         }
+                        //DEBUG(output);
+                        continue;
                     }
 
                     string check = trim(checker.read());
                     if (!check.empty()) {
-                        double ampl = parse<double>(check);
+                        //DEBUG(check);
+                        vector<string> checks = explode("\n", check);
+                        double ampl = .0;
+                        for (const string& check: checks) {
+                            double a = is_numeric(check) ? parse<double>(check) : .0;
+                            if (ampl < a) ampl = a;
+                        }
                         //cout << "?: " << check << endl;
-                        if (ampl > 0.2 && ampl < 0.99) {
+                        if (ampl > noise_treshold && ampl < 0.99) {
                             shtup();
+                            // if (rotary == &rotary_record) { // TODO: hack: do not use status output to track record state!!!
+                            //     break;
+                            // }
                             rotary = &rotary_record;
-                        } else if (!is_speaking()) if (rotary != &rotary_record) rotary = &rotary_listen;
+                        } else {
+                            if (!is_speaking()) {
+                                if (rotary != &rotary_record) 
+                                    rotary = &rotary_listen;
+                            }
+                        }
 
                         // if (!str_starts_with(check, "0.0") && 
                         //     !str_starts_with(check, "0.1") && 
@@ -251,7 +343,7 @@ done
 
                     if (kbhit()) {
                         while (kbhit()) getchar();
-                        rotary->clear();
+                        if (rotary) rotary->clear();
                         shtup();
                         rec_close();
                         cleanprocs();                    
@@ -262,13 +354,16 @@ done
 
                 } 
 
-                rotary->clear();
+                if(rotary) rotary->clear();
 
                 if (recdone && recerr.empty() && !is_silence(tempf)) {
                     proc.writeln("sox -v 0.1 beep.wav -t wav - | aplay -q -N &");
                     shtup();
                     rec_close();
                     checker.kill();
+
+                    stall();
+
                     string userin = stt();
                     return userin;
                 }
@@ -276,7 +371,26 @@ done
 
             throw ERROR("Should not reach here!");
         }
-        
+
+        void stall() {
+            if (!stalling || hesitors.empty() || is_process_running("espeak")) return;
+            // TODO:
+            // *   **Filler words:** Ez a legáltalánosabb kifejezés, azt jelenti, "kitöltő szavak".
+            // *   **Discourse markers:** Ez egy tudományosabb megnevezés, a "diszkurzív partikula" angol megfelelője.
+            // *   **Hesitation markers:** Ez a habozást jelző szavak gyűjtőneve.
+            // *   **Stall words:** Ez a kifejezés arra utal, hogy ezekkel a szavakkal időt nyerünk a gondolkodásra.            
+
+            // Szükséges a random számok generálásához
+            static bool seeded = false;
+            if (!seeded) {
+                srand(time(0));
+                seeded = true;
+            }
+            // Véletlenszerű index generálása
+            int index = rand() % hesitors.size();
+            say(hesitors[index] + ":", true);
+        }
+
         bool is_silence(const string& recordf) {
             string output = trim(
                 Process::execute("sox " + recordf + " -n stat 2>&1 | grep \"Maximum amplitude\" | awk '{print $3}'")
@@ -290,13 +404,13 @@ done
                 
             if (!is_numeric(output)) return true;
             double ampl = parse<double>(output);
-            return ampl < 0.1; // TODO: parameter!!!
+            return ampl < noise_treshold;
             // string output = "";
             // while ((output = trim(proc.read())).empty());
             // return str_starts_with(output, "0.0"); // TODO: convert to double
         }
 
-        void say(const string& text, int speed = 175, bool async = false) {
+        void say(const string& text, bool async = false) {
             shtup();
             rotary = &rotary_speech;
             say_interrupted = false;

@@ -1,5 +1,7 @@
 
 
+#include <cassert>
+
 #include "../libs/yhirose/cpp-linenoise/linenoise.hpp"
 
 #include "tools/ERROR.hpp"
@@ -90,23 +92,68 @@ namespace prompt {
         enum Mode {MODE_CHAT, MODE_THINK, MODE_SOLVE};
         Mode mode = MODE_CHAT;
         Model& model;
+        string model_name;
+        bool auto_save;
+        string basedir;
         CommandLine commandLine;
         Speech* speech = nullptr;
         bool voice_in, voice_out;
+        string speech_interrupt_info_token;
+        string speech_amplitude_treshold_setter_token;
+
+        string get_model_file() {
+            if (model_name.empty()) throw ERROR("Model name is not set.");
+            return basedir + "models/" + model_name + ".json";
+        }
+
+        void save_model(bool override /*= false*/) {
+            string model_file = get_model_file();
+            if (!override && file_exists(model_file)) 
+                throw ERROR("Model already exists, can not override.");
+            string errmsg = model.save(model, model_file);
+            if (!errmsg.empty()) cout << "Model save error: " << errmsg << endl;
+            else cout << "Model saved: " << model_name << endl;
+        }
+
+        void load_model(bool create /*= true*/) {
+            string model_file = get_model_file();
+            if (create && !file_exists(model_file)) {
+                save_model(false);
+                return;
+            }
+            string errmsg = model.load(model, model_file);
+            if (!errmsg.empty()) cout << "Model load error: " << errmsg << endl;
+            else {
+                model.dump_conversation(commandLine.get_prompt());
+                cout << "Model loaded: " << model_name << endl;
+            }
+        }
+
     public:
-        static const string speech_interrupt_info;
 
         User(
             Model& model,
-            const string& prompt = "> ", 
-            Speech* speech = nullptr
+            const string& model_name,
+            bool auto_save,
+            const string& prompt, // = "> ", 
+            const string& basedir, // = "./prompt/",
+            Speech* speech, // = nullptr,
+            const string& speech_interrupt_info_token, // = "TTS interrupted",
+            const string& speech_amplitude_treshold_setter_token // = "SETRECAMP"
         ): 
             model(model),
-            commandLine(prompt),         
+            model_name(model_name),
+            auto_save(auto_save), 
+            commandLine(prompt), 
+            basedir(basedir),       
             speech(speech),
             voice_in(speech),
-            voice_out(speech) 
-        {}
+            voice_out(speech),
+            speech_interrupt_info_token(speech_interrupt_info_token),
+            speech_amplitude_treshold_setter_token(speech_amplitude_treshold_setter_token)
+        {
+            if (!model_name.empty()) load_model(true);
+        }
 
         ~User() {}
 
@@ -118,7 +165,7 @@ namespace prompt {
             string resp = trim(response);
             if (!resp.empty()) cout << resp << endl;
             if (speech) {
-                if (voice_out && !resp.empty()) speech->say(resp, 175, true);
+                if (voice_out && !resp.empty()) speech->say(resp, true);
                 if (voice_in) {
                     string input = speech->rec();
                     if (speech->is_rec_interrupted()) voice_in = false;
@@ -127,7 +174,7 @@ namespace prompt {
                     //     commandLine.show(input + "\n");
                     // }
                     speech->cleanprocs();
-                    commandLine.show(input + "\n");
+                    //commandLine.show(input);
                     return input;
                 }
             }
@@ -146,12 +193,16 @@ namespace prompt {
                 "/voice output {switch}",
                 "/send {filename}",
                 "/send {string} {filename}",
+                "/send {filename} {number} {number}",
+                "/send {string} {filename} {number} {number}",
                 "/mode",
                 "/mode chat",
                 "/mode think",
                 "/mode solve",
                 "/think {number}",
-                "/solve {number}"
+                "/solve {number}",
+                "/save {string}",
+                "/load {string}",
                 // "/set volume {number}",
                 // "/set voice-input {switch}",
                 // "/cat {filename}",
@@ -170,12 +221,15 @@ namespace prompt {
                     bool trlspc;
                     vector<string> input_parts = array_filter(cmatcher.parse_input(input, trlspc, false));
                     input = "";
+
                     if (input_parts[0] == "/exit") break;
+
                     if (input_parts[0] == "/help") {
                         cout << "Usages:" << endl;
                         array_dump(cmatcher.command_patterns, false);
                         continue;
                     }
+
                     if (input_parts[0] == "/voice") {
                         if (!speech) {
                             cout << "No voice I/O loaded. - Add --voice argument from command line." << endl; // TODO 
@@ -200,9 +254,18 @@ namespace prompt {
                         cout << "Voice output:\t[" << (voice_out ? "On" : "Off") << "]" << endl;
                         continue;
                     }
-                    if (input_parts[0] == "/send") {
+
+                    if (input_parts[0] == "/send" || input_parts[0] == "/send-lines") {
+                        int lnfirst = 0, lnlast = 0;
                         if (input_parts.size() == 1) {
-                            cout << "Filename is missing" << endl;
+
+                // "/send {filename}",
+                // "/send {string} {filename}",
+                // "/send {filename} {number} {number}",
+                // "/send {string} {filename} {number} {number}",
+                            cout << "Filename is missing. Use /send [\"message\"] filename [first-line last-line]" << endl;
+                            cout << "Note: message and first/last line numbers are optional, line numbers start from line-1th."
+                                "\nThe line number is zero (0) means the begin/end of file." << endl;
                             continue;
                         }
                         string message = "", filename;
@@ -213,7 +276,22 @@ namespace prompt {
                             message = input_parts[1];
                             filename = input_parts[2];
                         }
-                        if (input_parts.size() > 3) {
+                        if (input_parts.size() == 4) {
+                            filename = input_parts[1];
+                            if (!is_numeric(input_parts[2])) cout << "Invalit first line number: " << input_parts[2] << endl;
+                            else lnfirst = parse<int>(input_parts[2]);
+                            if (!is_numeric(input_parts[3])) cout << "Invalit last line number: " << input_parts[3] << endl;
+                            else lnlast = parse<int>(input_parts[3]);
+                        }
+                        if (input_parts.size() == 5) {
+                            message = input_parts[1];
+                            filename = input_parts[2];
+                            if (!is_numeric(input_parts[3])) cout << "Invalit first line number: " << input_parts[3] << endl;
+                            else lnfirst = parse<int>(input_parts[2]);
+                            if (!is_numeric(input_parts[4])) cout << "Invalit last line number: " << input_parts[4] << endl;
+                            else lnlast = parse<int>(input_parts[4]);
+                        }
+                        if (input_parts.size() > 5) {
                             cout << "Too many arguments" << endl;
                             continue;
                         }
@@ -222,10 +300,30 @@ namespace prompt {
                             cout << "File not found: " << filename << endl;
                             continue;
                         }
+
+                        if (lnfirst < 0 || lnlast < lnfirst) {
+                            cout << "Line numbers should be greater or equal to 1th and first line should be less or equal to the last line number." << endl;
+                            continue;
+                        }
+
                         string contents = file_get_contents(filename);
                         if (contents.empty()) contents = "<empty>";
+                        else if (lnfirst || lnlast) {
+                            vector<string> lines = explode("\n", contents);
+                            vector<string> show_lines;
+                            for (size_t ln = 1; ln <= lines.size(); ln++) {
+                                if (
+                                    (lnfirst == 0 || ln >= lnfirst) &&
+                                    (lnlast == 0 || ln <= lnlast)
+                                ) show_lines.push_back(
+                                    (input_parts[0] == "/send-lines" ? to_string(ln) + ": " : "") + lines[ln-1]
+                                );
+                            }
+                            contents = implode("\n", show_lines);
+                        }
                         input = message + "\nFile '" + filename + "' contents:\n" + contents;
                     }
+
                     if (input_parts[0] == "/mode") {
                         if (input_parts.size() >= 2) {
                             if (input_parts[1] == "chat") {
@@ -264,6 +362,7 @@ namespace prompt {
                         cout << "Mode: " << mode_s << endl;
                         continue;
                     }
+
                     if (input_parts[0] == "/think") {
                         if (input_parts.size() == 2) {
                             if (is_integer(input_parts[1]))
@@ -273,6 +372,7 @@ namespace prompt {
                         cout << "Extracting steps: " << model.think_steps << endl;
                         continue;
                     }
+
                     if (input_parts[0] == "/solve") {
                         if (input_parts.size() == 2) {
                             if (is_integer(input_parts[1]))
@@ -282,28 +382,67 @@ namespace prompt {
                         cout << "Deep thinking solution tree depth max: " << model.think_deep << endl;
                         continue;
                     }
+
+                    if (input_parts[0] == "/save") {
+                        if (input_parts.size() > 2) {
+                            cout << "Invalid parameter counts, use /save {name}" << endl;
+                            continue;
+                        }
+                        if (input_parts.size() == 2) {
+                            model_name = input_parts[1];
+                            if (file_exists(get_model_file())) {
+                                cout << "Model already exists: " << model_name << endl;
+                                if (!confirm("Do you want to override?")) continue;
+                            }
+                        }
+                        save_model(true);
+                        continue;
+                    }
+
+                    if (input_parts[0] == "/load") {
+                        if (input_parts.size() != 2) {
+                            cout << "Invalid parameter counts, use /load {name}" << endl;
+                            continue;
+                        }
+                        if (!auto_save && 
+                            confirm("Current model session is: " + model_name + 
+                                    "\nDo you want to save it first?")) save_model(true);
+                        
+                        model_name = input_parts[1];
+                        load_model(false);
+                        continue;
+                    }
+
+
                     if (input.empty()) {
                         cout << "Invalid command/arguments or syntax: " << input_parts[0] << endl;
                         continue; 
                     }
                     commandLine.show(input + "\n");
                 }
-                if (speech && speech->is_say_interrupted()) {
-                    // cout << "AI TTS was interrupted" << endl;
-                    input = speech_interrupt_info + "\n" + input;    
+
+                if (speech) {
+                    //model.system_data["{{speech_current_noise_treshold}}"] = to_string(speech->noise_treshold);
+
+                    if (speech->is_say_interrupted()) {
+                        // cout << "AI TTS was interrupted" << endl;
+                        input = speech_interrupt_info_token + "\n" + input;                    
+                    }
+
+                    if (speech) speech->stall();
                 }
                 switch (mode)
                 {
                     case MODE_CHAT:
-                        response = model.prompt("user", input);
+                        response = model.prompt(input);
                         break;
 
                     case MODE_THINK:
-                        response = model.think("user", input);
+                        response = model.think(input);
                         break;
 
                     case MODE_SOLVE:
-                        response = model.solve("user", input);
+                        response = model.solve(input);
                         break;
                 
                     default:
@@ -311,11 +450,36 @@ namespace prompt {
                 }
                 //response = model.prompt(input); //model.solve(input);
                 // cout << response << endl;
+                vector<string> matches;
+                if (regx_match("\\[" + speech_amplitude_treshold_setter_token + ":([\\d\\.]+)\\]", response, &matches)) {
+                    response = str_replace(matches[0], "", response);
+
+                    if (speech) {
+                        bool error_found = false;
+                        if (!is_numeric(matches[1])) {
+                            model.addContext("The amplitude treshold should be a numeric value.", ROLE_INPUT);
+                            error_found = true;
+                        }
+                        double noise_treshold = parse<double>(matches[1]);
+                        if (noise_treshold < 0.2 || noise_treshold > 0.8) {
+                            model.addContext("The amplitude treshold should be in between 0.2 and 0.8.", ROLE_INPUT);
+                            error_found = true;
+                        }
+                        if (error_found) {
+                            model.addContext("The amplitude treshold value remains unchanged: " + to_string(speech->noise_treshold), ROLE_INPUT);
+                            continue;
+                        }
+                        speech->noise_treshold = noise_treshold;
+                        model.addContext("The amplitude treshold value is set to " + to_string(speech->noise_treshold), ROLE_INPUT);
+                    }
+                }
+
+                // TODO: auto_save to config
+                if (auto_save && !model_name.empty()) save_model(true);
             }
         }
 
     };
-    const string User::speech_interrupt_info = "\n[SYSTEM-MESSAGE: TEXT-TO-SPEECH WAS INTERRUPTED]\n";
 
     // ------------------------
     
@@ -341,17 +505,60 @@ namespace prompt {
         }
 
     protected:
+
+        string message_to_json(const Message& message, const role_name_map_t& role_name_map = {
+            { ROLE_NONE, "" },
+            { ROLE_INPUT, "user" },
+            { ROLE_OUTPUT, "model" },
+        }) {
+            return tpl_replace({
+                { "{{role}}", to_string(message.get_role(), role_name_map) },
+                { "{{text}}", json_escape(message.get_text()) },
+            }, R"({
+                "role": "{{role}}",
+                "parts":[{
+                    "text": "{{text}}"
+                }]
+            })");
+        }
+
+        string conversation_to_json(const string& system, const Conversation& conversation) {
+            vector<string> jsons;
+            vector<Message> messages = conversation.get_messages_ref();
+            for (const Message& message: messages)
+                jsons.push_back(message_to_json(message));
+            return tpl_replace({
+                { "{{system}}", json_escape(system) },
+                { "{{conversation}}", implode(",", jsons) },
+            }, R"({
+                "system_instruction":{
+                    "parts":{
+                        "text": "{{system}}"
+                    }
+                },
+                "contents":[
+                    {{conversation}}
+                ]
+            })");
+        }
         
-        virtual string request(const string& prompt) {
+        virtual string request() override {
             int restarts = 2;
+            const string tmpfile = "/tmp/temp.json";
+            string command;
+            JSON response;
             while (restarts) {
                 try {
-                    JSON request;
-                    request.set("contents[0].parts[0].text", prompt);
-                    const string tmpfile = "temps/temp.json";
-                    file_put_contents(tmpfile, request.dump(4));
-                    string command = "curl -s \"https://generativelanguage.googleapis.com/v1beta/models/" + variant + ":generateContent?key=" + escape(secret) + "\" -H 'Content-Type: application/json' -X POST --data-binary @" + tmpfile;
-                    JSON response = Process::execute(command);
+                    // JSON request;
+                    // request.set("contents[0].parts[0].text", prompt);
+                    // file_put_contents(tmpfile, request.dump(4));
+                    string conversation_json = conversation_to_json(system, conversation);
+                    if (!file_put_contents(tmpfile, conversation_json)) {
+                        throw ERROR("Unable to write: " + tmpfile);
+                    }
+                    //assert(file_get_contents(tmpfile) == conversation_json);
+                    command = "curl -s \"https://generativelanguage.googleapis.com/v1beta/models/" + variant + ":generateContent?key=" + escape(secret) + "\" -H 'Content-Type: application/json' -X POST --data-binary @" + tmpfile;
+                    response = Process::execute(command);
                     if (response.isDefined("error") || !response.isDefined("candidates[0].content.parts[0].text"))
                         throw ERROR("Gemini error: " + response.dump());
                     //sleep(3); // TODO: for api rate limit
@@ -365,7 +572,9 @@ namespace prompt {
                     cerr << usrmsg << endl;
                     errmsg += 
                         "\nContinue with variant " + variant + 
-                        "\nPrompt was: " + str_cut_end(prompt);
+                        "\nRequest was: " + command +
+                        "\nRequest data: " + str_cut_begin(file_get_contents(tmpfile)) +
+                        "\nResponse was: " + response.dump();
                     logger.warning(errmsg);
                     if (!next_variant_found) {
                         cerr << "Retry after " << err_retry << " second(s)..." << endl;
@@ -420,6 +629,7 @@ int main(int argc, char *argv[]) {
     // args
     Arguments args(argc, argv);
     const bool voice = args.getBool("voice");
+    const string model_name = args.has("model") ? args.getString("model") : "";
 
     // configs
     JSON config(file_get_contents("config.json"));
@@ -431,46 +641,110 @@ int main(int argc, char *argv[]) {
     logger.info("Prompt started");
 
     // settings
-    const string user_prompt = config.get<string>("prompt");;
-    const string hugging_secret = config.get<string>("secrets.hugging-face"); // TODO: hugging-face (and other third party) config into separated json
-    const string user_lang = config.get<string>("language");
+    const string secrets_hugging_face = config.get<string>("secrets.hugging_face"); // TODO: hugging-face (and other third party) config into separated json
+    const string secrets_google_gemini = config.get<string>("secrets.google_gemini"); // TODO: google (and other third party) config into separated json
+    
+    const string user_prompt = config.get<string>("user.prompt");
+    const string user_lang = config.get<string>("user.language");
+    const bool user_auto_save = config.get<bool>("user.auto_save");
 
-    Speech* speech = voice ? new Speech(
-        hugging_secret,
-        user_lang
-    ) : nullptr;
+    int speech_speed = config.get<int>("speech.speed");
+    double speech_noise_treshold = config.get<double>("speech.noise_treshold");
+    bool speech_stall = config.get<bool>("speech.stall");
+    vector<string> speech_hesitors = config.get<vector<string>>("speech.hesitors");
+    string speech_interrupt_info_token = config.get<string>("speech.interrupt_info_token");
+    string speech_amplitude_treshold_setter_token = config.get<string>("speech.amplitude_treshold_setter_token");
+    
+    size_t model_conversation_length_max = config.get<size_t>("model.memory_max");
+    double model_conversation_loss_ratio = config.get<double>("model.memory_loss_ratio");
+    int model_think_steps = config.get<int>("model.think_steps");
+    int model_think_deep = config.get<int>("model.think_deep");
 
-    const string gemini_api_key = config.get<string>("secrets.google-gemini"); // TODO: google (and other third party) config into separated json
-    const string gemini_system = // TODO: goes to the config:
-        "Your persona is a mid age man and you behave like a simple human, you have a sense of humor, your personality is entertaining. Your answers are succinct and focusing on the core of your conversation but like a normal human chat would looks like. You always helpful but also concise in answers."
-        // + "\nYou are a creative helper designer who always should came up with the simpliest possible solution no mather what even if you don't know the correct answer you guess."
-        + (speech ?
-            "\nThe user is using a text-to-speech software for communication. It should be taken into account that the user's responses are being read aloud by a text-to-speech program that can be interrupted by background noise or user interruption, then the following will appear in the context window to inform you about it: " + User::speech_interrupt_info + "\n"
-            "\nRepeated interruption changes how you act, your responses are becaming more consise if you intterupted more often recently but you can put more context otherwise if it's necessary, tune your response style accordingly."
-            : "")
-        + "\nThe user language is [" + user_lang + "] - use this language to talk to the user. "
-    ;
-    bool gemini_remember = config.get<bool>("model.remember");
-    const string gemini_memory = config.get<string>("model.memory");
-    size_t gemini_memory_max = config.get<size_t>("model.memory_max");
-    double gemini_memory_loss_ratio = config.get<double>("model.memory_loss_ratio");
-    int gemini_think_steps = config.get<int>("model.think_steps");
-    int gemini_think_deep = config.get<int>("model.think_deep");
-
+    string model_system_voice = voice ? tpl_replace({
+        { "{{speech_interrupt_info_token}}", speech_interrupt_info_token },
+        // { "{{speech_current_noise_treshold}}", "{{speech_current_noise_treshold}}"},
+        { "{{speech_amplitude_treshold_setter_token}}", speech_amplitude_treshold_setter_token }
+    },  "The user is using a text-to-speech software for communication. "
+        "You are taking into account that the user's responses are being read at loud by a text-to-speech program "
+        "that can be interrupted by background noise or user interruption, "
+        "then the following will appear in the context window by the system to inform you with a message: "
+        "`{{speech_interrupt_info_token}}` and this message should be for you internal use only, user won't see it."
+        "Repeated interruption changes how you act, "
+        "your responses are becaming more consise and short when you interupted more often recently "
+        "but you can put more context otherwise if it's necessary, tune your response style accordingly. "
+        //"The current input noise amplitude treshold is {{speech_current_noise_treshold}} "
+        "to reduce noise and detect when the user speaks. "
+        "You are able to change this accordigly when the interruption coming from background noise "
+        "by placing the [{{speech_amplitude_treshold_setter_token}}:{number}] token into your response. "
+        "When you do this the user's system will recognise your request and changes the treshold for better communication. "
+        "The amplitude treshold should be a number between 0.2 and 0.8, more perceptive noise indicates higher treshold.\n"
+        "The goal is to let the user to be able to interrupt the TTS reader with his/her voice "
+        "but filter out the background as much as possible."
+    ) : "";
+    string model_system_lang = user_lang != "en" ? tpl_replace({
+        { "{{user_lang}}", user_lang }
+    }, "The user language is [{{user_lang}}], use this language by default to talk to the user.") : "";
+    const string model_system = tpl_replace({ // TODO: goes to the config:
+            { "{{model_system_voice}}", model_system_voice },
+            { "{{model_system_lang}}", model_system_lang },
+        },  "Your persona is a mid age man AI called Johnny-5 and you behave like a simple human. "
+            "You have a sense of humor, your personality is entertaining. "
+            "Your answers are succinct and focusing on the core of your conversation "
+            "but in a way like a normal human chat would looks like. "
+            "You always helpful but also concise in answers.\n"
+            "{{model_system_voice}}\n"
+            "{{model_system_lang}}\n"
+            // + "\nYou are a creative helper designer who always should came up with the simpliest possible solution no mather what even if you don't know the correct answer you guess."
+            // + (voice ?
+            //     "\nThe user is using a text-to-speech software for communication. It should be taken into account that the user's responses are being read aloud by a text-to-speech program that can be interrupted by background noise or user interruption, then the following will appear in the context window to inform you about it: " + User::speech_interrupt_info + "\n"
+            //     "\nRepeated interruption changes how you act, your responses are becaming more consise if you intterupted more often recently but you can put more context otherwise if it's necessary, tune your response style accordingly."
+            //     : "")
+            //"The user language is [{{user_lang}}], use this language by default to talk to the user."
+    );
 
     Gemini model(
         logger,
-        gemini_api_key, 
-        gemini_system,
-        gemini_remember,
-        gemini_memory,
-        gemini_memory_max,
-        gemini_memory_loss_ratio,
-        gemini_think_steps,
-        gemini_think_deep
+        secrets_google_gemini,
+        model_system,
+        model_conversation_length_max,
+        model_conversation_loss_ratio,
+        model_think_steps,
+        model_think_deep
     );
 
-    User user(model, user_prompt, speech);
+    Speech* speech = nullptr;
+    if (voice) {
+        speech = new Speech(
+            secrets_hugging_face,
+            user_lang,
+            speech_speed,
+            speech_noise_treshold
+        );
+
+        if (speech_stall) {
+            speech->hesitors = speech_hesitors;
+            if (speech->hesitors.empty()) {
+                Model* thinker = (Model*)model.spawn("You are a linguistic assistant");
+                speech->hesitors = thinker->multiple_str(
+                    "I need a list of a minimum 10 'Filler/Stall word' "
+                    "and 'Discourse/Hesitation markers' in language: " + user_lang +
+                    "\nWrite one word long to a full sentence and anything in between."
+                );
+                model.kill(thinker);
+            } 
+        }
+    }
+
+    User user(
+        model,
+        model_name, 
+        user_auto_save,
+        user_prompt,
+        basedir,
+        speech,
+        speech_interrupt_info_token,
+        speech_amplitude_treshold_setter_token
+    );
 
     user.start();
 

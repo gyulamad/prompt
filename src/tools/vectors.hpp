@@ -1,6 +1,11 @@
 #pragma once
 
+#include <vector>
+#include <type_traits>
+#include <utility>
 #include <unordered_set>
+#include <map>
+#include <functional>
 
 #include "ERROR.hpp"
 
@@ -88,5 +93,68 @@ namespace tools {
         copy_if(input.begin(), input.end(), back_inserter(result), predicate);
         return result;
     }
-    
+
+    template <typename T, typename = void>
+    struct has_key_type : std::false_type {};
+
+    template <typename T>
+    struct has_key_type<T, std::void_t<typename T::key_type>> : std::true_type {};
+
+    template <typename Container, typename = void>
+    struct KeyTypeTrait {
+        using type = size_t;
+    };
+
+    template <typename Container>
+    struct KeyTypeTrait<Container, std::void_t<typename Container::key_type>> {
+        using type = typename Container::key_type;
+    };
+
+    template <typename Container>
+    auto array_keys(const Container& container) {
+        using KeyType = typename KeyTypeTrait<Container>::type;
+        std::vector<KeyType> keys;
+
+        if constexpr (has_key_type<Container>::value) {
+            for (const auto& element : container) {
+                keys.push_back(element.first);
+            }
+        } else {
+            for (size_t i = 0; i < container.size(); ++i) {
+                keys.push_back(i);
+            }
+        }
+
+        return keys;
+    }
+
+    template <typename T>
+    struct is_pair : std::false_type {};
+
+    template <typename T1, typename T2>
+    struct is_pair<std::pair<T1, T2>> : std::true_type {};
+
+    template <typename Needle, typename Container>
+    bool in_array(const Needle& needle, const Container& container) {
+        using Element = typename Container::value_type;
+
+        if constexpr (is_pair<Element>::value) {
+            // Check values in associative containers (maps, unordered_maps)
+            for (const auto& element : container) {
+                if (element.second == needle) {
+                    return true;
+                }
+            }
+        } else {
+            // Check elements in sequence containers (vectors, lists, etc.)
+            for (const auto& element : container) {
+                if (element == needle) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
 };

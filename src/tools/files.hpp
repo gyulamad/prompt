@@ -47,7 +47,7 @@ namespace tools {
         return content;
     }
 
-    void file_put_contents(const string& filename, const string& content, bool append = false) {
+    bool file_put_contents(const string& filename, const string& content, bool append = false, bool throws = false) {
         // Open the file in the appropriate mode
         ios_base::openmode mode = ios::out | ios::binary;
         if (append) {
@@ -56,7 +56,8 @@ namespace tools {
 
         ofstream file(filename, mode);
         if (!file.is_open()) {
-            throw ios_base::failure("Failed to open file: " + filename);
+            if (throws) throw ios_base::failure("Failed to open file: " + filename);
+            else return false;
         }
 
         // Write the content to the file
@@ -65,7 +66,8 @@ namespace tools {
         // Check if the write operation failed
         if (file.fail()) {
             file.close(); // Close the file before throwing the exception
-            throw ios_base::failure("Failed to write to file: " + filename);
+            if (throws) throw ios_base::failure("Failed to write to file: " + filename);
+            else return false;
         }
 
         // Flush the stream to ensure the data is written to the file
@@ -73,6 +75,8 @@ namespace tools {
 
         // Close the file
         file.close();
+
+        return true;
     }
 
     // Function to check if a directory exists

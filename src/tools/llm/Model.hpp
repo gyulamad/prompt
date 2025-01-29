@@ -8,12 +8,116 @@
 #include "../vectors.hpp"
 #include "../Rotary.hpp"
 #include "../Speech.hpp"
+#include "../JSON.hpp"
 
 using namespace std;
 
 namespace tools::llm {
 
     #define ANSI_FMT_MODEL_THINKS ANSI_FMT_C_BLACK // ANSI_FMT_T_DIM
+
+    typedef enum { ROLE_NONE = 0, ROLE_INPUT, ROLE_OUTPUT } role_t;
+    typedef unordered_map<role_t, const string> role_name_map_t;
+    const role_name_map_t default_role_name_map = {
+        { ROLE_NONE, "" },
+        { ROLE_INPUT, "input" },
+        { ROLE_OUTPUT, "output" },
+    };
+
+    string to_string(const role_t& role, const role_name_map_t& role_name_map = default_role_name_map) {
+        return role_name_map.at(role);
+    }
+    
+    class Message {
+    private:
+        string text;
+        role_t role;
+    public:
+
+        Message(
+            const string& text, 
+            const role_t& role
+        ):
+            text(text), 
+            role(role)
+        {}
+
+        virtual ~Message() {}
+
+        JSON toJSON() const {
+            JSON json;
+            json.set("text", text);
+            json.set("role", role);
+            return json;
+        }
+
+        void fromJSON(JSON json) {
+            text = json.get<string>("text");
+            role = json.get<role_t>("role");
+        }
+
+        string get_text() const {
+            return text;
+        }
+
+        role_t get_role() const {
+            return role;
+        }
+
+        size_t length() const {
+            return dump().size();
+        }
+
+        string dump(bool show = false) const {
+            string dump = ((role == ROLE_NONE) ? "" : escape(to_string(role)) + ": ") + escape(text);
+            return dump;
+        }
+    };
+
+    class Conversation {
+    private:
+        vector<Message> messages;
+    public:
+        Conversation() {}
+        
+        virtual ~Conversation() {}
+
+        JSON toJSON() const {
+            json jmessages = json::array();
+            for (const Message& message: messages)
+                jmessages.push_back(message.toJSON().get_json());
+            JSON json(jmessages);
+            return json;
+        }
+
+        void fromJSON(JSON J) {
+            messages.clear();
+            //DEBUG(J.dump());
+            json jmessages = J.get_json();
+            for (const auto& jmessage: jmessages) {
+                add(jmessage.at("text"), (role_t)jmessage.at("role"));
+            }
+        }
+        
+        void add(const string& text, role_t role = ROLE_NONE) {
+            messages.push_back({ text, role });
+        }
+
+        void clear() {
+            messages.clear();
+        }
+
+        const vector<Message>& get_messages_ref() const {
+            return messages;
+        }
+
+        size_t length() const {
+            size_t l = 0;
+            for (const Message& message: messages) l += message.length() + 1;
+            return l;
+        }
+
+    };
 
     class Model {
     // public:
@@ -25,10 +129,12 @@ namespace tools::llm {
         const string opt_prefix = "[OPTION-START]";
         const string opt_suffix = "[OPTION-END]";
         string system;
-        bool remember;
-        string memory;
-        size_t memory_max; 
-        double memory_loss_ratio;
+        Conversation conversation;
+        // bool remember;
+        // string memory;
+        // size_t memory_max; 
+        size_t conversation_length_max;
+        double conversation_loss_ratio;
         // think_reporter_func_t default_think_reporter;
         // think_interruptor_func_t default_think_interruptor;
 
@@ -43,7 +149,7 @@ namespace tools::llm {
             return false;
         }
 
-        virtual string request(const string& prompt) { UNIMP }
+        virtual string request() { UNIMP }
 
         vector<string> explode_options(const string& response) {
             vector<string> splits = explode(opt_prefix, response);
@@ -58,41 +164,74 @@ namespace tools::llm {
         }
 
 
-        void compress_memory() {
-            Model* helper = (Model*)spawn();
-            auto [firstHalf, secondHalf] = str_cut_ratio(memory, memory_loss_ratio);
-            memory = helper->prompt("system", "Summarize this:\n" + firstHalf) + secondHalf;
-            kill(helper);
+        void compress_conversation() {
+            size_t lenght = conversation.length();
+            size_t cut_at = lenght * conversation_loss_ratio;
+            vector<string> conversation_first_part;
+            for (size_t n = 0; n < cut_at; n++) 
+                conversation_first_part.push_back(conversation.get_messages_ref().at(n).dump());
+            
+            Model* summariser = (Model*)spawn("You are a summariser.");            
+            string summary = summariser->prompt(
+                "Summarise the following conversation: " + implode(",", conversation_first_part)
+            );
+            kill(summariser);
+
+            Conversation summarised;
+            summarised.add("Earlier conversation summary: " + summary);
+            for (size_t n = cut_at; n < lenght; n++) 
+                summarised.add(
+                    conversation.get_messages_ref().at(n).get_text(),
+                    conversation.get_messages_ref().at(n).get_role()
+                );
+            conversation = summarised;
+
+            // TODO
+            // Model* helper = (Model*)spawn();
+            // auto [firstHalf, secondHalf] = str_cut_ratio(memory, memory_loss_ratio);
+            // memory = helper->prompt("system", "Summarize this:\n" + firstHalf) + secondHalf;
+            // kill(helper);
         }
+
+        // string get_system_with_data() {
+        //     return tpl_replace(system_data, system);
+        // }
 
     public:
         int think_steps;
         int think_deep;
+        // map<string, string> system_data;
 
         #define MODEL_ARGS \
-            const string& system = "", \
-            bool remember = false, \
-            const string& memory = "", \
-            size_t memory_max = 100000, \
-            double memory_loss_ratio = 0.5, \
+            const string& system, \
+            /*Conversation& conversation,*/ \
+            /*bool remember = false,*/ \
+            /*const string& memory = "",*/ \
+            /*size_t memory_max = 100000,*/ \
+            size_t conversation_length_max = 500000, \
+            double conversation_loss_ratio = 0.5, \
             int think_steps = 1, \
             int think_deep = 2
             
         #define MODEL_ARGS_PASS \
             system, \
-            remember, \
-            memory, \
-            memory_max, \
-            memory_loss_ratio, \
+            /*conversation,*/ \
+            /*remember,*/ \
+            /*memory,*/ \
+            /*memory_max,*/ \
+            conversation_length_max, \
+            conversation_loss_ratio, \
             think_steps, \
             think_deep
             
         Model(MODEL_ARGS):
             system(system),
-            remember(remember),
-            memory(memory),
-            memory_max(memory_max),
-            memory_loss_ratio(memory_loss_ratio),
+            // conversation(conversation),
+            // remember(remember),
+            // memory(memory),
+            // memory_max(memory_max),
+            conversation_length_max(conversation_length_max),
+            conversation_loss_ratio(conversation_loss_ratio),
             think_steps(think_steps), 
             think_deep(think_deep)
         {}
@@ -106,27 +245,89 @@ namespace tools::llm {
             return spawn(MODEL_ARGS_PASS);
         }
         virtual void kill(Model*) { UNIMP }
-        
 
-        
-        void memorize(const string& memo) {
-            memory += "\n" + memo;
-            while (memory.size() > memory_max) compress_memory(); 
+        JSON toJSON() const {
+            string s = tpl_replace({
+                { "{{system}}", json_escape(system) },
+                { "{{conversation}}", conversation.toJSON().dump() },
+                { "{{conversation_length_max}}", ::to_string(conversation_length_max) },
+                { "{{conversation_loss_ratio}}", ::to_string(conversation_loss_ratio) },
+            },  
+                R"({
+                    "system": "{{system}}",
+                    "conversation": {{conversation}},
+                    "conversation_length_max": {{conversation_length_max}},
+                    "conversation_loss_ratio": {{conversation_loss_ratio}}
+                })"
+            );
+            JSON json(s);
+            return json;
         }
 
-        void amnesia() {
-            memory = "";
+        void fromJSON(JSON json) {
+            system = json.get<string>("system");
+            JSON jconversation = json.get_json().at("conversation");
+            conversation.fromJSON(jconversation);
+            conversation_length_max = json.get<size_t>("conversation_length_max");
+            conversation_loss_ratio = json.get<double>("conversation_loss_ratio");
+        }
+        
+        string save(Model& model, const string& path) const {
+            if (!file_put_contents(path, model.toJSON().dump(4), false, false))
+                return "Unable to save model to file: " + path;
+            return "";
+        }
+        
+        string load(Model& model, const string& path) {
+            try {
+                model.fromJSON(file_get_contents(path));
+                return "";
+            } catch(exception &e) {
+                return "Unable to load model from file: " + path + "\nReason: " + string(e.what());
+            }
         }
 
+        void dump_conversation(const string& input_prompt) const {
+            for (const Message& message: conversation.get_messages_ref()) {
+                if (message.get_role() == ROLE_INPUT) cout << input_prompt;
+                cout << message.get_text() << flush;
+            }
+        }
+
+        void addContext(const string& info, role_t role = ROLE_NONE) {
+            conversation.add(info, role);
+        }
+
+        
+        void memorize(const string& prmpt, role_t role = ROLE_INPUT) {
+            conversation.add(prmpt, role); 
+            // check the length of conversation and cut if too long
+            while (conversation.length() > conversation_length_max) compress_conversation();
+
+        //     // TODO: check the length of conversation and cut if too long:
+        //     // memory += "\n" + memo;
+        //     // while (memory.size() > memory_max) compress_memory(); 
+        }
+
+        // void amnesia() {
+        //     // memory = "";
+        //     conversation.clear();
+        // }
 
 
-        string prompt(string from, const string& prmpt/*, const string& suffix*/) {
-            const string suffix = "";
-            if (!from.empty()) from += ": ";
-            if (!remember) return request(from + prmpt + "\n" + system + "\n" + suffix);
-            memorize(from + prmpt);
-            string response = request(memory + "\n" + system + "\n" + suffix);
-            memorize(response);
+
+        string prompt(const string& prmpt/*, const string& suffix*/) {
+            // const string suffix = "";
+            // if (!from.empty()) from += ": ";
+            // if (!remember) return request(from + prmpt + "\n" + system + "\n" + suffix);
+            // memorize(from + prmpt);
+            // string response = request(memory + "\n" + system + "\n" + suffix);
+            // memorize(response);
+            // return response;
+
+            memorize(prmpt, ROLE_INPUT);
+            string response = request();
+            memorize(response, ROLE_OUTPUT);
             return response;
         }
         // string prompt(const string& prmpt, const char* sffx = nullptr) {
@@ -138,7 +339,7 @@ namespace tools::llm {
             if (options.empty()) ERROR("No options to choose from.");
             if (options.size() == 1) return options[0];
             
-            string selection = prompt("system", 
+            string selection = prompt(
                 prmpt + "\n" + 
                 "Your options are the followings:\n" +           
                 " - " + implode("\n - ", options) + "\n" +
@@ -152,7 +353,7 @@ namespace tools::llm {
                     selection = selections[0];
                     break;
                 }
-                selection = prompt("system", "To many. Select only ONE!");
+                selection = prompt("To many. Select only ONE!");
             }
 
             return selection;
@@ -190,7 +391,7 @@ namespace tools::llm {
             if (options.empty()) ERROR("No options to choose from.");
             if (options.size() == 1) return { options[0] };
             
-            string response = prompt("system", 
+            string response = prompt(
                 prmpt + "\n" + 
                 (
                     options.empty() ? "" :
@@ -223,7 +424,7 @@ namespace tools::llm {
         }
 
         vector<string> choices(const string& prmpt) {
-            string response = prompt("system", 
+            string response = prompt(
                 prmpt + "\n"
                 "List your response in the following format:\n" +
                 implode_options({ "Your selection..", "Other option (if multiple apply)..." })
@@ -238,23 +439,23 @@ namespace tools::llm {
             throw ERROR("Model was unable to decide. Prompt: " + str_cut_end(prmpt));
         }
 
-        string think(const string& from, const string& prmpt) {
+        string think(const string& prmpt) {
             think_reporter();
+            memorize(prmpt, ROLE_INPUT);
 
             Model* thinker = (Model*)clone();
 
-            string response = thinker->prompt(from, prmpt);
+            string response = thinker->prompt(prmpt);
             think_reporter();
             for (int step = 0; step < think_steps; step++) {
-                response = thinker->prompt("system", "Think deeply and refine the response.");
+                response = thinker->prompt("Think deeply and refine the response.");
                 think_reporter();
                 if (think_interruptor()) break;
             }
 
             kill(thinker);
 
-            memorize(prmpt);
-            memorize(response);
+            memorize(response, ROLE_OUTPUT);
             return response;
         }
 
@@ -265,11 +466,11 @@ namespace tools::llm {
         //     return result;
         // }
         
-        string solve(const string& from, const string& task, int think_deeper = -1) {
+        string solve(const string& task, int think_deeper = -1) {
             think_reporter();
-            if (!remember) return prompt(from, task);
+            // if (!remember) return prompt(from, task);
             if (think_deeper == -1) think_deeper = think_deep;
-            if (think_deeper <= 0 || think_interruptor()) return prompt(from, task);
+            if (think_deeper <= 0 || think_interruptor()) return prompt(task);
             think_deeper--;
 
             Model* helper = (Model*)clone();
@@ -279,7 +480,7 @@ namespace tools::llm {
                 // It's not even a task:
                 kill(helper);
                 think_reporter();
-                return prompt(from, task);
+                return prompt(task);
             }
             // it's a valid task...
 
@@ -324,7 +525,7 @@ namespace tools::llm {
 
                             Model* thinker = (Model*)helper->clone();
                             
-                            string thoughts = thinker->think("system",
+                            string thoughts = thinker->think(
                                 "Because the task:\n" + task + "\n" + 
                                 "The main question now:\n" + question + "\n" + 
                                 "One possible solution is:\n" + option + "\n" +
@@ -380,14 +581,14 @@ namespace tools::llm {
                         // there are questions, there are options, no answers...
                         string results = implode("\n", questions); // our results with only questions..
                         kill(helper);
-                        memorize(task);
-                        memorize(results);
+                        memorize(task, ROLE_INPUT);
+                        memorize(results, ROLE_OUTPUT);
                         return results;
                     }
                     // there are questions, there are options, we got answers:
                     
-                    memorize(task);
-                    memorize(answers);
+                    memorize(task, ROLE_INPUT);
+                    memorize(answers, ROLE_OUTPUT);
                 }
                 // no question...
 
@@ -401,15 +602,15 @@ namespace tools::llm {
                     string results;
                     for (const string& step: small_steps) {
                         think_reporter(step);
-                        string solution = helper->solve("system", task + "\n" + step, think_deeper);
+                        string solution = helper->solve(task + "\n" + step, think_deeper);
                         // think_reporter(solution);
                         results += step + "\n" + solution + "\n";
                         if (think_interruptor()) break;
                     }
                     
                     kill(helper);
-                    memorize(task);
-                    memorize(results);
+                    memorize(task, ROLE_INPUT);
+                    memorize(results, ROLE_OUTPUT);
                     return results;
                 }
                 // no question, no smaller steps...
@@ -419,7 +620,7 @@ namespace tools::llm {
 
             kill(helper);
             think_reporter();
-            return prompt(from, task);
+            return prompt(task);
         }
     };
 

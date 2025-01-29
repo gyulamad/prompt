@@ -65,4 +65,35 @@ namespace tools {
         return false;
     }
 
+
+    bool confirm(const string& message, char def = 'y') {
+        def = tolower(def); // Normalize the default to lowercase
+        char choice;
+
+        while (true) {
+            // Display the prompt with the default option
+            cout << message << " (" 
+                    << (def == 'y' ? "Y/n" : "y/N") << "): ";
+            choice = cin.get();
+
+            // Handle Enter (newline) input for default option
+            if (choice == '\n') {
+                return def == 'y';
+            }
+
+            // Clear the input buffer to handle extra characters after one key press
+            while (cin.get() != '\n') { }
+
+            // Normalize choice to lowercase and evaluate
+            choice = tolower(choice);
+            if (choice == 'y') {
+                return true;
+            } else if (choice == 'n') {
+                return false;
+            }
+
+            // Invalid input, prompt again
+            cout << "Please press 'y' or 'n'." << endl;
+        }
+    }
 }
