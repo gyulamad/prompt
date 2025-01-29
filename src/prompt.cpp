@@ -479,7 +479,7 @@ namespace prompt {
                     if (speech->is_say_interrupted()) {
                         // cout << "AI TTS was interrupted" << endl;
                         // input = speech_interrupt_info_token + "\n" + input;  
-                        model.addContext(speech_interrupt_info_token, ROLE_INPUT);                 
+                        // TODO: model.addContext(speech_interrupt_info_token, ROLE_INPUT);                 
                     }
 
                     speech->stall();
