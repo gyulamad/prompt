@@ -103,14 +103,15 @@ namespace prompt {
         virtual string run(void*, const vector<string>&) { UNIMP; }
     };
 
+    typedef  enum { MODE_CHAT, MODE_THINK, MODE_SOLVE } mode_t;
+
     class User {
     private:
         bool exiting = false;
         CompletionMatcher cmatcher;
         vector<void*> commands;
 
-        enum Mode {MODE_CHAT, MODE_THINK, MODE_SOLVE};
-        Mode mode = MODE_CHAT;
+        mode_t mode = MODE_CHAT;
         Model& model;
         string model_name;
         bool auto_save;
@@ -120,34 +121,6 @@ namespace prompt {
         bool voice_in, voice_out;
         string speech_interrupt_info_token;
         string speech_amplitude_treshold_setter_token;
-
-        string get_model_file() {
-            if (model_name.empty()) throw ERROR("Model name is not set.");
-            return basedir + "models/" + model_name + ".json";
-        }
-
-        void save_model(bool override /*= false*/, bool show_save_succeed = true) {
-            string model_file = get_model_file();
-            if (!override && file_exists(model_file)) 
-                throw ERROR("Model already exists, can not override.");
-            string errmsg = model.save(model, model_file);
-            if (!errmsg.empty()) cout << "Model save error: " << errmsg << endl;
-            else if (show_save_succeed) cout << "Model saved: " << model_name << endl;
-        }
-
-        void load_model(bool create /*= true*/) {
-            string model_file = get_model_file();
-            if (create && !file_exists(model_file)) {
-                save_model(false);
-                return;
-            }
-            string errmsg = model.load(model, model_file);
-            if (!errmsg.empty()) cout << "Model load error: " << errmsg << endl;
-            else {
-                model.dump_conversation(commandLine.get_prompt());
-                cout << "Model loaded: " << model_name << endl;
-            }
-        }
 
     public:
 
@@ -176,6 +149,27 @@ namespace prompt {
         }
 
         ~User() {}
+
+        string get_model_file() {
+            if (model_name.empty()) throw ERROR("Model name is not set.");
+            return basedir + "models/" + model_name + ".json";
+        }
+
+        Model& get_model_ref() {
+            return model;
+        }
+
+        void set_model_name(const string& model_name) {
+            this->model_name = model_name;
+        }
+
+        const string& get_model_name_ref() const {
+            return model_name;
+        }
+
+        bool is_auto_save() const {
+            return auto_save;
+        }
         
         void set_commands(const vector<void*>& commands) {
             this->commands = commands;
@@ -185,12 +179,64 @@ namespace prompt {
             return commands;
         }
 
+
+        const CompletionMatcher& get_cmatcher_ref() const {
+            return cmatcher;
+        }
+
+        void set_mode(mode_t mode) {
+            this->mode = mode;
+        }
+
+        mode_t get_mode() const {
+            return mode;
+        }
+ 
+        Speech* get_speech_ptr() {
+            return speech;
+        }
+
+        void set_voice_in(bool voice_in) {
+            this->voice_in = voice_in;
+        }
+
+        bool is_voice_in() const {
+            return voice_in;
+        }
+
+        void set_voice_out(bool voice_in) {
+            this->voice_out = voice_out;
+        }
+
+        bool is_voice_out() const {
+            return voice_out;   
+        }
+
         void exit() {
             exiting = true;
         }
 
-        const CompletionMatcher& get_cmatcher_ref() const {
-            return cmatcher;
+        void save_model(bool override /*= false*/, bool show_save_succeed = true) {
+            string model_file = get_model_file();
+            if (!override && file_exists(model_file)) 
+                throw ERROR("Model already exists, can not override.");
+            string errmsg = model.save(model, model_file);
+            if (!errmsg.empty()) cout << "Model save error: " << errmsg << endl;
+            else if (show_save_succeed) cout << "Model saved: " << model_name << endl;
+        }
+
+        void load_model(bool create /*= true*/) {
+            string model_file = get_model_file();
+            if (create && !file_exists(model_file)) {
+                save_model(false);
+                return;
+            }
+            string errmsg = model.load(model, model_file);
+            if (!errmsg.empty()) cout << "Model load error: " << errmsg << endl;
+            else {
+                model.dump_conversation(commandLine.get_prompt());
+                cout << "Model loaded: " << model_name << endl;
+            }
         }
 
         string prompt(const string& response = "") {
@@ -214,23 +260,7 @@ namespace prompt {
         void start() {
 
             cmatcher.command_patterns = {
-                // "/help",
-                // "/exit",
-                "/voice",
-                "/voice input {switch}",
-                "/voice output {switch}",
-                "/send {filename}",
-                "/send {string} {filename}",
-                "/send {filename} {number} {number}",
-                "/send {string} {filename} {number} {number}",
-                "/mode",
-                "/mode chat",
-                "/mode think",
-                "/mode solve",
-                "/think {number}",
-                "/solve {number}",
-                "/save {string}",
-                "/load {string}",
+                // TODO:
                 // "/set volume {number}",
                 // "/set voice-input {switch}",
                 // "/cat {filename}",
@@ -274,196 +304,6 @@ namespace prompt {
                     }
                     if (!command_found) cout << "Command not found: " << input_parts[0] << endl;
                     else if (!command_arguments_matches) cout << "Invalid argument(s)." << endl;
-
-
-                    // if (input_parts[0] == "/help") {
-                    //     cout << "Usages:" << endl;
-                    //     array_dump(cmatcher.command_patterns, false);
-                    //     continue;
-                    // }
-
-                    if (input_parts[0] == "/voice") {
-                        if (!speech) {
-                            cout << "No voice I/O loaded. - Add --voice argument from command line." << endl; // TODO 
-                            continue;                           
-                        }
-                        if (input_parts.size() > 1) {
-                            string voice_usage = "Use: /voice (input/output) [on/off]";
-                            if (input_parts.size() < 3) cout << voice_usage << endl;
-                            else if (input_parts[1] == "input") {
-                                if (input_parts[2] == "on") voice_in = true;
-                                else if (input_parts[2] == "off") voice_in = false;
-                                else cout << "Invalid argument: " << input_parts[2] << endl;
-                            }
-                            else if (input_parts[1] == "output") {
-                                if (input_parts[2] == "on") voice_out = true;
-                                else if (input_parts[2] == "off") voice_out = false;
-                                else cout << "Invalid argument: " << input_parts[2] << endl;
-                            } else cout << voice_usage << endl;
-                        }
-
-                        cout << "Voice input:\t[" << (voice_in ? "On" : "Off") << "]" << endl;
-                        cout << "Voice output:\t[" << (voice_out ? "On" : "Off") << "]" << endl;
-                        continue;
-                    }
-
-                    if (input_parts[0] == "/send" || input_parts[0] == "/send-lines") {
-                        int lnfirst = 0, lnlast = 0;
-                        if (input_parts.size() == 1) {
-
-                // "/send {filename}",
-                // "/send {string} {filename}",
-                // "/send {filename} {number} {number}",
-                // "/send {string} {filename} {number} {number}",
-                            cout << "Filename is missing. Use /send [\"message\"] filename [first-line last-line]" << endl;
-                            cout << "Note: message and first/last line numbers are optional, line numbers start from line-1th."
-                                "\nThe line number is zero (0) means the begin/end of file." << endl;
-                            continue;
-                        }
-                        string message = "", filename;
-                        if (input_parts.size() == 2) {
-                            filename = input_parts[1];
-                        }
-                        if (input_parts.size() == 3) {
-                            message = input_parts[1];
-                            filename = input_parts[2];
-                        }
-                        if (input_parts.size() == 4) {
-                            filename = input_parts[1];
-                            if (!is_numeric(input_parts[2])) cout << "Invalit first line number: " << input_parts[2] << endl;
-                            else lnfirst = parse<int>(input_parts[2]);
-                            if (!is_numeric(input_parts[3])) cout << "Invalit last line number: " << input_parts[3] << endl;
-                            else lnlast = parse<int>(input_parts[3]);
-                        }
-                        if (input_parts.size() == 5) {
-                            message = input_parts[1];
-                            filename = input_parts[2];
-                            if (!is_numeric(input_parts[3])) cout << "Invalit first line number: " << input_parts[3] << endl;
-                            else lnfirst = parse<int>(input_parts[2]);
-                            if (!is_numeric(input_parts[4])) cout << "Invalit last line number: " << input_parts[4] << endl;
-                            else lnlast = parse<int>(input_parts[4]);
-                        }
-                        if (input_parts.size() > 5) {
-                            cout << "Too many arguments" << endl;
-                            continue;
-                        }
-
-                        if (!file_exists(filename)) {
-                            cout << "File not found: " << filename << endl;
-                            continue;
-                        }
-
-                        if (lnfirst < 0 || lnlast < lnfirst) {
-                            cout << "Line numbers should be greater or equal to 1th and first line should be less or equal to the last line number." << endl;
-                            continue;
-                        }
-
-                        string contents = file_get_contents(filename);
-                        if (contents.empty()) contents = "<empty>";
-                        else if (lnfirst || lnlast) {
-                            vector<string> lines = explode("\n", contents);
-                            vector<string> show_lines;
-                            for (size_t ln = 1; ln <= lines.size(); ln++) {
-                                if (
-                                    (lnfirst == 0 || ln >= lnfirst) &&
-                                    (lnlast == 0 || ln <= lnlast)
-                                ) show_lines.push_back(
-                                    (input_parts[0] == "/send-lines" ? to_string(ln) + ": " : "") + lines[ln-1]
-                                );
-                            }
-                            contents = implode("\n", show_lines);
-                        }
-                        input = message + "\nFile '" + filename + "' contents:\n" + contents;
-                    }
-
-                    if (input_parts[0] == "/mode") {
-                        if (input_parts.size() >= 2) {
-                            if (input_parts[1] == "chat") {
-                                mode = MODE_CHAT;
-                            }
-                            else if (input_parts[1] == "think") {
-                                mode = MODE_THINK;
-                            }
-                            else if (input_parts[1] == "solve") {
-                                mode = MODE_SOLVE;
-                            }
-                            else {
-                                cout << "Invalid mode: " << input_parts[1] << endl;
-                                continue;
-                            }
-                        }
-                        string mode_s = "";
-                        switch (mode)
-                        {
-                            case MODE_CHAT:
-                                mode_s = "chat";
-                                break;
-
-                            case MODE_THINK:
-                                mode_s = "think (steps: " + to_string(model.think_steps) + ")";
-                                break;
-
-                            case MODE_SOLVE:
-                                mode_s = "solve (steps: " + to_string(model.think_steps) + ", deep: " + to_string(model.think_deep) + ")";
-                                break;
-                        
-                            default:
-                                throw ERROR("Invalid mode");
-                        }
-
-                        cout << "Mode: " << mode_s << endl;
-                        continue;
-                    }
-
-                    if (input_parts[0] == "/think") {
-                        if (input_parts.size() == 2) {
-                            if (is_integer(input_parts[1]))
-                                model.think_steps = parse<int>(input_parts[1]);
-                            else cout << "Invalid parameter." << endl;
-                        }
-                        cout << "Extracting steps: " << model.think_steps << endl;
-                        continue;
-                    }
-
-                    if (input_parts[0] == "/solve") {
-                        if (input_parts.size() == 2) {
-                            if (is_integer(input_parts[1]))
-                                model.think_deep = parse<int>(input_parts[1]);
-                            else cout << "Invalid parameter." << endl;
-                        }
-                        cout << "Deep thinking solution tree depth max: " << model.think_deep << endl;
-                        continue;
-                    }
-
-                    if (input_parts[0] == "/save") {
-                        if (input_parts.size() > 2) {
-                            cout << "Invalid parameter counts, use /save {name}" << endl;
-                            continue;
-                        }
-                        if (input_parts.size() == 2) {
-                            model_name = input_parts[1];
-                            if (file_exists(get_model_file())) {
-                                cout << "Model already exists: " << model_name << endl;
-                                if (!confirm("Do you want to override?")) continue;
-                            }
-                        }
-                        save_model(true);
-                        continue;
-                    }
-
-                    if (input_parts[0] == "/load") {
-                        if (input_parts.size() != 2) {
-                            cout << "Invalid parameter counts, use /load {name}" << endl;
-                            continue;
-                        }
-                        if (!auto_save && 
-                            confirm("Current model session is: " + model_name + 
-                                    "\nDo you want to save it first?")) save_model(true);
-                        
-                        model_name = input_parts[1];
-                        load_model(false);
-                        continue;
-                    }
 
 
                     // if (input.empty()) {
@@ -534,30 +374,6 @@ namespace prompt {
 
     };
 
-    class TestCommand: public Command {
-    public:
-    
-        vector<string> get_patterns() const override {
-            return {
-                "/test",
-                "/test echo {string}",
-            };
-        }
-
-        string run(void* user, const vector<string>& args) override {
-            if (args.size() == 1) {
-                return "You called '/test' command.";
-            }
-
-            if (args.size() == 3) {
-                if (args[1] == "echo")
-                    return "Test echo: " + args[2];
-            }
-
-            return "Use /test to call test command, or echo a message: /test echo {string}";
-        } 
-    };
-
     class ExitCommand: public Command {
     public:
     
@@ -585,7 +401,275 @@ namespace prompt {
         }
     };
 
-    // ------------------------
+    // -------- app specific commands ----------
+
+    class VoiceCommand: public Command {
+    public:
+    
+        vector<string> get_patterns() const override {
+            return { 
+                "/voice",
+                "/voice input {switch}",
+                "/voice output {switch}",
+            };
+        }
+
+        string run(void* user_void, const vector<string>& args) override {
+            User* user = (User*)user_void;
+            Speech* speech = user->get_speech_ptr();
+            if (!speech) {
+                cout << "No voice I/O loaded. - Add --voice argument from command line." << endl; // TODO 
+                return "";                           
+            }
+            if (args.size() > 1) {
+                string voice_usage = "Use: /voice (input/output) [on/off]";
+                if (args.size() < 3) cout << voice_usage << endl;
+                else if (args[1] == "input") {
+                    if (args[2] == "on") user->set_voice_in(true);
+                    else if (args[2] == "off") user->set_voice_in(false);
+                    else cout << "Invalid argument: " << args[2] << endl;
+                }
+                else if (args[1] == "output") {
+                    if (args[2] == "on") user->set_voice_out(true);
+                    else if (args[2] == "off") user->set_voice_out(false);
+                    else cout << "Invalid argument: " << args[2] << endl;
+                } else cout << voice_usage << endl;
+            }
+
+            cout << "Voice input:\t[" << (user->is_voice_in() ? "On" : "Off") << "]" << endl;
+            cout << "Voice output:\t[" << (user->is_voice_out() ? "On" : "Off") << "]" << endl;
+            
+            return "";
+        }
+    };
+
+    class SendCommand: public Command {
+    public:
+    
+        vector<string> get_patterns() const override {
+            return {
+                "/send {filename}",
+                "/send {string} {filename}",
+                "/send {filename} {number} {number}",
+                "/send {string} {filename} {number} {number}",
+                "/send-lines",
+            };
+        }
+
+        string run(void* user_void, const vector<string>& args) override {
+            User* user = (User*)user_void;
+            int lnfirst = 0, lnlast = 0;
+            if (args.size() == 1) {
+                cout << "Filename is missing. Use /send [\"message\"] filename [first-line last-line]" << endl;
+                cout << "Note: message and first/last line numbers are optional, line numbers start from line-1th."
+                    "\nThe line number is zero (0) means the begin/end of file." << endl;
+                return "";
+            }
+            string message = "", filename;
+            if (args.size() == 2) {
+                filename = args[1];
+            }
+            if (args.size() == 3) {
+                message = args[1];
+                filename = args[2];
+            }
+            if (args.size() == 4) {
+                filename = args[1];
+                if (!is_numeric(args[2])) cout << "Invalit first line number: " << args[2] << endl;
+                else lnfirst = parse<int>(args[2]);
+                if (!is_numeric(args[3])) cout << "Invalit last line number: " << args[3] << endl;
+                else lnlast = parse<int>(args[3]);
+            }
+            if (args.size() == 5) {
+                message = args[1];
+                filename = args[2];
+                if (!is_numeric(args[3])) cout << "Invalit first line number: " << args[3] << endl;
+                else lnfirst = parse<int>(args[2]);
+                if (!is_numeric(args[4])) cout << "Invalit last line number: " << args[4] << endl;
+                else lnlast = parse<int>(args[4]);
+            }
+            if (args.size() > 5) {
+                cout << "Too many arguments" << endl;
+                return "";
+            }
+
+            if (!file_exists(filename)) {
+                cout << "File not found: " << filename << endl;
+                return "";
+            }
+
+            if (lnfirst < 0 || lnlast < lnfirst) {
+                cout << "Line numbers should be greater or equal to 1th and first line should be less or equal to the last line number." << endl;
+                return "";
+            }
+
+            string contents = file_get_contents(filename);
+            if (contents.empty()) contents = "<empty>";
+            else if (lnfirst || lnlast) {
+                vector<string> lines = explode("\n", contents);
+                vector<string> show_lines;
+                for (size_t ln = 1; ln <= lines.size(); ln++) {
+                    if (
+                        (lnfirst == 0 || ln >= lnfirst) &&
+                        (lnlast == 0 || ln <= lnlast)
+                    ) show_lines.push_back(
+                        (args[0] == "/send-lines" ? to_string(ln) + ": " : "") + lines[ln-1]
+                    );
+                }
+                contents = implode("\n", show_lines);
+            }
+            user->get_model_ref().addContext(message + "\nFile '" + filename + "' contents:\n" + contents);
+            return "";
+        }
+    };
+
+    class ModeCommand: public Command {
+    public:
+    
+        vector<string> get_patterns() const override {
+            return { 
+                "/mode",
+                "/mode chat",
+                "/mode think",
+                "/mode solve",
+            };
+        }
+
+        string run(void* user_void, const vector<string>& args) override {
+            User* user = (User*)user_void;
+            if (args.size() >= 2) {
+                if (args[1] == "chat") {
+                    user->set_mode(MODE_CHAT);
+                }
+                else if (args[1] == "think") {
+                    user->set_mode(MODE_THINK);
+                }
+                else if (args[1] == "solve") {
+                    user->set_mode(MODE_SOLVE);
+                }
+                else {
+                    cout << "Invalid mode: " << args[1] << endl;
+                    return "";
+                }
+            }
+            string mode_s = "";
+            switch (user->get_mode())
+            {
+                case MODE_CHAT:
+                    mode_s = "chat";
+                    break;
+
+                case MODE_THINK:
+                    mode_s = "think (steps: " + to_string(user->get_model_ref().think_steps) + ")";
+                    break;
+
+                case MODE_SOLVE:
+                    mode_s = "solve (steps: " + to_string(user->get_model_ref().think_steps) + ", deep: " + to_string(user->get_model_ref().think_deep) + ")";
+                    break;
+            
+                default:
+                    throw ERROR("Invalid mode");
+            }
+
+            cout << "Mode: " << mode_s << endl;
+            return "";
+        }
+    };
+
+    class ThinkCommand: public Command {
+    public:
+    
+        vector<string> get_patterns() const override {
+            return { "/think {number}" };
+        }
+
+        string run(void* user_void, const vector<string>& args) override {
+            User* user = (User*)user_void;
+            if (args.size() == 2) {
+                if (is_integer(args[1]))
+                    user->get_model_ref().think_steps = parse<int>(args[1]);
+                else cout << "Invalid parameter." << endl;
+            }
+            cout << "Extracting steps: " << user->get_model_ref().think_steps << endl;
+
+            return "";
+        }
+    };
+
+    class SolveCommand: public Command {
+    public:
+    
+        vector<string> get_patterns() const override {
+            return { "/solve {number}" };
+        }
+
+        string run(void* user_void, const vector<string>& args) override {
+            User* user = (User*)user_void;
+            if (args.size() == 2) {
+                if (is_integer(args[1]))
+                    user->get_model_ref().think_deep = parse<int>(args[1]);
+                else cout << "Invalid parameter." << endl;
+            }
+            cout << "Deep thinking solution tree depth max: " << user->get_model_ref().think_deep << endl;
+
+            return "";
+        }
+    };
+
+    class SaveCommand: public Command {
+    public:
+    
+        vector<string> get_patterns() const override {
+            return { "/save {string}" };
+        }
+
+        string run(void* user_void, const vector<string>& args) override {
+            User* user = (User*)user_void;
+            
+            if (args.size() > 2) {
+                cout << "Invalid parameter counts, use /save {name}" << endl;
+                return "";
+            }
+            if (args.size() == 2) {
+                user->set_model_name(args[1]);
+                if (file_exists(user->get_model_file())) {
+                    cout << "Model already exists: " << user->get_model_name_ref() << endl;
+                    if (!confirm("Do you want to override?")) return "";
+                }
+            }
+            user->save_model(true);
+
+            return "";
+        }
+    };
+
+    class LoadCommand: public Command {
+    public:
+    
+        vector<string> get_patterns() const override {
+            return { "/load {string}" };
+        }
+
+        string run(void* user_void, const vector<string>& args) override {
+            User* user = (User*)user_void;
+            
+            if (args.size() != 2) {
+                cout << "Invalid parameter counts, use /load {name}" << endl;
+                return "";
+            }
+            if (!user->is_auto_save() && 
+                confirm("Current model session is: " + user->get_model_name_ref() + 
+                        "\nDo you want to save it first?")) user->save_model(true);
+            
+            user->set_model_name(args[1]);
+            user->load_model(false);
+
+            return "";
+        }
+    };
+
+
+    // -----------------------------------------
     
     class Gemini: public Model {
     private:
@@ -851,9 +935,15 @@ int main(int argc, char *argv[]) {
     );
 
     user.set_commands({ 
-new TestCommand, // TODO: remove test command
         new ExitCommand,
         new HelpCommand,
+        new VoiceCommand,
+        new SendCommand,
+        new ModeCommand,
+        new ThinkCommand,
+        new SolveCommand,
+        new SaveCommand,
+        new LoadCommand,
     });
 
     user.start();
