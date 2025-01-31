@@ -103,6 +103,7 @@ namespace tools {
         const string speechf = base_path + "testrec.wav";
         const string tempf = base_path + "sox-temp.wav";//"/tmp/temp-record-copy.wav";
         const int kHz = 16000;
+        const string beep_cmd = "sox -v 0.1 beep.wav -t wav - | aplay -q -N";
         // ----------------------------------------
 
 
@@ -357,7 +358,7 @@ namespace tools {
                 if(rotary) rotary->clear();
 
                 if (recdone && recerr.empty() && !is_silence(tempf)) {
-                    proc.writeln("sox -v 0.1 beep.wav -t wav - | aplay -q -N &");
+                    proc.writeln(beep_cmd + " &");
                     shtup();
                     rec_close();
                     checker.kill();
@@ -387,8 +388,13 @@ namespace tools {
                 seeded = true;
             }
             // Véletlenszerű index generálása
-            int index = rand() % hesitors.size();
-            say(hesitors[index] + ":", true);
+            int index1 = rand() % hesitors.size();
+            int index2 = rand() % hesitors.size();
+            int index3 = rand() % hesitors.size();
+            say(hesitors[index1] + ":" + 
+                hesitors[index2] + ":" + 
+                hesitors[index3] + ":", 
+                true, 30, speed * 0.4);
         }
 
         bool is_silence(const string& recordf) {
@@ -410,22 +416,26 @@ namespace tools {
             // return str_starts_with(output, "0.0"); // TODO: convert to double
         }
 
-        void say(const string& text, bool async = false) {
+        void say(const string& text, bool async = false, int gap = 10, int speed_override = 0, bool beep = false) {
             shtup();
             rotary = &rotary_speech;
             say_interrupted = false;
-            proc.writeln("espeak -v" + lang + " -s " + to_string(speed) + " \"" + escape(str_replace({
+            proc.writeln("espeak -v" + lang + " -g " + to_string(gap) + " -s " + to_string(speed_override ? speed_override : speed) + " \"" + escape(str_replace({
                 { "...", "."},
                 { "***", ""},
                 { "**", ""},
                 { "*", ""},
-            }, text)) + "\"" + (async ? "" : " && echo"));
+            }, text)) + "\"" + (beep ? " && " + beep_cmd : "") + (async ? "" : " && echo"));
             if (!async) while ((proc.read()).empty()) { // waiting for "done"
                 if (kbhit()) { // keyhit breaks
                     shtup();
                     return; // misschars();
                 }
             }
+        }
+
+        void say_beep(const string& text, bool async = false, int gap = 10, int speed_override = 0) {
+            say(text, async, gap, speed_override, true);
         }
 
     };
@@ -439,18 +449,18 @@ namespace tools {
     #define _o_ ANSI_FMT_T_DIM ANSI_FMT_C_GREEN "-"
     #define ___ ANSI_FMT_T_DIM ANSI_FMT_C_BLACK "-"
 
-            ANSI_FMT("[", _o_ _O_ _X_ ___ ___ ) + "]",
+            ANSI_FMT("[", _o_ _O_ _X_ ___ " " ) + "]",
             ANSI_FMT("[", _o_ _o_ _O_ _X_ " " ) + "]",
             ANSI_FMT("[", _o_ _o_ _o_ _O_ _X_ ) + "]",
-            ANSI_FMT("[", _o_ _o_ _o_ _o_ _X_ ) + "]",
             ANSI_FMT("[", ___ _o_ _o_ _o_ _X_ ) + "]",
-            ANSI_FMT("[", ___ ___ _o_ _X_ _O_ ) + "]",
-            ANSI_FMT("[", ___ ___ _X_ _O_ _o_ ) + "]",
+            ANSI_FMT("[", ___ ___ _o_ _o_ _X_ ) + "]",
+            ANSI_FMT("[", ___ ___ ___ _X_ _O_ ) + "]",
+            ANSI_FMT("[", " " ___ _X_ _O_ _o_ ) + "]",
             ANSI_FMT("[", " " _X_ _O_ _o_ _o_ ) + "]",
             ANSI_FMT("[", _X_ _O_ _o_ _o_ _o_ ) + "]",
-            ANSI_FMT("[", _X_ _o_ _o_ _o_ _o_ ) + "]",
             ANSI_FMT("[", _X_ _o_ _o_ _o_ ___ ) + "]",
-            ANSI_FMT("[", _O_ _X_ _o_ ___ ___ ) + "]",
+            ANSI_FMT("[", _X_ _o_ _o_ ___ ___ ) + "]",
+            ANSI_FMT("[", _O_ _X_ ___ ___ ___ ) + "]",
 
     #undef _X_
     #undef _O_

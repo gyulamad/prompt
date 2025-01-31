@@ -11,7 +11,7 @@
 #include "tools/vectors.hpp"
 #include "tools/Process.hpp"
 #include "tools/JSON.hpp"
-#include "tools/CommandLine.hpp"
+#include "tools/Commander.hpp"
 #include "tools/Process.hpp"
 #include "tools/Logger.hpp"
 #include "tools/system.hpp"
@@ -87,36 +87,21 @@ namespace prompt {
 
     };
 
-    class Command {
-    public:
-        virtual ~Command() {}
+    // ----------------------------
 
-        virtual vector<string> get_patterns() const { UNIMP; }
-        
-        /**
-         * @brief 
-         * 
-         * @param user 
-         * @param args 
-         * @return string 
-         */
-        virtual string run(void*, const vector<string>&) { UNIMP; }
-    };
+
 
     typedef  enum { MODE_CHAT, MODE_THINK, MODE_SOLVE } mode_t;
 
     class User {
     private:
-        bool exiting = false;
-        CompletionMatcher cmatcher;
-        vector<void*> commands;
+        Commander commander;
 
         mode_t mode = MODE_CHAT;
         Model& model;
         string model_name;
         bool auto_save;
         string basedir;
-        CommandLine commandLine;
         Speech* speech = nullptr;
         bool voice_in, voice_out;
         string speech_interrupt_info_token;
@@ -137,7 +122,7 @@ namespace prompt {
             model(model),
             model_name(model_name),
             auto_save(auto_save), 
-            commandLine(prompt), 
+            commander(CommandLine(prompt)), 
             basedir(basedir),       
             speech(speech),
             voice_in(speech),
@@ -148,11 +133,11 @@ namespace prompt {
             if (!model_name.empty()) load_model(true);
         }
 
-        ~User() {}
+        virtual ~User() {}
 
         string get_model_file() {
             if (model_name.empty()) throw ERROR("Model name is not set.");
-            return basedir + "models/" + model_name + ".json";
+            return basedir + "/models/" + model_name + ".json";
         }
 
         Model& get_model_ref() {
@@ -170,19 +155,30 @@ namespace prompt {
         bool is_auto_save() const {
             return auto_save;
         }
+
+        // --- commander stuff ----
         
         void set_commands(const vector<void*>& commands) {
-            this->commands = commands;
+            commander.set_commands(commands);
         }
 
         vector<void*> get_commands_ref() {
-            return commands;
+            return commander.get_commands_ref();
+            // return commands;
         }
 
 
         const CompletionMatcher& get_cmatcher_ref() const {
-            return cmatcher;
+            return commander.get_cmatcher_ref();
+            // return cmatcher;
         }
+
+        void exit() {         
+            commander.exit();   
+            // exiting = true;
+        }
+
+        // --------------------
 
         void set_mode(mode_t mode) {
             this->mode = mode;
@@ -212,10 +208,6 @@ namespace prompt {
             return voice_out;   
         }
 
-        void exit() {
-            exiting = true;
-        }
-
         void save_model(bool override /*= false*/, bool show_save_succeed = true) {
             string model_file = get_model_file();
             if (!override && file_exists(model_file)) 
@@ -234,7 +226,7 @@ namespace prompt {
             string errmsg = model.load(model, model_file);
             if (!errmsg.empty()) cout << "Model load error: " << errmsg << endl;
             else {
-                model.dump_conversation(commandLine.get_prompt());
+                model.dump_conversation(commander.get_command_line_ref().get_prompt());
                 cout << "Model loaded: " << model_name << endl;
             }
         }
@@ -243,74 +235,30 @@ namespace prompt {
             string resp = trim(response);
             if (!resp.empty()) cout << resp << endl;
             if (speech) {
-                if (voice_out && !resp.empty()) speech->say(resp, true);
+                if (voice_out && !resp.empty()) speech->say_beep(resp, true);
                 if (voice_in) {
                     string input = speech->rec();
                     if (speech->is_rec_interrupted()) voice_in = false;
                     speech->cleanprocs();
-                    if (!input.empty()) commandLine.show(input + (input.back() == '\n' ? "" : "\n")); // TODO !@#
+                    if (!input.empty()) commander.get_command_line_ref().show(input + (input.back() == '\n' ? "" : "\n")); // TODO !@#
                     return input;
                 }
             }
 
-            return commandLine.readln();
+            return commander.get_command_line_ref().readln();
         }
         
 
         void start() {
-
-            cmatcher.command_patterns = {
-                // TODO:
-                // "/set volume {number}",
-                // "/set voice-input {switch}",
-                // "/cat {filename}",
-                // "/print {string}",
-                // "/print {string} {filename}"
-            };
-
-            for (const void* command: commands)
-                cmatcher.command_patterns = array_merge(
-                    cmatcher.command_patterns, 
-                    ((Command*)command)->get_patterns()
-                );
-            
-            commandLine.set_completion_matcher(cmatcher);
-
+            string input = "";
             string response = "";
-            while (!exiting) {
-                string input = prompt(response); 
-                response = "";      
-                if (commandLine.is_exited()) break;        
+            while (!commander.is_exiting()) {
+                input = trim(prompt(response));
+                response = "";
                 if (input.empty()) continue;
-                else if (input[0] == '/') {
-                    bool trlspc;
-                    vector<string> input_parts = array_filter(cmatcher.parse_input(input, trlspc, false));
-                    input = "";
-
-                    bool command_found = false;
-                    bool command_arguments_matches = false;
-                    for (void* command_void: commands) {
-                        Command* command = (Command*)command_void;
-                        for (const string& command_pattern: command->get_patterns()) {
-                            vector<string> command_pattern_parts = array_filter(explode(" ", command_pattern));
-                            if (input_parts[0] == command_pattern_parts[0]) {
-                                command_found = true;
-                                if (input_parts.size() == command_pattern_parts.size()) {
-                                    command_arguments_matches = true;
-                                    cout << command->run(this, input_parts) << endl;
-                                }
-                            }
-                        }
-                    }
-                    if (!command_found) cout << "Command not found: " << input_parts[0] << endl;
-                    else if (!command_arguments_matches) cout << "Invalid argument(s)." << endl;
-
-
-                    // if (input.empty()) {
-                    //     cout << "Invalid command/arguments or syntax: " << input_parts[0] << endl;
-                        continue; 
-                    // }
-                    // commandLine.show(input + "\n");
+                if (input[0] == '/') {
+                    commander.run_command(this, input);
+                    continue; 
                 }
 
                 if (speech) {
@@ -341,8 +289,7 @@ namespace prompt {
                     default:
                         throw ERROR("Invalid mode");
                 }
-                //response = model.prompt(input); //model.solve(input);
-                // cout << response << endl;
+                
                 vector<string> matches;
                 if (regx_match("\\[" + speech_amplitude_treshold_setter_token + ":([\\d\\.]+)\\]", response, &matches)) {
                     response = str_replace(matches[0], "", response);
@@ -363,7 +310,9 @@ namespace prompt {
                             continue;
                         }
                         speech->noise_treshold = noise_treshold;
-                        model.addContext("The amplitude treshold value is set to " + to_string(speech->noise_treshold), ROLE_INPUT);
+                        string msg = "The noise amplitude treshold value is set to " + to_string(speech->noise_treshold);
+                        cout << msg << endl;
+                        model.addContext(msg, ROLE_INPUT);
                     }
                 }
 
@@ -404,6 +353,13 @@ namespace prompt {
     // -------- app specific commands ----------
 
     class VoiceCommand: public Command {
+    private:
+    
+        void show_user_voice_stat(User* user) {
+            cout << "Voice input:\t[" << (user->is_voice_in() ? "On" : "Off") << "]" << endl;
+            cout << "Voice output:\t[" << (user->is_voice_out() ? "On" : "Off") << "]" << endl;
+        }
+
     public:
     
         vector<string> get_patterns() const override {
@@ -421,24 +377,28 @@ namespace prompt {
                 cout << "No voice I/O loaded. - Add --voice argument from command line." << endl; // TODO 
                 return "";                           
             }
-            if (args.size() > 1) {
-                string voice_usage = "Use: /voice (input/output) [on/off]";
-                if (args.size() < 3) cout << voice_usage << endl;
-                else if (args[1] == "input") {
-                    if (args[2] == "on") user->set_voice_in(true);
-                    else if (args[2] == "off") user->set_voice_in(false);
-                    else cout << "Invalid argument: " << args[2] << endl;
-                }
-                else if (args[1] == "output") {
-                    if (args[2] == "on") user->set_voice_out(true);
-                    else if (args[2] == "off") user->set_voice_out(false);
-                    else cout << "Invalid argument: " << args[2] << endl;
-                } else cout << voice_usage << endl;
+            string voice_usage = "Use: /voice (input/output) [on/off]";
+            if (args.size() <= 1 || args.size() > 3) {
+                cout << voice_usage << endl;
+                return "";
             }
+        
+            if (args[1] == "input") {
+                if (args[2] == "on") user->set_voice_in(true);
+                else if (args[2] == "off") user->set_voice_in(false);
+                else cout << "Invalid argument: " << args[2] << endl;
+                show_user_voice_stat(user);
+                return "";
+            }
+            else if (args[1] == "output") {
+                if (args[2] == "on") user->set_voice_out(true);
+                else if (args[2] == "off") user->set_voice_out(false);
+                else cout << "Invalid argument: " << args[2] << endl;
+                show_user_voice_stat(user);
+                return "";
+            } 
 
-            cout << "Voice input:\t[" << (user->is_voice_in() ? "On" : "Off") << "]" << endl;
-            cout << "Voice output:\t[" << (user->is_voice_out() ? "On" : "Off") << "]" << endl;
-            
+            cout << voice_usage << endl;
             return "";
         }
     };
@@ -452,7 +412,10 @@ namespace prompt {
                 "/send {string} {filename}",
                 "/send {filename} {number} {number}",
                 "/send {string} {filename} {number} {number}",
-                "/send-lines",
+                "/send-lines {filename}",
+                "/send-lines {string} {filename}",
+                "/send-lines {filename} {number} {number}",
+                "/send-lines {string} {filename} {number} {number}",
             };
         }
 
@@ -519,39 +482,15 @@ namespace prompt {
                 contents = implode("\n", show_lines);
             }
             user->get_model_ref().addContext(message + "\nFile '" + filename + "' contents:\n" + contents);
+            cout << "File added to the conversation context: " << filename << endl;
             return "";
         }
     };
 
     class ModeCommand: public Command {
-    public:
-    
-        vector<string> get_patterns() const override {
-            return { 
-                "/mode",
-                "/mode chat",
-                "/mode think",
-                "/mode solve",
-            };
-        }
+    private:
 
-        string run(void* user_void, const vector<string>& args) override {
-            User* user = (User*)user_void;
-            if (args.size() >= 2) {
-                if (args[1] == "chat") {
-                    user->set_mode(MODE_CHAT);
-                }
-                else if (args[1] == "think") {
-                    user->set_mode(MODE_THINK);
-                }
-                else if (args[1] == "solve") {
-                    user->set_mode(MODE_SOLVE);
-                }
-                else {
-                    cout << "Invalid mode: " << args[1] << endl;
-                    return "";
-                }
-            }
+        void show_user_mode(User* user) {
             string mode_s = "";
             switch (user->get_mode())
             {
@@ -572,6 +511,38 @@ namespace prompt {
             }
 
             cout << "Mode: " << mode_s << endl;
+        }
+
+    public:
+    
+        vector<string> get_patterns() const override {
+            return { 
+                "/mode",
+                "/mode chat",
+                "/mode think",
+                "/mode solve",
+            };
+        }
+
+        string run(void* user_void, const vector<string>& args) override {
+            User* user = (User*)user_void;
+            if (args.size() >= 2) {
+                if (args[1] == "chat") {
+                    user->set_mode(MODE_CHAT);
+                    show_user_mode(user);
+                }
+                else if (args[1] == "think") {
+                    user->set_mode(MODE_THINK);
+                    show_user_mode(user);
+                }
+                else if (args[1] == "solve") {
+                    user->set_mode(MODE_SOLVE);
+                    show_user_mode(user);
+                }
+                else {
+                    cout << "Invalid mode: " << args[1] << endl;
+                }
+            }
             return "";
         }
     };
@@ -746,15 +717,16 @@ namespace prompt {
                     }
                     //assert(file_get_contents(tmpfile) == conversation_json);
                     command = "curl -s \"https://generativelanguage.googleapis.com/v1beta/models/" + variant + ":generateContent?key=" + escape(secret) + "\" -H 'Content-Type: application/json' -X POST --data-binary @" + tmpfile;
+                    sleep(3); // TODO: for api rate limit
                     response = Process::execute(command);
                     if (response.isDefined("error") || !response.isDefined("candidates[0].content.parts[0].text"))
                         throw ERROR("Gemini error: " + response.dump());
-                    //sleep(3); // TODO: for api rate limit
                     return response.get<string>("candidates[0].content.parts[0].text");    
                 } catch (exception &e) {
-                    string usrmsg = "Gemini API failure, switching variant from " + variant + " to ";
+                    string what = e.what();
+                    string usrmsg = "Gemini API failure: " + what + "\nSwitching variant from " + variant + " to ";
                     string errmsg = 
-                        "Gemini API (" + variant + ") request failed: " + e.what();
+                        "Gemini API (" + variant + ") request failed: " + what;
                     bool next_variant_found = next_variant();
                     usrmsg += variant + ".";                    
                     cerr << usrmsg << endl;
@@ -801,9 +773,9 @@ namespace prompt {
         "gemini-1.5-pro",
         "gemini-1.5-pro-001",
         "gemini-1.5-pro-002",
-        "gemini-1.0-pro-latest", // gemini-1.0-pro models are deprecated on 2/15/2025
-        "gemini-1.0-pro", 
-        "gemini-1.0-pro-001", 
+        // "gemini-1.0-pro-latest", // gemini-1.0-pro models are deprecated on 2/15/2025
+        // "gemini-1.0-pro", 
+        // "gemini-1.0-pro-001", 
     };
     size_t Gemini::current_variant = 0;
     string Gemini::variant = variants[current_variant];
@@ -822,9 +794,9 @@ int main(int argc, char *argv[]) {
     JSON config(file_get_contents("config.json"));
 
     // logger
-    const string basedir = get_exec_path() + "/.prompt/";
+    const string basedir = get_exec_path() + "/.prompt";
     mkdir(basedir);
-    Logger logger("Prompt-log", basedir + "prompt.log");
+    Logger logger("Prompt-log", basedir + "/prompt.log");
     logger.info("Prompt started");
 
     // settings
@@ -911,14 +883,21 @@ int main(int argc, char *argv[]) {
         if (speech_stall) {
             speech->hesitors = speech_hesitors;
             if (speech->hesitors.empty()) {
-                Model* thinker = (Model*)model.spawn("You are a linguistic assistant");
-                speech->hesitors = thinker->multiple_str(
-                    "I need a list of 'Filler/Stall word' and 'Hesitation markers/sentences'. "
-                    "Write one word long to a full sentence and anything in between. "
-                    "We need 5 one-word long, 5 mid sentence and 5 very long full sentence. "
-                    "We need the list in language: " + user_lang
-                );                
-                model.kill(thinker);
+                string hesitros_textfile = basedir + "/hesitors." + user_lang + ".txt";
+                if (file_exists(hesitros_textfile)) {
+                    speech->hesitors = explode("\n", file_get_contents(hesitros_textfile));
+                } else {
+                    Model* thinker = (Model*)model.spawn("You are a linguistic assistant");
+                    speech->hesitors = thinker->multiple_str(
+                        "I need a list of 'Filler/Stall word' and 'Hesitation markers/sentences'. "
+                        "Write one word long to a full sentence and anything in between. "
+                        "We need 7 one-word long, 5 mid sentence and 3 very long full sentence. "
+                        "We need the list in language: " + user_lang
+                    );                
+                    model.kill(thinker);
+                    for (string& hesitor: speech->hesitors) hesitor = str_replace("\n", " ", hesitor);
+                    file_put_contents(hesitros_textfile, implode("\n", speech->hesitors), true, true);
+                }
             }
         }
     }
@@ -934,7 +913,13 @@ int main(int argc, char *argv[]) {
         speech_amplitude_treshold_setter_token
     );
 
-    user.set_commands({ 
+    // TODO:
+    // "/set volume {number}",
+    // "/set voice-input {switch}",
+    // "/cat {filename}",
+    // "/print {string}",
+    // "/print {string} {filename}"
+    user.set_commands({
         new ExitCommand,
         new HelpCommand,
         new VoiceCommand,

@@ -290,7 +290,8 @@ namespace tools::llm {
         void dump_conversation(const string& input_prompt) const {
             for (const Message& message: conversation.get_messages_ref()) {
                 if (message.get_role() == ROLE_INPUT) cout << input_prompt;
-                cout << message.get_text() << flush;
+                string text = message.get_text();
+                cout << text + (text.back() == '\n' ? "" : "\n")  << flush;
             }
         }
 

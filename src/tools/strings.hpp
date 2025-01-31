@@ -261,6 +261,6 @@ namespace tools {
     }
     
     inline string json_escape(const string& s) {
-        return str_replace("\n", "\\n", escape(s, "\""));
+        return str_replace("\n", "\\n", escape(s, "\\\""));
     }
 }
