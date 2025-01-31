@@ -469,28 +469,92 @@ namespace tools {
     #undef ___
 
         }, 1),     // Dots
-        // RotaryFrames({ 
-        //     ANSI_FMT(ANSI_FMT_C_BLACK, "-") + " ]", 
-        //     ANSI_FMT(ANSI_FMT_C_BLACK, "\\") + " ]", 
-        //     ANSI_FMT(ANSI_FMT_C_BLACK, "|") + " ]", 
-        //     ANSI_FMT(ANSI_FMT_C_BLACK, "/") + " ]",
-        // }, 1),     // Sticks
+        RotaryFrames({ 
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"), 
+            ANSI_FMT(ANSI_FMT_C_BLACK, "\\>"), 
+            ANSI_FMT(ANSI_FMT_C_BLACK, "|>"), 
+            ANSI_FMT(ANSI_FMT_C_BLACK, "/>"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"), 
+            ANSI_FMT(ANSI_FMT_C_BLACK, "\\>"), 
+            ANSI_FMT(ANSI_FMT_C_BLACK, "|>"), 
+            ANSI_FMT(ANSI_FMT_C_BLACK, "/>"),
+            ANSI_FMT(ANSI_FMT_C_BLACK, "->"), 
+            ANSI_FMT(ANSI_FMT_C_BLACK, "\\>"), 
+            ANSI_FMT(ANSI_FMT_C_BLACK, "|>"), 
+            ANSI_FMT(ANSI_FMT_C_BLACK, "/>"),
+        }, 1),     // Sticks
     });
 
 
     Rotary Speech::rotary_record({
 
     #define _X_ ANSI_FMT_RESET ANSI_FMT_C_RED "●"
-
         RotaryFrames({ 
             ANSI_FMT("[", ANSI_FMT_RESET ANSI_FMT_C_RED "● " ANSI_FMT_RESET ANSI_FMT_C_BLACK "rec" ) + "]",
             ANSI_FMT("[", ANSI_FMT_RESET ANSI_FMT_C_RED "● " ANSI_FMT_T_DIM ANSI_FMT_C_BLACK "rec" ) + "]",
             ANSI_FMT("[", ANSI_FMT_RESET ANSI_FMT_C_RED "● " ANSI_FMT_RESET ANSI_FMT_C_BLACK "   " ) + "]",
         }, 1),     // Sticks
     #undef _X_
-    #undef _O_
-    #undef _o_
-    #undef ___
+    
+        RotaryFrames({ "🎤" }, 1),
 
     });
 
@@ -501,7 +565,6 @@ namespace tools {
     #define _O_ ANSI_FMT_T_DIM ANSI_FMT_C_BLUE "◎"
     #define _o_ ANSI_FMT_T_DIM ANSI_FMT_C_BLUE "○"
     #define ___ ANSI_FMT_T_DIM ANSI_FMT_C_BLUE "-"
-
         RotaryFrames({ 
             ANSI_FMT("[", ___ ___ _X_ ___ ___ ) + "]",
             ANSI_FMT("[", ___ ___ _O_ _o_ ___ ) + "]",
@@ -525,6 +588,8 @@ namespace tools {
     #undef _O_
     #undef _o_
     #undef ___
+
+        RotaryFrames({ "🤖" }, 1),
 
     });
 
