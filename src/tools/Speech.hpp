@@ -97,14 +97,14 @@ namespace tools {
         };
 
     private:
-        // -------------- configs -----------------
+        // -------------- TODO: configs -----------------
         const string base_path = "/tmp/";
         const string voice_check_sh_path = base_path + "voice_check.sh";
         const string speechf = base_path + "testrec.wav";
         const string tempf = base_path + "sox-temp.wav";//"/tmp/temp-record-copy.wav";
         const int kHz = 16000;
         const string beep_cmd = "sox -v 0.1 beep.wav -t wav - | aplay -q -N";
-        // ----------------------------------------
+        // ----------------------------------------------
 
 
         Process pkiller;
@@ -391,10 +391,10 @@ namespace tools {
             int index1 = rand() % hesitors.size();
             int index2 = rand() % hesitors.size();
             int index3 = rand() % hesitors.size();
-            say(hesitors[index1] + ":" + 
-                hesitors[index2] + ":" + 
-                hesitors[index3] + ":", 
-                true, 30, speed * 0.4);
+            say(hesitors[index1] + "  " + 
+                hesitors[index2] + "  " + 
+                hesitors[index3] + "  ", 
+                true, 20, speed * 0.7);
         }
 
         bool is_silence(const string& recordf) {
@@ -416,15 +416,16 @@ namespace tools {
             // return str_starts_with(output, "0.0"); // TODO: convert to double
         }
 
-        void say(const string& text, bool async = false, int gap = 10, int speed_override = 0, bool beep = false) {
+        void say(const string& text, bool async = false, int gap = 0, int speed_override = 0, bool beep = false) {
             shtup();
             rotary = &rotary_speech;
             say_interrupted = false;
-            proc.writeln("espeak -v" + lang + " -g " + to_string(gap) + " -s " + to_string(speed_override ? speed_override : speed) + " \"" + escape(str_replace({
+            proc.writeln("espeak -v" + lang + (gap ? " -g " + to_string(gap) : "") + " -s " + to_string(speed_override ? speed_override : speed) + " \"" + escape(str_replace({
                 { "...", "."},
                 { "***", ""},
                 { "**", ""},
                 { "*", ""},
+                { "'", ""},
             }, text)) + "\"" + (beep ? " && " + beep_cmd : "") + (async ? "" : " && echo"));
             if (!async) while ((proc.read()).empty()) { // waiting for "done"
                 if (kbhit()) { // keyhit breaks
