@@ -717,7 +717,7 @@ namespace prompt {
                     }
                     //assert(file_get_contents(tmpfile) == conversation_json);
                     command = "curl -s \"https://generativelanguage.googleapis.com/v1beta/models/" + variant + ":generateContent?key=" + escape(secret) + "\" -H 'Content-Type: application/json' -X POST --data-binary @" + tmpfile;
-                    sleep(3); // TODO: for api rate limit
+                    //sleep(3); // TODO: for api rate limit
                     response = Process::execute(command);
                     if (response.isDefined("error") || !response.isDefined("candidates[0].content.parts[0].text"))
                         throw ERROR("Gemini error: " + response.dump());
@@ -846,7 +846,7 @@ int main(int argc, char *argv[]) {
     const string model_system = tpl_replace({ // TODO: goes to the config:
             { "{{model_system_voice}}", model_system_voice },
             { "{{model_system_lang}}", model_system_lang },
-        },  "Your persona is a mid age man AI called Johnny-5 and you behave like a simple human. "
+        },  "Your persona is a mid age man AI called `Mikrobi` and you behave like a simple human. "
             "You have a sense of humor, your personality is entertaining. "
             "Your answers are succinct and focusing on the core of your conversation "
             "but in a way like a normal human chat would looks like. "
