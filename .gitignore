@@ -3,3 +3,4 @@ builds
 config.json
 *.log
 .fuse_hidden*
+rec_*.wav
