@@ -1,14 +1,16 @@
 #pragma once
 
+#include <string>
+#include <cstring>
 #include <iostream>
+#include <stdexcept>
+#include <mutex>
+#include <fcntl.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <stdexcept>
-#include <string>
 #include <sys/select.h>
-#include <cstring>
-#include <fcntl.h>
 
+#include "ERROR.hpp"
 #include "system.hpp"
 
 using namespace std;
@@ -21,7 +23,7 @@ namespace tools {
     public:
         Pipe() {
             if (pipe(fd) == -1)
-                throw runtime_error("Failed to create pipe");
+                throw ERROR("Failed to create pipe");
         }
         ~Pipe() {
             close(fd[0]);
@@ -58,11 +60,11 @@ namespace tools {
 
         // void start_child_process() {
         //     if (pipe(to_child) == -1 || pipe(from_child) == -1 || pipe(err_child) == -1)
-        //         throw runtime_error("Failed to create pipes");
+        //         throw ERROR("Failed to create pipes");
 
         //     pid = fork();
         //     if (pid == -1)
-        //         throw runtime_error("Failed to fork process");
+        //         throw ERROR("Failed to fork process");
 
         //     if (pid == 0) { // Child process
         //         close(to_child[1]);
@@ -93,7 +95,7 @@ namespace tools {
         void start_child_process() {
             pid = fork();
             if (pid == -1)
-                throw runtime_error("Failed to fork process");
+                throw ERROR("Failed to fork process");
 
             if (pid == 0) { // Child process
                 close(to_child.write_fd());
@@ -145,12 +147,12 @@ namespace tools {
 
         // void write(const string& input) {
         //     if (::write(to_child[1], input.c_str(), input.size()) == -1)
-        //         throw runtime_error("Failed to write to child");
+        //         throw ERROR("Failed to write to child");
         //     usleep(__useconds);
         // }
         void write(const string& input) {
             if (::write(to_child.write_fd(), input.c_str(), input.size()) == -1)
-                throw runtime_error("Failed to write to child");
+                throw ERROR("Failed to write to child");
             usleep(__useconds);
         }
 
@@ -164,7 +166,7 @@ namespace tools {
             if (n == -1) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK)
                     return ""; // No data available
-                throw runtime_error("Failed to read from child, program: " + program);
+                throw ERROR("Failed to read from child, program: " + program);
             }
             buffer[n] = '\0';
             return string(buffer);
@@ -242,7 +244,7 @@ namespace tools {
 
         //     int result = select(max(from_child[0], err_child[0]) + 1, &readfds, nullptr, nullptr, &timeout);
         //     if (result == -1)
-        //         throw runtime_error("Failed to check readiness with select (non-blocking)");
+        //         throw ERROR("Failed to check readiness with select (non-blocking)");
 
         //     int status = 0;
         //     if (read_output && FD_ISSET(from_child[0], &readfds)) status |= PIPE_STDOUT;
@@ -258,11 +260,11 @@ namespace tools {
             if (read_error) FD_SET(err_child.read_fd(), &read_fds);
 
             struct timeval timeout = {0, 0}; // Non-blocking check
-            int max_fd = std::max(from_child.read_fd(), err_child.read_fd());
+            int max_fd = max(from_child.read_fd(), err_child.read_fd());
 
             int result = select(max_fd + 1, &read_fds, nullptr, nullptr, &timeout);
             if (result == -1) {
-                throw runtime_error("select failed");
+                throw ERROR("select failed");
             }
 
             int status = 0;
@@ -363,7 +365,7 @@ namespace tools {
         //     // Block indefinitely until data is available
         //     int result = select(max(from_child[0], err_child[0]) + 1, &readfds, nullptr, nullptr, nullptr);
         //     if (result == -1)
-        //         throw runtime_error("Failed to check readiness with select (blocking)");
+        //         throw ERROR("Failed to check readiness with select (blocking)");
 
         //     int status = 0;
         //     if (read_output && FD_ISSET(from_child[0], &readfds)) status |= PIPE_STDOUT;
@@ -379,7 +381,7 @@ namespace tools {
             // Block indefinitely until data is available
             int result = select(max(from_child.read_fd(), err_child.read_fd()) + 1, &readfds, nullptr, nullptr, nullptr);
             if (result == -1)
-                throw runtime_error("Failed to check readiness with select (blocking)");
+                throw ERROR("Failed to check readiness with select (blocking)");
 
             int status = 0;
             if (read_output && FD_ISSET(from_child.read_fd(), &readfds)) status |= PIPE_STDOUT;
@@ -393,15 +395,30 @@ namespace tools {
         //     close(process.to_child[1]); // Close the write end to signal EOF
         //     return process.read_blocking(); // Read the output
         // }
-        static string execute(const string& command, const string& program = "bash") {
+        static mutex cout_mutex; // Mutex for synchronizing cout
+
+        static string execute(const string& command, const string& program = "bash", bool show = false) {
+            static mutex process_mutex; // Mutex for Process class (if needed)
+            lock_guard<mutex> lock(process_mutex); // Lock for Process class
+
             Process process(program); // Create a new Process instance
             process.writeln(command); // Write the command
             close(process.to_child.write_fd()); // Close the write end to signal EOF
-            string output = process.read_blocking(); // Read the output
+            string output = "";
+            if (!show) output = process.read_blocking(); // Read the output
+            else {
+                string outp = process.read();
+                output += outp;
+                {
+                    lock_guard<mutex> cout_lock(cout_mutex); // Lock for cout
+                    cout << outp << flush;
+                }
+            }
             process.cleanup();
             return output;
         }
 
     };
+    mutex Process::cout_mutex;
 
 }

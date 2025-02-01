@@ -126,4 +126,18 @@ namespace tools {
         return ok;
     }
 
+    bool rename(const string& from, const string& to, bool throws = false) {
+        error_code err;
+        fs::rename(from, to, err);
+        if (err) {
+            string errmsg = "File rename failed: " + from + " to " + to + " (" + err.message() + ")";
+            if (throws) throw ERROR(errmsg);
+            else {
+                cerr << errmsg << endl;
+                return false;
+            }
+        }
+        return true;
+    }
+
 }

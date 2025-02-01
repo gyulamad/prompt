@@ -265,9 +265,10 @@ namespace prompt {
                     //model.system_data["{{speech_current_noise_treshold}}"] = to_string(speech->noise_treshold);
 
                     if (speech->is_say_interrupted()) {
-                        // cout << "AI TTS was interrupted" << endl;
+                        cout << "AI TTS was interrupted" << endl;
                         // input = speech_interrupt_info_token + "\n" + input;  
-                        // TODO: model.addContext(speech_interrupt_info_token, ROLE_INPUT);                 
+                        // TODO: 
+                        model.addContext(speech_interrupt_info_token, ROLE_INPUT);                 
                     }
 
                     speech->stall();
@@ -297,20 +298,33 @@ namespace prompt {
                     if (speech) {
                         bool error_found = false;
                         if (!is_numeric(matches[1])) {
-                            model.addContext("The amplitude treshold should be a numeric value.", ROLE_INPUT);
+                            model.addContext(
+                                "The amplitude treshold should be a numeric value.", 
+                                ROLE_INPUT
+                            );
                             error_found = true;
                         }
                         double noise_treshold = parse<double>(matches[1]);
-                        if (noise_treshold < 0.2 || noise_treshold > 0.8) {
-                            model.addContext("The amplitude treshold should be in between 0.2 and 0.8.", ROLE_INPUT);
+                        if (noise_treshold < speech->get_noise_treshold_min() || noise_treshold > speech->get_noise_treshold_max()) {
+                            model.addContext(
+                                "The amplitude treshold should be in between " 
+                                    + to_string(speech->get_noise_treshold_min()) + " and " 
+                                    + to_string(speech->get_noise_treshold_max()), 
+                                ROLE_INPUT
+                            );
                             error_found = true;
                         }
                         if (error_found) {
-                            model.addContext("The amplitude treshold value remains unchanged: " + to_string(speech->noise_treshold), ROLE_INPUT);
+                            model.addContext(
+                                "The amplitude treshold value remains unchanged: " 
+                                    + to_string(speech->get_noise_treshold()), 
+                                ROLE_INPUT
+                            );
                             continue;
                         }
-                        speech->noise_treshold = noise_treshold;
-                        string msg = "The noise amplitude treshold value is set to " + to_string(speech->noise_treshold);
+                        speech->set_noise_treshold(noise_treshold);
+                        string msg = "The noise amplitude treshold value is set to " 
+                            + to_string(speech->get_noise_treshold());
                         cout << msg << endl;
                         model.addContext(msg, ROLE_INPUT);
                     }
@@ -809,6 +823,8 @@ int main(int argc, char *argv[]) {
 
     int speech_speed = config.get<int>("speech.speed");
     double speech_noise_treshold = config.get<double>("speech.noise_treshold");
+    double speech_noise_treshold_min = config.get<double>("speech.noise_treshold_min");
+    double speech_noise_treshold_max = config.get<double>("speech.noise_treshold_max");
     bool speech_stall = config.get<bool>("speech.stall");
     vector<string> speech_hesitors = config.get<vector<string>>("speech.hesitors");
     string speech_interrupt_info_token = config.get<string>("speech.interrupt_info_token");
@@ -822,7 +838,9 @@ int main(int argc, char *argv[]) {
     string model_system_voice = voice ? tpl_replace({
         { "{{speech_interrupt_info_token}}", speech_interrupt_info_token },
         // { "{{speech_current_noise_treshold}}", "{{speech_current_noise_treshold}}"},
-        { "{{speech_amplitude_treshold_setter_token}}", speech_amplitude_treshold_setter_token }
+        { "{{speech_amplitude_treshold_setter_token}}", speech_amplitude_treshold_setter_token },
+        // { "{{speech_noise_treshold_min}}", to_string(speech_noise_treshold_min) },
+        // { "{{speech_noise_treshold_max}}", to_string(speech_noise_treshold_max) },
     },  "The user is using a text-to-speech software for communication. "
         "You are taking into account that the user's responses are being read at loud by a text-to-speech program "
         "that can be interrupted by background noise or user interruption, "
@@ -836,7 +854,7 @@ int main(int argc, char *argv[]) {
         "You are able to change this accordigly when the interruption coming from background noise "
         "by placing the [{{speech_amplitude_treshold_setter_token}}:{number}] token into your response. "
         "When you do this the user's system will recognise your request and changes the treshold for better communication. "
-        "The amplitude treshold should be a number between 0.2 and 0.8, more perceptive noise indicates higher treshold.\n"
+        // "The amplitude treshold should be a number between {{speech_noise_treshold_min}} and {{speech_noise_treshold_max}}, more perceptive noise indicates higher treshold.\n"
         "The goal is to let the user to be able to interrupt the TTS reader with his/her voice "
         "but filter out the background as much as possible."
     ) : "";
@@ -877,26 +895,28 @@ int main(int argc, char *argv[]) {
             secrets_hugging_face,
             user_lang,
             speech_speed,
-            speech_noise_treshold
+            speech_noise_treshold,
+            speech_noise_treshold_min,
+            speech_noise_treshold_max
         );
 
         if (speech_stall) {
-            speech->hesitors = speech_hesitors;
-            if (speech->hesitors.empty()) {
+            speech->set_hesitors(speech_hesitors);
+            if (speech->get_hesitors_ref().empty()) {
                 string hesitros_textfile = basedir + "/hesitors." + user_lang + ".txt";
                 if (file_exists(hesitros_textfile)) {
-                    speech->hesitors = explode("\n", file_get_contents(hesitros_textfile));
+                    speech->set_hesitors(explode("\n", file_get_contents(hesitros_textfile)));
                 } else {
                     Model* thinker = (Model*)model.spawn("You are a linguistic assistant");
-                    speech->hesitors = thinker->multiple_str(
+                    speech->set_hesitors(thinker->multiple_str(
                         "I need a list of 'Filler/Stall word' and 'Hesitation markers/sentences'. "
                         "Write one word long to a full sentence and anything in between. "
                         "We need 7 one-word long, 5 mid sentence and 3 very long full sentence. "
                         "We need the list in language: " + user_lang
-                    );                
+                    ));
                     model.kill(thinker);
-                    for (string& hesitor: speech->hesitors) hesitor = str_replace("\n", " ", hesitor);
-                    file_put_contents(hesitros_textfile, implode("\n", speech->hesitors), true, true);
+                    for (string& hesitor: speech->get_hesitors_ref()) hesitor = str_replace("\n", " ", hesitor);
+                    file_put_contents(hesitros_textfile, implode("\n", speech->get_hesitors_ref()), true, true);
                 }
             }
         }
@@ -947,3 +967,45 @@ int main(int argc, char *argv[]) {
     if (speech) delete speech;
     return 0;
 }
+
+/*
+
+**Cím:** "Mikrobi: Egy mesterséges intelligencia, aki segít a programozásban"
+
+**Bevezetés:**
+
+*   Bemutatkozás: A nevem "Mikrobi", és egy mesterséges intelligencia vagyok.
+*   Rövid bemutatás a képességeimről:  A szövegértés, a válaszadás, a beszélgetés, a memóriám, a zajszűrés, a nyelvváltás.
+
+**Részek:**
+
+1.  **Memória teszt:**
+    *   Egyszerű számtani feladatok megoldása.
+    *   Korábbi beszélgetések részleteinek felidézése.
+2.  **Zajszűrés teszt:**
+    *   A zajszűrés szintjének beállítása különböző szinteken.
+    *   A zajszűrés hatékonyságának bemutatása.
+3.  **Szövegértés és válaszadás:**
+    *   Egyszerű kérdésekre válaszolás.
+    *   Összetettebb kérdésekre válaszolás.
+    *   **Átvitt értelmű kérdésekre válaszolás:**
+        *   "Milyen a helyzet a jég hátán?" (Kérdező: Mit értesz ez alatt a kérdés alatt?)
+        *   "Ég a ház?" (Kérdező: Mi a jelentése ennek a kérdésnek?)
+4.  **Beszélgetés:**
+    *   Természetesen folytatott párbeszéd.
+    *   A párbeszéd menetének követése.
+    *   A korábbi mondatokra való emlékezés.
+5.  **Nyelvváltás:**
+    *   A nyelvváltás bemutatása angolról magyarra.
+    *   A nyelvváltás bemutatása magyarról angolra.
+
+**Zárás:**
+
+*   Rövid összegzés a képességeimről: 
+    *   "Jól láttátok, hogy képes vagyok a szöveg megértésére, a válaszadásra, a beszélgetésre, a memóriák tárolására, a zajszűrésre, és a nyelvváltásra."
+*   Lehetséges jövőbeli fejlesztések:
+    *   "A jövőben szeretnénk továbbfejleszteni a memóriámat és a nyelvi képességeimet."
+    *   "A 'terminál-asszisztens' funkcióval a programozók munkáját segíthetem a hibakeresésben és a terminál-parancsok megértésében."
+    *   "A 'jegyzetfüzet' funkció segíthet a felhasználóknak a gondolataik és ötleteik rendezésében."
+    *   "A 'több én' koncepció lehetővé teszi a hatékonyabb feladatmegoldást."
+ */

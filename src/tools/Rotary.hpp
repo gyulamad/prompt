@@ -102,7 +102,7 @@ namespace tools {
             longest_output_length = 0;
         }
 
-        void tick() {
+        void tick(const string& msg = "") {
             lock_guard<::mutex> lock(mutex);
 
             string status;
@@ -110,7 +110,7 @@ namespace tools {
                 status += animation.getCurrentFrame() + " ";
             }
 
-            cout << "\r" << status << flush;
+            cout << "\r" << status << msg << flush;
 
             for (auto& animation : animations) {
                 animation.update(ticks);

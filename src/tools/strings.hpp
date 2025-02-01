@@ -151,6 +151,15 @@ namespace tools {
     bool str_starts_with(const string& str, const string& prefix) {
         return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
     }
+
+    bool str_ends_with(const std::string& str, const std::string& suffix) {
+        // Check if the suffix is longer than the string
+        if (str.size() < suffix.size()) {
+            return false;
+        }
+        // Compare the end of the string with the suffix
+        return str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+    }
     
     
     

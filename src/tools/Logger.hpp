@@ -148,11 +148,11 @@ namespace tools {
             }) {
             if (!filename.empty()) {
 
-                // Extract the directory path
-                string directory = filename.substr(0, filename.find_last_of('/'));
-                if (!directory.empty() && !is_dir(directory)) {
-                    mkdir(directory); // Create the directory if it doesn't exist
-                }
+                // Extract the directory path                
+                // string directory = filename.substr(0, filename.find_last_of('/'));
+                // if (!directory.empty() && !is_dir(directory)) {
+                //     mkdir(directory); // Create the directory if it doesn't exist
+                // }
 
                 logFile.open(filename, ios::app);
                 if (!logFile.is_open())
@@ -181,6 +181,7 @@ namespace tools {
 
         void log(Level level, const string& message) {
             if (level < minLogLevel) return; // Skip if below minimum level
+            if (message.empty()) return; // Ignore empty log notes
             lock_guard<mutex> lock(queueMutex);
             logQueue.push(formatter(level, name, message));
             queueCondition.notify_one();
