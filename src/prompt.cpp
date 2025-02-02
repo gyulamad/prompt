@@ -103,7 +103,6 @@ namespace prompt {
         bool auto_save;
         string basedir;
         Speech* speech = nullptr;
-        bool voice_in, voice_out;
         string speech_interrupt_info_token;
         string speech_amplitude_treshold_setter_token;
 
@@ -125,8 +124,6 @@ namespace prompt {
             commander(CommandLine(prompt)), 
             basedir(basedir),       
             speech(speech),
-            voice_in(speech),
-            voice_out(speech),
             speech_interrupt_info_token(speech_interrupt_info_token),
             speech_amplitude_treshold_setter_token(speech_amplitude_treshold_setter_token)
         {
@@ -192,21 +189,21 @@ namespace prompt {
             return speech;
         }
 
-        void set_voice_in(bool voice_in) {
-            this->voice_in = voice_in;
-        }
+        // void set_voice_in(bool voice_in) {
+        //     this->voice_in = voice_in;
+        // }
 
-        bool is_voice_in() const {
-            return voice_in;
-        }
+        // bool is_voice_in() const {
+        //     return voice_in;
+        // }
 
-        void set_voice_out(bool voice_in) {
-            this->voice_out = voice_out;
-        }
+        // void set_voice_out(bool voice_in) {
+        //     this->voice_out = voice_out;
+        // }
 
-        bool is_voice_out() const {
-            return voice_out;   
-        }
+        // bool is_voice_out() const {
+        //     return voice_out;   
+        // }
 
         void save_model(bool override /*= false*/, bool show_save_succeed = true) {
             string model_file = get_model_file();
@@ -231,23 +228,37 @@ namespace prompt {
             }
         }
 
+        void show_voice_input(const string& input) {
+            commander.get_command_line_ref().show(input + (input.back() == '\n' ? "" : "\n")); // TODO !@#
+        }
+        
+        bool add_puffered_voice_input_to_context() {
+            if (!speech) return false;
+            string inp = trim(speech->fetch_rec_stt_result());
+            if (!inp.empty()) {
+                model.addContext(inp, ROLE_INPUT);
+                show_voice_input(inp);
+                return true;
+            }
+            return false;
+        }
+
         string prompt(const string& response = "") {
             string resp = trim(response);
             if (!resp.empty()) cout << resp << endl;
             if (speech) {
-                if (voice_out && !resp.empty()) speech->say_beep(resp, true);
-                if (voice_in) {
+                if (speech->is_voice_out() && !resp.empty()) speech->say_beep(resp, true);
+                if (speech->is_voice_in()) {
                     string input = speech->rec();
-                    if (speech->is_rec_interrupted()) voice_in = false;
-                    speech->cleanprocs();
-                    if (!input.empty()) commander.get_command_line_ref().show(input + (input.back() == '\n' ? "" : "\n")); // TODO !@#
+                    if (speech->is_rec_interrupted()) speech->set_voice_in(false);
+                    //speech->cleanprocs();
+                    if (!input.empty()) show_voice_input(input);
                     return input;
                 }
             }
 
             return commander.get_command_line_ref().readln();
         }
-        
 
         void start() {
             string input = "";
@@ -262,16 +273,17 @@ namespace prompt {
                 }
 
                 if (speech) {
+                    
                     //model.system_data["{{speech_current_noise_treshold}}"] = to_string(speech->noise_treshold);
 
                     if (speech->is_say_interrupted()) {
                         cout << "AI TTS was interrupted" << endl;
                         // input = speech_interrupt_info_token + "\n" + input;  
-                        // TODO: 
-                        model.addContext(speech_interrupt_info_token, ROLE_INPUT);                 
+                        // TODO:
+                        model.addContext(speech_interrupt_info_token, ROLE_INPUT); 
                     }
-
-                    speech->stall();
+                    speech->stall();    
+                    add_puffered_voice_input_to_context();
                 }
                 switch (mode)
                 {
@@ -369,9 +381,13 @@ namespace prompt {
     class VoiceCommand: public Command {
     private:
     
-        void show_user_voice_stat(User* user) {
-            cout << "Voice input:\t[" << (user->is_voice_in() ? "On" : "Off") << "]" << endl;
-            cout << "Voice output:\t[" << (user->is_voice_out() ? "On" : "Off") << "]" << endl;
+        void show_user_voice_stat(Speech* speech) {
+            if (!speech) {
+                cout << "No speach loaded." << endl;
+                return;
+            }
+            cout << "Voice input:\t[" << (speech->is_voice_in() ? "On" : "Off") << "]" << endl;
+            cout << "Voice output:\t[" << (speech->is_voice_out() ? "On" : "Off") << "]" << endl;
         }
 
     public:
@@ -398,17 +414,17 @@ namespace prompt {
             }
         
             if (args[1] == "input") {
-                if (args[2] == "on") user->set_voice_in(true);
-                else if (args[2] == "off") user->set_voice_in(false);
+                if (args[2] == "on") speech->set_voice_in(true);
+                else if (args[2] == "off") speech->set_voice_in(false);
                 else cout << "Invalid argument: " << args[2] << endl;
-                show_user_voice_stat(user);
+                show_user_voice_stat(speech);
                 return "";
             }
             else if (args[1] == "output") {
-                if (args[2] == "on") user->set_voice_out(true);
-                else if (args[2] == "off") user->set_voice_out(false);
+                if (args[2] == "on") speech->set_voice_out(true);
+                else if (args[2] == "off") speech->set_voice_out(false);
                 else cout << "Invalid argument: " << args[2] << endl;
-                show_user_voice_stat(user);
+                show_user_voice_stat(speech);
                 return "";
             } 
 
@@ -822,6 +838,8 @@ int main(int argc, char *argv[]) {
     const bool user_auto_save = config.get<bool>("user.auto_save");
 
     int speech_speed = config.get<int>("speech.speed");
+    bool speech_voice_in = config.get<bool>("speech.voice_in");
+    bool speech_voice_out = config.get<bool>("speech.voice_out");
     double speech_noise_treshold = config.get<double>("speech.noise_treshold");
     double speech_noise_treshold_min = config.get<double>("speech.noise_treshold_min");
     double speech_noise_treshold_max = config.get<double>("speech.noise_treshold_max");
@@ -895,6 +913,8 @@ int main(int argc, char *argv[]) {
             secrets_hugging_face,
             user_lang,
             speech_speed,
+            speech_voice_in,
+            speech_voice_out,
             speech_noise_treshold,
             speech_noise_treshold_min,
             speech_noise_treshold_max

@@ -9,7 +9,9 @@
         "auto_save": true
     },
     "speech": {
-        "speed": 220,
+        "speed": 200,
+        "voice_in": true,
+        "voice_out": true,
         "noise_treshold": 0.05,
         "noise_treshold_min": 0.01,
         "noise_treshold_max": 0.5,

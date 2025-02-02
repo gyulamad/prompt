@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
+#include <future>
 
 #include "io.hpp"
 #include "strings.hpp"
@@ -72,6 +73,30 @@ namespace tools {
     private:
         // ---------------------------------
         // common
+        class STT_Result {
+            mutex data_mutex;
+            string data = "";
+
+        public:
+            void append(const string& new_data) {
+                lock_guard<mutex> lock(data_mutex);
+                data += (data.empty() ? "" : "\n") + new_data;
+            }
+
+            string fetch() {
+                lock_guard<mutex> lock(data_mutex);
+                string result = move(data);
+                data.clear();
+                return result;
+            }
+
+            bool empty() {
+                lock_guard<mutex> lock(data_mutex);
+                return data.empty();
+            }
+
+        } rec_stt_result;
+
 
         const string beep_cmd = "sox -v 0.1 beep.wav -t wav - | aplay -q -N";
         const string secret;
@@ -126,6 +151,8 @@ namespace tools {
 
         // ---------------------------------
         // STT
+        bool voice_in = true;
+
         thread rec_thread;
         atomic<bool> recording = true;
         atomic<bool> rec_idle = false;
@@ -156,8 +183,17 @@ namespace tools {
             remove("rec_stt.wav", false);
         }
 
+        void cleanprocs() {
+            Process pkiller;
+            pkiller.writeln("pkill -9 aspeak");
+            pkiller.writeln("pkill -9 arecord");
+            pkiller.writeln("pkill -9 sox");
+            pkiller.kill();
+        }
+
         // ---------------------------------
         // TTS
+        bool voice_out = true;
 
         bool say_interrupted = false;
         bool stalling = true;
@@ -171,6 +207,8 @@ namespace tools {
             const string& secret, 
             const string& lang, // = "en",
             int speed, // = 175,
+            bool voice_in,
+            bool voice_out,
             double noise_treshold,
             double noise_treshold_min,
             double noise_treshold_max
@@ -178,10 +216,13 @@ namespace tools {
             secret(secret),
             lang(lang),
             speed(speed),
+            voice_in(voice_in),
+            voice_out(voice_out),
             noise_treshold(noise_treshold),
             noise_treshold_min(noise_treshold_min),
             noise_treshold_max(noise_treshold_max) 
         {
+            cleanprocs();
             cleanfiles();
             recording = true;
             rec_idle = false;
@@ -196,11 +237,8 @@ namespace tools {
             if (rec_thread.joinable()) rec_thread.join();
             amp_stop = true;
             if (amp_thread.joinable()) amp_thread.join();
+            cleanprocs();
             cleanfiles();
-        }        
-
-        void cleanprocs() {
-            // TODO
         }
 
         // ---------------- Mic Amplitudo Updater --------------------
@@ -253,6 +291,14 @@ namespace tools {
 
         // ---------------- STT --------------------
 
+        void set_voice_in(bool voice_in) {
+            this->voice_in = voice_in;
+        }
+
+        bool is_voice_in() const {
+            return voice_in;
+        }
+
         void set_noise_treshold(double noise_treshold) {
             this->noise_treshold = noise_treshold;
         }
@@ -292,7 +338,6 @@ namespace tools {
             // double speech_min_amp = 0.05;
 
             //cout << "recording rec_accu.wav" << endl; 
-            string noise_treshold_pc = to_string(noise_treshold*100);
             string output;
             long long rec_timeouts_at;
 
@@ -301,7 +346,15 @@ namespace tools {
 
                 //cout << "REC_next starts" << endl;
                 output = "";
-                recproc.writeln("sox -d -r 16000 -c 1 -t wav rec_next.wav silence 1 0.1 " + noise_treshold_pc + "% 1 0.9 " + noise_treshold_pc + "%");
+                string noise_treshold_pc_start = to_string((int)(noise_treshold*150));
+                string noise_treshold_pc_stop = to_string((int)(noise_treshold*100));
+                string cmd = 
+                    "sox -d -r 16000 -c 1 -t wav rec_next.wav "
+                    "silence "
+                        "1 0.1 " + noise_treshold_pc_start + "% "
+                        "1 0.9 " + noise_treshold_pc_stop + "%";
+                //cout << cmd << endl;
+                recproc.writeln(cmd);
                 rec_timeouts_at = get_time_ms() + rec_timeout_ms;
 
                 while (recording) {
@@ -343,7 +396,7 @@ namespace tools {
                         double ampl = parse<double>(ampls);
                         //cout << "-----------MAX AMP: [" << to_string(ampl) << "]" << endl;
                         if (ampl < noise_treshold) {
-                            //cout << "*************WTF????? ..too quite... (maybe artifacts trig?gers ?? )" << endl;
+                            // cout << "*************WTF????? ..too quite... (maybe artifacts trig?gers ?? )" << endl;
                             break;
                         }
 
@@ -356,10 +409,27 @@ namespace tools {
                             reclog.info(Process::execute("sox rec_accu.wav rec_next.wav rec_tmp.wav"));
                             rename("rec_tmp.wav", "rec_accu.wav");
                         }
-                        // // send to STT if it's free..
-                        // if (!file_exists("rec_stt.wav")) {
-                        //     rename("rec_accu.wav", "rec_stt.wav");
-                        //     cout << "********NEW RECORD DONE (rec_stt.wav) => we can go for STT!!!!!!!!" << endl;                                    
+
+                        if (file_exists("rec_stt.wav")) break;
+
+                        // send to STT if it's free..
+                        // cout << "********NEW RECORD DONE (rec_stt.wav) => we can go for STT!!!!!!!!" << endl; 
+                        proc.writeln(beep_cmd + " &");
+                        rotary_clear();
+                        thread([&]{    
+                            long long timeout_ms = 10000;
+                            long long timeout_at = get_time_ms() + timeout_ms;
+                            while(file_exists("rec_stt.wav")) {
+                                if (timeout_at < get_time_ms()) break;
+                                usleep(300);
+                            }
+                            rename("rec_accu.wav", "rec_stt.wav", true);
+                            string inp = trim(stt("rec_stt.wav"));
+                            if (!inp.empty()) rec_stt_result.append(inp);
+                            remove("rec_stt.wav", true);
+                        }).detach();
+                        //cout << "---------STT request sent to async" << endl;                      
+                        
                         // }
                         
                         break;
@@ -369,6 +439,10 @@ namespace tools {
             } // [/while]
 
             recproc.kill();
+        }
+
+        string fetch_rec_stt_result() {
+            return rec_stt_result.fetch();
         }
         
         // transcribe, override if you need to
@@ -386,6 +460,7 @@ namespace tools {
                             -X POST \
                             --data-binary '@" + speechfile + "' \
                             -H 'Authorization: Bearer " + secret + "' -s";
+                    // cout << cmd << endl;
                     proc.writeln(cmd);
 
                     string output;
@@ -421,40 +496,69 @@ namespace tools {
         string rec() {
             if (!rotary) rotary = &rotary_listen;
             rec_interrupted = false;
-            rec_idle = false;
-            while (file_exists("rec_stt.wav")) {
+            string inp = "";
+            while (true) { 
                 if (kbhit()) {
                     rec_interrupted = true;
                     rotary_clear();
                     while (kbhit()) getchar();
-                    cleanfiles();
+                    //cleanfiles();
                     return "";
-                }
-                usleep(100);
-            }
-            while (!file_exists("rec_accu.wav")) {
-                if (kbhit()) {
-                    rec_interrupted = true;
+                }               
+                string inp = rec_stt_result.fetch();
+                if (!inp.empty()) {
                     rotary_clear();
-                    while (kbhit()) getchar();
-                    cleanfiles();
-                    return "";
+                    //cleanfiles();
+                    return inp;
                 }
-                usleep(100);
+                usleep(300);
             }
-            proc.writeln(beep_cmd + " &");
-            // send to STT if it's free..
-            rename("rec_accu.wav", "rec_stt.wav", true);
-            rotary_clear();
-            // cout << "********NEW RECORD DONE (rec_stt.wav) => we can go for STT!!!!!!!!" << endl;                                    
-            string text = stt("rec_stt.wav");
-            remove("rec_stt.wav", true);
-            rec_idle = true;
-            return text; // TODO
+
+            // if (!rotary) rotary = &rotary_listen;
+            // rec_interrupted = false;
+            // rec_idle = false;
+            // while (file_exists("rec_stt.wav")) {
+            //     if (kbhit()) {
+            //         rec_interrupted = true;
+            //         rotary_clear();
+            //         while (kbhit()) getchar();
+            //         cleanfiles();
+            //         return "";
+            //     }
+            //     usleep(100);
+            // }
+            // while (!file_exists("rec_accu.wav")) {
+            //     if (kbhit()) {
+            //         rec_interrupted = true;
+            //         rotary_clear();
+            //         while (kbhit()) getchar();
+            //         cleanfiles();
+            //         return "";
+            //     }
+            //     usleep(100);
+            // }
+            // proc.writeln(beep_cmd + " &");
+            // // send to STT if it's free..
+            // rename("rec_accu.wav", "rec_stt.wav", true);
+            // rotary_clear();
+            // // cout << "********NEW RECORD DONE (rec_stt.wav) => we can go for STT!!!!!!!!" << endl;                                    
+            // string text = stt("rec_stt.wav");
+            // remove("rec_stt.wav", true);
+            // rec_idle = true;
+            // return text; // TODO
         }
 
 
         // ---------------- TTS --------------------
+
+
+        void set_voice_out(bool voice_in) {
+            this->voice_out = voice_out;
+        }
+
+        bool is_voice_out() const {
+            return voice_out;   
+        }
 
 
         bool is_say_interrupted() const {
@@ -498,7 +602,7 @@ namespace tools {
         }
 
         void say_beep(const string& text, bool async = false, int gap = 10, int speed_override = 0) {
-            rotary = &rotary_speech;
+            //rotary = &rotary_speech;
             say(text, async, gap, speed_override, true);
         }
 
