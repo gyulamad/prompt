@@ -280,10 +280,22 @@ namespace prompt {
                         cout << "AI TTS was interrupted" << endl;
                         // input = speech_interrupt_info_token + "\n" + input;  
                         // TODO:
-                        model.addContext(speech_interrupt_info_token, ROLE_INPUT); 
-                    }
-                    speech->stall();    
-                    add_puffered_voice_input_to_context();
+                        vector<Message> messages;
+                        while (true) {                           
+                            if (!model.hasContext()) break;
+                            Message message = model.popContext();
+                            messages.push_back(message);
+                            if (message.get_role() != ROLE_OUTPUT) continue;
+                            message.set_text(message.get_text() + "..." + speech_interrupt_info_token);
+                            //model.addContext(message);
+                            //messages = array_reverse(messages);
+                            for (const Message& message: messages)
+                                model.addContext(message.get_text(), message.get_role());
+                        }
+                        // model.addContext(speech_interrupt_info_token, ROLE_INPUT); 
+
+                        if (!add_puffered_voice_input_to_context()) speech->stall(); 
+                    }   
                 }
                 switch (mode)
                 {

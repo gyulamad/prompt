@@ -60,8 +60,16 @@ namespace tools::llm {
             return text;
         }
 
+        void set_text(const string& text) {
+            this->text = text;
+        }
+
         role_t get_role() const {
             return role;
+        }
+
+        void set_role(const role_t& role) {
+            this->role = role;
         }
 
         size_t length() const {
@@ -101,6 +109,16 @@ namespace tools::llm {
         
         void add(const string& text, role_t role = ROLE_NONE) {
             messages.push_back({ text, role });
+        }
+
+        bool empty() const {
+            return messages.empty();
+        }
+
+        Message pop() {
+            Message last = messages.back();
+            messages.pop_back();
+            return last;
         }
 
         void clear() {
@@ -295,8 +313,16 @@ namespace tools::llm {
             }
         }
 
+        bool hasContext() const {
+            return conversation.empty();
+        }
+
         void addContext(const string& info, role_t role = ROLE_NONE) {
             conversation.add(info, role);
+        }
+
+        Message popContext() {
+            return conversation.pop();
         }
 
         

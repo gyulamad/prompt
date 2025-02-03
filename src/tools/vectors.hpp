@@ -95,10 +95,10 @@ namespace tools {
     }
 
     template <typename T, typename = void>
-    struct has_key_type : std::false_type {};
+    struct has_key_type : false_type {};
 
     template <typename T>
-    struct has_key_type<T, std::void_t<typename T::key_type>> : std::true_type {};
+    struct has_key_type<T, void_t<typename T::key_type>> : true_type {};
 
     template <typename Container, typename = void>
     struct KeyTypeTrait {
@@ -106,14 +106,14 @@ namespace tools {
     };
 
     template <typename Container>
-    struct KeyTypeTrait<Container, std::void_t<typename Container::key_type>> {
+    struct KeyTypeTrait<Container, void_t<typename Container::key_type>> {
         using type = typename Container::key_type;
     };
 
     template <typename Container>
     auto array_keys(const Container& container) {
         using KeyType = typename KeyTypeTrait<Container>::type;
-        std::vector<KeyType> keys;
+        vector<KeyType> keys;
 
         if constexpr (has_key_type<Container>::value) {
             for (const auto& element : container) {
@@ -129,10 +129,10 @@ namespace tools {
     }
 
     template <typename T>
-    struct is_pair : std::false_type {};
+    struct is_pair : false_type {};
 
     template <typename T1, typename T2>
-    struct is_pair<std::pair<T1, T2>> : std::true_type {};
+    struct is_pair<pair<T1, T2>> : true_type {};
 
     template <typename Needle, typename Container>
     bool in_array(const Needle& needle, const Container& container) {
@@ -155,6 +155,54 @@ namespace tools {
         }
 
         return false;
+    }
+
+    template<typename T>
+    vector<T> array_reverse(vector<T> array) {
+        // Handle empty vector case
+        if (array.empty()) {
+            return array;
+        }
+        
+        try {
+            vector<T> reversed;
+            reversed.reserve(array.size());  // Pre-allocate memory for efficiency
+            
+            // Insert elements in reverse order
+            for (auto it = array.rbegin(); it != array.rend(); ++it) {
+                reversed.push_back(*it);
+            }
+            
+            return reversed;
+        }
+        catch (const bad_alloc& e) {
+            throw ERROR("Memory allocation failed during vector reversal");
+        }
+        catch (...) {
+            throw ERROR("Unknown error occurred during vector reversal");
+        }
+    }
+
+    // Alternative in-place version that modifies the original vector
+    template<typename T>
+    void array_reverse_inplace(vector<T>& array) {
+        if (array.empty()) {
+            return;
+        }
+        
+        try {
+            size_t start = 0;
+            size_t end = array.size() - 1;
+            
+            while (start < end) {
+                swap(array[start], array[end]);
+                start++;
+                end--;
+            }
+        }
+        catch (...) {
+            throw ERROR("Error occurred during in-place vector reversal");
+        }
     }
 
 };

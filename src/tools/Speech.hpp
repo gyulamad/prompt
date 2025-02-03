@@ -494,10 +494,10 @@ namespace tools {
         }
 
         string rec() {
-            if (!rotary) rotary = &rotary_listen;
             rec_interrupted = false;
             string inp = "";
             while (true) { 
+                if (!rotary) rotary = &rotary_listen;
                 if (kbhit()) {
                     rec_interrupted = true;
                     rotary_clear();
