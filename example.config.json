@@ -12,13 +12,14 @@
         "speed": 200,
         "voice_in": true,
         "voice_out": true,
-        "noise_treshold": 0.05,
-        "noise_treshold_min": 0.01,
-        "noise_treshold_max": 0.5,
+        "noise_threshold": 0.05,
+        "noise_threshold_min": 0.01,
+        "noise_threshold_max": 0.5,
+        "noise_threshold_while_speech": 0.2,
         "stall": true,
         "hesitors": [],
         "interrupt_info_token": "\nSYSTEM-MESSAGE: TEXT-TO-SPEECH WAS INTERRUPTED\n",
-        "amplitude_treshold_setter_token": "SET-SPEECH-AMPLITUDE-TRESHOLD-TO"
+        "amplitude_threshold_setter_token": "SET-SPEECH-AMPLITUDE-THRESHOLD-TO"
     },
     "model": {
         "memory_max": 1000000,

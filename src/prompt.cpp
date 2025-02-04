@@ -104,7 +104,7 @@ namespace prompt {
         string basedir;
         Speech* speech = nullptr;
         string speech_interrupt_info_token;
-        string speech_amplitude_treshold_setter_token;
+        string speech_amplitude_threshold_setter_token;
 
     public:
 
@@ -116,7 +116,7 @@ namespace prompt {
             const string& basedir, // = "./prompt/",
             Speech* speech, // = nullptr,
             const string& speech_interrupt_info_token, // = "TTS interrupted",
-            const string& speech_amplitude_treshold_setter_token // = "SETRECAMP"
+            const string& speech_amplitude_threshold_setter_token // = "SETRECAMP"
         ): 
             model(model),
             model_name(model_name),
@@ -125,7 +125,7 @@ namespace prompt {
             basedir(basedir),       
             speech(speech),
             speech_interrupt_info_token(speech_interrupt_info_token),
-            speech_amplitude_treshold_setter_token(speech_amplitude_treshold_setter_token)
+            speech_amplitude_threshold_setter_token(speech_amplitude_threshold_setter_token)
         {
             if (!model_name.empty()) load_model(true);
         }
@@ -274,7 +274,7 @@ namespace prompt {
 
                 if (speech) {
                     
-                    //model.system_data["{{speech_current_noise_treshold}}"] = to_string(speech->noise_treshold);
+                    //model.system_data["{{speech_current_noise_threshold}}"] = to_string(speech->noise_threshold);
 
                     if (speech->is_say_interrupted()) {
                         cout << "AI TTS was interrupted" << endl;
@@ -316,39 +316,39 @@ namespace prompt {
                 }
                 
                 vector<string> matches;
-                if (regx_match("\\[" + speech_amplitude_treshold_setter_token + ":([\\d\\.]+)\\]", response, &matches)) {
+                if (regx_match("\\[" + speech_amplitude_threshold_setter_token + ":([\\d\\.]+)\\]", response, &matches)) {
                     response = str_replace(matches[0], "", response);
 
                     if (speech) {
                         bool error_found = false;
                         if (!is_numeric(matches[1])) {
                             model.addContext(
-                                "The amplitude treshold should be a numeric value.", 
+                                "The amplitude threshold should be a numeric value.", 
                                 ROLE_INPUT
                             );
                             error_found = true;
                         }
-                        double noise_treshold = parse<double>(matches[1]);
-                        if (noise_treshold < speech->get_noise_treshold_min() || noise_treshold > speech->get_noise_treshold_max()) {
+                        double noise_threshold = parse<double>(matches[1]);
+                        if (noise_threshold < speech->get_noise_threshold_min() || noise_threshold > speech->get_noise_threshold_max()) {
                             model.addContext(
-                                "The amplitude treshold should be in between " 
-                                    + to_string(speech->get_noise_treshold_min()) + " and " 
-                                    + to_string(speech->get_noise_treshold_max()), 
+                                "The amplitude threshold should be in between " 
+                                    + to_string(speech->get_noise_threshold_min()) + " and " 
+                                    + to_string(speech->get_noise_threshold_max()), 
                                 ROLE_INPUT
                             );
                             error_found = true;
                         }
                         if (error_found) {
                             model.addContext(
-                                "The amplitude treshold value remains unchanged: " 
-                                    + to_string(speech->get_noise_treshold()), 
+                                "The amplitude threshold value remains unchanged: " 
+                                    + to_string(speech->get_noise_threshold()), 
                                 ROLE_INPUT
                             );
                             continue;
                         }
-                        speech->set_noise_treshold(noise_treshold);
-                        string msg = "The noise amplitude treshold value is set to " 
-                            + to_string(speech->get_noise_treshold());
+                        speech->set_noise_threshold(noise_threshold);
+                        string msg = "The noise amplitude threshold value is set to " 
+                            + to_string(speech->get_noise_threshold());
                         cout << msg << endl;
                         model.addContext(msg, ROLE_INPUT);
                     }
@@ -852,13 +852,14 @@ int main(int argc, char *argv[]) {
     int speech_speed = config.get<int>("speech.speed");
     bool speech_voice_in = config.get<bool>("speech.voice_in");
     bool speech_voice_out = config.get<bool>("speech.voice_out");
-    double speech_noise_treshold = config.get<double>("speech.noise_treshold");
-    double speech_noise_treshold_min = config.get<double>("speech.noise_treshold_min");
-    double speech_noise_treshold_max = config.get<double>("speech.noise_treshold_max");
+    double speech_noise_threshold = config.get<double>("speech.noise_threshold");
+    double speech_noise_threshold_min = config.get<double>("speech.noise_threshold_min");
+    double speech_noise_threshold_max = config.get<double>("speech.noise_threshold_max");
+    double speech_noise_threshold_while_speech = config.get<double>("speech.noise_threshold_while_speech");
     bool speech_stall = config.get<bool>("speech.stall");
     vector<string> speech_hesitors = config.get<vector<string>>("speech.hesitors");
     string speech_interrupt_info_token = config.get<string>("speech.interrupt_info_token");
-    string speech_amplitude_treshold_setter_token = config.get<string>("speech.amplitude_treshold_setter_token");
+    string speech_amplitude_threshold_setter_token = config.get<string>("speech.amplitude_threshold_setter_token");
     
     size_t model_conversation_length_max = config.get<size_t>("model.memory_max");
     double model_conversation_loss_ratio = config.get<double>("model.memory_loss_ratio");
@@ -866,25 +867,25 @@ int main(int argc, char *argv[]) {
     int model_think_deep = config.get<int>("model.think_deep");
 
     string model_system_voice = voice ? tpl_replace({
-        { "{{speech_interrupt_info_token}}", speech_interrupt_info_token },
-        // { "{{speech_current_noise_treshold}}", "{{speech_current_noise_treshold}}"},
-        { "{{speech_amplitude_treshold_setter_token}}", speech_amplitude_treshold_setter_token },
-        // { "{{speech_noise_treshold_min}}", to_string(speech_noise_treshold_min) },
-        // { "{{speech_noise_treshold_max}}", to_string(speech_noise_treshold_max) },
+        // { "{{speech_interrupt_info_token}}", speech_interrupt_info_token },
+        // { "{{speech_current_noise_threshold}}", "{{speech_current_noise_threshold}}"},
+        { "{{speech_amplitude_threshold_setter_token}}", speech_amplitude_threshold_setter_token },
+        // { "{{speech_noise_threshold_min}}", to_string(speech_noise_threshold_min) },
+        // { "{{speech_noise_threshold_max}}", to_string(speech_noise_threshold_max) },
     },  "The user is using a text-to-speech software for communication. "
         "You are taking into account that the user's responses are being read at loud by a text-to-speech program "
-        "that can be interrupted by background noise or user interruption, "
-        "then the following will appear in the context window by the system to inform you with a message: "
-        "`{{speech_interrupt_info_token}}` and this message should be for you internal use only, user won't see it."
+        "that can be interrupted by background noise or by the user itself."
+        // "then the following will appear in the context window by the system to inform you with a message: "
+        // "`{{speech_interrupt_info_token}}` and this message should be for you internal use only, user won't see it."
         "Repeated interruption changes how you act, "
         "your responses are becaming more consise and short when you interupted more often recently "
         "but you can put more context otherwise if it's necessary, tune your response style accordingly. "
-        //"The current input noise amplitude treshold is {{speech_current_noise_treshold}} "
+        //"The current input noise amplitude threshold is {{speech_current_noise_threshold}} "
         "to reduce noise and detect when the user speaks. "
         "You are able to change this accordigly when the interruption coming from background noise "
-        "by placing the [{{speech_amplitude_treshold_setter_token}}:{number}] token into your response. "
-        "When you do this the user's system will recognise your request and changes the treshold for better communication. "
-        // "The amplitude treshold should be a number between {{speech_noise_treshold_min}} and {{speech_noise_treshold_max}}, more perceptive noise indicates higher treshold.\n"
+        "by placing the [{{speech_amplitude_threshold_setter_token}}:{number}] token into your response. "
+        "When you do this the user's system will recognise your request and changes the threshold for better communication. "
+        // "The amplitude threshold should be a number between {{speech_noise_threshold_min}} and {{speech_noise_threshold_max}}, more perceptive noise indicates higher threshold.\n"
         "The goal is to let the user to be able to interrupt the TTS reader with his/her voice "
         "but filter out the background as much as possible."
     ) : "";
@@ -894,7 +895,7 @@ int main(int argc, char *argv[]) {
     const string model_system = tpl_replace({ // TODO: goes to the config:
             { "{{model_system_voice}}", model_system_voice },
             { "{{model_system_lang}}", model_system_lang },
-        },  "Your persona is a mid age man AI called `Mikrobi` and you behave like a simple human. "
+        },  "Your persona is a mid age man like AI and you behave like a simple human. "
             "You have a sense of humor, your personality is entertaining. "
             "Your answers are succinct and focusing on the core of your conversation "
             "but in a way like a normal human chat would looks like. "
@@ -927,9 +928,10 @@ int main(int argc, char *argv[]) {
             speech_speed,
             speech_voice_in,
             speech_voice_out,
-            speech_noise_treshold,
-            speech_noise_treshold_min,
-            speech_noise_treshold_max
+            speech_noise_threshold,
+            speech_noise_threshold_min,
+            speech_noise_threshold_max,
+            speech_noise_threshold_while_speech
         );
 
         if (speech_stall) {
@@ -962,7 +964,7 @@ int main(int argc, char *argv[]) {
         basedir,
         speech,
         speech_interrupt_info_token,
-        speech_amplitude_treshold_setter_token
+        speech_amplitude_threshold_setter_token
     );
 
     // TODO:

@@ -120,7 +120,7 @@ namespace tools {
         }
 
         string ampstat() {
-            return to_string(noise_treshold * 100) + "% / " + to_string(mic_amp * 100) + "% ";
+            return to_string(get_noise_threshold() * 100) + "% / " + to_string(mic_amp * 100) + "% ";
         }
 
         long long reclastms = 0;
@@ -130,14 +130,14 @@ namespace tools {
             if (rotary == &rotary_speech && !is_process_running("espeak")) {
                 rotary = &rotary_listen;
             } else if (rotary == &rotary_listen) {
-                if (mic_amp > noise_treshold) {
+                if (mic_amp > get_noise_threshold()) {
                     rotary = &rotary_record;
                 } else if (is_process_running("espeak")) {
                     // rotary_clear();
                     rotary = &rotary_speech;
                 }
             } else if (rotary == &rotary_record) {
-                if (mic_amp < noise_treshold) {
+                if (mic_amp < get_noise_threshold()) {
                     rotary = &rotary_listen;
                 }
             }
@@ -151,7 +151,7 @@ namespace tools {
 
         // ---------------------------------
         // STT
-        bool voice_in = true;
+        atomic<bool> voice_in = true;
 
         thread rec_thread;
         atomic<bool> recording = true;
@@ -172,9 +172,10 @@ namespace tools {
         // const string speechf = base_path + "testrec.wav";
         // const string tempf = base_path + "sox-temp.wav";//"/tmp/temp-record-copy.wav";
         // const int kHz = 16000;
-        double noise_treshold;
-        double noise_treshold_min;
-        double noise_treshold_max;
+        double noise_threshold;
+        double noise_threshold_min;
+        double noise_threshold_max;
+        double noise_threshold_while_speech;
 
         void cleanfiles() {
             remove("rec_accu.wav", false);
@@ -209,18 +210,20 @@ namespace tools {
             int speed, // = 175,
             bool voice_in,
             bool voice_out,
-            double noise_treshold,
-            double noise_treshold_min,
-            double noise_treshold_max
+            double noise_threshold,
+            double noise_threshold_min,
+            double noise_threshold_max,
+            double noise_threshold_while_speech
         ): 
             secret(secret),
             lang(lang),
             speed(speed),
             voice_in(voice_in),
             voice_out(voice_out),
-            noise_treshold(noise_treshold),
-            noise_treshold_min(noise_treshold_min),
-            noise_treshold_max(noise_treshold_max) 
+            noise_threshold(noise_threshold),
+            noise_threshold_min(noise_threshold_min),
+            noise_threshold_max(noise_threshold_max),
+            noise_threshold_while_speech(noise_threshold_while_speech)
         {
             cleanprocs();
             cleanfiles();
@@ -248,8 +251,9 @@ namespace tools {
             Process ampproc;
             while(!amp_stop) {
                 usleep(300);
+                if (!voice_in) continue;
                 ampproc.writeln(
-                    "arecord -d 1 -f cd -t wav 2>/dev/null "
+                    "arecord -d 1 -f cd -t wav 2>> error.log "
                     "| sox -t wav - -n stat 2>&1 "
                     "| grep \"Maximum amplitude\" "
                     "| awk '{print $3}'"
@@ -273,11 +277,11 @@ namespace tools {
                 if (!is_numeric(last)) continue;
                 double mic_amp_prev = mic_amp;
                 mic_amp = parse<double>(last);
-                //cout << "AMP-MIC:" << to_string(mic_amp) << "/" << noise_treshold << endl;
+                //cout << "AMP-MIC:" << to_string(mic_amp) << "/" << get_noise_threshold() << endl;
                 // mic_amp = parse<double>(amps);
                 if (!rec_idle) { // rec() called (listen/rec)
-                    if (mic_amp > noise_treshold) {                    
-                        // if (mic_amp_prev <= noise_treshold) {
+                    if (mic_amp > get_noise_threshold()) {                    
+                        // if (mic_amp_prev <= get_noise_threshold()) {
                         //     //cout << "******?>>>USER START TALKING???" << endl;
                         //     rotary = &rotary_record;
                         // }
@@ -299,28 +303,32 @@ namespace tools {
             return voice_in;
         }
 
-        void set_noise_treshold(double noise_treshold) {
-            this->noise_treshold = noise_treshold;
+        void set_noise_threshold(double noise_threshold, double noise_threshold_while_speech = NAN) {
+            this->noise_threshold = noise_threshold;
+            if (!isnan(noise_threshold_while_speech))
+                this->noise_threshold_while_speech = noise_threshold_while_speech;
+            if (this->noise_threshold_while_speech < this->noise_threshold)
+                this->noise_threshold_while_speech = this->noise_threshold;
+        }
+ 
+        double get_noise_threshold() const {
+            return is_process_running("espeak") ? noise_threshold_while_speech : noise_threshold;
         }
 
-        double get_noise_treshold() const {
-            return noise_treshold;
+        void set_noise_threshold_min(double noise_threshold_min) {
+            this->noise_threshold_min = noise_threshold_min;
         }
 
-        void set_noise_treshold_min(double noise_treshold_min) {
-            this->noise_treshold_min = noise_treshold_min;
+        double get_noise_threshold_min() const {
+            return noise_threshold_min;
         }
 
-        double get_noise_treshold_min() const {
-            return noise_treshold_min;
+        void set_noise_threshold_max(double noise_threshold_max) {
+            this->noise_threshold_max = noise_threshold_max;
         }
 
-        void set_noise_treshold_max(double noise_treshold_max) {
-            this->noise_treshold_max = noise_treshold_max;
-        }
-
-        double get_noise_treshold_max() const {
-            return noise_treshold_max;
+        double get_noise_threshold_max() const {
+            return noise_threshold_max;
         }
 
         bool is_rec_interrupted() const {
@@ -346,13 +354,14 @@ namespace tools {
 
                 //cout << "REC_next starts" << endl;
                 output = "";
-                string noise_treshold_pc_start = to_string((int)(noise_treshold*150));
-                string noise_treshold_pc_stop = to_string((int)(noise_treshold*100));
+                double noise_threshold_now = get_noise_threshold();
+                string noise_threshold_pc_start = to_string((int)(noise_threshold_now*150));
+                string noise_threshold_pc_stop = to_string((int)(noise_threshold_now*100));
                 string cmd = 
                     "sox -d -r 16000 -c 1 -t wav rec_next.wav "
                     "silence "
-                        "1 0.1 " + noise_treshold_pc_start + "% "
-                        "1 0.9 " + noise_treshold_pc_stop + "%";
+                        "1 0.1 " + noise_threshold_pc_start + "% "
+                        "1 0.9 " + noise_threshold_pc_stop + "%";
                 //cout << cmd << endl;
                 recproc.writeln(cmd);
                 rec_timeouts_at = get_time_ms() + rec_timeout_ms;
@@ -395,7 +404,7 @@ namespace tools {
                         }
                         double ampl = parse<double>(ampls);
                         //cout << "-----------MAX AMP: [" << to_string(ampl) << "]" << endl;
-                        if (ampl < noise_treshold) {
+                        if (ampl < get_noise_threshold()) {
                             // cout << "*************WTF????? ..too quite... (maybe artifacts trig?gers ?? )" << endl;
                             break;
                         }
@@ -447,6 +456,18 @@ namespace tools {
         
         // transcribe, override if you need to
         virtual string stt(const string& speechfile) {
+            Process proc("bash", false);
+            //string cmd = "spchcat --language=" + lang + " " + speechfile + " 2>/dev/null > rec_stt.txt && cat rec_stt.txt";
+            // string cmd = "spchcat --language=" + lang + " " + speechfile + " 2>> error.log > rec_stt.txt && cat rec_stt.txt";
+            string cmd = "spchcat --language=" + lang + " " + speechfile + " 2>>error.log > rec_stt.txt && ( [ $? -eq 0 ] && cat rec_stt.txt || echo \"\" )";
+            proc.writeln(cmd);
+            string output;
+            while((output = proc.read()).empty());// if (kbhit()) return misschars(); // waiting for transcriptions
+            proc.kill();
+            return output;
+        }
+
+        virtual string _stt(const string& speechfile) {
             while (kbhit()) getchar(); // TODO ??
             int retry = 3;
             string cmd = "";
@@ -820,7 +841,7 @@ namespace tools {
     //         // add more languages if you need
     //     };
     //     int speed;
-    //     double noise_treshold;
+    //     double noise_threshold;
     //     bool stalling = true;
     //     vector<string> hesitors = {
     //         // "Hmm, talán.",
@@ -939,12 +960,12 @@ namespace tools {
     //         const string& secret, 
     //         const string& lang, // = "en",
     //         int speed, // = 175,
-    //         double noise_treshold // = 0.2
+    //         double noise_threshold // = 0.2
     //     ): 
     //         secret(secret),
     //         lang(lang),
     //         speed(speed),
-    //         noise_treshold(noise_treshold)
+    //         noise_threshold(noise_threshold)
     //     {
     //         create_voice_check_sh();
     //         cleanprocs();
@@ -1103,7 +1124,7 @@ namespace tools {
     //                         if (ampl < a) ampl = a;
     //                     }
     //                     //cout << "?: " << check << endl;
-    //                     if (ampl > noise_treshold && ampl < 0.99) {
+    //                     if (ampl > noise_threshold && ampl < 0.99) {
     //                         shtup();
     //                         // if (rotary == &rotary_record) { // TODO: hack: do not use status output to track record state!!!
     //                         //     break;
@@ -1194,7 +1215,7 @@ namespace tools {
                 
     //         if (!is_numeric(output)) return true;
     //         double ampl = parse<double>(output);
-    //         return ampl < noise_treshold;
+    //         return ampl < noise_threshold;
     //         // string output = "";
     //         // while ((output = trim(proc.read())).empty());
     //         // return str_starts_with(output, "0.0"); // TODO: convert to double
