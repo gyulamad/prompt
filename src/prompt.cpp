@@ -856,8 +856,12 @@ int main(int argc, char *argv[]) {
     double speech_noise_threshold_min = config.get<double>("speech.noise_threshold_min");
     double speech_noise_threshold_max = config.get<double>("speech.noise_threshold_max");
     double speech_noise_threshold_while_speech = config.get<double>("speech.noise_threshold_while_speech");
+    string speech_stt = config.get<string>("speech.stt");
+    string speech_whisper_model = config.get<string>("speech.whisper_model");
+    int speech_whisper_threads = config.get<int>("speech.whisper_threads");
     bool speech_stall = config.get<bool>("speech.stall");
     vector<string> speech_hesitors = config.get<vector<string>>("speech.hesitors");
+    vector<string> speech_repeaters = config.get<vector<string>>("speech.repeaters");
     string speech_interrupt_info_token = config.get<string>("speech.interrupt_info_token");
     string speech_amplitude_threshold_setter_token = config.get<string>("speech.amplitude_threshold_setter_token");
     
@@ -931,7 +935,10 @@ int main(int argc, char *argv[]) {
             speech_noise_threshold,
             speech_noise_threshold_min,
             speech_noise_threshold_max,
-            speech_noise_threshold_while_speech
+            speech_noise_threshold_while_speech,
+            speech_stt,
+            speech_whisper_model,
+            speech_whisper_threads
         );
 
         if (speech_stall) {
@@ -951,6 +958,24 @@ int main(int argc, char *argv[]) {
                     model.kill(thinker);
                     for (string& hesitor: speech->get_hesitors_ref()) hesitor = str_replace("\n", " ", hesitor);
                     file_put_contents(hesitros_textfile, implode("\n", speech->get_hesitors_ref()), true, true);
+                }
+            }
+
+            speech->set_repeaters(speech_repeaters);
+            if (speech->get_repeaters_ref().empty()) {
+                string repeaters_textfile = basedir + "/repeaters." + user_lang + ".txt";
+                if (file_exists(repeaters_textfile)) {
+                    speech->set_repeaters(explode("\n", file_get_contents(repeaters_textfile)));
+                } else {
+                    Model* thinker = (Model*)model.spawn("You are a linguistic assistant");
+                    speech->set_repeaters(thinker->multiple_str(
+                        "I need a list of 'repeat asking word' and 'small questions'. "
+                        "We need 10 few word long, for eg. 'what?', 'sorry can you repeat?', 'what did you say?', 'Ha?', 'tell again?' "
+                        "We need the list in language: " + user_lang
+                    ));
+                    model.kill(thinker);
+                    for (string& repeater: speech->get_repeaters_ref()) repeater = str_replace("\n", " ", repeater);
+                    file_put_contents(repeaters_textfile, implode("\n", speech->get_repeaters_ref()), true, true);
                 }
             }
         }

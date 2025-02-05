@@ -11,8 +11,7 @@
                 "-std=c++23",
                 // "-pthread",
                 "src/prompt.cpp",
-                "-o",
-                "builds/prompt.gdb",
+                "-o", "builds/prompt.gdb",
                 "-g"
             ],
             "group": {

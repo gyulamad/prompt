@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/builds/prompt.gdb", // Update this path if needed
-            "args": ["--voice", "--model", "test6"], // Add program arguments if necessary
+            "args": ["--voice", "--model", "test7"], // Add program arguments if necessary
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

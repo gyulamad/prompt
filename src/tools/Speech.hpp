@@ -192,6 +192,19 @@ namespace tools {
             pkiller.kill();
         }
 
+        typedef function<string(Speech*, const string&)> stt_func_t;
+        stt_func_t stt;
+        stt_func_t get_stt_func(const string& fn) {
+            if (fn == "hugging") return &Speech::stt_huggingface;
+            if (fn == "whisper") return &Speech::stt_whisper_cpp;
+            if (fn == "spchcat") return &Speech::stt_spchcat;
+            throw ERROR("Invalid stt function name: " + fn);
+        }
+
+        string whisper_model;
+        int whisper_threads;
+
+
         // ---------------------------------
         // TTS
         bool voice_out = true;
@@ -199,6 +212,7 @@ namespace tools {
         bool say_interrupted = false;
         bool stalling = true;
         vector<string> hesitors = {};
+        vector<string> repeaters = {};
         int speed;
 
         // ---------------------------------
@@ -213,7 +227,10 @@ namespace tools {
             double noise_threshold,
             double noise_threshold_min,
             double noise_threshold_max,
-            double noise_threshold_while_speech
+            double noise_threshold_while_speech,
+            const string& stt,
+            const string& whisper_model,
+            int whisper_threads
         ): 
             secret(secret),
             lang(lang),
@@ -223,7 +240,10 @@ namespace tools {
             noise_threshold(noise_threshold),
             noise_threshold_min(noise_threshold_min),
             noise_threshold_max(noise_threshold_max),
-            noise_threshold_while_speech(noise_threshold_while_speech)
+            noise_threshold_while_speech(noise_threshold_while_speech),
+            stt(get_stt_func(stt)),
+            whisper_model(whisper_model),
+            whisper_threads(whisper_threads)
         {
             cleanprocs();
             cleanfiles();
@@ -342,7 +362,7 @@ namespace tools {
             
             // records the next chunk of speech
                             
-            long long rec_timeout_ms = 1000;
+            long long rec_timeout_ms = 60000;
             // double speech_min_amp = 0.05;
 
             //cout << "recording rec_accu.wav" << endl; 
@@ -389,6 +409,9 @@ namespace tools {
                     //     continue;
                     // }
                     if (str_ends_with(trim(output), "Done.")) {
+                        rotary_clear();
+                        proc.writeln(beep_cmd + " &");
+                        // stall();
 
                         // Cut any artifacts to check if it's silence and repeat if so..
                         if (file_exists("rec_next_trim.wav")) remove("rec_next_trim.wav");
@@ -423,22 +446,31 @@ namespace tools {
 
                         // send to STT if it's free..
                         // cout << "********NEW RECORD DONE (rec_stt.wav) => we can go for STT!!!!!!!!" << endl; 
-                        proc.writeln(beep_cmd + " &");
+                        // proc.writeln(beep_cmd + " &");
                         rotary_clear();
                         thread([&]{    
-                            long long timeout_ms = 10000;
+                            long long timeout_ms = 60000;
                             long long timeout_at = get_time_ms() + timeout_ms;
                             while(file_exists("rec_stt.wav")) {
                                 if (timeout_at < get_time_ms()) break;
                                 usleep(300);
                             }
                             rename("rec_accu.wav", "rec_stt.wav", true);
-                            string inp = trim(stt("rec_stt.wav"));
-                            if (!inp.empty()) rec_stt_result.append(inp);
+                            //cout << "stt(rec_stt.wav) start..." << endl;
+                            rotary_clear();
+                            string inp = trim(stt(this, "rec_stt.wav"));
+                            //cout << "stt(rec_stt.wav) done: " << inp << endl;
+                            if (!inp.empty()) {
+                                rec_stt_result.append(inp);
+                                stall();
+                            } else {
+                                stall_what();
+                            }
                             remove("rec_stt.wav", true);
                         }).detach();
                         //cout << "---------STT request sent to async" << endl;                      
-                        
+                        // proc.writeln(beep_cmd + " &");
+                        // stall();
                         // }
                         
                         break;
@@ -453,9 +485,30 @@ namespace tools {
         string fetch_rec_stt_result() {
             return rec_stt_result.fetch();
         }
+
+        // virtual string stt(const string& speechfile) {
+        //     return stt_whisper_cpp(speechfile);
+        // }
+
+        // TODO check out how to keep the model in memory: https://github.com/ggerganov/whisper.cpp/blob/33ea03f1315b25eacdcc16bf4b8ab33c90137bc7/include/whisper.h#L43
+        virtual string stt_whisper_cpp(const string& speechfile) {
+            //int t = 4; // TODO: setup threads from config
+            Process proc;
+            string cmd = 
+                "libs/ggerganov/whisper.cpp/build/bin/whisper-cli "
+                // "-m libs/ggerganov/whisper.cpp/models/ggml-tiny-q5_0.bin "
+                "-m " + whisper_model + " " // libs/ggerganov/whisper.cpp/models/ggml-small-q5_0.bin "
+                "-f " + speechfile + " -l " + lang + " -t " + to_string(whisper_threads) + 
+                " --no-prints --no-timestamps";
+            proc.writeln(cmd);
+            string output;
+            while((output = proc.read()).empty());// if (kbhit()) return misschars(); // waiting for transcriptions
+            proc.kill();
+            return output;
+        }
         
         // transcribe, override if you need to
-        virtual string stt(const string& speechfile) {
+        virtual string stt_spchcat(const string& speechfile) {
             Process proc("bash", false);
             //string cmd = "spchcat --language=" + lang + " " + speechfile + " 2>/dev/null > rec_stt.txt && cat rec_stt.txt";
             // string cmd = "spchcat --language=" + lang + " " + speechfile + " 2>> error.log > rec_stt.txt && cat rec_stt.txt";
@@ -467,7 +520,7 @@ namespace tools {
             return output;
         }
 
-        virtual string _stt(const string& speechfile) {
+        virtual string stt_huggingface(const string& speechfile) {
             while (kbhit()) getchar(); // TODO ??
             int retry = 3;
             string cmd = "";
@@ -594,6 +647,14 @@ namespace tools {
             return hesitors;
         }
 
+        void set_repeaters(const vector<string>& repeaters) {
+            this->repeaters = repeaters;
+        }
+
+        vector<string>& get_repeaters_ref() {
+            return repeaters;
+        }
+
         void shtup() {
             if (!is_process_running("espeak")) return;
             cout << Process::execute("pkill -9 espeak") << flush;
@@ -627,6 +688,26 @@ namespace tools {
             say(text, async, gap, speed_override, true);
         }
 
+        bool stall_seeded = false;
+        void stall_what() {
+            if (!stalling || repeaters.empty() || is_process_running("espeak")) return;
+            // TODO:
+            // *   **Filler words:** Ez a legáltalánosabb kifejezés, azt jelenti, "kitöltő szavak".
+            // *   **Discourse markers:** Ez egy tudományosabb megnevezés, a "diszkurzív partikula" angol megfelelője.
+            // *   **Hesitation markers:** Ez a habozást jelző szavak gyűjtőneve.
+            // *   **Stall words:** Ez a kifejezés arra utal, hogy ezekkel a szavakkal időt nyerünk a gondolkodásra.            
+
+            // Szükséges a random számok generálásához
+            // static bool seeded = false;
+            if (!stall_seeded) {
+                srand(time(0));
+                stall_seeded = true;
+            }
+            // Véletlenszerű index generálása
+            int index1 = rand() % repeaters.size();
+            say(repeaters[index1], true);
+        }
+
         void stall() {
             if (!stalling || hesitors.empty() || is_process_running("espeak")) return;
             // TODO:
@@ -636,10 +717,10 @@ namespace tools {
             // *   **Stall words:** Ez a kifejezés arra utal, hogy ezekkel a szavakkal időt nyerünk a gondolkodásra.            
 
             // Szükséges a random számok generálásához
-            static bool seeded = false;
-            if (!seeded) {
+            // static bool seeded = false;
+            if (!stall_seeded) {
                 srand(time(0));
-                seeded = true;
+                stall_seeded = true;
             }
             // Véletlenszerű index generálása
             int index1 = rand() % hesitors.size();
