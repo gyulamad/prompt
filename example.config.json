@@ -1,6 +1,6 @@
 {
     "secrets": {
-        "hugging_face": "xxxxxx",
+        // "hugging_face": "xxxxxx",
         "google_gemini": "xxxxxx"
     },
     "user": {
@@ -9,23 +9,29 @@
         "auto_save": true
     },
     "speech": {
-        "speed": 200,
-        "voice_in": true,
-        "voice_out": true,
-        "noise_threshold": 0.1,
-        "noise_threshold_min": 0.01,
-        "noise_threshold_max": 0.5,
-        "noise_threshold_while_speech": 0.2,
-        // "stt": "hugging",
-        "stt": "spchcat",
-        // "stt": "whisper",
-        "whisper_model": "libs/ggerganov/whisper.cpp/models/ggml-small-q5_0.bin",
-        "whisper_threads": 4,
-        "stall": true,
-        "hesitors": [],
-        "repeaters": [],
-        "interrupt_info_token": "\nSYSTEM-MESSAGE: TEXT-TO-SPEECH WAS INTERRUPTED\n",
-        "amplitude_threshold_setter_token": "SET-SPEECH-AMPLITUDE-THRESHOLD-TO"
+        "stt": {
+
+        },
+        "tts": {
+            
+        }
+        // "speed": 200,
+        // "voice_in": true,
+        // "voice_out": true,
+        // "noise_threshold": 0.1,
+        // "noise_threshold_min": 0.01,
+        // "noise_threshold_max": 0.5,
+        // "noise_threshold_while_speech": 0.2,
+        // // "stt": "hugging",
+        // "stt": "spchcat",
+        // // "stt": "whisper",
+        // "whisper_model": "libs/ggerganov/whisper.cpp/models/ggml-small-q5_0.bin",
+        // "whisper_threads": 4,
+        // "stall": true,
+        // "hesitors": [],
+        // "repeaters": [],
+        // "interrupt_info_token": "\nSYSTEM-MESSAGE: TEXT-TO-SPEECH WAS INTERRUPTED\n",
+        // "amplitude_threshold_setter_token": "SET-SPEECH-AMPLITUDE-THRESHOLD-TO"
     },
     "model": {
         "memory_max": 1000000,

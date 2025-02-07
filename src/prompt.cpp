@@ -102,9 +102,9 @@ namespace prompt {
         string model_name;
         bool auto_save;
         string basedir;
-        Speech* speech = nullptr;
-        string speech_interrupt_info_token;
-        string speech_amplitude_threshold_setter_token;
+        // Speech* speech = nullptr;
+        // string speech_interrupt_info_token;
+        // string speech_amplitude_threshold_setter_token;
 
     public:
 
@@ -113,19 +113,19 @@ namespace prompt {
             const string& model_name,
             bool auto_save,
             const string& prompt, // = "> ", 
-            const string& basedir, // = "./prompt/",
-            Speech* speech, // = nullptr,
-            const string& speech_interrupt_info_token, // = "TTS interrupted",
-            const string& speech_amplitude_threshold_setter_token // = "SETRECAMP"
+            const string& basedir//, // = "./prompt/",
+            // Speech* speech, // = nullptr,
+            // const string& speech_interrupt_info_token, // = "TTS interrupted",
+            // const string& speech_amplitude_threshold_setter_token // = "SETRECAMP"
         ): 
             model(model),
             model_name(model_name),
             auto_save(auto_save), 
             commander(CommandLine(prompt)), 
-            basedir(basedir),       
-            speech(speech),
-            speech_interrupt_info_token(speech_interrupt_info_token),
-            speech_amplitude_threshold_setter_token(speech_amplitude_threshold_setter_token)
+            basedir(basedir)//,       
+            // speech(speech),
+            // speech_interrupt_info_token(speech_interrupt_info_token),
+            // speech_amplitude_threshold_setter_token(speech_amplitude_threshold_setter_token)
         {
             if (!model_name.empty()) load_model(true);
         }
@@ -185,9 +185,9 @@ namespace prompt {
             return mode;
         }
  
-        Speech* get_speech_ptr() {
-            return speech;
-        }
+        // Speech* get_speech_ptr() {
+        //     return speech;
+        // }
 
         // void set_voice_in(bool voice_in) {
         //     this->voice_in = voice_in;
@@ -232,30 +232,30 @@ namespace prompt {
             commander.get_command_line_ref().show(input + (input.back() == '\n' ? "" : "\n")); // TODO !@#
         }
         
-        bool add_puffered_voice_input_to_context() {
-            if (!speech) return false;
-            string inp = trim(speech->fetch_rec_stt_result());
-            if (!inp.empty()) {
-                model.addContext(inp, ROLE_INPUT);
-                show_voice_input(inp);
-                return true;
-            }
-            return false;
-        }
+        // bool add_puffered_voice_input_to_context() {
+        //     if (!speech) return false;
+        //     string inp = trim(speech->fetch_rec_stt_result());
+        //     if (!inp.empty()) {
+        //         model.addContext(inp, ROLE_INPUT);
+        //         show_voice_input(inp);
+        //         return true;
+        //     }
+        //     return false;
+        // }
 
         string prompt(const string& response = "") {
             string resp = trim(response);
             if (!resp.empty()) cout << resp << endl;
-            if (speech) {
-                if (speech->is_voice_out() && !resp.empty()) speech->say_beep(resp, true);
-                if (speech->is_voice_in()) {
-                    string input = speech->rec();
-                    if (speech->is_rec_interrupted()) speech->set_voice_in(false);
-                    //speech->cleanprocs();
-                    if (!input.empty()) show_voice_input(input);
-                    return input;
-                }
-            }
+            // if (speech) {
+            //     if (speech->is_voice_out() && !resp.empty()) speech->say_beep(resp, true);
+            //     if (speech->is_voice_in()) {
+            //         string input = speech->rec();
+            //         if (speech->is_rec_interrupted()) speech->set_voice_in(false);
+            //         //speech->cleanprocs();
+            //         if (!input.empty()) show_voice_input(input);
+            //         return input;
+            //     }
+            // }
 
             return commander.get_command_line_ref().readln();
         }
@@ -272,31 +272,31 @@ namespace prompt {
                     continue; 
                 }
 
-                if (speech) {
+                // if (speech) {
                     
-                    //model.system_data["{{speech_current_noise_threshold}}"] = to_string(speech->noise_threshold);
+                //     //model.system_data["{{speech_current_noise_threshold}}"] = to_string(speech->noise_threshold);
 
-                    if (speech->is_say_interrupted()) {
-                        cout << "AI TTS was interrupted" << endl;
-                        // input = speech_interrupt_info_token + "\n" + input;  
-                        // TODO:
-                        vector<Message> messages;
-                        while (true) {                           
-                            if (!model.hasContext()) break;
-                            Message message = model.popContext();
-                            messages.push_back(message);
-                            if (message.get_role() != ROLE_OUTPUT) continue;
-                            message.set_text(message.get_text() + "..." + speech_interrupt_info_token);
-                            //model.addContext(message);
-                            //messages = array_reverse(messages);
-                            for (const Message& message: messages)
-                                model.addContext(message.get_text(), message.get_role());
-                        }
-                        // model.addContext(speech_interrupt_info_token, ROLE_INPUT); 
+                //     if (speech->is_say_interrupted()) {
+                //         cout << "AI TTS was interrupted" << endl;
+                //         // input = speech_interrupt_info_token + "\n" + input;  
+                //         // TODO:
+                //         vector<Message> messages;
+                //         while (true) {                           
+                //             if (!model.hasContext()) break;
+                //             Message message = model.popContext();
+                //             messages.push_back(message);
+                //             if (message.get_role() != ROLE_OUTPUT) continue;
+                //             message.set_text(message.get_text() + "..." + speech_interrupt_info_token);
+                //             //model.addContext(message);
+                //             //messages = array_reverse(messages);
+                //             for (const Message& message: messages)
+                //                 model.addContext(message.get_text(), message.get_role());
+                //         }
+                //         // model.addContext(speech_interrupt_info_token, ROLE_INPUT); 
 
-                        if (!add_puffered_voice_input_to_context()) speech->stall(); 
-                    }   
-                }
+                //         if (!add_puffered_voice_input_to_context()) speech->stall(); 
+                //     }   
+                // }
                 switch (mode)
                 {
                     case MODE_CHAT:
@@ -315,44 +315,45 @@ namespace prompt {
                         throw ERROR("Invalid mode");
                 }
                 
-                vector<string> matches;
-                if (regx_match("\\[" + speech_amplitude_threshold_setter_token + ":([\\d\\.]+)\\]", response, &matches)) {
-                    response = str_replace(matches[0], "", response);
+                // TODO:
+                // vector<string> matches;
+                // if (regx_match("\\[" + speech_amplitude_threshold_setter_token + ":([\\d\\.]+)\\]", response, &matches)) {
+                //     response = str_replace(matches[0], "", response);
 
-                    if (speech) {
-                        bool error_found = false;
-                        if (!is_numeric(matches[1])) {
-                            model.addContext(
-                                "The amplitude threshold should be a numeric value.", 
-                                ROLE_INPUT
-                            );
-                            error_found = true;
-                        }
-                        double noise_threshold = parse<double>(matches[1]);
-                        if (noise_threshold < speech->get_noise_threshold_min() || noise_threshold > speech->get_noise_threshold_max()) {
-                            model.addContext(
-                                "The amplitude threshold should be in between " 
-                                    + to_string(speech->get_noise_threshold_min()) + " and " 
-                                    + to_string(speech->get_noise_threshold_max()), 
-                                ROLE_INPUT
-                            );
-                            error_found = true;
-                        }
-                        if (error_found) {
-                            model.addContext(
-                                "The amplitude threshold value remains unchanged: " 
-                                    + to_string(speech->get_noise_threshold()), 
-                                ROLE_INPUT
-                            );
-                            continue;
-                        }
-                        speech->set_noise_threshold(noise_threshold);
-                        string msg = "The noise amplitude threshold value is set to " 
-                            + to_string(speech->get_noise_threshold());
-                        cout << msg << endl;
-                        model.addContext(msg, ROLE_INPUT);
-                    }
-                }
+                    // if (speech) {
+                    //     bool error_found = false;
+                    //     if (!is_numeric(matches[1])) {
+                    //         model.addContext(
+                    //             "The amplitude threshold should be a numeric value.", 
+                    //             ROLE_INPUT
+                    //         );
+                    //         error_found = true;
+                    //     }
+                    //     double noise_threshold = parse<double>(matches[1]);
+                    //     if (noise_threshold < speech->get_noise_threshold_min() || noise_threshold > speech->get_noise_threshold_max()) {
+                    //         model.addContext(
+                    //             "The amplitude threshold should be in between " 
+                    //                 + to_string(speech->get_noise_threshold_min()) + " and " 
+                    //                 + to_string(speech->get_noise_threshold_max()), 
+                    //             ROLE_INPUT
+                    //         );
+                    //         error_found = true;
+                    //     }
+                    //     if (error_found) {
+                    //         model.addContext(
+                    //             "The amplitude threshold value remains unchanged: " 
+                    //                 + to_string(speech->get_noise_threshold()), 
+                    //             ROLE_INPUT
+                    //         );
+                    //         continue;
+                    //     }
+                    //     speech->set_noise_threshold(noise_threshold);
+                    //     string msg = "The noise amplitude threshold value is set to " 
+                    //         + to_string(speech->get_noise_threshold());
+                    //     cout << msg << endl;
+                    //     model.addContext(msg, ROLE_INPUT);
+                    // }
+                // }
 
                 // TODO: auto_save to config
                 if (auto_save && !model_name.empty()) save_model(true, false);
@@ -393,14 +394,14 @@ namespace prompt {
     class VoiceCommand: public Command {
     private:
     
-        void show_user_voice_stat(Speech* speech) {
-            if (!speech) {
-                cout << "No speach loaded." << endl;
-                return;
-            }
-            cout << "Voice input:\t[" << (speech->is_voice_in() ? "On" : "Off") << "]" << endl;
-            cout << "Voice output:\t[" << (speech->is_voice_out() ? "On" : "Off") << "]" << endl;
-        }
+        // void show_user_voice_stat(Speech* speech) {
+        //     if (!speech) {
+        //         cout << "No speach loaded." << endl;
+        //         return;
+        //     }
+        //     cout << "Voice input:\t[" << (speech->is_voice_in() ? "On" : "Off") << "]" << endl;
+        //     cout << "Voice output:\t[" << (speech->is_voice_out() ? "On" : "Off") << "]" << endl;
+        // }
 
     public:
     
@@ -414,11 +415,11 @@ namespace prompt {
 
         string run(void* user_void, const vector<string>& args) override {
             User* user = (User*)user_void;
-            Speech* speech = user->get_speech_ptr();
-            if (!speech) {
+            // Speech* speech = user->get_speech_ptr();
+            // if (!speech) {
                 cout << "No voice I/O loaded. - Add --voice argument from command line." << endl; // TODO 
                 return "";                           
-            }
+            // }
             string voice_usage = "Use: /voice (input/output) [on/off]";
             if (args.size() <= 1 || args.size() > 3) {
                 cout << voice_usage << endl;
@@ -426,17 +427,17 @@ namespace prompt {
             }
         
             if (args[1] == "input") {
-                if (args[2] == "on") speech->set_voice_in(true);
-                else if (args[2] == "off") speech->set_voice_in(false);
+                if (args[2] == "on"); // TODO: speech->set_voice_in(true);
+                else if (args[2] == "off"); // TODO: speech->set_voice_in(false);
                 else cout << "Invalid argument: " << args[2] << endl;
-                show_user_voice_stat(speech);
+                // TODO: show_user_voice_stat(speech);
                 return "";
             }
             else if (args[1] == "output") {
-                if (args[2] == "on") speech->set_voice_out(true);
-                else if (args[2] == "off") speech->set_voice_out(false);
+                if (args[2] == "on"); // TODO: speech->set_voice_out(true);
+                else if (args[2] == "off"); // TODO: speech->set_voice_out(false);
                 else cout << "Invalid argument: " << args[2] << endl;
-                show_user_voice_stat(speech);
+                // TODO: show_user_voice_stat(speech);
                 return "";
             } 
 
@@ -842,28 +843,28 @@ int main(int argc, char *argv[]) {
     logger.info("Prompt started");
 
     // settings
-    const string secrets_hugging_face = config.get<string>("secrets.hugging_face"); // TODO: hugging-face (and other third party) config into separated json
+    // const string secrets_hugging_face = config.get<string>("secrets.hugging_face"); // TODO: hugging-face (and other third party) config into separated json
     const string secrets_google_gemini = config.get<string>("secrets.google_gemini"); // TODO: google (and other third party) config into separated json
     
     const string user_prompt = config.get<string>("user.prompt");
     const string user_lang = config.get<string>("user.language");
     const bool user_auto_save = config.get<bool>("user.auto_save");
 
-    int speech_speed = config.get<int>("speech.speed");
-    bool speech_voice_in = config.get<bool>("speech.voice_in");
-    bool speech_voice_out = config.get<bool>("speech.voice_out");
-    double speech_noise_threshold = config.get<double>("speech.noise_threshold");
-    double speech_noise_threshold_min = config.get<double>("speech.noise_threshold_min");
-    double speech_noise_threshold_max = config.get<double>("speech.noise_threshold_max");
-    double speech_noise_threshold_while_speech = config.get<double>("speech.noise_threshold_while_speech");
-    string speech_stt = config.get<string>("speech.stt");
-    string speech_whisper_model = config.get<string>("speech.whisper_model");
-    int speech_whisper_threads = config.get<int>("speech.whisper_threads");
-    bool speech_stall = config.get<bool>("speech.stall");
-    vector<string> speech_hesitors = config.get<vector<string>>("speech.hesitors");
-    vector<string> speech_repeaters = config.get<vector<string>>("speech.repeaters");
-    string speech_interrupt_info_token = config.get<string>("speech.interrupt_info_token");
-    string speech_amplitude_threshold_setter_token = config.get<string>("speech.amplitude_threshold_setter_token");
+    // int speech_speed = config.get<int>("speech.speed");
+    // bool speech_voice_in = config.get<bool>("speech.voice_in");
+    // bool speech_voice_out = config.get<bool>("speech.voice_out");
+    // double speech_noise_threshold = config.get<double>("speech.noise_threshold");
+    // double speech_noise_threshold_min = config.get<double>("speech.noise_threshold_min");
+    // double speech_noise_threshold_max = config.get<double>("speech.noise_threshold_max");
+    // double speech_noise_threshold_while_speech = config.get<double>("speech.noise_threshold_while_speech");
+    // string speech_stt = config.get<string>("speech.stt");
+    // string speech_whisper_model = config.get<string>("speech.whisper_model");
+    // int speech_whisper_threads = config.get<int>("speech.whisper_threads");
+    // bool speech_stall = config.get<bool>("speech.stall");
+    // vector<string> speech_hesitors = config.get<vector<string>>("speech.hesitors");
+    // vector<string> speech_repeaters = config.get<vector<string>>("speech.repeaters");
+    // string speech_interrupt_info_token = config.get<string>("speech.interrupt_info_token");
+    // string speech_amplitude_threshold_setter_token = config.get<string>("speech.amplitude_threshold_setter_token");
     
     size_t model_conversation_length_max = config.get<size_t>("model.memory_max");
     double model_conversation_loss_ratio = config.get<double>("model.memory_loss_ratio");
@@ -873,7 +874,7 @@ int main(int argc, char *argv[]) {
     string model_system_voice = voice ? tpl_replace({
         // { "{{speech_interrupt_info_token}}", speech_interrupt_info_token },
         // { "{{speech_current_noise_threshold}}", "{{speech_current_noise_threshold}}"},
-        { "{{speech_amplitude_threshold_setter_token}}", speech_amplitude_threshold_setter_token },
+        // { "{{speech_amplitude_threshold_setter_token}}", speech_amplitude_threshold_setter_token },
         // { "{{speech_noise_threshold_min}}", to_string(speech_noise_threshold_min) },
         // { "{{speech_noise_threshold_max}}", to_string(speech_noise_threshold_max) },
     },  "The user is using a text-to-speech software for communication. "
@@ -885,13 +886,13 @@ int main(int argc, char *argv[]) {
         "your responses are becaming more consise and short when you interupted more often recently "
         "but you can put more context otherwise if it's necessary, tune your response style accordingly. "
         //"The current input noise amplitude threshold is {{speech_current_noise_threshold}} "
-        "to reduce noise and detect when the user speaks. "
-        "You are able to change this accordigly when the interruption coming from background noise "
-        "by placing the [{{speech_amplitude_threshold_setter_token}}:{number}] token into your response. "
-        "When you do this the user's system will recognise your request and changes the threshold for better communication. "
+        // "to reduce noise and detect when the user speaks. "
+        // "You are able to change this accordigly when the interruption coming from background noise "
+        // "by placing the [{{speech_amplitude_threshold_setter_token}}:{number}] token into your response. "
+        // "When you do this the user's system will recognise your request and changes the threshold for better communication. "
         // "The amplitude threshold should be a number between {{speech_noise_threshold_min}} and {{speech_noise_threshold_max}}, more perceptive noise indicates higher threshold.\n"
-        "The goal is to let the user to be able to interrupt the TTS reader with his/her voice "
-        "but filter out the background as much as possible."
+        // "The goal is to let the user to be able to interrupt the TTS reader with his/her voice "
+        // "but filter out the background as much as possible."
     ) : "";
     string model_system_lang = user_lang != "en" ? tpl_replace({
         { "{{user_lang}}", user_lang }
@@ -924,61 +925,62 @@ int main(int argc, char *argv[]) {
         model_think_deep
     );
 
-    Speech* speech = nullptr;
+    // Speech* speech = nullptr;
     if (voice) {
-        speech = new Speech(
-            secrets_hugging_face,
-            user_lang,
-            speech_speed,
-            speech_voice_in,
-            speech_voice_out,
-            speech_noise_threshold,
-            speech_noise_threshold_min,
-            speech_noise_threshold_max,
-            speech_noise_threshold_while_speech,
-            speech_stt,
-            speech_whisper_model,
-            speech_whisper_threads
-        );
+        // speech = new Speech(
+        //     secrets_hugging_face,
+        //     user_lang,
+        //     speech_speed,
+        //     speech_voice_in,
+        //     speech_voice_out,
+        //     speech_noise_threshold,
+        //     speech_noise_threshold_min,
+        //     speech_noise_threshold_max,
+        //     speech_noise_threshold_while_speech,
+        //     speech_stt,
+        //     speech_whisper_model,
+        //     speech_whisper_threads
+        // );
 
-        if (speech_stall) {
-            speech->set_hesitors(speech_hesitors);
-            if (speech->get_hesitors_ref().empty()) {
-                string hesitros_textfile = basedir + "/hesitors." + user_lang + ".txt";
-                if (file_exists(hesitros_textfile)) {
-                    speech->set_hesitors(explode("\n", file_get_contents(hesitros_textfile)));
-                } else {
-                    Model* thinker = (Model*)model.spawn("You are a linguistic assistant");
-                    speech->set_hesitors(thinker->multiple_str(
-                        "I need a list of 'Filler/Stall word' and 'Hesitation markers/sentences'. "
-                        "Write one word long to a full sentence and anything in between. "
-                        "We need 7 one-word long, 5 mid sentence and 3 very long full sentence. "
-                        "We need the list in language: " + user_lang
-                    ));
-                    model.kill(thinker);
-                    for (string& hesitor: speech->get_hesitors_ref()) hesitor = str_replace("\n", " ", hesitor);
-                    file_put_contents(hesitros_textfile, implode("\n", speech->get_hesitors_ref()), true, true);
-                }
-            }
+        // if (speech_stall) {
+            // TODO: 
+            // speech->set_hesitors(speech_hesitors);
+            // if (speech->get_hesitors_ref().empty()) {
+            //     string hesitros_textfile = basedir + "/hesitors." + user_lang + ".txt";
+            //     if (file_exists(hesitros_textfile)) {
+            //         speech->set_hesitors(explode("\n", file_get_contents(hesitros_textfile)));
+            //     } else {
+            //         Model* thinker = (Model*)model.spawn("You are a linguistic assistant");
+            //         speech->set_hesitors(thinker->multiple_str(
+            //             "I need a list of 'Filler/Stall word' and 'Hesitation markers/sentences'. "
+            //             "Write one word long to a full sentence and anything in between. "
+            //             "We need 7 one-word long, 5 mid sentence and 3 very long full sentence. "
+            //             "We need the list in language: " + user_lang
+            //         ));
+            //         model.kill(thinker);
+            //         for (string& hesitor: speech->get_hesitors_ref()) hesitor = str_replace("\n", " ", hesitor);
+            //         file_put_contents(hesitros_textfile, implode("\n", speech->get_hesitors_ref()), true, true);
+            //     }
+            // }
 
-            speech->set_repeaters(speech_repeaters);
-            if (speech->get_repeaters_ref().empty()) {
-                string repeaters_textfile = basedir + "/repeaters." + user_lang + ".txt";
-                if (file_exists(repeaters_textfile)) {
-                    speech->set_repeaters(explode("\n", file_get_contents(repeaters_textfile)));
-                } else {
-                    Model* thinker = (Model*)model.spawn("You are a linguistic assistant");
-                    speech->set_repeaters(thinker->multiple_str(
-                        "I need a list of 'repeat asking word' and 'small questions'. "
-                        "We need 10 few word long, for eg. 'what?', 'sorry can you repeat?', 'what did you say?', 'Ha?', 'tell again?' "
-                        "We need the list in language: " + user_lang
-                    ));
-                    model.kill(thinker);
-                    for (string& repeater: speech->get_repeaters_ref()) repeater = str_replace("\n", " ", repeater);
-                    file_put_contents(repeaters_textfile, implode("\n", speech->get_repeaters_ref()), true, true);
-                }
-            }
-        }
+            // speech->set_repeaters(speech_repeaters);
+            // if (speech->get_repeaters_ref().empty()) {
+            //     string repeaters_textfile = basedir + "/repeaters." + user_lang + ".txt";
+            //     if (file_exists(repeaters_textfile)) {
+            //         speech->set_repeaters(explode("\n", file_get_contents(repeaters_textfile)));
+            //     } else {
+            //         Model* thinker = (Model*)model.spawn("You are a linguistic assistant");
+            //         speech->set_repeaters(thinker->multiple_str(
+            //             "I need a list of 'repeat asking word' and 'small questions'. "
+            //             "We need 10 few word long, for eg. 'what?', 'sorry can you repeat?', 'what did you say?', 'Ha?', 'tell again?' "
+            //             "We need the list in language: " + user_lang
+            //         ));
+            //         model.kill(thinker);
+            //         for (string& repeater: speech->get_repeaters_ref()) repeater = str_replace("\n", " ", repeater);
+            //         file_put_contents(repeaters_textfile, implode("\n", speech->get_repeaters_ref()), true, true);
+            //     }
+            // }
+        // }
     }
 
     User user(
@@ -986,10 +988,10 @@ int main(int argc, char *argv[]) {
         model_name, 
         user_auto_save,
         user_prompt,
-        basedir,
-        speech,
-        speech_interrupt_info_token,
-        speech_amplitude_threshold_setter_token
+        basedir//,
+        // speech,
+        // speech_interrupt_info_token,
+        // speech_amplitude_threshold_setter_token
     );
 
     // TODO:
@@ -1023,7 +1025,7 @@ int main(int argc, char *argv[]) {
     //     //...        
     // });
 
-    if (speech) delete speech;
+    // if (speech) delete speech;
     return 0;
 }
 
