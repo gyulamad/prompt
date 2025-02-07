@@ -10,9 +10,16 @@
             "args": [
                 "-std=c++23",
                 // "-pthread",
-                "src/prompt.cpp",
-                "-o", "builds/prompt.gdb",
-                "-g"
+                "${workspaceFolder}/src/prompt.cpp",
+                "-o", "${workspaceFolder}/builds/prompt.gdb",
+                "-g",
+                //"-Ofast",
+                "-I${workspaceFolder}/libs/ggerganov/whisper.cpp/include",
+                "-I${workspaceFolder}/libs/ggerganov/whisper.cpp/ggml/include",
+                "${workspaceFolder}/libs/ggerganov/whisper.cpp/build/src/libwhisper.so.1.7.4", 
+                "-lrt", "-lm", "-lasound", "-ljack", 
+                "-lportaudio", //"-lwhisper",
+                "-pthread"
             ],
             "group": {
                 "kind": "build",

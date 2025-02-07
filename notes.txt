@@ -4,9 +4,8 @@ git clone https://github.com/nlohmann/json libs/nlohmann/json
 
 git clone https://github.com/yhirose/cpp-linenoise.git libs/yhirose/cpp-linenoise
 
-git clone https://github.com/ggerganov/whisper.cpp libs/ggerganov/whisper.cpp
-    cd whisper.cpp
-
+git clone https://github.com/ggerganov/whisper.cpp.git libs/ggerganov/whisper.cpp
+    libs/ggerganov/whisper.cpp
     # Build without CUDA (default is CPU-only)
     mkdir build
     cd build
@@ -15,10 +14,7 @@ git clone https://github.com/ggerganov/whisper.cpp libs/ggerganov/whisper.cpp
     cd ..
     ./models/download-ggml-model.sh tiny  # Supported models: tiny, base, small, medium, large.
     ./build/bin/quantize models/ggml-tiny.bin models/ggml-tiny-q5_0.bin q5_0  # Quantize the model to 5-bit (q5_0)
-
-build whisper as lib:
-cd libs/ggerganov/whisper.cpp/bindings/go/
-
+    sudo ldconfig /mnt/windows/llm/stts/libs/ggerganov/whisper.cpp/build/src/
 
 if you want to use spchcat, see more: https://github.com/petewarden/spchcat
 for emojies: sudo apt install fonts-noto-color-emoji

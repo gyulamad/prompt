@@ -3,9 +3,17 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**",
+                "${workspaceFolder}/**", // Includes headers in your project folder and subfolders
                 "/usr/include/**",
-                "/usr/local/include/**"
+                "/usr/include",         // Common include directory (Linux)
+                "/usr/include/c++/11",  // Example for C++ standard library (adjust version if needed)
+                "/usr/include/c++/11/**",
+                "/usr/include/x86_64-linux-gnu", // Example for architecture-specific includes
+                "/usr/include/x86_64-linux-gnu/c++/11/**",
+                "/usr/local/include/**",
+                // Example for Windows paths (like yours)
+                "${workspaceFolder}/libs/ggerganov/whisper.cpp/include",
+                "${workspaceFolder}/libs/ggerganov/whisper.cpp/ggml/include"
             ],
             "defines": [
                 // "USE_CANDLES_AS_FLOAT"
