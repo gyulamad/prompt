@@ -1,11 +1,18 @@
 #pragma once
 
+#include <iostream>
+#include <atomic>
+#include <thread>
+#include <functional>
+#include <fstream> // For file I/O
+#include <portaudio.h>
+
 #include "../RingBuffer.hpp"
 
 using namespace std;
 using namespace tools;
 
-namespace tools::rec {
+namespace tools::voice {
 
 
     class VoiceRecorder {
@@ -39,6 +46,7 @@ namespace tools::rec {
 
             // PaStreamParameters inputParams;
             // inputParams.device = Pa_GetHostApiInfo(alsaApi)->defaultInputDevice;
+            cout << "DEBUG: VoiceRecorder worker thread start..." << endl;
             workerThread = thread(&VoiceRecorder::stream_thread, this);
         }
 
@@ -47,6 +55,14 @@ namespace tools::rec {
             if (workerThread.joinable()) workerThread.join();
             Pa_Terminate();
         }
+
+        // void pause() {
+        //     return; // TODO throw "pause is not implement";
+        // }
+
+        // void resume() {
+        //     return; // TODO throw "resume is not implement";
+        // }          
 
         size_t available() const {
             return ringBuffer.available();

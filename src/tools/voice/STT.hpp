@@ -14,16 +14,17 @@
 #include <portaudio.h>
 #include "../../../libs/ggerganov/whisper.cpp/include/whisper.h"
 
-#include "../rec/NoiseMonitor.hpp"
+#include "VoiceRecorder.hpp"
+#include "NoiseMonitor.hpp"
 
 using namespace std;
-using namespace tools::rec;
+using namespace tools;
 
-namespace tools::stt {
+namespace tools::voice {
 
     class SpeechListener {
     public:
-        using RMSCallback = function<void(float rms, float threshold, bool loud)>;
+        using RMSCallback = function<void(float vol_pc, float threshold_pc, float rmax, float rms, bool loud)>;
         using SpeechCallback = function<void(vector<float>& record)>;
 
         SpeechListener(NoiseMonitor& monitor): monitor(monitor) {}
@@ -40,6 +41,14 @@ namespace tools::stt {
             monitor.stop();
         }
 
+        // void pause() {
+        //     monitor.pause();
+        // }
+
+        // void resume() {
+        //     monitor.resume();
+        // }   
+
     private:
         NoiseMonitor& monitor;
 
@@ -51,15 +60,18 @@ namespace tools::stt {
 
         static void noise_cb(
             void* listener, 
-            bool is_noisy, 
+            float vol_pc, 
+            float threshold_pc, 
+            float rmax, 
             float rms, 
-            float threshold, vector<float>& buffer
+            bool is_noisy, 
+            vector<float>& buffer
         ) {
             SpeechListener* that = (SpeechListener*)listener;
             if (is_noisy) for (float sample: buffer) that->record.push_back(sample);
             else if (!is_noisy && that->is_noisy_prev) that->speech_cb(that->record);
             that->is_noisy_prev = is_noisy;
-            that->rms_cb(rms, threshold, is_noisy);
+            that->rms_cb(vol_pc, threshold_pc, rmax, rms, is_noisy);
         };
 
     };
@@ -102,7 +114,7 @@ namespace tools::stt {
             Transcriber(model_path, lang) 
         {
             // whisper_sampling_strategy strategy(WHISPER_SAMPLING_BEAM_SEARCH);
-            whisper_sampling_strategy strategy(WHISPER_SAMPLING_GREEDY);
+            whisper_sampling_strategy strategy(WHISPER_SAMPLING_BEAM_SEARCH);
             params = whisper_full_default_params(strategy);
             if (lang) params.language = lang;
             ctx = whisper_init_from_file_with_params(model_path.c_str(), whisper_context_default_params());
@@ -155,6 +167,7 @@ namespace tools::stt {
 
     class SpeechRecogniser {
     private:
+        // atomic<bool> paused{true};
 
         atomic<bool> running{true};
         atomic<bool> records_lock = false;
@@ -172,7 +185,7 @@ namespace tools::stt {
         using TranscribeCallback = function<void(const vector<float>& record, const string& text)>;
 
 
-        SpeechListener::RMSCallback rms_cb = [](float rms, float threshold, bool loud) {};
+        SpeechListener::RMSCallback rms_cb = [](float vol_pc, float threshold_pc, float rmax, float rms, bool loud) {};
         SpeechListener::SpeechCallback speech_cb = [](vector<float>& record) {};
         SpeechRecogniser::TranscribeCallback transcribe_cb = [](const vector<float>& record, const string& text) {};
 
@@ -195,9 +208,9 @@ namespace tools::stt {
 
         void start() {
             listener.start(
-                [&](float rms, float threshold, bool loud) {
-                    // cout << "RMS: " << threshold << "/" << rms << " - " << (loud ? "Loud" : "Quiet") << endl;
-                    rms_cb(rms, threshold, loud);
+                [&](float vol_pc, float threshold_pc, float rmax, float rms, bool loud) {
+                    // cout << "RMS: " << threshold_pc << "/" << rms << " - " << (loud ? "Loud" : "Quiet") << endl;
+                    rms_cb(vol_pc, threshold_pc, rmax, rms, loud);
                 },
 
                 [&](vector<float>& record) {
@@ -213,9 +226,11 @@ namespace tools::stt {
                 pollIntervalMs
             );
 
+            cout << "DEBUG: SpeachRecogniser transcriber thread start..." << endl;
             transcriberThread = thread([&]{
                 while(running) {
                     usleep(30000);
+                    // if (paused) continue;
                     if (!records.empty()) {
                         // shift out the first record:
                         if (records_lock) continue;
@@ -242,11 +257,12 @@ namespace tools::stt {
     template<typename TranscriberT>
     class STT {
     public:
-        // SpeechListener::RMSCallback rms_cb = [](float rms, float threshold, bool loud) {};
+        // SpeechListener::RMSCallback rms_cb = [](float rms, float threshold_pc, bool loud) {};
         // SpeechListener::SpeechCallback speech_cb = [](vector<float>& record) {};
         // SpeechRecogniser::TranscribeCallback transcribe_cb = [](const vector<float>& record, const string& text) {};
 
     private:
+        // atomic<bool> paused{true};
         bool started = false;
         VoiceRecorder* recorder;
         NoiseMonitor* monitor;
@@ -269,18 +285,22 @@ namespace tools::stt {
                 stt_voice_recorder_frames_per_buffer,
                 stt_voice_recorder_buffer_seconds
             );
+            
             monitor = new NoiseMonitor(
                 *recorder,
                 stt_noise_monitor_threshold,
                 stt_noise_monitor_window
             );
+            
             listener = new SpeechListener(
                 *monitor
             );
+            
             transcriber = new TranscriberT(
                 stt_transcriber_model,
                 stt_transcriber_lang.c_str()
             );
+            
             recogniser = new SpeechRecogniser(
                 *recorder,
                 *monitor,
@@ -288,6 +308,7 @@ namespace tools::stt {
                 *transcriber,
                 stt_poll_interval_ms
             );
+            
         }
 
         const Transcriber& getTranscriberCRef() {
@@ -314,6 +335,22 @@ namespace tools::stt {
         void stop() {
             if (started) recogniser->stop();
         }
+
+        // void pause() {
+        //     paused = true;
+        //     recorder->pause();
+        //     monitor->pause();
+        //     listener->pause();
+        //     // transcriber->pause();
+        // }
+
+        // void resume() {
+        //     paused = false;
+        //     recorder->resume();
+        //     monitor->resume();
+        //     listener->resume();
+        //     // transcriber->resume();
+        // }
 
         virtual ~STT() {
             if (recorder) delete recorder;

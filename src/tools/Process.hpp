@@ -166,7 +166,7 @@ namespace tools {
             if (n == -1) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK)
                     return ""; // No data available
-                throw ERROR("Failed to read from child, program: " + program);
+                throw ERROR("Failed to read from child: " + string(strerror(errno)) + " - program: " + program);
             }
             buffer[n] = '\0';
             return string(buffer);

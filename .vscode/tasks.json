@@ -13,10 +13,11 @@
                 "${workspaceFolder}/src/prompt.cpp",
                 "-o", "${workspaceFolder}/builds/prompt.gdb",
                 "-g",
-                //"-Ofast",
+                // "-Ofast",
                 "-I${workspaceFolder}/libs/ggerganov/whisper.cpp/include",
                 "-I${workspaceFolder}/libs/ggerganov/whisper.cpp/ggml/include",
                 "${workspaceFolder}/libs/ggerganov/whisper.cpp/build/src/libwhisper.so.1.7.4", 
+                "-Wl,-rpath,${workspaceFolder}/libs/ggerganov/whisper.cpp/build/src",  // <-- Add this
                 "-lrt", "-lm", "-lasound", "-ljack", 
                 "-lportaudio", //"-lwhisper",
                 "-pthread"

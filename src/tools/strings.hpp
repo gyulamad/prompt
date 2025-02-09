@@ -3,6 +3,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <iomanip>
 #include <sstream>
 #include <algorithm>
 #include <stdexcept>
@@ -152,7 +153,7 @@ namespace tools {
         return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
     }
 
-    bool str_ends_with(const std::string& str, const std::string& suffix) {
+    bool str_ends_with(const string& str, const string& suffix) {
         // Check if the suffix is longer than the string
         if (str.size() < suffix.size()) {
             return false;
@@ -272,4 +273,20 @@ namespace tools {
     inline string json_escape(const string& s) {
         return str_replace("\n", "\\n", escape(s, "\\\""));
     }
+
+    string set_precision(double number, int precision) {
+        stringstream ss;
+        ss << fixed << setprecision(precision) << number;
+        return ss.str();
+    }
+
+    string set_precision(const string& numberStr, int precision) {
+        try {
+            double number = stod(numberStr);
+            return set_precision(number, precision);
+        } catch (const invalid_argument& e) {
+            return "Hibás bemenet";
+        }
+    }
+
 }
