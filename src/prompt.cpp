@@ -534,6 +534,10 @@ namespace prompt {
         }
     };
     const vector<string> Gemini::variants = {
+        // TODO: to config
+        // See all models at: https://ai.google.dev/gemini-api/docs/models/gemini
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite-preview-02-05",
         "gemini-2.0-flash-exp",
         "gemini-1.5-flash-latest",
         "gemini-1.5-flash",
