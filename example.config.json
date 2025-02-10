@@ -54,7 +54,9 @@
             "^\\*.*\\*$",
             "^\\(.*\\)$",
             "^\\-.*[\\.\\!]$" // (for hungarian??)
-        ]
+        ],
+
+        "impatient_ms": 10000
     },
     "model": {
         // All message text length in the conversation, depends on the model.
