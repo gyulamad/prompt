@@ -14,8 +14,7 @@ namespace tools::voice {
     class NoiseMonitor {
     private:
         // ------ RMS (max/decay) ------
-        float rmax = 1;
-        float rmax_rd_pc = 1; // TODO: config
+        float rmax = -INFINITY;
     public:
         using NoiseCallback = function<void(
             void* listener, 
@@ -43,7 +42,7 @@ namespace tools::voice {
                         float rms = calculate_rms(buffer);
 
                         if (rms >= rmax) rmax = rms;
-                        else rmax *= rmax_rd_pc;
+                        //cout << "[" << rms << "/" << rmax << "]" << endl;
                         float vol_pc = rms / rmax;
 
                         bool noisy = vol_pc > threshold_pc;

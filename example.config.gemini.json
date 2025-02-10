@@ -1,0 +1,26 @@
+{
+    "secret": "YoURg00GL3gEm1nISeCr3tG03sH3r3R3pl4ce-inT0",
+    
+    // Model usage start with the first and falls back to the next whenever it reaches the API rate limit.
+    // Add remove or update the list with your desired model(s).
+    // See all models at: https://ai.google.dev/gemini-api/docs/models/gemini
+    "variants": [
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite-preview-02-05",
+        "gemini-2.0-flash-exp",
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-001",
+        "gemini-1.5-flash-002",
+        "gemini-1.5-flash-8b-latest",
+        "gemini-1.5-flash-8b",
+        "gemini-1.5-flash-8b-001",
+        "gemini-1.5-pro-latest",
+        "gemini-1.5-pro",
+        "gemini-1.5-pro-001",
+        "gemini-1.5-pro-002"
+        // "gemini-1.0-pro-latest", // gemini-1.0-pro models are deprecated on 2/15/2025
+        // "gemini-1.0-pro", 
+        // "gemini-1.0-pro-001",
+    ]
+}

@@ -1,18 +1,22 @@
 {
-    "secrets": {
-        "google_gemini": "xxxxxx"
-    },
     "user": {
+        // The STT and TTS as the model itself operates in the user main language by default.
         "language": "en",
+
+        // User input command line prompt prefix.
         "prompt": "> ",
+
+        // Automatically saves the model after every text exchanged in the conversation.
         "auto_save": true
     },
     "speech": {
+        // TODO: voice [in/out] does not operates separatelly but 
+        // you can use the --voice argument from command line or use the /voice [on/off] command.
         "stt_voice_in": true,
         "tts_voice_out": true,
         "stt": {
             "voice_recorder": {
-                "sample_rate": 16000,
+                "sample_rate": 16000, // 16kHz - most voice recognition needs
                 "frames_per_buffer": 512,
                 "buffer_seconds": 5
             },
@@ -21,22 +25,51 @@
                 "window": 16384
             },
             "transcriber": {
+                // TODO: whisper probably will goes to a separated config file (I leave it for now as it's only one conf var here)
                 "model": "libs/ggerganov/whisper.cpp/models/ggml-base-q8_0.bin"
             },
-            "poll_interval_ms": 100
+            "poll_interval_ms": 300
         },
         "tts": {
+            // TODO: it uses espeak command but it perhaps should be replacable later
             "speed": 200,
             "gap": 0,
             "beep_cmd": "sox -v 0.1 beep.wav -t wav - | aplay -q -N",
             "think_cmd": "sox -v 0.1 think.wav -t wav - | aplay -q -N"
         },
-        "stall": true
+
+        // Using filling words like "hmm..", "eeh..", "well.." while user waiting for the next inference
+        "stall": true, 
+
+        // "speak_wait_ms": 3000,
+
+        // In voice mode some cases the transcription contains commentaries like *claps* or [music],
+        // but we don't want the AI to react for background noises, only when user speaks,
+        // (by emptying this array AI will react to every noise which can be fun and entertining 
+        // but reduce the usability in some cases)
+        // so every output that coming out from the speech recognition output 
+        // and match with any of the followings will be ignored: 
+        "ignores_rgxs": [
+            // "^\\[.*\\]$",
+            // "^\\*.*\\*$",
+            // "^\\(.*\\)$",
+            // "^\\-.*[\\.\\!]$" // (for hungarian??)
+        ]
     },
     "model": {
-        "memory_max": 1000000,
+        // Max message per conversation, depends on the model.
+        // estimate based on the context window and average message lenght.
+        "memory_max": 10000,
+
+        // Conversation will be cut and summarise at loss ratio to avoid memory loss 
+        // when overflows from context window.
         "memory_loss_ratio": 0.5,
+
+        // In think mode refines the answer in think_step iteration.
         "think_steps": 3,
+
+        // In deep thinking mode, it splits the problem for smaller chunks and solves recursively.
+        // think_deep is the maximum deepness to walk through the problem tree.
         "think_deep": 5
     }
 }

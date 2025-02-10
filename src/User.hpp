@@ -39,6 +39,8 @@ namespace prompt {
 
         // ----------- speech -----------
         bool speech_stall;
+        // long long speech_speak_wait_ms;
+        vector<string> speech_ignores_rgxs;
         int speech_tts_speed;
         int speech_tts_gap;
         string speech_tts_beep_cmd;
@@ -68,6 +70,8 @@ namespace prompt {
             const string& prompt, // = "> ", 
             const string& basedir, // = "./prompt/",,
             bool speech_stall,
+            // long long speech_speak_wait_ms,
+            const vector<string>& speech_ignores_rgxs,
             int speech_tts_speed,
             int speech_tts_gap,
             const string& speech_tts_beep_cmd,
@@ -91,6 +95,8 @@ namespace prompt {
             commander(CommandLine(prompt)), 
             basedir(basedir),
             speech_stall(speech_stall),
+            // speech_speak_wait_ms(speech_speak_wait_ms),
+            speech_ignores_rgxs(speech_ignores_rgxs),
             speech_tts_speed(speech_tts_speed),
             speech_tts_gap(speech_tts_gap),
             speech_tts_beep_cmd(speech_tts_beep_cmd),
@@ -210,7 +216,7 @@ namespace prompt {
         }
 
         void show_voice_input(const string& input) {
-            commander.get_command_line_ref().show(input + (input.back() == '\n' ? "" : "\n")); // TODO !@#
+            commander.get_command_line_ref().show(input + (input.back() == '\n' ? "" : "\n"));
         }
         
         // bool add_puffered_voice_input_to_context() {
@@ -229,6 +235,8 @@ namespace prompt {
             speech = new Speech(
                 commander,
                 user_lang,
+                // speech_speak_wait_ms,
+                speech_ignores_rgxs,
                 speech_tts_speed,
                 speech_tts_gap,
                 speech_tts_beep_cmd,
@@ -431,7 +439,6 @@ namespace prompt {
                     // }
                 // }
 
-                // TODO: auto_save to config
                 if (auto_save && !model_name.empty()) save_model(true, false);
             }
 

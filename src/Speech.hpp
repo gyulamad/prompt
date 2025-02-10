@@ -32,12 +32,12 @@ namespace prompt {
         string text_input = "";
 
         vector<string> hesitors = {};
-        vector<string> repeaters = {};        
+        vector<string> repeaters = {};
         WhisperSTT* stt = nullptr;
         TTS* tts = nullptr;
 
-        long long speak_wait_ms = 3000; // TODO: to config
-        long long speak_paused_at_ms;
+        // long long speak_wait_ms;
+        // long long speak_paused_at_ms;
 
 
         // ----- random speeches -----
@@ -61,6 +61,8 @@ namespace prompt {
         Speech(
             Commander& commander,
             const string& lang,
+            // long long speak_wait_ms,
+            const vector<string>& speech_ignores_rgxs,
             int speech_tts_speed,
             int speech_tts_gap,
             const string& speech_tts_beep_cmd,
@@ -72,17 +74,9 @@ namespace prompt {
             const size_t speech_stt_noise_monitor_window,
             const string& speech_stt_transcriber_model,
             const long speech_stt_poll_interval_ms
-        )//:
-            // stt(
-            //     speech_stt_voice_recorder_sample_rate,
-            //     speech_stt_voice_recorder_frames_per_buffer,
-            //     speech_stt_voice_recorder_buffer_seconds,
-            //     speech_stt_noise_monitor_threshold,
-            //     speech_stt_noise_monitor_window,
-            //     speech_stt_transcriber_model,
-            //     speech_stt_transcriber_lang,
-            //     speech_stt_poll_interval_ms
-            // ) 
+        )
+        // :
+        //     speak_wait_ms(speak_wait_ms)
         {
 
             tts = new TTS(
@@ -103,6 +97,8 @@ namespace prompt {
                 lang,
                 speech_stt_poll_interval_ms
             );
+
+            Speech& that = *this;
 
             stt->setRMSHandler([&](float vol_pc, float threshold_pc, float rmax, float rms, bool loud) {
                 string out = ""; 
@@ -151,29 +147,30 @@ namespace prompt {
 
                 // ----- handle speech interruptions -----
 
-                if (loud && !speak_paused_at_ms) {
-                    // cout << "[[PAUSE]]" << endl;
-                    tts->speak_pause();
-                    speak_paused_at_ms = get_time_ms();
-                }
+                // cout << speak_paused_at_ms << endl;
+                // if (loud && !speak_paused_at_ms) {
+                //     cout << "[[PAUSE]]" << endl;
+                //     tts->speak_pause();
+                //     speak_paused_at_ms = get_time_ms();
+                // }
 
-                if (!loud) {
-                    if (speak_paused_at_ms) {
-                        if (speak_paused_at_ms + speak_wait_ms > get_time_ms()) {
-                            // cout << "[[CONTINUE]]" << endl;
-                            tts->speak_resume();
-                            speak_paused_at_ms = 0;
-                        }
-                    }
-                } else {
-                    if (speak_paused_at_ms) {
-                        if (speak_paused_at_ms + speak_wait_ms < get_time_ms()) {
-                            // cout << "[[STOP]]" << endl;
-                            tts->speak_stop();
-                            speak_paused_at_ms = 0;
-                        }
-                    }
-                }
+                // if (!loud) {
+                //     if (speak_paused_at_ms) {
+                //         if (speak_paused_at_ms + speak_wait_ms > get_time_ms()) {
+                //             cout << "[[CONTINUE]]" << endl;
+                //             tts->speak_resume();
+                //             speak_paused_at_ms = 0;
+                //         }
+                //     }
+                // } else {
+                //     if (speak_paused_at_ms) {
+                //         if (speak_paused_at_ms + speak_wait_ms < get_time_ms()) {
+                //             cout << "[[STOP]]" << endl;
+                //             tts->speak_stop();
+                //             speak_paused_at_ms = 0;
+                //         }
+                //     }
+                // }
             });
 
             stt->setSpeechHandler([&](vector<float>& record) {
@@ -186,16 +183,16 @@ namespace prompt {
                 recs--;
                 string trim_text = trim(text);
                 // cout << "txt:[" << trim_text << "]" << endl;
-                 if (   !text.empty() &&
-                        !regx_match("^\\[.*\\]$", trim_text) && // TODO: to config
-                        !regx_match("^\\*.*\\*$", trim_text) &&
-                        !regx_match("^\\(.*\\)$", trim_text) &&
-                        !regx_match("^\\-.*[\\.\\!]$", trim_text) // (for hungarian?)
-                    ) 
-                {
+                bool found = false;
+                for (const string& rgx: speech_ignores_rgxs)
+                    if (regx_match(rgx, trim_text)) {
+                        found = true;
+                        break;
+                    }
+                if (!found && !text.empty()) {
                     struct winsize w;
                     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-                    string outp = "\r" + commander.get_command_line_ref().get_prompt() + trim_text; //commander.get_command_line_ref().get_prompt() + text;
+                    string outp = "\r" + commander.get_command_line_ref().get_prompt() + trim_text;
                     for (int i = outp.size(); i < w.ws_col - 10; i++) outp += " ";
                     cout << outp << endl;
                     text_puffer.push_back(trim_text);
@@ -243,10 +240,10 @@ namespace prompt {
         }
 
         void speak_beep(const string& text, bool think = false) {
-            while (!speak_paused_at_ms && tts->is_speaking()) sleep(1);
+            // while (/*!speak_paused_at_ms &&*/ tts->is_speaking()) sleep(1);
             // cout << "[[START]]" << endl;
             tts->speak_stop();
-            speak_paused_at_ms = 0;
+            // speak_paused_at_ms = 0;
             tts->speak_beep(text, think);
         }
 
