@@ -137,42 +137,20 @@ namespace prompt {
         vector<string> get_patterns() const override {
             return { 
                 "/voice",
-                // "/voice input {switch}",
-                // "/voice output {switch}",
+                "/voice {switch}",
             };
         }
 
         string run(void* user_void, const vector<string>& args) override {
             User* user = (User*)user_void;
-            return user->speech_toggle() ? "Voice mode [ON]" : "Voice mode [OFF]";
-            // // Speech* speech = user->get_speech_ptr();
-            // // if (!speech) {
-            //     cout << "No voice I/O loaded. - Add --voice argument from command line." << endl; // TODO 
-            //     return "";                           
-            // // }
-            // string voice_usage = "Use: /voice (input/output) [on/off]";
-            // if (args.size() <= 1 || args.size() > 3) {
-            //     cout << voice_usage << endl;
-            //     return "";
-            // }
-        
-            // if (args[1] == "input") {
-            //     if (args[2] == "on"); // TODO: speech->set_voice_in(true);
-            //     else if (args[2] == "off"); // TODO: speech->set_voice_in(false);
-            //     else cout << "Invalid argument: " << args[2] << endl;
-            //     // TODO: show_user_voice_stat(speech);
-            //     return "";
-            // }
-            // else if (args[1] == "output") {
-            //     if (args[2] == "on"); // TODO: speech->set_voice_out(true);
-            //     else if (args[2] == "off"); // TODO: speech->set_voice_out(false);
-            //     else cout << "Invalid argument: " << args[2] << endl;
-            //     // TODO: show_user_voice_stat(speech);
-            //     return "";
-            // } 
-
-            // cout << voice_usage << endl;
-            // return "";
+            bool on = false;
+            if (args.size() == 1) on = user->speech_toggle();
+            else if (args.size() == 2) {
+                if (args[1] == "on") user->speech_create();
+                if (args[1] == "off") user->speech_delete();
+                else return "Invalid argument: " + args[1];
+            }
+            return on ? "Voice mode [ON]" : "Voice mode [OFF]";
         }
     };
 
@@ -421,11 +399,11 @@ namespace prompt {
         Logger& logger;
         string secret;
 
-        static const vector<string> variants;
-        static size_t current_variant;
-        static string variant;
+        const vector<string> variants;
+        size_t current_variant = 0;
+        string variant = variants[current_variant];
 
-        static bool next_variant() {
+        bool next_variant() {
             bool next_variant_found = true;
             current_variant++;
             if (current_variant >= variants.size()) {
@@ -520,42 +498,27 @@ namespace prompt {
         }
 
     public:
-        Gemini(Logger& logger, const string& secret, MODEL_ARGS): Model(MODEL_ARGS_PASS),
-            logger(logger), secret(file_exists(secret) ? file_get_contents(secret) : secret)
+        Gemini(
+            Logger& logger,
+            const string& secret,
+            const vector<string>& variants,
+            MODEL_ARGS
+        ):
+            Model(MODEL_ARGS_PASS),
+            logger(logger), 
+            secret(secret),
+            variants(variants)
         {}
 
         // make it as a factory - caller should delete spawned model using kill()
         void* spawn(MODEL_ARGS) override {
-            return new Gemini(logger, secret, MODEL_ARGS_PASS);
+            return new Gemini(logger, secret, variants, MODEL_ARGS_PASS);
         }
 
         void kill(Model* gemini) override { 
             delete (Gemini*)gemini;
         }
     };
-    const vector<string> Gemini::variants = {
-        // TODO: to config
-        // See all models at: https://ai.google.dev/gemini-api/docs/models/gemini
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite-preview-02-05",
-        "gemini-2.0-flash-exp",
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-001",
-        "gemini-1.5-flash-002",
-        "gemini-1.5-flash-8b-latest",
-        "gemini-1.5-flash-8b",
-        "gemini-1.5-flash-8b-001",
-        "gemini-1.5-pro-latest",
-        "gemini-1.5-pro",
-        "gemini-1.5-pro-001",
-        "gemini-1.5-pro-002",
-        // "gemini-1.0-pro-latest", // gemini-1.0-pro models are deprecated on 2/15/2025
-        // "gemini-1.0-pro", 
-        // "gemini-1.0-pro-001", 
-    };
-    size_t Gemini::current_variant = 0;
-    string Gemini::variant = variants[current_variant];
 
 }
 
@@ -570,6 +533,7 @@ int main(int argc, char *argv[]) {
 
     // configs
     JSON config(file_get_contents("config.json"));
+    JSON config_gemini(file_get_contents("config.gemini.json"));
 
     // logger
     const string basedir = get_exec_path() + "/.prompt";
@@ -578,49 +542,35 @@ int main(int argc, char *argv[]) {
     logger.info("Prompt started");
 
     // settings
-    // const string secrets_hugging_face = config.get<string>("secrets.hugging_face"); // TODO: hugging-face (and other third party) config into separated json
-    const string secrets_google_gemini = config.get<string>("secrets.google_gemini"); // TODO: google (and other third party) config into separated json
-    
+    const string gemini_secret = config_gemini.get<string>("secret");
+    const vector<string> gemini_variants = config_gemini.get<vector<string>>("variants");
+
     const string user_prompt = config.get<string>("user.prompt");
     const string user_lang = config.get<string>("user.language");
     const bool user_auto_save = config.get<bool>("user.auto_save");
 
-    // int speech_speed = config.get<int>("speech.speed");
-    // bool speech_voice_in = config.get<bool>("speech.voice_in");
-    // bool speech_voice_out = config.get<bool>("speech.voice_out");
-    // double speech_noise_threshold_pc = config.get<double>("speech.noise_threshold_pc");
-    // double speech_noise_threshold_pc_min = config.get<double>("speech.noise_threshold_pc_min");
-    // double speech_noise_threshold_pc_max = config.get<double>("speech.noise_threshold_pc_max");
-    // double speech_noise_threshold_pc_while_speech = config.get<double>("speech.noise_threshold_pc_while_speech");
-    // string speech_stt = config.get<string>("speech.stt");
-    // string speech_whisper_model = config.get<string>("speech.whisper_model");
-    // int speech_whisper_threads = config.get<int>("speech.whisper_threads");
-    // bool speech_stall = config.get<bool>("speech.stall");
-    // vector<string> speech_hesitors = config.get<vector<string>>("speech.hesitors");
-    // vector<string> speech_repeaters = config.get<vector<string>>("speech.repeaters");
-    // string speech_interrupt_info_token = config.get<string>("speech.interrupt_info_token");
-    // string speech_amplitude_threshold_pc_setter_token = config.get<string>("speech.amplitude_threshold_pc_setter_token");
-
-    bool speech_stall = config.get<bool>("speech.stall"); // TODO    
-    bool speech_tts_voice_out = voice && config.get<bool>("speech.tts_voice_out");
-    int speech_tts_speed = config.get<int>("speech.tts.speed");
-    int speech_tts_gap = config.get<int>("speech.tts.gap");
-    string speech_tts_beep_cmd = config.get<string>("speech.tts.beep_cmd");
-    string speech_tts_think_cmd = config.get<string>("speech.tts.think_cmd");
-    bool speech_stt_voice_in = voice && config.get<bool>("speech.stt_voice_in");
-    double speech_stt_voice_recorder_sample_rate = config.get<double>("speech.stt.voice_recorder.sample_rate");
-    unsigned long speech_stt_voice_recorder_frames_per_buffer = config.get<unsigned long>("speech.stt.voice_recorder.frames_per_buffer");
-    size_t speech_stt_voice_recorder_buffer_seconds = config.get<size_t>("speech.stt.voice_recorder.buffer_seconds");
-    float speech_stt_noise_monitor_threshold_pc = config.get<float>("speech.stt.noise_monitor.threshold_pc");
-    size_t speech_stt_noise_monitor_window = config.get<size_t>("speech.stt.noise_monitor.window");
-    string speech_stt_transcriber_model = config.get<string>("speech.stt.transcriber.model");
-    long speech_stt_poll_interval_ms = config.get<long>("speech.stt.poll_interval_ms");
+    const bool speech_stall = config.get<bool>("speech.stall");  
+    // const long long speech_speak_wait_ms = config.get<long long>("speech.speak_wait_ms");
+    const vector<string> speech_ignores_rgxs = config.get<vector<string>>("speech.ignores_rgxs");
+    const bool speech_tts_voice_out = voice && config.get<bool>("speech.tts_voice_out");
+    const int speech_tts_speed = config.get<int>("speech.tts.speed");
+    const int speech_tts_gap = config.get<int>("speech.tts.gap");
+    const string speech_tts_beep_cmd = config.get<string>("speech.tts.beep_cmd");
+    const string speech_tts_think_cmd = config.get<string>("speech.tts.think_cmd");
+    const bool speech_stt_voice_in = voice && config.get<bool>("speech.stt_voice_in");
+    const double speech_stt_voice_recorder_sample_rate = config.get<double>("speech.stt.voice_recorder.sample_rate");
+    const unsigned long speech_stt_voice_recorder_frames_per_buffer = config.get<unsigned long>("speech.stt.voice_recorder.frames_per_buffer");
+    const size_t speech_stt_voice_recorder_buffer_seconds = config.get<size_t>("speech.stt.voice_recorder.buffer_seconds");
+    const float speech_stt_noise_monitor_threshold_pc = config.get<float>("speech.stt.noise_monitor.threshold_pc");
+    const size_t speech_stt_noise_monitor_window = config.get<size_t>("speech.stt.noise_monitor.window");
+    const string speech_stt_transcriber_model = config.get<string>("speech.stt.transcriber.model");
+    const long speech_stt_poll_interval_ms = config.get<long>("speech.stt.poll_interval_ms");
 
 
-    size_t model_conversation_length_max = config.get<size_t>("model.memory_max");
-    double model_conversation_loss_ratio = config.get<double>("model.memory_loss_ratio");
-    int model_think_steps = config.get<int>("model.think_steps");
-    int model_think_deep = config.get<int>("model.think_deep");
+    const size_t model_conversation_length_max = config.get<size_t>("model.memory_max");
+    const double model_conversation_loss_ratio = config.get<double>("model.memory_loss_ratio");
+    const int model_think_steps = config.get<int>("model.think_steps");
+    const int model_think_deep = config.get<int>("model.think_deep");
 
     string model_system_voice = voice ? tpl_replace({
         // { "{{speech_interrupt_info_token}}", speech_interrupt_info_token },
@@ -668,16 +618,14 @@ int main(int argc, char *argv[]) {
 
     Gemini model(
         logger,
-        secrets_google_gemini,
+        gemini_secret,
+        gemini_variants,
         model_system,
         model_conversation_length_max,
         model_conversation_loss_ratio,
         model_think_steps,
         model_think_deep
     );
-
-    // Speech* speech = nullptr;
-    
 
     User user(
         model,
@@ -687,6 +635,8 @@ int main(int argc, char *argv[]) {
         user_prompt,
         basedir,
         speech_stall,
+        // speech_speak_wait_ms,
+        speech_ignores_rgxs,
         speech_tts_speed,
         speech_tts_gap,
         speech_tts_beep_cmd,

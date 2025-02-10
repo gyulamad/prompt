@@ -1,6 +1,6 @@
 libs
 builds
-config.json
+config*.json
 *.log
 .fuse_hidden*
 rec_*.wav

@@ -184,8 +184,8 @@ namespace tools::llm {
 
 
         void compress_conversation() {
-            size_t lenght = conversation.length();
-            size_t cut_at = lenght * conversation_loss_ratio;
+            size_t size = conversation.get_messages_ref().size();
+            size_t cut_at = size * conversation_loss_ratio;
             vector<string> conversation_first_part;
             for (size_t n = 0; n < cut_at; n++) 
                 conversation_first_part.push_back(conversation.get_messages_ref().at(n).dump());
@@ -197,8 +197,8 @@ namespace tools::llm {
             kill(summariser);
 
             Conversation summarised;
-            summarised.add("Earlier conversation summary: " + summary);
-            for (size_t n = cut_at; n < lenght; n++) 
+            summarised.add("Earlier conversation summary: " + summary, ROLE_INPUT);
+            for (size_t n = cut_at; n < size; n++) 
                 summarised.add(
                     conversation.get_messages_ref().at(n).get_text(),
                     conversation.get_messages_ref().at(n).get_role()

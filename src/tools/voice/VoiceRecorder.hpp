@@ -54,15 +54,7 @@ namespace tools::voice {
             running = false;
             if (workerThread.joinable()) workerThread.join();
             Pa_Terminate();
-        }
-
-        // void pause() {
-        //     return; // TODO throw "pause is not implement";
-        // }
-
-        // void resume() {
-        //     return; // TODO throw "resume is not implement";
-        // }          
+        }         
 
         size_t available() const {
             return ringBuffer.available();
