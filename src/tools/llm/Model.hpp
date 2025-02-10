@@ -190,7 +190,13 @@ namespace tools::llm {
             for (size_t n = 0; n < cut_at; n++) 
                 conversation_first_part.push_back(conversation.get_messages_ref().at(n).dump());
             
-            Model* summariser = (Model*)spawn("You are a summariser.");            
+            Model* summariser = (Model*)spawn(
+                "You are a summariser."//, 
+                // conversation_length_max, 
+                // conversation_loss_ratio, 
+                // think_steps, 
+                // think_deep
+            );            
             string summary = summariser->prompt(
                 "Summarise the following conversation: " + implode(",", conversation_first_part)
             );
@@ -227,10 +233,10 @@ namespace tools::llm {
             /*bool remember = false,*/ \
             /*const string& memory = "",*/ \
             /*size_t memory_max = 100000,*/ \
-            size_t conversation_length_max = 500000, \
-            double conversation_loss_ratio = 0.5, \
-            int think_steps = 1, \
-            int think_deep = 2
+            size_t conversation_length_max /*= 500000*/, \
+            double conversation_loss_ratio /*= 0.5*/, \
+            int think_steps /*= 1*/, \
+            int think_deep /*= 2*/
             
         #define MODEL_ARGS_PASS \
             system, \
@@ -253,12 +259,16 @@ namespace tools::llm {
             conversation_loss_ratio(conversation_loss_ratio),
             think_steps(think_steps), 
             think_deep(think_deep)
-        {}
+        {
+            //cout << "DEBUG[" << conversation_length_max << "]" << endl;
+        }
 
         virtual ~Model() {}
 
         // make it as a factory - caller should delete spawned/cloned model using kill()
-
+        virtual void* spawn(const string& system) {
+            return spawn(MODEL_ARGS_PASS);
+        }
         virtual void* spawn(MODEL_ARGS) { UNIMP }
         void* clone() {
             return spawn(MODEL_ARGS_PASS);

@@ -56,15 +56,25 @@ namespace prompt {
             if (!tts->is_speaking()) speak_beep(rand_speak_select(strings), think);
         }
 
-        // ---------------------------
+        // ------------- interruptions --------------
 
+        bool loud_prev = false;
+        bool tts_paused = false;
+        long long tts_paused_at = 0;
+        // long long speech_impatient_ms; // = 10000; // TODO: config
+        //function<void()> = []() {};
 
+        // ------------------------------------------
+
+        Commander& commander;
+        vector<string> speech_ignores_rgxs;
+        long long speech_impatient_ms;
     public:
         Speech(
             Commander& commander,
             const string& lang,
-            // long long speak_wait_ms,
             const vector<string>& speech_ignores_rgxs,
+            const long long speech_impatient_ms,
             int speech_tts_speed,
             int speech_tts_gap,
             const string& speech_tts_beep_cmd,
@@ -76,7 +86,11 @@ namespace prompt {
             const size_t speech_stt_noise_monitor_window,
             const string& speech_stt_transcriber_model,
             const long speech_stt_poll_interval_ms
-        )
+        ):
+            commander(commander),
+            speech_ignores_rgxs(speech_ignores_rgxs),
+            speech_impatient_ms(speech_impatient_ms)
+
         // :
         //     speak_wait_ms(speak_wait_ms)
         {
@@ -100,6 +114,8 @@ namespace prompt {
                 speech_stt_poll_interval_ms
             );
 
+            tts->speak_stop(); // reset the voice outputs
+
             Speech& that = *this;
 
             stt->setRMSHandler([&](float vol_pc, float threshold_pc, float rmax, float rms, bool loud) {
@@ -120,12 +136,12 @@ namespace prompt {
                 out += "] " + set_precision(threshold_pc * 100, 2) + "/" + set_precision(vol_pc * 100, 2) + "% ";
                 
                 // progress roller
-                rollnxt++;
-                int at = rollnxt%4;
-                char c = roller[at];
+                that.rollnxt++;
+                int at = that.rollnxt%4;
+                char c = that.roller[at];
                 string roll;
                 roll += c;
-                out += (stt->getTranscriberCRef().isInProgress() ? roll + " " + to_string(recs) : "   ") + " ";
+                out += (stt->getTranscriberCRef().isInProgress() ? roll + " " + to_string(that.recs) : "   ") + " ";
 
                 // show
                 // int y, x;
@@ -148,6 +164,22 @@ namespace prompt {
 
 
                 // ----- handle speech interruptions -----
+
+                if (!that.tts_paused && loud && !that.loud_prev && that.tts->is_speaking()) {
+                    that.tts->speak_pause();
+                    that.tts_paused = true;
+                    that.tts_paused_at = get_time_ms();
+                }
+
+                // if (!loud && tts_paused) {
+                //     if (tts_paused_at + speech_impatient_ms > get_time_ms()) 
+                //         tts->speak_resume();
+                //     else 
+                //         tts->speak_stop();
+                //     tts_paused = false;
+                // }
+
+                that.loud_prev = loud;
 
                 // cout << speak_paused_at_ms << endl;
                 // if (loud && !speak_paused_at_ms) {
@@ -176,38 +208,50 @@ namespace prompt {
             });
 
             stt->setSpeechHandler([&](vector<float>& record) {
-                recs++;
+                that.recs++;
                 // cout << "\rrecorded samples: " << record.size() << "          \t" << endl;
                 rand_speak_hesitate();
             });
 
             stt->setTranscribeHandler([&](const vector<float>& record, const string& text) {
-                recs--;
+                that.recs--;
                 string trim_text = trim(text);
-                // cout << "txt:[" << trim_text << "]" << endl;
-                bool found = false;
-                for (const string& rgx: speech_ignores_rgxs)
+                for (const string& rgx: that.speech_ignores_rgxs)
                     if (regx_match(rgx, trim_text)) {
-                        found = true;
+                        trim_text = "";
                         break;
                     }
-                if (!found && !text.empty()) {
-                    struct winsize w;
-                    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-                    string outp = "\r" + commander.get_command_line_ref().get_prompt() + trim_text;
-                    for (int i = outp.size(); i < w.ws_col - 10; i++) outp += " ";
-                    cout << outp << endl;
-                    text_puffer.push_back(trim_text);
-                    if (!recs) {
-                        string inp = (text_input.empty() ? "" : "\n") + implode("\n", text_puffer);
-                        text_input += inp;
-                        text_puffer.clear();
+
+                bool resumed = false;
+                if (that.tts_paused) {
+                    if (that.tts_paused_at + that.speech_impatient_ms > get_time_ms()) {
+                        tts->speak_resume();
+                        resumed = true;
+                    } else {
+                        tts->speak_stop();
+                        //interrupt_handler();
                     }
-                    return;
+                    that.tts_paused = false;
                 }
 
-                if (recs == 0 && !tts->is_speaking()) 
-                    speak_beep(" ");
+                if (!trim_text.empty()) {
+
+                    struct winsize w;
+                    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+                    string outp = "\r" + that.commander.get_command_line_ref().get_prompt() + trim_text;
+                    for (int i = outp.size(); i < w.ws_col - 2; i++) outp += " ";
+                    cout << outp << endl;
+                    that.text_puffer.push_back(trim_text);
+                    if (!recs && !resumed) {
+                        string inp = (text_input.empty() ? "" : "\n") + implode("\n", that.text_puffer);
+                        that.text_input += inp;
+                        that.text_puffer.clear();
+                    }
+
+                    // if (recs == 0 && !tts->is_speaking()) 
+                    //     speak_beep(" ");
+                }
+
             });
 
             stt->start();

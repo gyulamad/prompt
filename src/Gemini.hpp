@@ -119,6 +119,7 @@ namespace prompt {
             Logger& logger,
             const string& secret,
             const vector<string>& variants,
+            size_t current_variant,
             MODEL_ARGS
         ):
             Model(MODEL_ARGS_PASS),
@@ -129,7 +130,13 @@ namespace prompt {
 
         // make it as a factory - caller should delete spawned model using kill()
         void* spawn(MODEL_ARGS) override {
-            return new Gemini(logger, secret, variants, MODEL_ARGS_PASS);
+            return new Gemini(
+                logger, 
+                secret, 
+                variants, 
+                current_variant, 
+                MODEL_ARGS_PASS
+            );
         }
 
         void kill(Model* gemini) override { 

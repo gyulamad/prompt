@@ -41,6 +41,7 @@ namespace prompt {
         bool speech_stall;
         // long long speech_speak_wait_ms;
         vector<string> speech_ignores_rgxs;
+        const long long speech_impatient_ms;
         int speech_tts_speed;
         int speech_tts_gap;
         string speech_tts_beep_cmd;
@@ -70,8 +71,8 @@ namespace prompt {
             const string& prompt, // = "> ", 
             const string& basedir, // = "./prompt/",,
             bool speech_stall,
-            // long long speech_speak_wait_ms,
             const vector<string>& speech_ignores_rgxs,
+            const long long speech_impatient_ms,
             int speech_tts_speed,
             int speech_tts_gap,
             const string& speech_tts_beep_cmd,
@@ -97,6 +98,7 @@ namespace prompt {
             speech_stall(speech_stall),
             // speech_speak_wait_ms(speech_speak_wait_ms),
             speech_ignores_rgxs(speech_ignores_rgxs),
+            speech_impatient_ms(speech_impatient_ms),
             speech_tts_speed(speech_tts_speed),
             speech_tts_gap(speech_tts_gap),
             speech_tts_beep_cmd(speech_tts_beep_cmd),
@@ -235,8 +237,8 @@ namespace prompt {
             speech = new Speech(
                 commander,
                 user_lang,
-                // speech_speak_wait_ms,
                 speech_ignores_rgxs,
+                speech_impatient_ms,
                 speech_tts_speed,
                 speech_tts_gap,
                 speech_tts_beep_cmd,
@@ -255,7 +257,13 @@ namespace prompt {
                 if (file_exists(hesitros_textfile)) {
                     speech->set_hesitors(explode("\n", file_get_contents(hesitros_textfile)));
                 } else {
-                    Model* thinker = (Model*)model.spawn("You are a linguistic assistant");
+                    Model* thinker = (Model*)model.spawn(
+                        "You are a linguistic assistant"//,
+                        // model.get_conversation_length_max(),
+                        // model.get_conversation_loss_ratio(),
+                        // model.get_think_steps(),
+                        // model.get_think_deep()
+                    );
                     speech->set_hesitors(thinker->multiple_str(
                         "I need a list of 'Filler/Stall word' and 'Hesitation markers/sentences'. "
                         "Write one word long to a full sentence and anything in between. "

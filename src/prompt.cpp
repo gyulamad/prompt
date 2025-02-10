@@ -115,6 +115,7 @@ int main(int argc, char *argv[]) {
     // settings
     const string gemini_secret = config_gemini.get<string>("secret");
     const vector<string> gemini_variants = config_gemini.get<vector<string>>("variants");
+    const size_t gemini_current_variant = config_gemini.get<size_t>("current_variant");
 
     const string user_prompt = config.get<string>("user.prompt");
     const string user_lang = config.get<string>("user.language");
@@ -123,6 +124,7 @@ int main(int argc, char *argv[]) {
     const bool speech_stall = config.get<bool>("speech.stall");  
     // const long long speech_speak_wait_ms = config.get<long long>("speech.speak_wait_ms");
     const vector<string> speech_ignores_rgxs = config.get<vector<string>>("speech.ignores_rgxs");
+    const long long speech_impatient_ms = config.get<long long>("speech.impatient_ms");
     const bool speech_tts_voice_out = voice && config.get<bool>("speech.tts_voice_out");
     const int speech_tts_speed = config.get<int>("speech.tts.speed");
     const int speech_tts_gap = config.get<int>("speech.tts.gap");
@@ -191,6 +193,7 @@ int main(int argc, char *argv[]) {
         logger,
         gemini_secret,
         gemini_variants,
+        gemini_current_variant,
         model_system,
         model_conversation_length_max,
         model_conversation_loss_ratio,
@@ -208,6 +211,7 @@ int main(int argc, char *argv[]) {
         speech_stall,
         // speech_speak_wait_ms,
         speech_ignores_rgxs,
+        speech_impatient_ms,
         speech_tts_speed,
         speech_tts_gap,
         speech_tts_beep_cmd,

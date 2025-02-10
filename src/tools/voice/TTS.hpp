@@ -33,7 +33,9 @@ namespace tools::voice {
             think_cmd(think_cmd)
         {}
         
-        virtual ~TTS() {}
+        virtual ~TTS() {
+            speak_stop();
+        }
 
 
         // void pause() {
