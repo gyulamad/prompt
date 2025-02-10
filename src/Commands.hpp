@@ -64,8 +64,8 @@ namespace prompt {
             bool on = false;
             if (args.size() == 1) on = user->speech_toggle();
             else if (args.size() == 2) {
-                if (args[1] == "on") user->speech_create();
-                if (args[1] == "off") user->speech_delete();
+                if (args[1] == "on") on = user->speech_create();
+                else if (args[1] == "off") on = !user->speech_delete();
                 else return "Invalid argument: " + args[1];
             }
             return on ? "Voice mode [ON]" : "Voice mode [OFF]";

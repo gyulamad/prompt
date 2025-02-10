@@ -233,7 +233,7 @@ namespace prompt {
         // }
 
         bool speech_create() {
-            if (speech) return false;
+            if (speech) return true;
             speech = new Speech(
                 commander,
                 user_lang,
@@ -275,6 +275,7 @@ namespace prompt {
                     file_put_contents(hesitros_textfile, implode("\n", speech->get_hesitors_ref()), true, true);
                 }
                 
+                // TODO: do we still need this?
                 string repeaters_textfile = basedir + "/repeaters." + user_lang + ".txt";
                 if (file_exists(repeaters_textfile)) {
                     speech->set_repeaters(explode("\n", file_get_contents(repeaters_textfile)));
