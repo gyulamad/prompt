@@ -11,6 +11,8 @@
 #include "tools/Process.hpp"
 #include "tools/Commander.hpp"
 
+#include "tools/voice/WhisperSTT.hpp"
+
 using namespace std;
 using namespace tools::voice;
 
