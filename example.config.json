@@ -35,7 +35,8 @@
             "speed": 200,
             "gap": 0,
             "beep_cmd": "sox -v 0.1 beep.wav -t wav - | aplay -q -N",
-            "think_cmd": "sox -v 0.1 think.wav -t wav - | aplay -q -N"
+            // "think_cmd": "sox -v 0.1 think.wav -t wav - | aplay -q -N"
+            "think_cmd": "sox -v 0.1 r2d2_whistles.mp3 -t wav - | aplay -q -N"
         },
 
         // Using filling words like "hmm..", "eeh..", "well.." while user waiting for the next inference
@@ -56,7 +57,7 @@
             "^\\-.*[\\.\\!]$" // (for hungarian??)
         ],
 
-        "impatient_ms": 10000
+        "impatient_ms": 8000
     },
     "model": {
         // All message text length in the conversation, depends on the model.
