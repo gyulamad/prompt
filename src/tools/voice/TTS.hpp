@@ -46,10 +46,39 @@ namespace tools::voice {
         //     paused = false;
         // }
 
+        bool speak(const string& text) {
+            string _text = str_replace({
+                { "...", "."}, // TODO: config
+                { "***", ""},
+                { "**", ""},
+                { "*", ""},
+                { "'", ""},
+            }, text);
+            proc.writeln(
+                "espeak -v" + lang + (gap ? " -g " + to_string(gap) : "") 
+                + " -s " + to_string(speed) + " \"" + escape(_text) + "\""
+                + " && echo \"[SPEAK-DONE]\""
+            );
+            bool finished = false;
+            while (true) {
+                if (!proc.ready()) continue;
+                if (str_contains(proc.read(), "[SPEAK-DONE]")) {
+                    finished = true;
+                    break;
+                }
+                if (!is_speaking()) break;
+            }
+            return finished;
+        }
+
+        void beep() {
+            if (!beep_cmd.empty()) proc.writeln(beep_cmd);
+        }
+
         void speak_beep(const string& text, bool think = false) {
             // if (paused) return;
             string _text = str_replace({
-                { "...", "."},
+                { "...", "."}, // TODO: config
                 { "***", ""},
                 { "**", ""},
                 { "*", ""},

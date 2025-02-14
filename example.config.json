@@ -57,7 +57,10 @@
             "^\\-.*[\\.\\!]$" // (for hungarian??)
         ],
 
-        "impatient_ms": 8000
+        // Speech voice output interruption timeout. When user speech (MIC input) interrupts the
+        // TTS voice output it waits and continue if it was just a quick background noise of
+        // stops the inference if the user interrupts by talking longer that impatient_ms.
+        "impatient_ms": 4000
     },
     "model": {
         // All message text length in the conversation, depends on the model.

@@ -55,7 +55,7 @@ namespace tools::voice {
 
         void stop() {
             running = false;
-            while (!monitorThread.joinable());
+            //while (!monitorThread.joinable());
             monitorThread.join();
         }
 

@@ -48,7 +48,8 @@ namespace prompt {
 
         string rand_speak_select(const vector<string>& strings) {
             if (!rand_seed) srand(rand_seed = time(0));
-            int index = rand() % repeaters.size();
+            if (strings.size() == 0) return "";
+            int index = rand() % strings.size();
             return strings[index];
         }
         
@@ -69,6 +70,11 @@ namespace prompt {
         Commander& commander;
         vector<string> speech_ignores_rgxs;
         long long speech_impatient_ms;
+
+        // ---- MIC output ----
+
+        int mic_out_size = 0;
+
     public:
         Speech(
             Commander& commander,
@@ -150,10 +156,7 @@ namespace prompt {
                 // ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
                 // int outpos = w.ws_col - out.length() - 1;
                 
-                
-                int s = out.size();
-                for (int i = 0; i < s; i++) out += "\b";
-                cout << out << flush;
+                show_mic(out);
                 // struct winsize w;
                 // ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
                 // int outpos = w.ws_col - out.length() - 1;
@@ -166,6 +169,7 @@ namespace prompt {
                 // ----- handle speech interruptions -----
 
                 if (!that.tts_paused && loud && !that.loud_prev && that.tts->is_speaking()) {
+                    //cout << "[DEBUG] speach paused." << endl;
                     that.tts->speak_pause();
                     that.tts_paused = true;
                     that.tts_paused_at = get_time_ms();
@@ -225,9 +229,11 @@ namespace prompt {
                 bool resumed = false;
                 if (that.tts_paused) {
                     if (that.tts_paused_at + that.speech_impatient_ms > get_time_ms()) {
+                        //cout << "[DEBUG] speach resume." << endl;
                         tts->speak_resume();
                         resumed = true;
                     } else {
+                        //cout << "[DEBUG] speach stop (interrupted)." << endl;
                         tts->speak_stop();
                         //interrupt_handler();
                     }
@@ -238,8 +244,9 @@ namespace prompt {
 
                     struct winsize w;
                     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+                    hide_mic();
                     string outp = "\r" + that.commander.get_command_line_ref().get_prompt() + trim_text;
-                    for (int i = outp.size(); i < w.ws_col - 2; i++) outp += " ";
+                    // for (int i = outp.size(); i < w.ws_col - 2; i++) outp += " ";
                     cout << outp << endl;
                     that.text_puffer.push_back(trim_text);
                     if (!recs && !resumed) {
@@ -261,6 +268,20 @@ namespace prompt {
             stt->stop();
             delete stt;
             delete tts;
+        }
+
+        void show_mic(string& out) {
+            mic_out_size = out.size();
+            for (int i = 0; i < mic_out_size; i++) out += "\b";
+            cout << out << flush;
+        }
+
+        void hide_mic() {
+            string out = "";
+            for (int i = 0; i < mic_out_size; i++) out += "\b";
+            for (int i = 0; i < mic_out_size+5; i++) out += " ";
+            for (int i = 0; i < mic_out_size+5; i++) out += "\b";
+            cout << out << flush;
         }
 
         // void pause() {
@@ -291,6 +312,15 @@ namespace prompt {
             tts->speak_stop();
             // speak_paused_at_ms = 0;
             tts->speak_beep(text, think);
+        }
+
+        bool speak(const string& text) {
+            tts->speak_stop();
+            return tts->speak(text);
+        }
+
+        void beep() {
+            tts->beep();
         }
 
 

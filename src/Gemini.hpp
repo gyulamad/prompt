@@ -3,6 +3,7 @@
 #include "tools/llm/Model.hpp"
 #include "tools/Logger.hpp"
 #include "tools/Process.hpp"
+#include "tools/Curl.hpp"
 
 using namespace std;
 using namespace tools;
@@ -12,7 +13,13 @@ namespace prompt {
 
     class Gemini: public Model {
     private:
-        int err_retry = 10;
+        const string tmpfile = "/tmp/temp.json";
+        string command;
+        JSON response;
+        int err_retry = 10; // TODO: param??
+        const int attempts = 2; // TODO: param
+        int restarts = attempts;
+
         Logger& logger;
         string secret;
 
@@ -68,12 +75,31 @@ namespace prompt {
                 ]
             })");
         }
+
+        runtime_error handle_request_error(const exception &e) {
+            string what = e.what();
+            string usrmsg = "Gemini API failure: " + what + "\nSwitching variant from " + variant + " to ";
+            string errmsg = 
+                "Gemini API (" + variant + ") request failed: " + what;
+            bool next_variant_found = next_variant();
+            usrmsg += variant + ".";                    
+            cerr << usrmsg << endl;
+            errmsg += 
+                "\nContinue with variant " + variant + 
+                "\nRequest was: " + command +
+                "\nRequest data: " + str_cut_begin(file_get_contents(tmpfile)) +
+                "\nResponse was: " + response.dump();
+            logger.warning(errmsg);
+            if (!next_variant_found) {
+                cerr << "Retry after " << err_retry << " second(s)..." << endl;
+                sleep(err_retry);
+                restarts--;
+            } else sleep(3); // TODO: for api rate limit
+            return ERROR("Gemini API error. See more in log...");
+        }
         
         virtual string request() override {
-            int restarts = 2;
-            const string tmpfile = "/tmp/temp.json";
-            string command;
-            JSON response;
+            restarts = attempts;
             while (restarts) {
                 try {
                     // JSON request;
@@ -91,28 +117,165 @@ namespace prompt {
                         throw ERROR("Gemini error: " + response.dump());
                     return response.get<string>("candidates[0].content.parts[0].text");    
                 } catch (exception &e) {
-                    string what = e.what();
-                    string usrmsg = "Gemini API failure: " + what + "\nSwitching variant from " + variant + " to ";
-                    string errmsg = 
-                        "Gemini API (" + variant + ") request failed: " + what;
-                    bool next_variant_found = next_variant();
-                    usrmsg += variant + ".";                    
-                    cerr << usrmsg << endl;
-                    errmsg += 
-                        "\nContinue with variant " + variant + 
-                        "\nRequest was: " + command +
-                        "\nRequest data: " + str_cut_begin(file_get_contents(tmpfile)) +
-                        "\nResponse was: " + response.dump();
-                    logger.warning(errmsg);
-                    if (!next_variant_found) {
-                        cerr << "Retry after " << err_retry << " second(s)..." << endl;
-                        sleep(err_retry);
-                        restarts--;
-                    } else sleep(3); // TODO: for api rate limit
+                    if(restarts == 0) throw handle_request_error(e);
                 }
             }
-            throw ERROR("Gemini API error. See more in log...");
+            throw ERROR("Unable to reach Gemini API.");
         }
+
+        string request_stream(
+            void* context,
+            function<bool(void*, const string&)> cb_response,
+            function<void(void*, const string&)> cb_done
+        ) override {
+            int restarts = attempts;
+            const vector<string> sentence_delimiters = {".", "!", "?"}; // TODO: config
+
+            while (restarts) {
+                string full_response;
+                string pending_text;
+                bool request_success = false;
+        
+                try {
+                    Curl curl;
+                    curl.AddHeader("Accept: application/json");
+                    curl.SetTimeout(30000); // TODO: config
+                    curl.SetVerifySSL(true);
+                    // curl.SetFollowRedirects(true);
+                    // curl.SetAutoDecompress(true);
+                    // curl.SetDNSCaching(300);
+        
+                    bool interrupted = false;
+
+                    string conversation_json_data = conversation_to_json(system, conversation);
+                    // cout << "[DEBUG conversation_json_data]: " << conversation_json_data << endl;
+                    string succsess_sentences = "";
+                    request_success = curl.POST(
+                        "https://generativelanguage.googleapis.com/v1beta/models/" 
+                            + variant + ":streamGenerateContent?alt=sse&key=" + escape(secret),
+                        [&](const string& chunk) {
+                            // cout << "[DEBUG chunk]: " << chunk << endl;
+                            if (interrupted) return;
+
+                            // Process SSE events
+                            vector<string> events = explode("\n\n", str_replace("\r", "", chunk));
+                            
+                            for (const string& event : events) {
+                                if (!str_contains(event, "data: ")) continue;
+                                
+                                vector<string> parts = explode("data: ", event);
+                                if (parts.size() < 2) continue;
+                                
+                                JSON json(parts[1]);
+                                if (json.isDefined("error"))
+                                    throw ERROR("Gemini error: " + json.dump());
+                                
+                                if (!json.isDefined("candidates[0].content.parts[0].text"))
+                                    continue;
+
+                                string text = json.get<string>("candidates[0].content.parts[0].text");
+                                full_response += text;
+                                pending_text += text;
+
+                                // Split into sentences
+                                // vector<string> chars = explode("", pending_text);
+                                string current_sentence;
+                                
+                                for (char c : pending_text) {
+                                    string s(1, c);
+                                    current_sentence += s;
+                                    if (in_array(s, sentence_delimiters)) {
+                                        // cout << "[DEBUG] resp: " << current_sentence << endl;
+                                        if (cb_response(context, current_sentence)) {
+                                            interrupted = true;
+                                            curl.cancel();
+                                            return;
+                                        }
+                                        succsess_sentences += current_sentence;
+                                        current_sentence.clear();
+                                    }
+                                }
+                                
+                                pending_text = current_sentence;
+                                
+                            }
+                        },
+                        conversation_json_data,
+                        {
+                            "Content-Type: application/json",
+                            "Accept: text/event-stream"
+                        }
+                    );
+        
+                    if(request_success) {
+                        // Flush remaining text
+                        if(!interrupted && !pending_text.empty()) {
+                            // cout << "[DEBUG] last: " << pending_text << endl;
+                            if (!cb_response(context, pending_text))
+                                succsess_sentences += pending_text;
+                        }
+                        // cout << "[DEBUG] done." << endl;
+                        cb_done(context, full_response);
+                        return succsess_sentences;
+                    }
+                }
+                catch(const exception& e) {
+                    throw handle_request_error(e);
+                }
+            }
+            
+            throw ERROR("Unable to reach Gemini API after " + to_string(attempts) + " attempts.");
+        }
+
+        // void request_stream(
+        //     void* context,
+        //     function<void(void*, const string&)> cb_response,
+        //     function<void(void*, const string&)> cb_done
+        // ) override {
+        //     Process proc;
+        //     restarts = attempts;
+        //     while (restarts) {
+        //         try {
+        //             string conversation_json = conversation_to_json(system, conversation);
+        //             if (!file_put_contents(tmpfile, conversation_json)) {
+        //                 throw ERROR("Unable to write: " + tmpfile);
+        //             }
+        //             command = "curl -s \"https://generativelanguage.googleapis.com/v1beta/models/" + variant + ":streamGenerateContent?alt=sse&key=" + escape(secret) + "\" -H 'Content-Type: application/json' --no-buffer --data-binary @" + tmpfile;
+        //             proc.writeln(command);
+        //             string resp = "";
+        //             string text = "";
+        //             string last = "";
+        //             while(true) {
+        //                 if (!proc.ready()) continue;
+        //                 resp = proc.read(1000); // TODO: config
+        //                 if (resp.empty()) break;
+        //                 vector<string> chunks = explode("\n", resp);
+        //                 for (const string& chunk: chunks) {
+        //                     if (trim(chunk).empty()) continue;
+        //                     cout << resp << endl;
+        //                     response = resp;
+        //                     if (response.isDefined("error") || !response.isDefined("candidates[0].content.parts[0].text"))
+        //                         throw ERROR("Gemini error: " + response.dump());
+        //                     string text = response.get<string>("candidates[0].content.parts[0].text");
+        //                     vector<string> pieces = explode(".", text);
+        //                     while (pieces.size() > 1) {
+        //                         string piece = array_shift(pieces) + ".";
+        //                         if (!last.empty()) piece = last + piece;
+        //                         last = "";
+        //                         cb_response(context, piece);
+        //                         text += piece;
+        //                     }
+        //                     last = pieces[0];
+        //                 }
+        //             }
+        //             cb_response(context, last);
+        //             text += last;
+        //             cb_done(context, text);
+        //         } catch (exception &e) {
+        //             throw handle_request_error(e);
+        //         }
+        //     }
+        // }
 
     public:
         Gemini(

@@ -31,6 +31,7 @@ namespace prompt {
         Commander commander;
 
         mode_t mode = MODE_CHAT;
+        bool stream = true;
         Model& model;
         string model_name;
         string user_lang;
@@ -328,6 +329,21 @@ namespace prompt {
             return commander.get_command_line_ref().readln();
         }
 
+        static bool stream_callback(void* user_void, const string& inference) {
+            if (!user_void) return false;
+            User* user = (User*)user_void;
+            if (user->speech) user->speech->hide_mic();
+            cout << inference << endl;
+            if (!user->speech) return false;
+            return !user->speech->speak(inference);        
+        }
+
+        static void stream_done_callback(void* user_void, const string& fulltext) {
+            if (!user_void) return;
+            User* user = (User*)user_void;
+            if (user->speech) user->speech->beep();
+        }
+
         void start() {
             string input = "";
             string response = "";
@@ -335,8 +351,9 @@ namespace prompt {
             cout << "DEBUG: User keyboard input handler thread start..." << endl;
             thread keyboard_input_thread([&]{
                 while (!commander.is_exiting()) {
-                    input = commander.get_command_line_ref().readln();
+                    input = prompt(); //commander.get_command_line_ref().readln();
                     //if (speech) speech_delete();
+                    sleep(1);
                 }
             });
 
@@ -393,6 +410,14 @@ namespace prompt {
                 switch (mode)
                 {
                     case MODE_CHAT:
+                        if (stream) {
+                            thread model_prompt_thread([&](){
+                                model.prompt_stream(input, this, stream_callback, stream_done_callback);
+                            });
+                            //cout << "[DEBUG] Waiting for model prompt thread to finish..." << endl;
+                            model_prompt_thread.join();                            
+                            break;
+                        }
                         response = model.prompt(input);
                         break;
 
@@ -451,7 +476,8 @@ namespace prompt {
                 if (auto_save && !model_name.empty()) save_model(true, false);
             }
 
-            while(!keyboard_input_thread.joinable());
+            //while(!keyboard_input_thread.joinable());
+            cout << "[DEBUG] Waiting for keyboard input thread to finish..." << endl;
             keyboard_input_thread.join();
         }
 
