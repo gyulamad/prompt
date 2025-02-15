@@ -378,11 +378,13 @@ namespace prompt {
 
             while (!commander.is_exiting()) {
 
-                string resp = trim(response);
-                if (!resp.empty()) {
-                    cout << "\r" << resp << endl;
-                    commander.get_command_line_ref().show();                    
-                    if (speech) speech->speak(resp, true, true);
+                if (!stream) {
+                    string resp = trim(response);
+                    if (!resp.empty()) {
+                        cout << "\r" << resp << endl;
+                        commander.get_command_line_ref().show();                    
+                        if (speech) speech->speak(resp, true, true);
+                    }
                 }
 
                 // waiting for the next input:
@@ -400,41 +402,16 @@ namespace prompt {
                     commander.run_command(this, input);
                     continue; 
                 }
-
-                // if (speech) {
-                    
-                //     //model.system_data["{{speech_current_noise_threshold_pc}}"] = to_string(speech->noise_threshold_pc);
-
-                //     if (speech->is_say_interrupted()) {
-                //         cout << "AI TTS was interrupted" << endl;
-                //         // input = speech_interrupt_info_token + "\n" + input;  
-                //         // TODO:
-                //         vector<Message> messages;
-                //         while (true) {                           
-                //             if (!model.hasContext()) break;
-                //             Message message = model.popContext();
-                //             messages.push_back(message);
-                //             if (message.get_role() != ROLE_OUTPUT) continue;
-                //             message.set_text(message.get_text() + "..." + speech_interrupt_info_token);
-                //             //model.addContext(message);
-                //             //messages = array_reverse(messages);
-                //             for (const Message& message: messages)
-                //                 model.addContext(message.get_text(), message.get_role());
-                //         }
-                //         // model.addContext(speech_interrupt_info_token, ROLE_INPUT); 
-
-                //         if (!add_puffered_voice_input_to_context()) speech->stall(); 
-                //     }   
-                // }
+                
                 switch (mode)
                 {
                     case MODE_CHAT:
                         if (stream) {
-                            thread model_prompt_thread([&](){
-                                model.prompt_stream(input, this, stream_callback, stream_done_callback);
-                            });
+                            // thread model_prompt_thread([&](){
+                                response = model.prompt_stream(input, this, stream_callback, stream_done_callback);
+                            // });
                             //cout << "[DEBUG] Waiting for model prompt thread to finish..." << endl;
-                            model_prompt_thread.join();                            
+                            // model_prompt_thread.join();                            
                             break;
                         }
                         response = model.prompt(input);
