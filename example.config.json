@@ -32,6 +32,7 @@
             },
             "noise_monitor": {
                 "threshold_pc": 0.1,
+                "rmax_decay_pc": 0.01,
                 "window": 16384
             },
             "transcriber": {

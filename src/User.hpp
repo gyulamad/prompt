@@ -61,6 +61,7 @@ namespace prompt {
         unsigned long speech_stt_voice_recorder_frames_per_buffer;
         size_t speech_stt_voice_recorder_buffer_seconds;
         float speech_stt_noise_monitor_threshold_pc;
+        float speech_stt_noise_monitor_rmax_decay_pc;
         size_t speech_stt_noise_monitor_window;
         string speech_stt_transcriber_model;
         long speech_stt_poll_interval_ms;
@@ -95,6 +96,7 @@ namespace prompt {
             unsigned long speech_stt_voice_recorder_frames_per_buffer,
             size_t speech_stt_voice_recorder_buffer_seconds,
             float speech_stt_noise_monitor_threshold_pc,
+            float speech_stt_noise_monitor_rmax_decay_pc,
             size_t speech_stt_noise_monitor_window,
             const string& speech_stt_transcriber_model,
             long speech_stt_poll_interval_ms
@@ -123,6 +125,7 @@ namespace prompt {
             speech_stt_voice_recorder_frames_per_buffer(speech_stt_voice_recorder_frames_per_buffer),
             speech_stt_voice_recorder_buffer_seconds(speech_stt_voice_recorder_buffer_seconds),
             speech_stt_noise_monitor_threshold_pc(speech_stt_noise_monitor_threshold_pc),
+            speech_stt_noise_monitor_rmax_decay_pc(speech_stt_noise_monitor_rmax_decay_pc),
             speech_stt_noise_monitor_window(speech_stt_noise_monitor_window),
             speech_stt_transcriber_model(speech_stt_transcriber_model),
             speech_stt_poll_interval_ms(speech_stt_poll_interval_ms)
@@ -264,6 +267,7 @@ namespace prompt {
                 speech_stt_voice_recorder_frames_per_buffer,
                 speech_stt_voice_recorder_buffer_seconds,
                 speech_stt_noise_monitor_threshold_pc,
+                speech_stt_noise_monitor_rmax_decay_pc,
                 speech_stt_noise_monitor_window,
                 speech_stt_transcriber_model,
                 speech_stt_poll_interval_ms            

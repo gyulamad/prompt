@@ -364,20 +364,20 @@ namespace tools::llm {
             function<void(void*, const string&)> cb_done
         ) {
             memorize(prmpt, ROLE_INPUT);
-            string response = "";
-            request_stream(
+            //string response = "";
+            string non_interrupted_responses = request_stream(
                 context, 
                 [&](void* ctx, const string& text) { 
                     if (cb_response(ctx, text)) {
-                        response += text;
+                        //response += text;
                         return true;
                     }
                     return false;
                 }, cb_done
             );
-            if (!response.empty())
-                memorize(response, ROLE_OUTPUT);
-            return response;
+            if (!non_interrupted_responses.empty())
+                memorize(non_interrupted_responses, ROLE_OUTPUT);
+            return non_interrupted_responses;
         }
 
         string prompt(const string& prmpt/*, const string& suffix*/) {

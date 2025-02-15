@@ -48,7 +48,8 @@ namespace tools::voice {
             const double stt_voice_recorder_sample_rate,
             const unsigned long stt_voice_recorder_frames_per_buffer,
             const size_t stt_voice_recorder_buffer_seconds,
-            const float stt_noise_monitor_threshold,
+            const float stt_noise_monitor_threshold_pc,
+            const float stt_noise_monitor_rmax_decay_pc,
             const size_t stt_noise_monitor_window,
             const string& stt_transcriber_model,
             const string& stt_transcriber_lang,
@@ -62,7 +63,8 @@ namespace tools::voice {
             
             monitor = new NoiseMonitor(
                 *recorder,
-                stt_noise_monitor_threshold,
+                stt_noise_monitor_threshold_pc,
+                stt_noise_monitor_rmax_decay_pc,
                 stt_noise_monitor_window
             );
             

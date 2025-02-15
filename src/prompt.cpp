@@ -143,6 +143,7 @@ int main(int argc, char *argv[]) {
     const unsigned long speech_stt_voice_recorder_frames_per_buffer = config.get<unsigned long>("speech.stt.voice_recorder.frames_per_buffer");
     const size_t speech_stt_voice_recorder_buffer_seconds = config.get<size_t>("speech.stt.voice_recorder.buffer_seconds");
     const float speech_stt_noise_monitor_threshold_pc = config.get<float>("speech.stt.noise_monitor.threshold_pc");
+    const float speech_stt_noise_monitor_rmax_decay_pc = config.get<float>("speech.stt.noise_monitor.rmax_decay_pc");
     const size_t speech_stt_noise_monitor_window = config.get<size_t>("speech.stt.noise_monitor.window");
     const string speech_stt_transcriber_model = config.get<string>("speech.stt.transcriber.model");
     const long speech_stt_poll_interval_ms = config.get<long>("speech.stt.poll_interval_ms");
@@ -237,6 +238,7 @@ int main(int argc, char *argv[]) {
         speech_stt_voice_recorder_frames_per_buffer,
         speech_stt_voice_recorder_buffer_seconds,
         speech_stt_noise_monitor_threshold_pc,
+        speech_stt_noise_monitor_rmax_decay_pc,
         speech_stt_noise_monitor_window,
         speech_stt_transcriber_model,
         speech_stt_poll_interval_ms

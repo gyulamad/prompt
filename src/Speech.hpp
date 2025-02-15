@@ -87,7 +87,8 @@ namespace prompt {
             const double speech_stt_voice_recorder_sample_rate,
             const unsigned long speech_stt_voice_recorder_frames_per_buffer,
             const size_t speech_stt_voice_recorder_buffer_seconds,
-            const float speech_stt_noise_monitor_threshold,
+            const float speech_stt_noise_monitor_threshold_pc,
+            const float speech_stt_noise_monitor_rmax_decay_pc,
             const size_t speech_stt_noise_monitor_window,
             const string& speech_stt_transcriber_model,
             const long speech_stt_poll_interval_ms
@@ -113,7 +114,8 @@ namespace prompt {
                 speech_stt_voice_recorder_sample_rate,
                 speech_stt_voice_recorder_frames_per_buffer,
                 speech_stt_voice_recorder_buffer_seconds,
-                speech_stt_noise_monitor_threshold,
+                speech_stt_noise_monitor_threshold_pc,
+                speech_stt_noise_monitor_rmax_decay_pc,
                 speech_stt_noise_monitor_window,
                 speech_stt_transcriber_model,
                 lang,
@@ -139,7 +141,8 @@ namespace prompt {
                     if (vol_pc > i) out += "•";
                     else out += "◦"; //"·•◦";
                 }
-                out += "] " + set_precision(threshold_pc * 100, 2) + "/" + set_precision(vol_pc * 100, 2) + "% ";
+                out += "] VOL: " + set_precision(threshold_pc * 100, 2) + "/" + set_precision(vol_pc * 100, 2) + "% ";
+                out += "RMS: " + set_precision(rmax, 2) + "/" + set_precision(rms, 2) + " ";
                 
                 // progress roller
                 that.rollnxt++;

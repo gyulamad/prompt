@@ -19,15 +19,24 @@ namespace tools::voice {
         using NoiseCallback = function<void(
             void* listener, 
             float vol_pc, 
-            float threshold_pc, 
+            float threshold_pc,
             float rmax, 
             float rms, 
             bool is_noisy, 
             vector<float>& buffer
         )>;
 
-        NoiseMonitor(VoiceRecorder& recorder, float threshold_pc, size_t window)
-            : recorder(recorder), threshold_pc(threshold_pc), window(window) {}
+        NoiseMonitor(
+            VoiceRecorder& recorder, 
+            float threshold_pc, 
+            float rmax_decay_pc, 
+            size_t window
+        ): 
+            recorder(recorder), 
+            threshold_pc(threshold_pc), 
+            rmax_decay_pc(rmax_decay_pc),
+            window(window) 
+        {}
 
         void start(void* listener, NoiseCallback cb, long pollIntervalMs) {
             cout << "DEBUG: NoiseMonitor monitor thread start..." << endl;
@@ -40,14 +49,14 @@ namespace tools::voice {
                     if (avail >= window) {
                         recorder.read_audio(buffer.data(), window);
                         float rms = calculate_rms(buffer);
-
                         if (rms >= rmax) rmax = rms;
-                        //cout << "[" << rms << "/" << rmax << "]" << endl;
                         float vol_pc = rms / rmax;
-
                         bool noisy = vol_pc > threshold_pc;
 
                         cb(listener, vol_pc, threshold_pc, rmax, rms, noisy, buffer);
+
+                        // const float rmax_decay_pc = 0.01;
+                        rmax += (noisy ? 1 : -1) * rmax * rmax_decay_pc;
                     }
                 }
             });
@@ -72,6 +81,7 @@ namespace tools::voice {
     private:
         VoiceRecorder& recorder;
         float threshold_pc;
+        float rmax_decay_pc;
         size_t window;
         // atomic<bool> paused{true};
         atomic<bool> running{true};
