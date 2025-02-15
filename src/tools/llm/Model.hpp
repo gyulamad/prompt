@@ -169,6 +169,11 @@ namespace tools::llm {
         }
 
         virtual string request() { UNIMP }
+        virtual string request_stream(
+            void*, // context
+            function<bool(void*, const string&)>, // inference chunk recieved
+            function<void(void*, const string&)> // full response recieved
+        ) { UNIMP }
 
         vector<string> explode_options(const string& response) {
             vector<string> splits = explode(opt_prefix, response);
@@ -352,7 +357,28 @@ namespace tools::llm {
         //     conversation.clear();
         // }
 
-
+        string prompt_stream(
+            const string& prmpt, 
+            void* context,
+            function<bool(void*, const string&)> cb_response, 
+            function<void(void*, const string&)> cb_done
+        ) {
+            memorize(prmpt, ROLE_INPUT);
+            string response = "";
+            request_stream(
+                context, 
+                [&](void* ctx, const string& text) { 
+                    if (cb_response(ctx, text)) {
+                        response += text;
+                        return true;
+                    }
+                    return false;
+                }, cb_done
+            );
+            if (!response.empty())
+                memorize(response, ROLE_OUTPUT);
+            return response;
+        }
 
         string prompt(const string& prmpt/*, const string& suffix*/) {
             // const string suffix = "";

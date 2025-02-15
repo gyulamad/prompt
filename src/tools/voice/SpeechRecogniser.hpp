@@ -96,7 +96,7 @@ namespace tools::voice {
 
         void stop() {
             running = false;
-            while (!transcriberThread.joinable());
+            //while (!transcriberThread.joinable());
             transcriberThread.join();
             listener.stop();
         }

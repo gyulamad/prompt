@@ -18,8 +18,9 @@
                 "-I${workspaceFolder}/libs/ggerganov/whisper.cpp/ggml/include",
                 "${workspaceFolder}/libs/ggerganov/whisper.cpp/build/src/libwhisper.so.1.7.4", 
                 "-Wl,-rpath,${workspaceFolder}/libs/ggerganov/whisper.cpp/build/src",  // <-- Add this
-                "-lrt", "-lm", "-lasound", "-ljack", 
+                "-lrt", "-lm", "-lasound", //"-ljack", 
                 "-lportaudio", //"-lwhisper",
+                "-lcurl",
                 "-pthread"
             ],
             "group": {

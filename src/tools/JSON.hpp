@@ -313,7 +313,7 @@ namespace tools {
             return _error;
         }     
 
-        string dump(const int indent = -1, const char indent_char = ' ') {
+        string dump(const int indent = -1, const char indent_char = ' ') const {
             try {
                 // json j;
                 // try {

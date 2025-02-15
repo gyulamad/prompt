@@ -116,10 +116,17 @@ int main(int argc, char *argv[]) {
     const string gemini_secret = config_gemini.get<string>("secret");
     const vector<string> gemini_variants = config_gemini.get<vector<string>>("variants");
     const size_t gemini_current_variant = config_gemini.get<size_t>("current_variant");
+    const int gemini_err_retry_sec = config_gemini.get<size_t>("err_retry_sec");
+    const int gemini_err_attempts = config_gemini.get<size_t>("err_attempts");
+    const vector<string> gemini_sentence_delimiters = config_gemini.get<vector<string>>("sentence_delimiters");
+    const long gemini_stream_request_timeout = config_gemini.get<long>("stream_request_timeout");
+    const string gemini_tmpfile = config_gemini.get<string>("tmpfile");
 
     const string user_prompt = config.get<string>("user.prompt");
     const string user_lang = config.get<string>("user.language");
     const bool user_auto_save = config.get<bool>("user.auto_save");
+    const prompt::mode_t user_mode = get_mode(config.get<string>("user.mode"));
+    const bool user_stream = config.get<bool>("user.stream");
 
     const bool speech_stall = config.get<bool>("speech.stall");  
     // const long long speech_speak_wait_ms = config.get<long long>("speech.speak_wait_ms");
@@ -130,6 +137,7 @@ int main(int argc, char *argv[]) {
     const int speech_tts_gap = config.get<int>("speech.tts.gap");
     const string speech_tts_beep_cmd = config.get<string>("speech.tts.beep_cmd");
     const string speech_tts_think_cmd = config.get<string>("speech.tts.think_cmd");
+    const map<string, string> speech_tts_speak_replacements = config.get<map<string, string>>("speech.tts.speak_replacements");
     const bool speech_stt_voice_in = voice && config.get<bool>("speech.stt_voice_in");
     const double speech_stt_voice_recorder_sample_rate = config.get<double>("speech.stt.voice_recorder.sample_rate");
     const unsigned long speech_stt_voice_recorder_frames_per_buffer = config.get<unsigned long>("speech.stt.voice_recorder.frames_per_buffer");
@@ -194,6 +202,11 @@ int main(int argc, char *argv[]) {
         gemini_secret,
         gemini_variants,
         gemini_current_variant,
+        gemini_err_retry_sec,
+        gemini_err_attempts,
+        gemini_sentence_delimiters,
+        gemini_stream_request_timeout,
+        gemini_tmpfile,
         model_system,
         model_conversation_length_max,
         model_conversation_loss_ratio,
@@ -206,6 +219,8 @@ int main(int argc, char *argv[]) {
         model_name, 
         user_lang,
         user_auto_save,
+        user_mode,
+        user_stream,
         user_prompt,
         basedir,
         speech_stall,
@@ -216,6 +231,7 @@ int main(int argc, char *argv[]) {
         speech_tts_gap,
         speech_tts_beep_cmd,
         speech_tts_think_cmd,
+        speech_tts_speak_replacements,
         speech_stt_voice_in,
         speech_stt_voice_recorder_sample_rate,
         speech_stt_voice_recorder_frames_per_buffer,

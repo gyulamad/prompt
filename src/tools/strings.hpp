@@ -18,6 +18,7 @@ using namespace std;
 namespace tools {
 
     vector<string> explode(const string& delimiter, const string& str) {
+        if (delimiter.empty()) throw ERROR("Delimeter can not be empty.");
         vector<string> result;
         size_t start = 0;
         size_t end = str.find(delimiter);
@@ -287,6 +288,22 @@ namespace tools {
         } catch (const invalid_argument& e) {
             return "Hibás bemenet";
         }
+    }
+
+    // PHP like function to convert string to lower case
+    string strtolower(const string& s) {
+        string result = s; // Create a copy of the input string
+        for (char& c : result) // Iterate over each character
+            c = tolower(static_cast<unsigned char>(c)); // Convert to lower case
+        return result;
+    }
+
+    // PHP like function to convert string to upper case
+    string strtoupper(const string& s) {
+        string result = s; // Create a copy of the input string
+        for (char& c : result) // Iterate over each character
+            c = toupper(static_cast<unsigned char>(c)); // Convert to upper case
+        return result;
     }
 
 }
