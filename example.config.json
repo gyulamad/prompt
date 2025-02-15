@@ -72,7 +72,7 @@
             "^\\[.*\\]$",
             "^\\*.*\\*$",
             "^\\(.*\\)$",
-            "^\\-.*[\\.\\!]$" // (for hungarian??)
+            "^\\-.*[\\.\\!\\-]$" // (for hungarian??)
         ],
 
         // Speech voice output interruption timeout. When user speech (MIC input) interrupts the
