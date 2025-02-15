@@ -27,5 +27,11 @@
 
     // Model usage start with the current_variant, 
     // select your prefered Gemini model from the variants list above.
-    "current_variant": 0
+    "current_variant": 0,
+
+    "err_retry_sec": 10,
+    "err_attempts": 3,
+    "sentence_delimiters": [".", "!", "?"],
+    "stream_request_timeout": 30000,
+    "tmpfile": "/tmp/temp.json"
 }

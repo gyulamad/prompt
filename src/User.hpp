@@ -26,16 +26,24 @@ namespace prompt {
 
     typedef enum { MODE_CHAT, MODE_THINK, MODE_SOLVE } mode_t;
 
+    mode_t get_mode(const string& name) {
+        string name_lower = strtolower(name);
+        if (name == "mode_chat" || name == "chat") return MODE_CHAT;
+        if (name == "mode_think" || name == "think") return MODE_THINK;
+        if (name == "mode_solve" || name == "solve") return MODE_SOLVE;
+        throw ERROR("Invalid mode: " + name);
+    }
+
     class User {
     private:
         Commander commander;
 
-        mode_t mode = MODE_CHAT;
-        bool stream = true;
         Model& model;
         string model_name;
         string user_lang;
         bool auto_save;
+        mode_t mode;
+        bool stream;
         string basedir;
 
         // ----------- speech -----------
@@ -47,6 +55,7 @@ namespace prompt {
         int speech_tts_gap;
         string speech_tts_beep_cmd;
         string speech_tts_think_cmd;
+        map<string, string> speech_tts_speak_replacements;
         bool speech_stt_voice_in;
         double speech_stt_voice_recorder_sample_rate;
         unsigned long speech_stt_voice_recorder_frames_per_buffer;
@@ -69,6 +78,8 @@ namespace prompt {
             const string& model_name,
             const string& user_lang,
             bool auto_save,
+            mode_t mode,
+            bool stream,
             const string& prompt, // = "> ", 
             const string& basedir, // = "./prompt/",,
             bool speech_stall,
@@ -78,6 +89,7 @@ namespace prompt {
             int speech_tts_gap,
             const string& speech_tts_beep_cmd,
             const string& speech_tts_think_cmd,
+            const map<string, string>& speech_tts_speak_replacements,
             bool speech_stt_voice_in,
             double speech_stt_voice_recorder_sample_rate,
             unsigned long speech_stt_voice_recorder_frames_per_buffer,
@@ -94,6 +106,8 @@ namespace prompt {
             model_name(model_name),
             user_lang(user_lang),
             auto_save(auto_save), 
+            mode(mode),
+            stream(stream),
             commander(CommandLine(prompt)), 
             basedir(basedir),
             speech_stall(speech_stall),
@@ -104,6 +118,7 @@ namespace prompt {
             speech_tts_gap(speech_tts_gap),
             speech_tts_beep_cmd(speech_tts_beep_cmd),
             speech_tts_think_cmd(speech_tts_think_cmd),
+            speech_tts_speak_replacements(speech_tts_speak_replacements),
             speech_stt_voice_recorder_sample_rate(speech_stt_voice_recorder_sample_rate),
             speech_stt_voice_recorder_frames_per_buffer(speech_stt_voice_recorder_frames_per_buffer),
             speech_stt_voice_recorder_buffer_seconds(speech_stt_voice_recorder_buffer_seconds),
@@ -244,6 +259,7 @@ namespace prompt {
                 speech_tts_gap,
                 speech_tts_beep_cmd,
                 speech_tts_think_cmd,
+                speech_tts_speak_replacements,
                 speech_stt_voice_recorder_sample_rate,
                 speech_stt_voice_recorder_frames_per_buffer,
                 speech_stt_voice_recorder_buffer_seconds,
@@ -325,7 +341,6 @@ namespace prompt {
             //         return input;
             //     }
             // }
-
             return commander.get_command_line_ref().readln();
         }
 
@@ -363,7 +378,7 @@ namespace prompt {
                 if (!resp.empty()) {
                     cout << "\r" << resp << endl;
                     commander.get_command_line_ref().show();                    
-                    if (speech) speech->speak_beep(resp);
+                    if (speech) speech->speak(resp, true, true);
                 }
 
                 // waiting for the next input:

@@ -13,12 +13,14 @@ namespace prompt {
 
     class Gemini: public Model {
     private:
-        const string tmpfile = "/tmp/temp.json";
         string command;
         JSON response;
-        int err_retry = 10; // TODO: param??
-        const int attempts = 2; // TODO: param
-        int restarts = attempts;
+        int err_retry_sec;
+        int err_attempts;
+        int restarts = err_attempts;
+        vector<string> sentence_delimiters;
+        long stream_request_timeout;
+        string tmpfile;
 
         Logger& logger;
         string secret;
@@ -91,15 +93,15 @@ namespace prompt {
                 "\nResponse was: " + response.dump();
             logger.warning(errmsg);
             if (!next_variant_found) {
-                cerr << "Retry after " << err_retry << " second(s)..." << endl;
-                sleep(err_retry);
+                cerr << "Retry after " << err_retry_sec << " second(s)..." << endl;
+                sleep(err_retry_sec);
                 restarts--;
-            } else sleep(3); // TODO: for api rate limit
+            } else sleep(err_retry_sec); // TODO: for api rate limit
             return ERROR("Gemini API error. See more in log...");
         }
         
         virtual string request() override {
-            restarts = attempts;
+            restarts = err_attempts;
             while (restarts) {
                 try {
                     // JSON request;
@@ -128,8 +130,7 @@ namespace prompt {
             function<bool(void*, const string&)> cb_response,
             function<void(void*, const string&)> cb_done
         ) override {
-            int restarts = attempts;
-            const vector<string> sentence_delimiters = {".", "!", "?"}; // TODO: config
+            int restarts = err_attempts;
 
             while (restarts) {
                 string full_response;
@@ -139,7 +140,7 @@ namespace prompt {
                 try {
                     Curl curl;
                     curl.AddHeader("Accept: application/json");
-                    curl.SetTimeout(30000); // TODO: config
+                    curl.SetTimeout(stream_request_timeout);
                     curl.SetVerifySSL(true);
                     // curl.SetFollowRedirects(true);
                     // curl.SetAutoDecompress(true);
@@ -157,6 +158,15 @@ namespace prompt {
                             // cout << "[DEBUG chunk]: " << chunk << endl;
                             if (interrupted) return;
 
+                            if (is_valid_json(chunk)) {
+                                JSON json(chunk);
+                                if (json.isDefined("error"))
+                                    throw ERROR("Gemini error: " + json.dump());
+                                
+                                if (!json.isDefined("candidates[0].content.parts[0].text"))
+                                    throw ERROR("Gemini error: text is not defined: " + json.dump());
+                            }
+
                             // Process SSE events
                             vector<string> events = explode("\n\n", str_replace("\r", "", chunk));
                             
@@ -171,7 +181,7 @@ namespace prompt {
                                     throw ERROR("Gemini error: " + json.dump());
                                 
                                 if (!json.isDefined("candidates[0].content.parts[0].text"))
-                                    continue;
+                                    throw ERROR("Gemini error: text is not defined: " + json.dump());
 
                                 string text = json.get<string>("candidates[0].content.parts[0].text");
                                 full_response += text;
@@ -220,62 +230,13 @@ namespace prompt {
                     }
                 }
                 catch(const exception& e) {
-                    throw handle_request_error(e);
+                    handle_request_error(e);
                 }
             }
             
-            throw ERROR("Unable to reach Gemini API after " + to_string(attempts) + " attempts.");
+            throw ERROR("Unable to reach Gemini API after " + to_string(err_attempts) + " attempts.");
         }
-
-        // void request_stream(
-        //     void* context,
-        //     function<void(void*, const string&)> cb_response,
-        //     function<void(void*, const string&)> cb_done
-        // ) override {
-        //     Process proc;
-        //     restarts = attempts;
-        //     while (restarts) {
-        //         try {
-        //             string conversation_json = conversation_to_json(system, conversation);
-        //             if (!file_put_contents(tmpfile, conversation_json)) {
-        //                 throw ERROR("Unable to write: " + tmpfile);
-        //             }
-        //             command = "curl -s \"https://generativelanguage.googleapis.com/v1beta/models/" + variant + ":streamGenerateContent?alt=sse&key=" + escape(secret) + "\" -H 'Content-Type: application/json' --no-buffer --data-binary @" + tmpfile;
-        //             proc.writeln(command);
-        //             string resp = "";
-        //             string text = "";
-        //             string last = "";
-        //             while(true) {
-        //                 if (!proc.ready()) continue;
-        //                 resp = proc.read(1000); // TODO: config
-        //                 if (resp.empty()) break;
-        //                 vector<string> chunks = explode("\n", resp);
-        //                 for (const string& chunk: chunks) {
-        //                     if (trim(chunk).empty()) continue;
-        //                     cout << resp << endl;
-        //                     response = resp;
-        //                     if (response.isDefined("error") || !response.isDefined("candidates[0].content.parts[0].text"))
-        //                         throw ERROR("Gemini error: " + response.dump());
-        //                     string text = response.get<string>("candidates[0].content.parts[0].text");
-        //                     vector<string> pieces = explode(".", text);
-        //                     while (pieces.size() > 1) {
-        //                         string piece = array_shift(pieces) + ".";
-        //                         if (!last.empty()) piece = last + piece;
-        //                         last = "";
-        //                         cb_response(context, piece);
-        //                         text += piece;
-        //                     }
-        //                     last = pieces[0];
-        //                 }
-        //             }
-        //             cb_response(context, last);
-        //             text += last;
-        //             cb_done(context, text);
-        //         } catch (exception &e) {
-        //             throw handle_request_error(e);
-        //         }
-        //     }
-        // }
+        
 
     public:
         Gemini(
@@ -283,12 +244,23 @@ namespace prompt {
             const string& secret,
             const vector<string>& variants,
             size_t current_variant,
+            int err_retry_sec,
+            int err_attempts,
+            const vector<string>& sentence_delimiters,
+            long stream_request_timeout,
+            const string& tmpfile,
             MODEL_ARGS
         ):
             Model(MODEL_ARGS_PASS),
             logger(logger), 
             secret(secret),
-            variants(variants)
+            variants(variants),
+            current_variant(current_variant),
+            err_retry_sec(err_retry_sec),
+            err_attempts(err_attempts),
+            sentence_delimiters(sentence_delimiters),
+            stream_request_timeout(stream_request_timeout),
+            tmpfile(tmpfile)
         {}
 
         // make it as a factory - caller should delete spawned model using kill()
@@ -298,6 +270,11 @@ namespace prompt {
                 secret, 
                 variants, 
                 current_variant, 
+                err_retry_sec,
+                err_attempts,
+                sentence_delimiters,
+                stream_request_timeout,
+                tmpfile,
                 MODEL_ARGS_PASS
             );
         }

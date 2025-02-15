@@ -54,7 +54,7 @@ namespace prompt {
         }
         
         void rand_speak_beep(const vector<string>& strings, bool think = false) {
-            if (!tts->is_speaking()) speak_beep(rand_speak_select(strings), think);
+            if (!tts->is_speaking()) speak(rand_speak_select(strings), true, true, think);
         }
 
         // ------------- interruptions --------------
@@ -62,8 +62,6 @@ namespace prompt {
         bool loud_prev = false;
         bool tts_paused = false;
         long long tts_paused_at = 0;
-        // long long speech_impatient_ms; // = 10000; // TODO: config
-        //function<void()> = []() {};
 
         // ------------------------------------------
 
@@ -85,6 +83,7 @@ namespace prompt {
             int speech_tts_gap,
             const string& speech_tts_beep_cmd,
             const string& speech_tts_think_cmd,
+            const map<string, string> speech_tts_speak_replacements,
             const double speech_stt_voice_recorder_sample_rate,
             const unsigned long speech_stt_voice_recorder_frames_per_buffer,
             const size_t speech_stt_voice_recorder_buffer_seconds,
@@ -106,7 +105,8 @@ namespace prompt {
                 speech_tts_speed,
                 speech_tts_gap,
                 speech_tts_beep_cmd,
-                speech_tts_think_cmd
+                speech_tts_think_cmd,
+                speech_tts_speak_replacements
             );
 
             stt = new WhisperSTT(
@@ -136,8 +136,8 @@ namespace prompt {
                 double step = 0.1;
                 double i = threshold_pc;
                 for (; i < 1; i += step) {
-                    if (vol_pc > i) out += "=";
-                    else out += " ";
+                    if (vol_pc > i) out += "•";
+                    else out += "◦"; //"·•◦";
                 }
                 out += "] " + set_precision(threshold_pc * 100, 2) + "/" + set_precision(vol_pc * 100, 2) + "% ";
                 
@@ -145,9 +145,11 @@ namespace prompt {
                 that.rollnxt++;
                 int at = that.rollnxt%4;
                 char c = that.roller[at];
-                string roll;
+                string roll = "";
                 roll += c;
-                out += (stt->getTranscriberCRef().isInProgress() ? roll + " " + to_string(that.recs) : "   ") + " ";
+                out += (stt->getTranscriberCRef().isInProgress() 
+                    ? " [" + roll + "] Progress: " + to_string(that.recs) + ".. " 
+                    : "                   ") + " ";
 
                 // show
                 // int y, x;
@@ -306,17 +308,9 @@ namespace prompt {
             return inp;
         }
 
-        void speak_beep(const string& text, bool think = false) {
-            // while (/*!speak_paused_at_ms &&*/ tts->is_speaking()) sleep(1);
-            // cout << "[[START]]" << endl;
+        bool speak(const string& text, bool async = false, bool beep = false, bool think = false) {
             tts->speak_stop();
-            // speak_paused_at_ms = 0;
-            tts->speak_beep(text, think);
-        }
-
-        bool speak(const string& text) {
-            tts->speak_stop();
-            return tts->speak(text);
+            return tts->speak(text, async, beep, think);
         }
 
         void beep() {

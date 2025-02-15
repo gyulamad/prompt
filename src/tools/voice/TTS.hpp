@@ -18,19 +18,22 @@ namespace tools::voice {
         int gap;
         string beep_cmd;
         string think_cmd;
+        map<string, string> speak_replacements;
     public:
         TTS(
             const string& lang,
             int speed, 
             int gap,
             const string& beep_cmd,
-            const string& think_cmd
+            const string& think_cmd,
+            const map<string, string>& speak_replacements
         ): 
             lang(lang), 
             speed(speed),
             gap(gap),
             beep_cmd(beep_cmd),
-            think_cmd(think_cmd)
+            think_cmd(think_cmd),
+            speak_replacements(speak_replacements)
         {}
         
         virtual ~TTS() {
@@ -46,19 +49,17 @@ namespace tools::voice {
         //     paused = false;
         // }
 
-        bool speak(const string& text) {
-            string _text = str_replace({
-                { "...", "."}, // TODO: config
-                { "***", ""},
-                { "**", ""},
-                { "*", ""},
-                { "'", ""},
-            }, text);
+        bool speak(const string& text, bool async = false, bool beep = false, bool think = false) {
+            string _text = str_replace(speak_replacements, text);
+            if (think && !think_cmd.empty()) 
+                proc.writeln(think_cmd + " & ");
             proc.writeln(
                 "espeak -v" + lang + (gap ? " -g " + to_string(gap) : "") 
                 + " -s " + to_string(speed) + " \"" + escape(_text) + "\""
-                + " && echo \"[SPEAK-DONE]\""
+                + (beep && !beep_cmd.empty() ? " && " + beep_cmd : "")
+                + (async ? "" : " && echo \"[SPEAK-DONE]\"")
             );
+            if (async) return true;
             bool finished = false;
             while (true) {
                 if (!proc.ready()) continue;
@@ -73,25 +74,6 @@ namespace tools::voice {
 
         void beep() {
             if (!beep_cmd.empty()) proc.writeln(beep_cmd);
-        }
-
-        void speak_beep(const string& text, bool think = false) {
-            // if (paused) return;
-            string _text = str_replace({
-                { "...", "."}, // TODO: config
-                { "***", ""},
-                { "**", ""},
-                { "*", ""},
-                { "'", ""},
-            }, text);
-            if (think && !think_cmd.empty()) 
-                proc.writeln(think_cmd + " & ");
-            proc.writeln(
-                "espeak -v" + lang + (gap ? " -g " + to_string(gap) : "") 
-                + " -s " + to_string(speed) + " \"" + escape(_text) 
-                + "\"" + (!beep_cmd.empty() ? " && " + beep_cmd : "")
-                //+ (think ? + " " + (!think_cmd.empty() ? " && " + think_cmd : "") : "")
-            );
         }
 
         void speak_pause() {

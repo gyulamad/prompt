@@ -82,7 +82,10 @@ namespace tools {
             }
 
             // Clear the input buffer to handle extra characters after one key press
-            while (cin.get() != '\n') { }
+            // while (cin.get() != '\n') {
+            //     cout << 
+            //     usleep(30000);
+            // }
 
             // Normalize choice to lowercase and evaluate
             choice = tolower(choice);
