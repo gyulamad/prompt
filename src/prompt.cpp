@@ -92,14 +92,14 @@ namespace prompt {
     // ----------------------------
     
 
-    class SearchPlugin: public Plugin {
+    class GoogleSearchPlugin: public Plugin {
         protected:
             // Parameter query = Parameter("query", PARAMETER_TYPE_STRING, true);
             // Parameter max = Parameter("max", PARAMETER_TYPE_INTEGER, true);
             // vector<Parameter> parameters = { query, max };
         public:
             
-            SearchPlugin(): Plugin(
+            GoogleSearchPlugin(): Plugin(
                 "google_search", 
                 { 
                     { "query", PARAMETER_TYPE_STRING, true }, 
@@ -109,18 +109,59 @@ namespace prompt {
                 "Performs a google search and shows the result list."
             ) {}
 
-            virtual ~SearchPlugin() {}
-
             static string callback(void* plugin_void, const JSON& args) {
                 string query = args.get<string>("query");
                 int max = args.get<int>("max");
+                cout << "Google search: '" + query + "' ..." << endl;
                 return Process::execute(
                     "node browse/google-search.js"
                     " --query \"" + escape(query) + "\""
                     " --max " + to_string(max));
             }
 
-    } searchPlugin;
+    } googleSearchPlugin;
+
+    class WebBrowserPlugin: public Plugin {
+        protected:
+            // Parameter query = Parameter("query", PARAMETER_TYPE_STRING, true);
+            // Parameter max = Parameter("max", PARAMETER_TYPE_INTEGER, true);
+            // vector<Parameter> parameters = { query, max };
+        public:
+            
+            WebBrowserPlugin(): Plugin(
+                "web_browse", 
+                { 
+                    { "url", PARAMETER_TYPE_STRING, true }, 
+                    { "method", PARAMETER_TYPE_STRING },
+                    { "data", PARAMETER_TYPE_STRING },
+                    { "cookies", PARAMETER_TYPE_STRING }, 
+                    { "script", PARAMETER_TYPE_STRING }, 
+                }, 
+                callback,
+                "Load the source-code of a web page from the given URL. "
+                "Use methods GET/POST/PUT etc. with data and cookies. "
+                "With the script parameter you can inject javascript."
+            ) {}
+
+            static string callback(void* plugin_void, const JSON& args) {
+                string url = args.get<string>("url");
+                string method = args.has("method") ? args.get<string>("method") : "";
+                string data = args.has("data") ? args.get<string>("data") : "";
+                string cookies = args.has("cookies") ? args.get<string>("cookies") : "";
+                string script = args.has("script") ? args.get<string>("script") : "";
+                
+                cout << "Loading: " << (method.empty() ? "" : "[" + method + "] ") << url << " ..." << endl;
+                return Process::execute(
+                    "node browse/web_scraper.js"
+                    " --url \"" + escape(url) + "\""
+                    + (method.empty() ? "" : " --method " + escape(method))
+                    + (data.empty() ? "" : " --data \"" + escape(data) + "\"")
+                    + (cookies.empty() ? "" : " --cookies \"" + escape(cookies) + "\"")
+                    + (script.empty() ? "" : " --script \"" + escape(script) + "\"")
+                );
+            }
+
+    } webBrowserPlugin;
 
 
     class NothingPlugin: public Plugin {
@@ -134,8 +175,6 @@ namespace prompt {
                 callback,
                 "Performs nothing. Litterally nothing. It's just a placeholder stuff..."
             ) {}
-
-            virtual ~NothingPlugin() {}
 
             static string callback(void*, const JSON&) { return ""; }
 
@@ -234,31 +273,65 @@ int main(int argc, char *argv[]) {
 
     vector<Plugin> plugins = {
         nothingPlugin,
-        searchPlugin,
+        googleSearchPlugin,
+        webBrowserPlugin,
     };
 
     string model_system_plugins = plugins.empty() ? "" : tpl_replace({
         { "{{plugins}}", to_string(plugins) },
     }, 
+    R"(
+You are a helpful and humorous AI assistant designed to provide concise and accurate responses, considering that the user is communicating via text-to-speech.
+
+When you need to perform a real-world action (like searching the web), you MUST use the provided `function_calls` format. This format is CRUCIAL for your functionality.
+
+**Function Call Format:**
+
+*   A `function_calls` block will be provided to you.
+*   The `function_calls` block MUST be enclosed within these tokens:
+    *   `[FUNCTION-CALLS-START]` (at the very beginning of the block)
+    *   `[FUNCTION-CALLS-STOP]` (at the very end of the block)
+*   Inside the `function_calls` block, you will have a JSON structure. This JSON structure will contain the following:
+    *   A field called `function_calls` which is an array of function calls.
+    *   Each function call is an object that must contain a `function_name`.
+    *   Each function call can have parameters like `query`, `max`, etc.
+    *   Example:
+
+[FUNCTION-CALLS-START]
+{
+  "function_calls": [
+    {
+      "function_name": "google_search",
+      "query": "best restaurants in London",
+      "max": 3
+    }
+  ]
+}
+[FUNCTION-CALLS-STOP]
+
+*   **IMPORTANT:** If you need to perform a function call, and you fail to enclose your JSON in the tokens or the structure is incorrect, you will be considered to have failed the action!
+
+**In short:** ALWAYS use the `[FUNCTION-CALLS-START]` and `[FUNCTION-CALLS-STOP]` tags and ALWAYS format your calls as JSON. No exceptions.    
+    )"
         "You can use the following function calls to perform 'real-life' actions:"
         "\n\n{{plugins}}\n\n"
-        "In order to function calls works properly you have to use JSON format "
-        "inside a special 'function call start/stop' tokens, "
-        "for example:\n"
-        "[FUNCTION-CALLS-START]\n"
-        "{\n"
-        "  \"function_calls\":[\n"
-        "    }\n"
-        "      \"function_name\": \"get_date_time\",\n"
-        "    },{\n"
-        "      \"function_name\": \"set_alarm\",\n"
-        "      \"datetime\": \"2022-11-01 12:23\",\n"
-        "      \"text\": \"Meeting with John..\",\n"
-        "    }\n"
-        "    ...\n"
-        "  ]\n"
-        "}\n"
-        "[FUNCTION-CALLS-STOP]\n"
+        // "In order to function calls works properly you have to use JSON format "
+        // "inside a special 'function call start/stop' tokens, "
+        // "for example:\n"
+        // "[FUNCTION-CALLS-START]\n"
+        // "{\n"
+        // "  \"function_calls\":[\n"
+        // "    }\n"
+        // "      \"function_name\": \"get_date_time\",\n"
+        // "    },{\n"
+        // "      \"function_name\": \"set_alarm\",\n"
+        // "      \"datetime\": \"2022-11-01 12:23\",\n"
+        // "      \"text\": \"Meeting with John..\",\n"
+        // "    }\n"
+        // "    ...\n"
+        // "  ]\n"
+        // "}\n"
+        // "[FUNCTION-CALLS-STOP]\n"
     );
 
     const string model_system = tpl_replace({ // TODO: goes to the config:
@@ -297,6 +370,10 @@ int main(int argc, char *argv[]) {
         model_think_steps,
         model_think_deep
     );
+
+    model.set_plugins(plugins);
+
+
 
     User user(
         model,
@@ -352,7 +429,6 @@ int main(int argc, char *argv[]) {
 
 
 
-    user.set_plugins(plugins);
 
     user.start();
 

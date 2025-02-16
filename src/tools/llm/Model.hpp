@@ -10,6 +10,7 @@
 #include "../Rotary.hpp"
 // #include "../Speech.hpp"
 #include "../JSON.hpp"
+#include "../io.hpp"
 
 using namespace std;
 
@@ -163,7 +164,7 @@ namespace tools::llm {
         Parameter(
             const string& name, 
             parameter_type_t type, 
-            bool required, 
+            bool required = false, 
             const string& rules = ""
         ): 
             name(name),
@@ -222,8 +223,6 @@ namespace tools::llm {
             description(description)
         {}
 
-        virtual ~Plugin() {}
-
         string get_name() const { return name; }
         string get_description() const { return description; }
         const vector<Parameter>& get_parameters_cref() const { return parameters; }
@@ -274,7 +273,7 @@ namespace tools::llm {
 
         virtual bool think_interruptor() {
             rotary.tick();
-            return false;
+            return kbhit();
         }
 
         virtual string request() UNIMP
@@ -297,9 +296,13 @@ namespace tools::llm {
         }
 
 
-        void compress_conversation() {
+        bool in_compressing_conversation = false;
+        bool compress_conversation() {
+            if (!in_compressing_conversation) in_compressing_conversation = true;
+            else return false;
             size_t size = conversation.get_messages_ref().size();
             size_t cut_at = size * conversation_loss_ratio;
+            if (!cut_at) return false;
             vector<string> conversation_first_part;
             for (size_t n = 0; n < cut_at; n++) 
                 conversation_first_part.push_back(conversation.get_messages_ref().at(n).dump());
@@ -330,6 +333,8 @@ namespace tools::llm {
             // auto [firstHalf, secondHalf] = str_cut_ratio(memory, memory_loss_ratio);
             // memory = helper->prompt("system", "Summarize this:\n" + firstHalf) + secondHalf;
             // kill(helper);
+            in_compressing_conversation = false;
+            return true;
         }
 
         // string get_system_with_data() {
@@ -454,14 +459,15 @@ namespace tools::llm {
         void memorize(const string& prmpt, role_t role = ROLE_INPUT) {
             conversation.add(prmpt, role); 
             // check the length of conversation and cut if too long
-            while (conversation.length() > conversation_length_max) compress_conversation();
+            if (conversation.length() > conversation_length_max) 
+                if (!compress_conversation()); // break;
 
         //     // TODO: check the length of conversation and cut if too long:
         //     // memory += "\n" + memo;
         //     // while (memory.size() > memory_max) compress_memory(); 
         }
 
-        // void amnesia() {
+        // void amnesia() { 
         //     // memory = "";
         //     conversation.clear();
         // }
@@ -472,6 +478,10 @@ namespace tools::llm {
             function<bool(void*, const string&)> cb_response, 
             function<void(void*, const string&)> cb_done
         ) {
+
+            // inference_plugins_reset();
+
+
             memorize(prmpt, ROLE_INPUT);
             //string response = "";
             string non_interrupted_responses = request_stream(
@@ -484,8 +494,27 @@ namespace tools::llm {
                     return false;
                 }, cb_done
             );
-            if (!non_interrupted_responses.empty())
+            if (!non_interrupted_responses.empty()) {
                 memorize(non_interrupted_responses, ROLE_OUTPUT);
+                //inference_plugins_reset();
+                //non_interrupted_responses = inference_remove_plugins(non_interrupted_responses);
+                // non_interrupted_responses = inference_plugins_process_response_stream(
+                //     non_interrupted_responses, 
+                //     context,
+                //     cb_response, 
+                //     cb_done
+                // );
+            }
+
+            // inference_plugins_reset();
+            if (!inference_func_calls.empty()) {
+                string plugin_output = inference_handle_plugins();
+                if (!plugin_output.empty()) {
+                    inference_plugins_reset();
+                    non_interrupted_responses += prompt_stream(plugin_output, context, cb_response, cb_done);
+                    // addContext(plugin_output, ROLE_INPUT);
+                }
+            }
             return non_interrupted_responses;
         }
 
@@ -498,10 +527,14 @@ namespace tools::llm {
             // memorize(response);
             // return response;
 
+            inference_plugins_reset();
+
+
             memorize(prmpt, ROLE_INPUT);
             string response = request();
             memorize(response, ROLE_OUTPUT);
-            return response;
+
+            return inference_plugins_process_response(response);
         }
         // string prompt(const string& prmpt, const char* sffx = nullptr) {
         //     string suffix(sffx ? sffx : "");
@@ -613,6 +646,9 @@ namespace tools::llm {
         }
 
         string think(const string& prmpt) {
+
+            inference_plugins_reset(); 
+
             think_reporter();
             memorize(prmpt, ROLE_INPUT);
 
@@ -629,7 +665,9 @@ namespace tools::llm {
             kill(thinker);
 
             memorize(response, ROLE_OUTPUT);
-            return response;
+
+            return inference_plugins_process_response(response);
+            // return response;
         }
 
         // string deep_think(const string& task) {
@@ -640,11 +678,15 @@ namespace tools::llm {
         // }
         
         string solve(const string& task, int think_deeper = -1) {
+
+            inference_plugins_reset(); 
+
             think_reporter();
             // if (!remember) return prompt(from, task);
             if (think_deeper == -1) think_deeper = think_deep;
             if (think_deeper <= 0 || think_interruptor()) return prompt(task);
             think_deeper--;
+            cout << "Thinking progress: " << think_deeper << endl;
 
             Model* helper = (Model*)clone();
 
@@ -756,7 +798,9 @@ namespace tools::llm {
                         kill(helper);
                         memorize(task, ROLE_INPUT);
                         memorize(results, ROLE_OUTPUT);
-                        return results;
+
+                        return inference_plugins_process_response(results);
+                        // return results;
                     }
                     // there are questions, there are options, we got answers:
                     
@@ -784,7 +828,10 @@ namespace tools::llm {
                     kill(helper);
                     memorize(task, ROLE_INPUT);
                     memorize(results, ROLE_OUTPUT);
-                    return results;
+
+
+                    return inference_plugins_process_response(results);
+                    // return results;
                 }
                 // no question, no smaller steps...
 
@@ -794,6 +841,157 @@ namespace tools::llm {
             kill(helper);
             think_reporter();
             return prompt(task);
+        }
+
+
+        // ----------------- PLUGINS -------------------
+        
+
+        vector<Plugin> plugins;
+
+        void set_plugins(const vector<Plugin> plugins) {
+            this->plugins = plugins;
+        }
+
+        string inference_full;
+        bool inference_stat_in_func_call;
+        string inference_next_func_call;
+        vector<string> inference_func_calls;
+
+        // string inference_plugins_process_response_stream(
+        //     const string& response_orig, 
+        //     void* context,
+        //     function<bool(void*, const string&)> cb_response, 
+        //     function<void(void*, const string&)> cb_done
+        // ) {
+        //     string response = inference_remove_plugins(response_orig);
+
+        //     if (!inference_func_calls.empty()) {
+        //         string plugin_output = inference_handle_plugins();
+        //         if (!plugin_output.empty()) {
+        //             response += prompt_stream(
+        //                 plugin_output, 
+        //                 context,
+        //                 cb_response, 
+        //                 cb_done
+        //             );
+        //             // addContext(plugin_output, ROLE_INPUT);
+        //         }
+        //     }
+
+        //     return response;
+        // }
+
+        string inference_plugins_process_response(const string& response_orig) {
+            string response = inference_remove_plugins(response_orig);
+
+            if (!inference_func_calls.empty()) {
+                string plugin_output = inference_handle_plugins();
+                if (!plugin_output.empty()) {
+                    response += prompt(plugin_output);
+                    // addContext(plugin_output, ROLE_INPUT);
+                }
+            }
+
+            return response;
+        }
+
+        void inference_plugins_reset() {
+            inference_full = "";
+            inference_stat_in_func_call = false;
+            inference_next_func_call = "";
+            inference_func_calls.clear();
+        }
+
+        string inference_remove_plugins(const string& inference) {
+            string result = "";
+            for (size_t i = 0; i < inference.length(); i++) {
+                inference_full += inference[i];
+                if (inference_stat_in_func_call) inference_next_func_call += inference[i];
+                else result += inference[i];
+                if (str_ends_with(inference_full, "[FUNCTION-CALLS-START]")) {
+                    inference_stat_in_func_call = true;
+                    inference_next_func_call = "";                    
+                }
+                else if (str_ends_with(inference_full, "[FUNCTION-CALLS-STOP]")) {
+                    inference_stat_in_func_call = false;
+                    inference_func_calls.push_back(str_replace({
+                        { "[FUNCTION-CALLS-START]", "" }, 
+                        { "[FUNCTION-CALLS-STOP]", "" }, 
+                    }, inference_next_func_call));
+                    inference_next_func_call = "";
+                }
+            }            
+            return str_replace({
+                { "[FUNCTION-CALLS-START]", "" }, 
+                { "[FUNCTION-CALLS-STOP]", "" }, 
+            }, result);
+        }
+
+        string inference_handle_plugins() {
+            string output = "";
+            for (const string& inference_func_call: inference_func_calls) {
+                if (!is_valid_json(inference_func_call)) {
+                    output += 
+                        "Invalid JSON syntax for function call:\n" 
+                        + inference_func_call 
+                        + "\n";
+                    continue;
+                }
+                JSON fcall_all(inference_func_call);
+                if (!fcall_all.has("function_calls")) {
+                    output += 
+                        "`function_calls` key is missing:\n" 
+                        + inference_func_call 
+                        + "\n";
+                    continue;
+                }
+                if (!fcall_all.isArray("function_calls")) {
+                    output += 
+                        "`function_calls` is not an array:\n" 
+                        + inference_func_call 
+                        + "\n";
+                    continue;
+                }
+                vector<JSON> fcalls(fcall_all.get<vector<JSON>>("function_calls"));
+                for (const JSON& fcall: fcalls) {
+                    string function_name = fcall.get<string>("function_name");
+                    bool found = false;
+                    for (Plugin& plugin: plugins) {
+                        if (plugin.get_name() == function_name) {
+                            found = true;
+                            bool invalid = false;
+                            for (const Parameter& parameter: plugin.get_parameters_cref()) {
+                                if (!fcall.has(parameter.get_name())) {
+                                    if (parameter.is_required()) {
+                                        output += 
+                                            "A required parameter is missing in function call: `" 
+                                            + function_name + "." + parameter.get_name() +
+                                            + "`\n";
+                                        invalid = true;
+                                        continue;
+                                    }
+                                }                                
+                            }
+                            if (!invalid) {
+                                string result;
+                                try {
+                                    result = plugin.call(fcall);
+                                } catch (exception &e) {
+                                    result = "Error in function `" + function_name + "`: " + e.what();
+                                }
+                                output += 
+                                    "Function output `" + function_name + "`:\n"
+                                    + result + "\n";
+                            }
+                        }
+                    }
+                    if (!found) {
+                        output += "Function is not found: `" + function_name + "`\n";
+                    }
+                }
+            }
+            return output;
         }
     };
 

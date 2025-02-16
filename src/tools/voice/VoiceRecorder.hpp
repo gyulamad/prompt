@@ -105,7 +105,7 @@ namespace tools::voice {
         int process_audio(const float* input, unsigned long frameCount) {
             if (!ringBuffer.write(input, frameCount)) {
                 // TODO: Handle buffer overflow (optional)
-                cerr << "Voice recorder buffer overflow" << endl;
+                //cerr << "Voice recorder buffer overflow" << endl;
             }
             return paContinue;
         }

@@ -72,8 +72,6 @@ namespace prompt {
         // string speech_interrupt_info_token;
         // string speech_amplitude_threshold_pc_setter_token;
 
-        // ------------------------------
-        vector<Plugin> plugins;
     public:
 
         User(
@@ -350,115 +348,121 @@ namespace prompt {
             return commander.get_command_line_ref().readln();
         }
 
-        string inference_full;
-        bool inference_stat_in_func_call;
-        string inference_next_func_call;
-        vector<string> inference_func_calls;
+        // string inference_full;
+        // bool inference_stat_in_func_call;
+        // string inference_next_func_call;
+        // vector<string> inference_func_calls;
 
-        void inference_plugins_reset() {
-            inference_full = "";
-            inference_stat_in_func_call = false;
-            inference_next_func_call = "";
-            inference_func_calls.clear();
-        }
+        // void inference_plugins_reset() {
+        //     inference_full = "";
+        //     inference_stat_in_func_call = false;
+        //     inference_next_func_call = "";
+        //     inference_func_calls.clear();
+        // }
 
-        string inference_remove_plugins(const string& inference) {
-            string result = "";
-            for (size_t i = 0; i < inference.length(); i++) {
-                inference_full += inference[i];
-                if (inference_stat_in_func_call) inference_next_func_call += inference[i];
-                else result += inference[i];
-                if (str_ends_with(inference_full, "[FUNCTION-CALLS-START]")) {
-                    inference_stat_in_func_call = true;
-                    inference_next_func_call = "";                    
-                }
-                else if (str_ends_with(inference_full, "[FUNCTION-CALLS-STOP]")) {
-                    inference_stat_in_func_call = false;
-                    inference_func_calls.push_back(str_replace({
-                        { "[FUNCTION-CALLS-START]", "" }, 
-                        { "[FUNCTION-CALLS-STOP]", "" }, 
-                    }, inference_next_func_call));
-                    inference_next_func_call = "";
-                }
-            }            
-            return str_replace({
-                { "[FUNCTION-CALLS-START]", "" }, 
-                { "[FUNCTION-CALLS-STOP]", "" }, 
-            }, result);
-        }
+        // string inference_remove_plugins(const string& inference) {
+        //     string result = "";
+        //     for (size_t i = 0; i < inference.length(); i++) {
+        //         inference_full += inference[i];
+        //         if (inference_stat_in_func_call) inference_next_func_call += inference[i];
+        //         else result += inference[i];
+        //         if (str_ends_with(inference_full, "[FUNCTION-CALLS-START]")) {
+        //             inference_stat_in_func_call = true;
+        //             inference_next_func_call = "";                    
+        //         }
+        //         else if (str_ends_with(inference_full, "[FUNCTION-CALLS-STOP]")) {
+        //             inference_stat_in_func_call = false;
+        //             inference_func_calls.push_back(str_replace({
+        //                 { "[FUNCTION-CALLS-START]", "" }, 
+        //                 { "[FUNCTION-CALLS-STOP]", "" }, 
+        //             }, inference_next_func_call));
+        //             inference_next_func_call = "";
+        //         }
+        //     }            
+        //     return str_replace({
+        //         { "[FUNCTION-CALLS-START]", "" }, 
+        //         { "[FUNCTION-CALLS-STOP]", "" }, 
+        //     }, result);
+        // }
 
-        string inference_handle_plugins() {
-            string output = "";
-            for (const string& inference_func_call: inference_func_calls) {
-                if (!is_valid_json(inference_func_call)) {
-                    output += 
-                        "Invalid JSON syntax for function call:\n" 
-                        + inference_func_call 
-                        + "\n";
-                    continue;
-                }
-                JSON fcall_all(inference_func_call);
-                if (!fcall_all.has("function_calls")) {
-                    output += 
-                        "`function_calls` key is missing:\n" 
-                        + inference_func_call 
-                        + "\n";
-                    continue;
-                }
-                if (!fcall_all.isArray("function_calls")) {
-                    output += 
-                        "`function_calls` is not an array:\n" 
-                        + inference_func_call 
-                        + "\n";
-                    continue;
-                }
-                vector<JSON> fcalls(fcall_all.get<vector<JSON>>("function_calls"));
-                for (const JSON& fcall: fcalls) {
-                    string function_name = fcall.get<string>("function_name");
-                    bool found = false;
-                    for (Plugin& plugin: plugins) {
-                        if (plugin.get_name() == function_name) {
-                            found = true;
-                            bool invalid = false;
-                            for (const Parameter& parameter: plugin.get_parameters_cref()) {
-                                if (!fcall.has(parameter.get_name())) {
-                                    if (parameter.is_required()) {
-                                        output += 
-                                            "A required parameter is missing in function call: `" 
-                                            + function_name + "." + parameter.get_name() +
-                                            + "`\n";
-                                        invalid = true;
-                                        continue;
-                                    }
-                                }                                
-                            }
-                            if (!invalid) {
-                                string result;
-                                try {
-                                    result = plugin.call(fcall);
-                                } catch (exception &e) {
-                                    result = "Error in function `" + function_name + "`: " + e.what();
-                                }
-                                output += 
-                                    "Function output `" + function_name + "`:\n"
-                                    + result + "\n";
-                            }
-                        }
-                    }
-                    if (!found) {
-                        output += "Function is not found: `" + function_name + "`\n";
-                    }
-                }
-            }
-            return output;
-        }
+        // string inference_handle_plugins() {
+        //     string output = "";
+        //     for (const string& inference_func_call: inference_func_calls) {
+        //         if (!is_valid_json(inference_func_call)) {
+        //             output += 
+        //                 "Invalid JSON syntax for function call:\n" 
+        //                 + inference_func_call 
+        //                 + "\n";
+        //             continue;
+        //         }
+        //         JSON fcall_all(inference_func_call);
+        //         if (!fcall_all.has("function_calls")) {
+        //             output += 
+        //                 "`function_calls` key is missing:\n" 
+        //                 + inference_func_call 
+        //                 + "\n";
+        //             continue;
+        //         }
+        //         if (!fcall_all.isArray("function_calls")) {
+        //             output += 
+        //                 "`function_calls` is not an array:\n" 
+        //                 + inference_func_call 
+        //                 + "\n";
+        //             continue;
+        //         }
+        //         vector<JSON> fcalls(fcall_all.get<vector<JSON>>("function_calls"));
+        //         for (const JSON& fcall: fcalls) {
+        //             string function_name = fcall.get<string>("function_name");
+        //             bool found = false;
+        //             for (Plugin& plugin: plugins) {
+        //                 if (plugin.get_name() == function_name) {
+        //                     found = true;
+        //                     bool invalid = false;
+        //                     for (const Parameter& parameter: plugin.get_parameters_cref()) {
+        //                         if (!fcall.has(parameter.get_name())) {
+        //                             if (parameter.is_required()) {
+        //                                 output += 
+        //                                     "A required parameter is missing in function call: `" 
+        //                                     + function_name + "." + parameter.get_name() +
+        //                                     + "`\n";
+        //                                 invalid = true;
+        //                                 continue;
+        //                             }
+        //                         }                                
+        //                     }
+        //                     if (!invalid) {
+        //                         string result;
+        //                         try {
+        //                             result = plugin.call(fcall);
+        //                         } catch (exception &e) {
+        //                             result = "Error in function `" + function_name + "`: " + e.what();
+        //                         }
+        //                         output += 
+        //                             "Function output `" + function_name + "`:\n"
+        //                             + result + "\n";
+        //                     }
+        //                 }
+        //             }
+        //             if (!found) {
+        //                 output += "Function is not found: `" + function_name + "`\n";
+        //             }
+        //         }
+        //     }
+        //     return output;
+        // }
 
         static bool stream_callback(void* user_void, const string& inference) {
             if (!user_void) return false;
             User* user = (User*)user_void;
-            string inference_to_user = user->inference_remove_plugins(inference);
+            string inference_to_user = user->model.inference_remove_plugins(inference);
             if (user->speech) user->speech->hide_mic();
-            cout << inference_to_user << endl;
+
+            // cout << inference_to_user << endl;
+
+            // Check if the string ends with a newline character
+            if (inference_to_user.empty()) return true;
+            cout << inference_to_user << (inference_to_user.back() == '\n' ? "" : "\n") << flush;
+
             if (!user->speech) return false;
             return !user->speech->speak(inference_to_user);
         }
@@ -471,9 +475,9 @@ namespace prompt {
 
 
 
-        void set_plugins(const vector<Plugin> plugins) {
-            this->plugins = plugins;
-        }
+        // void set_plugins(const vector<Plugin> plugins) {
+        //     this->plugins = plugins;
+        // }
 
         void start() {
             string input = "";
@@ -507,56 +511,68 @@ namespace prompt {
                 }
                 if (speech) speech->rand_speak_hesitate();
 
-                if (input.empty()) continue;
-                if (input[0] == '/') {
+                if (model.inference_func_calls.empty() && input.empty()) continue;
+                if (!input.empty() && input[0] == '/') {
                     commander.run_command(this, input);
                     continue; 
                 }
 
 
-                if (!plugins.empty()) {
-                    Model* plugin_selector_model = (Model*)model.clone();
-                    vector<string> plugin_usages;
-                    for (const Plugin& plugin: plugins) {
-                        plugin_usages.push_back(to_string(plugin));
-                        // JSON plugin_usage_json;
-                        // plugin_usage_json.set("function_name", plugin->get_function_name());
-                        // plugin_usage_json.set("description", plugin->get_description());
-                        // vector<string> plugin_parameters_json_as_strings;
-                        // for (const Parameter& parameter: plugin->get_parameters_cref()) {
-                        //     JSON plugin_parameter_json;
-                        //     plugin_parameter_json.set("name", parameter.get_name());
-                        //     plugin_parameter_json.set("type", parameter.get_type());
-                        //     plugin_parameter_json.set("required", parameter.is_required());
-                        //     plugin_parameter_json.set("rules", parameter.get_rules());
-                        //     plugin_parameters_json_as_strings.push_back(plugin_parameter_json.dump(4));
-                        // }
-                        // plugin_usage_json.set("parameters", implode(",", plugin_parameters_json_as_strings);
-                        // string plugin_usage = plugin_usage_json.dump(4);
-                        // plugin_usages.push_back(plugin_usage);
-                    }
-                    vector<string> plugin_selections = plugin_selector_model->multiple_str(
-                        "Do you need to use any function call at the moment? "
-                        "Select which ever you need to use or select the 'Nothing' plugin if you don't need function call at the moment. "
-                        "In your response show the selected function call in a JSON format!",
-                        plugin_usages
-                    );
-                    model.kill(plugin_selector_model);
-                }
-                
+                // if (!plugins.empty()) {
+                //     Model* plugin_selector_model = (Model*)model.clone();
+                //     vector<string> plugin_usages;
+                //     for (const Plugin& plugin: plugins) {
+                //         plugin_usages.push_back(to_string(plugin));
+                //         // JSON plugin_usage_json;
+                //         // plugin_usage_json.set("function_name", plugin->get_function_name());
+                //         // plugin_usage_json.set("description", plugin->get_description());
+                //         // vector<string> plugin_parameters_json_as_strings;
+                //         // for (const Parameter& parameter: plugin->get_parameters_cref()) {
+                //         //     JSON plugin_parameter_json;
+                //         //     plugin_parameter_json.set("name", parameter.get_name());
+                //         //     plugin_parameter_json.set("type", parameter.get_type());
+                //         //     plugin_parameter_json.set("required", parameter.is_required());
+                //         //     plugin_parameter_json.set("rules", parameter.get_rules());
+                //         //     plugin_parameters_json_as_strings.push_back(plugin_parameter_json.dump(4));
+                //         // }
+                //         // plugin_usage_json.set("parameters", implode(",", plugin_parameters_json_as_strings);
+                //         // string plugin_usage = plugin_usage_json.dump(4);
+                //         // plugin_usages.push_back(plugin_usage);
+                //     }
+                //     vector<string> plugin_selections = plugin_selector_model->multiple_str(
+                //         "Do you need to use any function call at the moment? "
+                //         "Select which ever you need to use or select the 'Nothing' plugin if you don't need function call at the moment. "
+                //         "In your response show the selected function call in a JSON format!",
+                //         plugin_usages
+                //     );
+                //     model.kill(plugin_selector_model);
+                // }
                 
                 response = "";
-                inference_plugins_reset();
+
+                // inference_plugins_reset();
+                
                 switch (mode)
                 {
                     case MODE_CHAT:
                         if (stream) {
                             // thread model_prompt_thread([&](){
+
+                                model.inference_plugins_reset();
+
                                 response = model.prompt_stream(input, this, stream_callback, stream_done_callback);
+                               
+
+                                
+                                // string inference_full_orig = model.inference_full;
+                                // model.inference_plugins_reset();
+                                // response = model.inference_plugins_process_response(inference_full_orig);
                             // });
                             //cout << "[DEBUG] Waiting for model prompt thread to finish..." << endl;
                             // model_prompt_thread.join();   
-                            inference_plugins_reset();                         
+
+                            //inference_plugins_reset();                         
+
                             break;
                         }
                         response = model.prompt(input);
@@ -574,10 +590,18 @@ namespace prompt {
                         throw ERROR("Invalid mode");
                 }
 
-                response = inference_remove_plugins(response);
 
-                if (!inference_func_calls.empty())
-                    model.addContext(inference_handle_plugins(), ROLE_INPUT);
+
+                // response = inference_remove_plugins(response);
+
+                // if (!inference_func_calls.empty()) {
+                //     string plugin_output = inference_handle_plugins();
+                //     if (!plugin_output.empty()) {
+                //         model.addContext(plugin_output, ROLE_INPUT);
+                //     }
+                // }
+
+
                 
                 // TODO:
                 // vector<string> matches;

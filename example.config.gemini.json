@@ -31,7 +31,7 @@
 
     "err_retry_sec": 10,
     "err_attempts": 3,
-    "sentence_delimiters": [".", "!", "?"],
+    "sentence_delimiters": [". ", "! ", "? ", ".\n", "!\n", "?\n"],
     "stream_request_timeout": 30000,
     "tmpfile": "/tmp/temp.json"
 }

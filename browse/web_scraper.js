@@ -54,8 +54,64 @@ async function fetchPage({ url, method = 'GET', data = '', cookies = '', scriptC
         }
 
         // Get fully rendered HTML
-        const content = await page.content();
-        console.log(content);
+        // const content = await page.content();
+        // console.log(content);
+
+        // Extract human-readable text and links
+        let extractedData;
+        try {
+            console.log("DEBUG: page.evaluate start...");
+            extractedData = await page.evaluate(() => {
+                console.log("DEBUG: Remove unnecessary elements...");
+                // Remove unnecessary elements
+                const removals = ['script', 'style', 'noscript', 'svg', 'iframe'];
+                removals.forEach(selector => {
+                    document.querySelectorAll(selector).forEach(el => el.remove());
+                });
+
+                console.log("DEBUG: Extract cleaned text content...");
+                // Extract cleaned text content
+                const getVisibleText = element => {
+                    const style = window.getComputedStyle(element);
+                    if (style.display === 'none' || style.visibility === 'hidden' || element.hidden)
+                        return '';
+                    return element.textContent;
+                };
+
+                const bodyText = getVisibleText(document.body);
+                const cleanedText = bodyText
+                    .replace(/\s+/g, ' ')
+                    .replace(/[\r\n]+/g, '\n')
+                    .trim();
+
+                console.log("DEBUG: Extract and resolve links...");
+                // Extract and resolve links
+                const links = Array.from(document.querySelectorAll('a[href]'))
+                    .map(a => {
+                        try {
+                            const text = a.textContent.replace(/\s+/g, ' ').trim();
+                            const url = new URL(a.href, document.location.href).href;
+                            return { text, target: url };
+                        } catch (error) {
+                            return null;
+                        }
+                    })
+                    .filter(link => link && link.target.startsWith('http'));
+                    
+                console.log("DEBUG: return...");
+                return {
+                    //url: url,
+                    readables: cleanedText,
+                    links: [...new Map(links.map(item => [item.target, item])).values()] // Remove duplicates
+                };
+            });
+        } catch (error) {
+            console.error("Extraction failed:", error.message, error);
+            extractedData = { /*url: url,*/ readables: "", links: [] };
+        }
+
+        console.log(JSON.stringify(extractedData, null, 2));
+
 
     } catch (error) {
         console.error("Failed to fetch the page:", error.message);
