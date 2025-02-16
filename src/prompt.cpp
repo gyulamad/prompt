@@ -93,90 +93,80 @@ namespace prompt {
     
 
     class GoogleSearchPlugin: public Plugin {
-        protected:
-            // Parameter query = Parameter("query", PARAMETER_TYPE_STRING, true);
-            // Parameter max = Parameter("max", PARAMETER_TYPE_INTEGER, true);
-            // vector<Parameter> parameters = { query, max };
-        public:
-            
-            GoogleSearchPlugin(): Plugin(
-                "google_search", 
-                { 
-                    { "query", PARAMETER_TYPE_STRING, true }, 
-                    { "max", PARAMETER_TYPE_INTEGER, true }, 
-                }, 
-                callback,
-                "Performs a google search and shows the result list."
-            ) {}
+    public:
+        
+        GoogleSearchPlugin(): Plugin(
+            "google_search", 
+            { 
+                { "query", PARAMETER_TYPE_STRING, true }, 
+                { "max", PARAMETER_TYPE_INTEGER, true }, 
+            }, 
+            callback,
+            "Performs a google search and shows the result list."
+        ) {}
 
-            static string callback(void* plugin_void, const JSON& args) {
-                string query = args.get<string>("query");
-                int max = args.get<int>("max");
-                cout << "Google search: '" + query + "' ..." << endl;
-                return Process::execute(
-                    "node browse/google-search.js"
-                    " --query \"" + escape(query) + "\""
-                    " --max " + to_string(max));
-            }
+        static string callback(void* plugin_void, const JSON& args) {
+            string query = args.get<string>("query");
+            int max = args.get<int>("max");
+            cout << "Google search: '" + query + "' ..." << endl;
+            return Process::execute(
+                "node browse/google-search.js"
+                " --query \"" + escape(query) + "\""
+                " --max " + to_string(max));
+        }
 
     } googleSearchPlugin;
 
     class WebBrowserPlugin: public Plugin {
-        protected:
-            // Parameter query = Parameter("query", PARAMETER_TYPE_STRING, true);
-            // Parameter max = Parameter("max", PARAMETER_TYPE_INTEGER, true);
-            // vector<Parameter> parameters = { query, max };
-        public:
-            
-            WebBrowserPlugin(): Plugin(
-                "web_browse", 
-                { 
-                    { "url", PARAMETER_TYPE_STRING, true }, 
-                    { "method", PARAMETER_TYPE_STRING },
-                    { "data", PARAMETER_TYPE_STRING },
-                    { "cookies", PARAMETER_TYPE_STRING }, 
-                    { "script", PARAMETER_TYPE_STRING }, 
-                }, 
-                callback,
-                "Load the source-code of a web page from the given URL. "
-                "Use methods GET/POST/PUT etc. with data and cookies. "
-                "With the script parameter you can inject javascript."
-            ) {}
+    public:
+        
+        WebBrowserPlugin(): Plugin(
+            "web_browse", 
+            { 
+                { "url", PARAMETER_TYPE_STRING, true }, 
+                { "method", PARAMETER_TYPE_STRING },
+                { "data", PARAMETER_TYPE_STRING },
+                { "cookies", PARAMETER_TYPE_STRING }, 
+                { "script", PARAMETER_TYPE_STRING }, 
+            }, 
+            callback,
+            "Load the source-code of a web page from the given URL. "
+            "Use methods GET/POST/PUT etc. with data and cookies. "
+            "With the script parameter you can inject javascript."
+        ) {}
 
-            static string callback(void* plugin_void, const JSON& args) {
-                string url = args.get<string>("url");
-                string method = args.has("method") ? args.get<string>("method") : "";
-                string data = args.has("data") ? args.get<string>("data") : "";
-                string cookies = args.has("cookies") ? args.get<string>("cookies") : "";
-                string script = args.has("script") ? args.get<string>("script") : "";
-                
-                cout << "Loading: " << (method.empty() ? "" : "[" + method + "] ") << url << " ..." << endl;
-                return Process::execute(
-                    "node browse/web_scraper.js"
-                    " --url \"" + escape(url) + "\""
-                    + (method.empty() ? "" : " --method " + escape(method))
-                    + (data.empty() ? "" : " --data \"" + escape(data) + "\"")
-                    + (cookies.empty() ? "" : " --cookies \"" + escape(cookies) + "\"")
-                    + (script.empty() ? "" : " --script \"" + escape(script) + "\"")
-                );
-            }
+        static string callback(void* plugin_void, const JSON& args) {
+            string url = args.get<string>("url");
+            string method = args.has("method") ? args.get<string>("method") : "";
+            string data = args.has("data") ? args.get<string>("data") : "";
+            string cookies = args.has("cookies") ? args.get<string>("cookies") : "";
+            string script = args.has("script") ? args.get<string>("script") : "";
+            
+            cout << "Loading: " << (method.empty() ? "" : "[" + method + "] ") << url << " ..." << endl;
+            return Process::execute(
+                "node browse/web_scraper.js"
+                " --url \"" + escape(url) + "\""
+                + (method.empty() ? "" : " --method " + escape(method))
+                + (data.empty() ? "" : " --data \"" + escape(data) + "\"")
+                + (cookies.empty() ? "" : " --cookies \"" + escape(cookies) + "\"")
+                + (script.empty() ? "" : " --script \"" + escape(script) + "\"")
+            );
+        }
 
     } webBrowserPlugin;
 
 
     class NothingPlugin: public Plugin {
-        protected:
+    public:
         
-        public:
-            
-            NothingPlugin(): Plugin(
-                "do_nothing", 
-                { }, 
-                callback,
-                "Performs nothing. Litterally nothing. It's just a placeholder stuff..."
-            ) {}
+        NothingPlugin(): Plugin(
+            "do_nothing", 
+            { }, 
+            callback,
+            "Performs nothing. Litterally nothing. It's just a placeholder stuff..."
+        ) {}
 
-            static string callback(void*, const JSON&) { return ""; }
+        static string callback(void*, const JSON&) { return ""; }
 
     } nothingPlugin;
 }
@@ -243,27 +233,12 @@ int main(int argc, char *argv[]) {
     const int model_think_deep = config.get<int>("model.think_deep");
 
     string model_system_voice = voice ? tpl_replace({
-        // { "{{speech_interrupt_info_token}}", speech_interrupt_info_token },
-        // { "{{speech_current_noise_threshold_pc}}", "{{speech_current_noise_threshold_pc}}"},
-        // { "{{speech_amplitude_threshold_pc_setter_token}}", speech_amplitude_threshold_pc_setter_token },
-        // { "{{speech_noise_threshold_pc_min}}", to_string(speech_noise_threshold_pc_min) },
-        // { "{{speech_noise_threshold_pc_max}}", to_string(speech_noise_threshold_pc_max) },
     },  "The user is using a text-to-speech software for communication. "
         "You are taking into account that the user's responses are being read at loud by a text-to-speech program "
         "that can be interrupted by background noise or by the user itself."
-        // "then the following will appear in the context window by the system to inform you with a message: "
-        // "`{{speech_interrupt_info_token}}` and this message should be for you internal use only, user won't see it."
         "Repeated interruption changes how you act, "
         "your responses are becaming more consise and short when you interupted more often recently "
         "but you can put more context otherwise if it's necessary, tune your response style accordingly. "
-        //"The current input noise amplitude threshold_pc is {{speech_current_noise_threshold_pc}} "
-        // "to reduce noise and detect when the user speaks. "
-        // "You are able to change this accordigly when the interruption coming from background noise "
-        // "by placing the [{{speech_amplitude_threshold_pc_setter_token}}:{number}] token into your response. "
-        // "When you do this the user's system will recognise your request and changes the threshold_pc for better communication. "
-        // "The amplitude threshold_pc should be a number between {{speech_noise_threshold_pc_min}} and {{speech_noise_threshold_pc_max}}, more perceptive noise indicates higher threshold_pc.\n"
-        // "The goal is to let the user to be able to interrupt the TTS reader with his/her voice "
-        // "but filter out the background as much as possible."
     ) : "";
     
     string model_system_lang = user_lang != "en" ? tpl_replace({
@@ -315,23 +290,6 @@ When you need to perform a real-world action (like searching the web), you MUST 
     )"
         "You can use the following function calls to perform 'real-life' actions:"
         "\n\n{{plugins}}\n\n"
-        // "In order to function calls works properly you have to use JSON format "
-        // "inside a special 'function call start/stop' tokens, "
-        // "for example:\n"
-        // "[FUNCTION-CALLS-START]\n"
-        // "{\n"
-        // "  \"function_calls\":[\n"
-        // "    }\n"
-        // "      \"function_name\": \"get_date_time\",\n"
-        // "    },{\n"
-        // "      \"function_name\": \"set_alarm\",\n"
-        // "      \"datetime\": \"2022-11-01 12:23\",\n"
-        // "      \"text\": \"Meeting with John..\",\n"
-        // "    }\n"
-        // "    ...\n"
-        // "  ]\n"
-        // "}\n"
-        // "[FUNCTION-CALLS-STOP]\n"
     );
 
     const string model_system = tpl_replace({ // TODO: goes to the config:
@@ -346,12 +304,6 @@ When you need to perform a real-world action (like searching the web), you MUST 
             "{{model_system_voice}}\n"
             "{{model_system_lang}}\n"
             "{{model_system_plugins}}\n"
-            // + "\nYou are a creative helper designer who always should came up with the simpliest possible solution no mather what even if you don't know the correct answer you guess."
-            // + (voice ?
-            //     "\nThe user is using a text-to-speech software for communication. It should be taken into account that the user's responses are being read aloud by a text-to-speech program that can be interrupted by background noise or user interruption, then the following will appear in the context window to inform you about it: " + User::speech_interrupt_info + "\n"
-            //     "\nRepeated interruption changes how you act, your responses are becaming more consise if you intterupted more often recently but you can put more context otherwise if it's necessary, tune your response style accordingly."
-            //     : "")
-            //"The user language is [{{user_lang}}], use this language by default to talk to the user."
     );
 
     Gemini model(
@@ -385,7 +337,6 @@ When you need to perform a real-world action (like searching the web), you MUST 
         user_prompt,
         basedir,
         speech_stall,
-        // speech_speak_wait_ms,
         speech_ignores_rgxs,
         speech_impatient_ms,
         speech_tts_speed,
@@ -402,9 +353,6 @@ When you need to perform a real-world action (like searching the web), you MUST 
         speech_stt_noise_monitor_window,
         speech_stt_transcriber_model,
         speech_stt_poll_interval_ms
-        // speech//,
-        // speech_interrupt_info_token,
-        // speech_amplitude_threshold_pc_setter_token
     );
     
     if (voice) user.speech_create();
@@ -436,14 +384,7 @@ When you need to perform a real-world action (like searching the web), you MUST 
         Command* command = (Command*)command_void;
         delete command;
     }
-
-    // user.start({
-    //     &testCommand,
-    //     &exitCommand,
-    //     //...        
-    // });
-
-    // if (speech) delete speech;
+    
     return 0;
 }
 
