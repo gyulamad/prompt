@@ -138,6 +138,115 @@ namespace tools::llm {
 
     };
 
+
+    
+    typedef enum { PARAMETER_TYPE_INTEGER, PARAMETER_TYPE_STRING } parameter_type_t;
+
+    string to_string(parameter_type_t type) {
+        switch (type) {
+            case PARAMETER_TYPE_INTEGER:
+                return "integer";
+            case PARAMETER_TYPE_STRING:
+                return "string";
+            default:
+                throw ERROR("Invalid parameter type");
+        }
+    }
+
+    class Parameter {
+    private:
+        string name;
+        parameter_type_t type;
+        bool required;
+        string rules;
+    public:
+        Parameter(
+            const string& name, 
+            parameter_type_t type, 
+            bool required, 
+            const string& rules = ""
+        ): 
+            name(name),
+            type(type),
+            required(required),
+            rules(rules)
+        {}
+
+        virtual ~Parameter() {}
+
+        string get_name() const { return name; }
+        parameter_type_t get_type() const { return type; }
+        bool is_required() const { return required; }
+        string get_rules() const { return rules; }
+
+    };
+
+    string to_string(bool b) { // TODO to common libs
+        return b ? "true" : "false";
+    }
+
+    string to_string(const Parameter& parameter) {
+        return 
+            "Parameter name: " + parameter.get_name() + "\n" + 
+            "Type: " + to_string(parameter.get_type()) + "\n" + 
+            "Required: " + to_string(parameter.is_required()) + (
+                parameter.get_rules().empty() ? "" : ("\nRules: " + parameter.get_rules())
+            );
+    }
+
+    string to_string(const vector<Parameter>& parameters) {
+        vector<string> results;
+        for (const Parameter& parameter: parameters)
+            results.push_back(to_string(parameter));
+        return implode("\n", results);
+    }
+    
+    class Plugin {
+    private:
+        string name;
+        vector<Parameter> parameters;
+        string description;
+        function<string(void*, const JSON&)> callback;
+
+    public:
+        
+        Plugin(
+            const string& name,
+            const vector<Parameter>& parameters,
+            function<string(void*, const JSON&)> callback,
+            const string& description = ""
+        ):
+            name(name),
+            parameters(parameters),
+            callback(callback),
+            description(description)
+        {}
+
+        virtual ~Plugin() {}
+
+        string get_name() const { return name; }
+        string get_description() const { return description; }
+        const vector<Parameter>& get_parameters_cref() const { return parameters; }
+
+        string call(const JSON& args) {
+            return callback(this, args);
+        };
+    };
+
+    string to_string(const Plugin& plugin) {
+        return "Function name: " + plugin.get_name()
+            + (plugin.get_description().empty() ? "" : ("\nDescription: " + plugin.get_description()))
+            + (plugin.get_parameters_cref().empty() ? "" : ("\nParameters:\n" + to_string(plugin.get_parameters_cref())));
+    }
+
+
+    string to_string(const vector<Plugin>& plugins) {
+        vector<string> results;
+        for (const Plugin& plugin: plugins) 
+            results.push_back(to_string(plugin));
+        return implode("\n\n", results);
+    }
+
     class Model {
     // public:
         // using think_reporter_func_t = function<void(Model* model, const string&)>;
@@ -168,12 +277,12 @@ namespace tools::llm {
             return false;
         }
 
-        virtual string request() { UNIMP }
+        virtual string request() UNIMP
         virtual string request_stream(
             void*, // context
             function<bool(void*, const string&)>, // inference chunk recieved
             function<void(void*, const string&)> // full response recieved
-        ) { UNIMP }
+        ) UNIMP
 
         vector<string> explode_options(const string& response) {
             vector<string> splits = explode(opt_prefix, response);
@@ -274,11 +383,11 @@ namespace tools::llm {
         virtual void* spawn(const string& system) {
             return spawn(MODEL_ARGS_PASS);
         }
-        virtual void* spawn(MODEL_ARGS) { UNIMP }
+        virtual void* spawn(MODEL_ARGS) UNIMP
         void* clone() {
             return spawn(MODEL_ARGS_PASS);
         }
-        virtual void kill(Model*) { UNIMP }
+        virtual void kill(Model*) UNIMP
 
         JSON toJSON() const {
             string s = tpl_replace({

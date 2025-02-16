@@ -4,7 +4,7 @@ const axios = require('axios');
 const fs = require('fs');
 
 // Load API key and CX from the JSON file
-const secretsPath = './google-search-secret.json'; // Path to your JSON file
+const secretsPath = __dirname + '/google-search-secret.json'; // Path to your JSON file
 let API_KEY, CX;
 
 try {
@@ -76,7 +76,7 @@ async function main() {
             console.log(`   ${result.description}`);
             console.log();
         });
-        saveResultsToFile(results);
+        //saveResultsToFile(results);
     } else {
         console.log("No results found.");
     }

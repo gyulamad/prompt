@@ -91,6 +91,55 @@ namespace prompt {
 
     // ----------------------------
     
+
+    class SearchPlugin: public Plugin {
+        protected:
+            // Parameter query = Parameter("query", PARAMETER_TYPE_STRING, true);
+            // Parameter max = Parameter("max", PARAMETER_TYPE_INTEGER, true);
+            // vector<Parameter> parameters = { query, max };
+        public:
+            
+            SearchPlugin(): Plugin(
+                "google_search", 
+                { 
+                    { "query", PARAMETER_TYPE_STRING, true }, 
+                    { "max", PARAMETER_TYPE_INTEGER, true }, 
+                }, 
+                callback,
+                "Performs a google search and shows the result list."
+            ) {}
+
+            virtual ~SearchPlugin() {}
+
+            static string callback(void* plugin_void, const JSON& args) {
+                string query = args.get<string>("query");
+                int max = args.get<int>("max");
+                return Process::execute(
+                    "node browse/google-search.js"
+                    " --query \"" + escape(query) + "\""
+                    " --max " + to_string(max));
+            }
+
+    } searchPlugin;
+
+
+    class NothingPlugin: public Plugin {
+        protected:
+        
+        public:
+            
+            NothingPlugin(): Plugin(
+                "do_nothing", 
+                { }, 
+                callback,
+                "Performs nothing. Litterally nothing. It's just a placeholder stuff..."
+            ) {}
+
+            virtual ~NothingPlugin() {}
+
+            static string callback(void*, const JSON&) { return ""; }
+
+    } nothingPlugin;
 }
 
 using namespace prompt;
@@ -177,12 +226,45 @@ int main(int argc, char *argv[]) {
         // "The goal is to let the user to be able to interrupt the TTS reader with his/her voice "
         // "but filter out the background as much as possible."
     ) : "";
+    
     string model_system_lang = user_lang != "en" ? tpl_replace({
         { "{{user_lang}}", user_lang }
     }, "The user language is [{{user_lang}}], use this language by default to talk to the user.") : "";
+
+
+    vector<Plugin> plugins = {
+        nothingPlugin,
+        searchPlugin,
+    };
+
+    string model_system_plugins = plugins.empty() ? "" : tpl_replace({
+        { "{{plugins}}", to_string(plugins) },
+    }, 
+        "You can use the following function calls to perform 'real-life' actions:"
+        "\n\n{{plugins}}\n\n"
+        "In order to function calls works properly you have to use JSON format "
+        "inside a special 'function call start/stop' tokens, "
+        "for example:\n"
+        "[FUNCTION-CALLS-START]\n"
+        "{\n"
+        "  \"function_calls\":[\n"
+        "    }\n"
+        "      \"function_name\": \"get_date_time\",\n"
+        "    },{\n"
+        "      \"function_name\": \"set_alarm\",\n"
+        "      \"datetime\": \"2022-11-01 12:23\",\n"
+        "      \"text\": \"Meeting with John..\",\n"
+        "    }\n"
+        "    ...\n"
+        "  ]\n"
+        "}\n"
+        "[FUNCTION-CALLS-STOP]\n"
+    );
+
     const string model_system = tpl_replace({ // TODO: goes to the config:
             { "{{model_system_voice}}", model_system_voice },
             { "{{model_system_lang}}", model_system_lang },
+            { "{{model_system_plugins}}", model_system_plugins },
         },  "Your persona is a mid age man like AI and you behave like a simple human. "
             "You have a sense of humor, your personality is entertaining. "
             "Your answers are succinct and focusing on the core of your conversation "
@@ -190,6 +272,7 @@ int main(int argc, char *argv[]) {
             "You always helpful but also concise in answers.\n"
             "{{model_system_voice}}\n"
             "{{model_system_lang}}\n"
+            "{{model_system_plugins}}\n"
             // + "\nYou are a creative helper designer who always should came up with the simpliest possible solution no mather what even if you don't know the correct answer you guess."
             // + (voice ?
             //     "\nThe user is using a text-to-speech software for communication. It should be taken into account that the user's responses are being read aloud by a text-to-speech program that can be interrupted by background noise or user interruption, then the following will appear in the context window to inform you about it: " + User::speech_interrupt_info + "\n"
@@ -266,6 +349,10 @@ int main(int argc, char *argv[]) {
         new SaveCommand,
         new LoadCommand,
     });
+
+
+
+    user.set_plugins(plugins);
 
     user.start();
 

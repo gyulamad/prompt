@@ -332,7 +332,7 @@ namespace tools {
         }
 
         // Method to check if a selector is defined in the JSON (exists)
-        bool isDefined(string jselector) {
+        bool isDefined(string jselector) const {
             try {
                 // json j = json::parse(jstring);  // Parse the JSON string
                 json::json_pointer ptr = _json_selector(jselector);  // Convert selector to pointer
@@ -342,6 +342,7 @@ namespace tools {
                 return false;  // If parsing fails or any error occurs, consider undefined
             }
         }
+        bool has(string jselector) const { return isDefined(jselector); }
 
         // Method to check if a selector is null in the JSON
         bool isNull(string jselector) {
@@ -354,13 +355,30 @@ namespace tools {
                 return false;  // If an error occurs, assume null
             }
         }
+        
+        bool isArray(string jselector) {
+            try {
+                json::json_pointer ptr = _json_selector(jselector);
+                return j.at(ptr).is_array();
+            } catch (...) {
+                return false;
+            }
+        }
+        
+        bool isObject(string jselector) {
+            try {
+                json::json_pointer ptr = _json_selector(jselector);
+                return j.at(ptr).is_object();
+            } catch (...) {
+                return false;
+            }
+        }
 
         template<typename T>
-        T get(string jselector) {
+        T get(string jselector) const {
             try {
-                // json j = json::parse(jstring);  // Parse the JSON string
                 json::json_pointer ptr = _json_selector(jselector);  // Convert selector to pointer
-                // return j.at(ptr).get<T>();  // Return the value
+                if constexpr (is_same_v<T, JSON>) return JSON(j.at(ptr));
                 return j.at(ptr).get<T>();
             } catch (const exception& e) {
                 //DEBUG(j.dump());
@@ -388,4 +406,17 @@ namespace tools {
 
     };
 
+}
+
+namespace nlohmann {
+    template<>
+    struct adl_serializer<tools::JSON> {
+        static tools::JSON from_json(const json& j) {
+            return tools::JSON(j);
+        }
+        
+        static void to_json(json& j, const tools::JSON& jsonObj) {
+            j = jsonObj.get_json();
+        }
+    };
 }

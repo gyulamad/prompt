@@ -56,7 +56,7 @@ namespace tools::voice {
                         cb(listener, vol_pc, threshold_pc, rmax, rms, noisy, buffer);
 
                         // const float rmax_decay_pc = 0.01;
-                        rmax += (noisy ? 1 : -1) * rmax * rmax_decay_pc;
+                        rmax += ((rmax < rmax * threshold_pc * 2) ? 1 : -1) * rmax * rmax_decay_pc;
                     }
                 }
             });
