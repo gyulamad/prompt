@@ -60,16 +60,16 @@ async function fetchPage({ url, method = 'GET', data = '', cookies = '', scriptC
         // Extract human-readable text and links
         let extractedData;
         try {
-            console.log("DEBUG: page.evaluate start...");
+            // console.log("DEBUG: page.evaluate start...");
             extractedData = await page.evaluate(() => {
-                console.log("DEBUG: Remove unnecessary elements...");
+                // console.log("DEBUG: Remove unnecessary elements...");
                 // Remove unnecessary elements
                 const removals = ['script', 'style', 'noscript', 'svg', 'iframe'];
                 removals.forEach(selector => {
                     document.querySelectorAll(selector).forEach(el => el.remove());
                 });
 
-                console.log("DEBUG: Extract cleaned text content...");
+                // console.log("DEBUG: Extract cleaned text content...");
                 // Extract cleaned text content
                 const getVisibleText = element => {
                     const style = window.getComputedStyle(element);
@@ -84,7 +84,7 @@ async function fetchPage({ url, method = 'GET', data = '', cookies = '', scriptC
                     .replace(/[\r\n]+/g, '\n')
                     .trim();
 
-                console.log("DEBUG: Extract and resolve links...");
+                // console.log("DEBUG: Extract and resolve links...");
                 // Extract and resolve links
                 const links = Array.from(document.querySelectorAll('a[href]'))
                     .map(a => {
@@ -98,7 +98,7 @@ async function fetchPage({ url, method = 'GET', data = '', cookies = '', scriptC
                     })
                     .filter(link => link && link.target.startsWith('http'));
                     
-                console.log("DEBUG: return...");
+                // console.log("DEBUG: return...");
                 return {
                     //url: url,
                     readables: cleanedText,

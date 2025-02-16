@@ -114,9 +114,9 @@ namespace prompt {
                     //assert(file_get_contents(tmpfile) == conversation_json);
                     command = "curl -s \"https://generativelanguage.googleapis.com/v1beta/models/" + variant + ":generateContent?key=" + escape(secret) + "\" -H 'Content-Type: application/json' -X POST --data-binary @" + tmpfile;
                     //sleep(3); // TODO: for api rate limit
-                    cout << "[DEBUG] Gemini request..." << endl << command << endl;
+                    // cout << "[DEBUG] Gemini request..." << endl;
                     response = Process::execute(command);
-                    cout << "[DEBUG] Gemini request [done]" << endl;
+                    // cout << "[DEBUG] Gemini request [done]" << endl;
                     if (response.isDefined("error") || !response.isDefined("candidates[0].content.parts[0].text"))
                         throw ERROR("Gemini error: " + response.dump());
                     return response.get<string>("candidates[0].content.parts[0].text");    
@@ -154,7 +154,7 @@ namespace prompt {
                     // cout << "[DEBUG conversation_json_data]: " << conversation_json_data << endl;
                     string succsess_sentences = "";
 
-                    cout << "[DEBUG] Gemini request stream..." << endl;
+                    // cout << "[DEBUG] Gemini request stream..." << endl;
                     request_success = curl.POST(
                         "https://generativelanguage.googleapis.com/v1beta/models/" 
                             + variant + ":streamGenerateContent?alt=sse&key=" + escape(secret),
@@ -223,7 +223,7 @@ namespace prompt {
                             "Accept: text/event-stream"
                         }
                     );
-                    cout << "[DEBUG] Gemini request stream [done]" << endl;
+                    // cout << "[DEBUG] Gemini request stream [done]" << endl;
         
                     if(request_success) {
                         // Flush remaining text

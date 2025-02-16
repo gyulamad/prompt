@@ -271,6 +271,7 @@ namespace prompt {
 
         virtual ~Speech() {
             stt->stop();
+            hide_mic();
             delete stt;
             delete tts;
         }

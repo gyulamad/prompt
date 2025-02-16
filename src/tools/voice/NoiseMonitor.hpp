@@ -39,7 +39,7 @@ namespace tools::voice {
         {}
 
         void start(void* listener, NoiseCallback cb, long pollIntervalMs) {
-            cout << "DEBUG: NoiseMonitor monitor thread start..." << endl;
+            // cout << "[DEBUG] NoiseMonitor monitor thread start..." << endl;
             monitorThread = thread([=, this]{
                 vector<float> buffer(window);
                 while (running) {

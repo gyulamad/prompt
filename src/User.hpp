@@ -38,6 +38,10 @@ namespace prompt {
     private:
         Commander commander;
 
+        atomic<bool> streaming = false;
+        atomic<bool> requesting = false;
+        atomic<bool> exiting = false;
+
         Model& model;
         string model_name;
         string user_lang;
@@ -178,9 +182,9 @@ namespace prompt {
             // return cmatcher;
         }
 
-        void exit() {         
+        void exit() {
             commander.exit();   
-            // exiting = true;
+            exiting = true;
         }
 
         // --------------------
@@ -192,26 +196,6 @@ namespace prompt {
         mode_t get_mode() const {
             return mode;
         }
- 
-        // Speech* get_speech_ptr() {
-        //     return speech;
-        // }
-
-        // void set_voice_in(bool voice_in) {
-        //     this->voice_in = voice_in;
-        // }
-
-        // bool is_voice_in() const {
-        //     return voice_in;
-        // }
-
-        // void set_voice_out(bool voice_in) {
-        //     this->voice_out = voice_out;
-        // }
-
-        // bool is_voice_out() const {
-        //     return voice_out;   
-        // }
 
         void save_model(bool override /*= false*/, bool show_save_succeed = true) {
             string model_file = get_model_file();
@@ -239,17 +223,6 @@ namespace prompt {
         void show_voice_input(const string& input) {
             commander.get_command_line_ref().show(input + (input.back() == '\n' ? "" : "\n"));
         }
-        
-        // bool add_puffered_voice_input_to_context() {
-        //     if (!speech) return false;
-        //     string inp = trim(speech->fetch_rec_stt_result());
-        //     if (!inp.empty()) {
-        //         model.addContext(inp, ROLE_INPUT);
-        //         show_voice_input(inp);
-        //         return true;
-        //     }
-        //     return false;
-        // }
 
         bool speech_create() {
             if (speech) return true;
@@ -316,7 +289,7 @@ namespace prompt {
         }
 
         bool speech_delete() {
-            if (!speech) return false;
+            if (!speech) return false;            
             delete speech;
             speech = nullptr;
             return true;
@@ -331,125 +304,6 @@ namespace prompt {
             speech_delete();
             return false;
         }
-
-        string prompt(/*const string& response = ""*/) {
-            // string resp = trim(response);
-            // if (!resp.empty()) cout << resp << endl;
-            // if (speech) {
-            //     if (speech->is_voice_out() && !resp.empty()) speech->say_beep(resp, true);
-            //     if (speech->is_voice_in()) {
-            //         string input = speech->rec();
-            //         if (speech->is_rec_interrupted()) speech->set_voice_in(false);
-            //         //speech->cleanprocs();
-            //         if (!input.empty()) show_voice_input(input);
-            //         return input;
-            //     }
-            // }
-            return commander.get_command_line_ref().readln();
-        }
-
-        // string inference_full;
-        // bool inference_stat_in_func_call;
-        // string inference_next_func_call;
-        // vector<string> inference_func_calls;
-
-        // void inference_plugins_reset() {
-        //     inference_full = "";
-        //     inference_stat_in_func_call = false;
-        //     inference_next_func_call = "";
-        //     inference_func_calls.clear();
-        // }
-
-        // string inference_remove_plugins(const string& inference) {
-        //     string result = "";
-        //     for (size_t i = 0; i < inference.length(); i++) {
-        //         inference_full += inference[i];
-        //         if (inference_stat_in_func_call) inference_next_func_call += inference[i];
-        //         else result += inference[i];
-        //         if (str_ends_with(inference_full, "[FUNCTION-CALLS-START]")) {
-        //             inference_stat_in_func_call = true;
-        //             inference_next_func_call = "";                    
-        //         }
-        //         else if (str_ends_with(inference_full, "[FUNCTION-CALLS-STOP]")) {
-        //             inference_stat_in_func_call = false;
-        //             inference_func_calls.push_back(str_replace({
-        //                 { "[FUNCTION-CALLS-START]", "" }, 
-        //                 { "[FUNCTION-CALLS-STOP]", "" }, 
-        //             }, inference_next_func_call));
-        //             inference_next_func_call = "";
-        //         }
-        //     }            
-        //     return str_replace({
-        //         { "[FUNCTION-CALLS-START]", "" }, 
-        //         { "[FUNCTION-CALLS-STOP]", "" }, 
-        //     }, result);
-        // }
-
-        // string inference_handle_plugins() {
-        //     string output = "";
-        //     for (const string& inference_func_call: inference_func_calls) {
-        //         if (!is_valid_json(inference_func_call)) {
-        //             output += 
-        //                 "Invalid JSON syntax for function call:\n" 
-        //                 + inference_func_call 
-        //                 + "\n";
-        //             continue;
-        //         }
-        //         JSON fcall_all(inference_func_call);
-        //         if (!fcall_all.has("function_calls")) {
-        //             output += 
-        //                 "`function_calls` key is missing:\n" 
-        //                 + inference_func_call 
-        //                 + "\n";
-        //             continue;
-        //         }
-        //         if (!fcall_all.isArray("function_calls")) {
-        //             output += 
-        //                 "`function_calls` is not an array:\n" 
-        //                 + inference_func_call 
-        //                 + "\n";
-        //             continue;
-        //         }
-        //         vector<JSON> fcalls(fcall_all.get<vector<JSON>>("function_calls"));
-        //         for (const JSON& fcall: fcalls) {
-        //             string function_name = fcall.get<string>("function_name");
-        //             bool found = false;
-        //             for (Plugin& plugin: plugins) {
-        //                 if (plugin.get_name() == function_name) {
-        //                     found = true;
-        //                     bool invalid = false;
-        //                     for (const Parameter& parameter: plugin.get_parameters_cref()) {
-        //                         if (!fcall.has(parameter.get_name())) {
-        //                             if (parameter.is_required()) {
-        //                                 output += 
-        //                                     "A required parameter is missing in function call: `" 
-        //                                     + function_name + "." + parameter.get_name() +
-        //                                     + "`\n";
-        //                                 invalid = true;
-        //                                 continue;
-        //                             }
-        //                         }                                
-        //                     }
-        //                     if (!invalid) {
-        //                         string result;
-        //                         try {
-        //                             result = plugin.call(fcall);
-        //                         } catch (exception &e) {
-        //                             result = "Error in function `" + function_name + "`: " + e.what();
-        //                         }
-        //                         output += 
-        //                             "Function output `" + function_name + "`:\n"
-        //                             + result + "\n";
-        //                     }
-        //                 }
-        //             }
-        //             if (!found) {
-        //                 output += "Function is not found: `" + function_name + "`\n";
-        //             }
-        //         }
-        //     }
-        //     return output;
-        // }
 
         static bool stream_callback(void* user_void, const string& inference) {
             if (!user_void) return false;
@@ -473,39 +327,42 @@ namespace prompt {
             if (user->speech) user->speech->beep();
         }
 
-
-
-        // void set_plugins(const vector<Plugin> plugins) {
-        //     this->plugins = plugins;
-        // }
-
         void start() {
             string input = "";
             string response = "";
 
-            cout << "DEBUG: User keyboard input handler thread start..." << endl;
+            // cout << "[DEBUG] User keyboard input handler thread start..." << endl;
             thread keyboard_input_thread([&]{
-                while (!commander.is_exiting()) {
-                    input = prompt(); //commander.get_command_line_ref().readln();
-                    //if (speech) speech_delete();
+                while (!exiting && !commander.is_exiting()) {
                     sleep(1);
+                    if (speech && kbhit()) {
+                        while (kbhit()) getchar();
+                        speech_delete();
+                        continue;
+                    }
+                    if (!speech) {
+                        if (stream && streaming) continue;
+                        if (requesting) continue;
+                        if (exiting) break;
+                        input = commander.get_command_line_ref().readln();
+                        if (input.empty()) speech_create();
+                    }
                 }
             });
 
-            while (!commander.is_exiting()) {
+            while (!exiting && !commander.is_exiting()) {
 
                 if (!stream) {
                     string resp = trim(response);
                     if (!resp.empty()) {
-                        cout << "\r" << resp << endl;
-                        commander.get_command_line_ref().show();                    
+                        cout << "\r" << resp << endl;                  
                         if (speech) speech->speak(resp, true, true);
                     }
                 }
 
                 // waiting for the next input:
                 input = "";
-                while (input.empty()) {                    
+                while (!exiting && input.empty()) {                    
                     usleep(30000);                    
                     if (speech) input += speech->get_text_input();
                 }
@@ -516,66 +373,21 @@ namespace prompt {
                     commander.run_command(this, input);
                     continue; 
                 }
-
-
-                // if (!plugins.empty()) {
-                //     Model* plugin_selector_model = (Model*)model.clone();
-                //     vector<string> plugin_usages;
-                //     for (const Plugin& plugin: plugins) {
-                //         plugin_usages.push_back(to_string(plugin));
-                //         // JSON plugin_usage_json;
-                //         // plugin_usage_json.set("function_name", plugin->get_function_name());
-                //         // plugin_usage_json.set("description", plugin->get_description());
-                //         // vector<string> plugin_parameters_json_as_strings;
-                //         // for (const Parameter& parameter: plugin->get_parameters_cref()) {
-                //         //     JSON plugin_parameter_json;
-                //         //     plugin_parameter_json.set("name", parameter.get_name());
-                //         //     plugin_parameter_json.set("type", parameter.get_type());
-                //         //     plugin_parameter_json.set("required", parameter.is_required());
-                //         //     plugin_parameter_json.set("rules", parameter.get_rules());
-                //         //     plugin_parameters_json_as_strings.push_back(plugin_parameter_json.dump(4));
-                //         // }
-                //         // plugin_usage_json.set("parameters", implode(",", plugin_parameters_json_as_strings);
-                //         // string plugin_usage = plugin_usage_json.dump(4);
-                //         // plugin_usages.push_back(plugin_usage);
-                //     }
-                //     vector<string> plugin_selections = plugin_selector_model->multiple_str(
-                //         "Do you need to use any function call at the moment? "
-                //         "Select which ever you need to use or select the 'Nothing' plugin if you don't need function call at the moment. "
-                //         "In your response show the selected function call in a JSON format!",
-                //         plugin_usages
-                //     );
-                //     model.kill(plugin_selector_model);
-                // }
                 
                 response = "";
-
-                // inference_plugins_reset();
-                
                 switch (mode)
                 {
                     case MODE_CHAT:
                         if (stream) {
-                            // thread model_prompt_thread([&](){
-
-                                model.inference_plugins_reset();
-
-                                response = model.prompt_stream(input, this, stream_callback, stream_done_callback);
-                               
-
-                                
-                                // string inference_full_orig = model.inference_full;
-                                // model.inference_plugins_reset();
-                                // response = model.inference_plugins_process_response(inference_full_orig);
-                            // });
-                            //cout << "[DEBUG] Waiting for model prompt thread to finish..." << endl;
-                            // model_prompt_thread.join();   
-
-                            //inference_plugins_reset();                         
-
+                            streaming = true;
+                            model.inference_plugins_reset();
+                            response = model.prompt_stream(input, this, stream_callback, stream_done_callback);
+                            streaming = false;
                             break;
                         }
+                        requesting = true;
                         response = model.prompt(input);
+                        requesting = false;
                         break;
 
                     case MODE_THINK:
@@ -590,64 +402,10 @@ namespace prompt {
                         throw ERROR("Invalid mode");
                 }
 
-
-
-                // response = inference_remove_plugins(response);
-
-                // if (!inference_func_calls.empty()) {
-                //     string plugin_output = inference_handle_plugins();
-                //     if (!plugin_output.empty()) {
-                //         model.addContext(plugin_output, ROLE_INPUT);
-                //     }
-                // }
-
-
-                
-                // TODO:
-                // vector<string> matches;
-                // if (regx_match("\\[" + speech_amplitude_threshold_pc_setter_token + ":([\\d\\.]+)\\]", response, &matches)) {
-                //     response = str_replace(matches[0], "", response);
-
-                    // if (speech) {
-                    //     bool error_found = false;
-                    //     if (!is_numeric(matches[1])) {
-                    //         model.addContext(
-                    //             "The amplitude threshold_pc should be a numeric value.", 
-                    //             ROLE_INPUT
-                    //         );
-                    //         error_found = true;
-                    //     }
-                    //     double noise_threshold_pc = parse<double>(matches[1]);
-                    //     if (noise_threshold_pc < speech->get_noise_threshold_pc_min() || noise_threshold_pc > speech->get_noise_threshold_pc_max()) {
-                    //         model.addContext(
-                    //             "The amplitude threshold_pc should be in between " 
-                    //                 + to_string(speech->get_noise_threshold_pc_min()) + " and " 
-                    //                 + to_string(speech->get_noise_threshold_pc_max()), 
-                    //             ROLE_INPUT
-                    //         );
-                    //         error_found = true;
-                    //     }
-                    //     if (error_found) {
-                    //         model.addContext(
-                    //             "The amplitude threshold_pc value remains unchanged: " 
-                    //                 + to_string(speech->get_noise_threshold_pc()), 
-                    //             ROLE_INPUT
-                    //         );
-                    //         continue;
-                    //     }
-                    //     speech->set_noise_threshold_pc(noise_threshold_pc);
-                    //     string msg = "The noise amplitude threshold_pc value is set to " 
-                    //         + to_string(speech->get_noise_threshold_pc());
-                    //     cout << msg << endl;
-                    //     model.addContext(msg, ROLE_INPUT);
-                    // }
-                // }
-
                 if (auto_save && !model_name.empty()) save_model(true, false);
             }
-
-            //while(!keyboard_input_thread.joinable());
-            cout << "[DEBUG] Waiting for keyboard input thread to finish..." << endl;
+            
+            // cout << "[DEBUG] Waiting for keyboard input thread to finish..." << endl;
             keyboard_input_thread.join();
         }
 

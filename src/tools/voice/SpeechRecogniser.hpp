@@ -74,7 +74,7 @@ namespace tools::voice {
                 pollIntervalMs
             );
 
-            cout << "DEBUG: SpeachRecogniser transcriber thread start..." << endl;
+            // cout << "[DEBUG] SpeachRecogniser transcriber thread start..." << endl;
             transcriberThread = thread([&]{
                 while(running) {
                     usleep(30000);

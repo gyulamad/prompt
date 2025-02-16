@@ -73,7 +73,7 @@ namespace tools::voice {
         }
 
         void beep() {
-            if (!beep_cmd.empty()) proc.writeln(beep_cmd);
+            if (!beep_cmd.empty()) Process::execute(beep_cmd); // proc.writeln(beep_cmd);
         }
 
         void speak_pause() {

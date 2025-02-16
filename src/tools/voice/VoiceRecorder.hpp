@@ -46,7 +46,7 @@ namespace tools::voice {
 
             // PaStreamParameters inputParams;
             // inputParams.device = Pa_GetHostApiInfo(alsaApi)->defaultInputDevice;
-            cout << "DEBUG: VoiceRecorder worker thread start..." << endl;
+            // cout << "[DEBUG] VoiceRecorder worker thread start..." << endl;
             workerThread = thread(&VoiceRecorder::stream_thread, this);
         }
 

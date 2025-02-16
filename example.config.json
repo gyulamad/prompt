@@ -69,9 +69,9 @@
         // so every output that coming out from the speech recognition output 
         // and match with any of the followings will be ignored:        
         "ignores_rgxs": [
-            "^\\[.*\\]$",
-            "^\\*.*\\*$",
-            "^\\(.*\\)$",
+            // "^\\[.*\\]$",
+            // "^\\*.*\\*$",
+            // "^\\(.*\\)$",
             "^\\-.*[\\.\\!\\-]$" // (for hungarian??)
         ],
 
