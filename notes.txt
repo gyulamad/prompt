@@ -23,7 +23,7 @@ if you want to use spchcat, see more: https://github.com/petewarden/spchcat
 for emojies: sudo apt install fonts-noto-color-emoji
 
 build && run:
-g++ -std=c++23 src/prompt.cpp -o builds/prompt && builds/prompt
+g++ -std=c++23 src/prompt.cpp -o builds/prompt.gdb -g -Ilibs/ggerganov/whisper.cpp/include -Ilibs/ggerganov/whisper.cpp/ggml/include libs/ggerganov/whisper.cpp/build/src/libwhisper.so.1.7.4 -Wl,-rpath,libs/ggerganov/whisper.cpp/build/src -lrt -lm -lasound -lportaudio -lcurl -pthread
 
 build && deploy:
 g++ -std=c++23 src/prompt.cpp -o builds/prompt && \
