@@ -334,11 +334,20 @@ namespace tools {
 
         //     return results;
         // }
-        string read_blocking() {
+        string read_blocking(int timeout = 10) {
             string results = "";
             string chunk = "";
 
+            auto start_time = chrono::steady_clock::now();
             while (true) {
+                // Check if the timeout has been reached
+                auto current_time = chrono::steady_clock::now();
+                auto elapsed_time = chrono::duration_cast<chrono::seconds>(current_time - start_time).count();
+                if (elapsed_time >= timeout) {
+                    results += "\nExecution timed out after " + to_string(timeout) + "s"; // Timeout reached
+                    break;
+                }
+
                 int status = ready_blocking(); // Use a blocking version of ready()
                 if (status == 0) break; // No data available (shouldn't happen in blocking mode)
 
@@ -397,7 +406,7 @@ namespace tools {
         // }
         static mutex cout_mutex; // Mutex for synchronizing cout
 
-        static string execute(const string& command, const string& program = "bash", bool show = false) {
+        static string execute(const string& command, const string& program = "bash", bool show = false, int timeout = 10) {
             static mutex process_mutex; // Mutex for Process class (if needed)
             lock_guard<mutex> lock(process_mutex); // Lock for Process class
 
@@ -405,7 +414,7 @@ namespace tools {
             process.writeln(command); // Write the command
             close(process.to_child.write_fd()); // Close the write end to signal EOF
             string output = "";
-            if (!show) output = process.read_blocking(); // Read the output
+            if (!show) output = process.read_blocking(timeout); // Read the output
             else {
                 string outp = process.read();
                 output += outp;

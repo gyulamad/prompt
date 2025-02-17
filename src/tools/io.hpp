@@ -2,6 +2,9 @@
 
 #include <iostream>
 #include <string>
+#include <limits>
+#include <atomic>
+#include <mutex>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -10,6 +13,9 @@
 using namespace std;
 
 namespace tools {
+
+    // atomic<bool> io_input_active(false); // Shared boolean variable
+    mutex io_input_mtx; // Mutex to protect access to the variable
 
     void write(const string& output = "") {
         cout << output << flush;
@@ -20,6 +26,10 @@ namespace tools {
     }
 
     string readln(const string& prompt = "") {
+        lock_guard<mutex> lock(io_input_mtx); // Lock the mutex
+        // if (io_input_active) return false; // Disable others if input is active
+        // io_input_active = true;
+
         string input;
         write(prompt);
         getline(cin, input);
@@ -36,6 +46,10 @@ namespace tools {
     
     // Function to check if a key has been pressed (non-blocking)
     bool kbhit() {
+        lock_guard<mutex> lock(io_input_mtx); // Lock the mutex
+        // if (io_input_active) return false; // Disable others if input is active
+        // io_input_active = true;
+    
         struct termios oldt, newt;
         int ch;
         int oldf;
@@ -67,6 +81,10 @@ namespace tools {
 
 
     bool confirm(const string& message, char def = 'y') {
+        lock_guard<mutex> lock(io_input_mtx); // Lock the mutex
+        // if (io_input_active) return false; // Disable others if input is active
+        // io_input_active = true;
+
         def = tolower(def); // Normalize the default to lowercase
         char choice;
 
@@ -75,6 +93,8 @@ namespace tools {
             cout << message << " (" 
                     << (def == 'y' ? "Y/n" : "y/N") << "): ";
             choice = cin.get();
+
+            //cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
             // Handle Enter (newline) input for default option
             if (choice == '\n') {

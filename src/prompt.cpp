@@ -173,6 +173,7 @@ int main(int argc, char *argv[]) {
         nothingTool,
         googleSearchTool,
         webBrowserTool,
+        bashCommandTool,
     };
 
     string model_system_tools = tools.empty() ? "" : tpl_replace({
