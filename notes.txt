@@ -16,6 +16,9 @@ git clone https://github.com/ggerganov/whisper.cpp.git libs/ggerganov/whisper.cp
     ./build/bin/quantize models/ggml-base.bin models/ggml-base-q8_0.bin q8_0  # Quantize the model to 5-bit (q5_0)
     sudo ldconfig /mnt/windows/llm/stts/libs/ggerganov/whisper.cpp/build/src/
 
+curl/curl.h: sudo apt-get install libcurl4-openssl-dev
+portaudio.h: sudo apt-get install portaudio19-dev
+
 if you want to use spchcat, see more: https://github.com/petewarden/spchcat
 for emojies: sudo apt install fonts-noto-color-emoji
 
