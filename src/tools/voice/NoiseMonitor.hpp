@@ -23,7 +23,8 @@ namespace tools::voice {
             float rmax, 
             float rms, 
             bool is_noisy, 
-            vector<float>& buffer
+            vector<float>& buffer,
+            bool muted
         )>;
 
         NoiseMonitor(
@@ -50,16 +51,28 @@ namespace tools::voice {
                         recorder.read_audio(buffer.data(), window);
                         float rms = calculate_rms(buffer);
                         if (rms >= rmax) rmax = rms;
-                        float vol_pc = rms / rmax;
+                        float vol_pc = muted ? 0.0 : (rms / rmax);
                         bool noisy = vol_pc > threshold_pc;
 
-                        cb(listener, vol_pc, threshold_pc, rmax, rms, noisy, buffer);
+                        cb(listener, vol_pc, threshold_pc, rmax, rms, noisy, buffer, muted);
 
                         // const float rmax_decay_pc = 0.01;
                         rmax += ((rmax < rmax * threshold_pc * 2) ? 1 : -1) * rmax * rmax_decay_pc;
                     }
                 }
             });
+        }
+
+        void mute() {
+            muted = true;
+        }
+
+        void unmute() {
+            muted = false;
+        }
+
+        bool is_muted() {
+            return muted;
         }
 
         void stop() {
@@ -86,6 +99,7 @@ namespace tools::voice {
         // atomic<bool> paused{true};
         atomic<bool> running{true};
         thread monitorThread;
+        bool muted = false;
 
         float calculate_rms(const vector<float>& buffer) {
             float sum = 0;

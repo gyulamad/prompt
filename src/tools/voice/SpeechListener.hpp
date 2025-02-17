@@ -6,7 +6,7 @@ namespace tools::voice {
 
     class SpeechListener {
     public:
-        using RMSCallback = function<void(float vol_pc, float threshold_pc, float rmax, float rms, bool loud)>;
+        using RMSCallback = function<void(float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted)>;
         using SpeechCallback = function<void(vector<float>& record)>;
 
         SpeechListener(NoiseMonitor& monitor): monitor(monitor) {}
@@ -47,13 +47,14 @@ namespace tools::voice {
             float rmax, 
             float rms, 
             bool is_noisy, 
-            vector<float>& buffer
+            vector<float>& buffer,
+            bool muted
         ) {
             SpeechListener* that = (SpeechListener*)listener;
             if (is_noisy) for (float sample: buffer) that->record.push_back(sample);
             else if (!is_noisy && that->is_noisy_prev) that->speech_cb(that->record);
             that->is_noisy_prev = is_noisy;
-            that->rms_cb(vol_pc, threshold_pc, rmax, rms, is_noisy);
+            that->rms_cb(vol_pc, threshold_pc, rmax, rms, is_noisy, muted);
         };
 
     };

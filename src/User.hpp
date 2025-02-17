@@ -336,7 +336,14 @@ namespace prompt {
                 while (!exiting && !commander.is_exiting()) {
                     sleep(1);
                     if (speech && kbhit()) {
-                        while (kbhit()) getchar();
+                        bool space = false;
+                        while (kbhit()) {
+                            if (' ' == (char)getchar()) {
+                                if (speech) speech->mic_mute_toggle();
+                                space = true;
+                            }
+                        }
+                        if (space) continue;
                         speech_delete();
                         continue;
                     }

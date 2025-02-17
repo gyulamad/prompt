@@ -87,6 +87,10 @@ namespace tools::voice {
             
         }
 
+        NoiseMonitor* getMonitorPtr() {
+            return monitor;
+        }
+
         const Transcriber& getTranscriberCRef() {
             return *transcriber;
         }

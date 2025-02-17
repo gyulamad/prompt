@@ -33,7 +33,7 @@ namespace tools::voice {
         using TranscribeCallback = function<void(const vector<float>& record, const string& text)>;
 
 
-        SpeechListener::RMSCallback rms_cb = [](float vol_pc, float threshold_pc, float rmax, float rms, bool loud) {};
+        SpeechListener::RMSCallback rms_cb = [](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {};
         SpeechListener::SpeechCallback speech_cb = [](vector<float>& record) {};
         SpeechRecogniser::TranscribeCallback transcribe_cb = [](const vector<float>& record, const string& text) {};
 
@@ -56,9 +56,8 @@ namespace tools::voice {
 
         void start() {
             listener.start(
-                [&](float vol_pc, float threshold_pc, float rmax, float rms, bool loud) {
-                    // cout << "RMS: " << threshold_pc << "/" << rms << " - " << (loud ? "Loud" : "Quiet") << endl;
-                    rms_cb(vol_pc, threshold_pc, rmax, rms, loud);
+                [&](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {
+                    rms_cb(vol_pc, threshold_pc, rmax, rms, loud, muted);
                 },
 
                 [&](vector<float>& record) {

@@ -126,11 +126,11 @@ namespace prompt {
 
             Speech& that = *this;
 
-            stt->setRMSHandler([&](float vol_pc, float threshold_pc, float rmax, float rms, bool loud) {
+            stt->setRMSHandler([&](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {
                 string out = ""; 
 
                 // REC status
-                out += string(loud ? "*REC" : "?MIC") + " ";
+                out += (muted ? "MUTE" : string(loud ? "*REC" : "?MIC")) + " ";
 
                 // RMS volume
                 //out += "V:" + set_precision(threshold_pc * 100, 2) + "/" + set_precision(rms * 100, 2) + " \t[";
@@ -138,7 +138,8 @@ namespace prompt {
                 double step = 0.1;
                 double i = threshold_pc;
                 for (; i < 1; i += step) {
-                    if (vol_pc > i) out += "•";
+                    if (muted) out += "_";
+                    else if (vol_pc > i) out += "•";
                     else out += "◦"; //"·•◦";
                 }
                 out += "] VOL: " + set_precision(threshold_pc * 100, 2) + "/" + set_precision(vol_pc * 100, 2) + "% ";
@@ -154,22 +155,7 @@ namespace prompt {
                     ? " [" + roll + "] Progress: " + to_string(that.recs) + ".. " 
                     : "                   ") + " ";
 
-                // show
-                // int y, x;
-                // get_cursor_position(y, x);
-                // struct winsize w;
-                // ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-                // int outpos = w.ws_col - out.length() - 1;
-                
                 show_mic(out);
-                // struct winsize w;
-                // ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-                // int outpos = w.ws_col - out.length() - 1;
-                // string final_out = "";
-                // for (int i=w.ws_col; i < outpos; i++) final_out += "\033[C";
-                // final_out += out;
-                // cout << final_out << flush;
-
 
                 // ----- handle speech interruptions -----
 
@@ -180,40 +166,7 @@ namespace prompt {
                     that.tts_paused_at = get_time_ms();
                 }
 
-                // if (!loud && tts_paused) {
-                //     if (tts_paused_at + speech_impatient_ms > get_time_ms()) 
-                //         tts->speak_resume();
-                //     else 
-                //         tts->speak_stop();
-                //     tts_paused = false;
-                // }
-
                 that.loud_prev = loud;
-
-                // cout << speak_paused_at_ms << endl;
-                // if (loud && !speak_paused_at_ms) {
-                //     cout << "[[PAUSE]]" << endl;
-                //     tts->speak_pause();
-                //     speak_paused_at_ms = get_time_ms();
-                // }
-
-                // if (!loud) {
-                //     if (speak_paused_at_ms) {
-                //         if (speak_paused_at_ms + speak_wait_ms > get_time_ms()) {
-                //             cout << "[[CONTINUE]]" << endl;
-                //             tts->speak_resume();
-                //             speak_paused_at_ms = 0;
-                //         }
-                //     }
-                // } else {
-                //     if (speak_paused_at_ms) {
-                //         if (speak_paused_at_ms + speak_wait_ms < get_time_ms()) {
-                //             cout << "[[STOP]]" << endl;
-                //             tts->speak_stop();
-                //             speak_paused_at_ms = 0;
-                //         }
-                //     }
-                // }
             });
 
             stt->setSpeechHandler([&](vector<float>& record) {
@@ -288,6 +241,13 @@ namespace prompt {
             for (int i = 0; i < mic_out_size+5; i++) out += " ";
             for (int i = 0; i < mic_out_size+5; i++) out += "\b";
             cout << out << flush;
+        }
+
+        void mic_mute_toggle() {
+            NoiseMonitor* monitor = stt->getMonitorPtr();
+            if (!monitor) return;
+            if (monitor->is_muted()) monitor->unmute();
+            else monitor->mute();
         }
 
         // void pause() {
