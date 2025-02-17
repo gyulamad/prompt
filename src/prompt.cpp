@@ -19,6 +19,7 @@
 // #include "Speech.hpp"
 #include "User.hpp"
 #include "Commands.hpp"
+#include "Tools.hpp"
 #include "Gemini.hpp"
 
 using namespace std;
@@ -91,84 +92,6 @@ namespace prompt {
 
     // ----------------------------
     
-
-    class GoogleSearchPlugin: public Plugin {
-    public:
-        
-        GoogleSearchPlugin(): Plugin(
-            "google_search", 
-            { 
-                { "query", PARAMETER_TYPE_STRING, true }, 
-                { "max", PARAMETER_TYPE_INTEGER, true }, 
-            }, 
-            callback,
-            "Performs a google search and shows the result list."
-        ) {}
-
-        static string callback(void* plugin_void, const JSON& args) {
-            string query = args.get<string>("query");
-            int max = args.get<int>("max");
-            cout << "Google search: '" + query + "' ..." << endl;
-            return Process::execute(
-                "node browse/google-search.js"
-                " --query \"" + escape(query) + "\""
-                " --max " + to_string(max));
-        }
-
-    } googleSearchPlugin;
-
-    class WebBrowserPlugin: public Plugin {
-    public:
-        
-        WebBrowserPlugin(): Plugin(
-            "web_browse", 
-            { 
-                { "url", PARAMETER_TYPE_STRING, true }, 
-                { "method", PARAMETER_TYPE_STRING },
-                { "data", PARAMETER_TYPE_STRING },
-                { "cookies", PARAMETER_TYPE_STRING }, 
-                { "script", PARAMETER_TYPE_STRING }, 
-            }, 
-            callback,
-            "Load the source-code of a web page from the given URL. "
-            "Use methods GET/POST/PUT etc. with data and cookies. "
-            "With the script parameter you can inject javascript."
-        ) {}
-
-        static string callback(void* plugin_void, const JSON& args) {
-            string url = args.get<string>("url");
-            string method = args.has("method") ? args.get<string>("method") : "";
-            string data = args.has("data") ? args.get<string>("data") : "";
-            string cookies = args.has("cookies") ? args.get<string>("cookies") : "";
-            string script = args.has("script") ? args.get<string>("script") : "";
-            
-            cout << "Loading: " << (method.empty() ? "" : "[" + method + "] ") << url << " ..." << endl;
-            return Process::execute(
-                "node browse/web_scraper.js"
-                " --url \"" + escape(url) + "\""
-                + (method.empty() ? "" : " --method " + escape(method))
-                + (data.empty() ? "" : " --data \"" + escape(data) + "\"")
-                + (cookies.empty() ? "" : " --cookies \"" + escape(cookies) + "\"")
-                + (script.empty() ? "" : " --script \"" + escape(script) + "\"")
-            );
-        }
-
-    } webBrowserPlugin;
-
-
-    class NothingPlugin: public Plugin {
-    public:
-        
-        NothingPlugin(): Plugin(
-            "do_nothing", 
-            { }, 
-            callback,
-            "Performs nothing. Litterally nothing. It's just a placeholder stuff..."
-        ) {}
-
-        static string callback(void*, const JSON&) { return ""; }
-
-    } nothingPlugin;
 }
 
 using namespace prompt;
@@ -246,14 +169,14 @@ int main(int argc, char *argv[]) {
     }, "The user language is [{{user_lang}}], use this language by default to talk to the user.") : "";
 
 
-    vector<Plugin> plugins = {
-        nothingPlugin,
-        googleSearchPlugin,
-        webBrowserPlugin,
+    vector<Tool> tools = {
+        nothingTool,
+        googleSearchTool,
+        webBrowserTool,
     };
 
-    string model_system_plugins = plugins.empty() ? "" : tpl_replace({
-        { "{{plugins}}", to_string(plugins) },
+    string model_system_tools = tools.empty() ? "" : tpl_replace({
+        { "{{tools}}", to_string(tools) },
     }, 
     R"(
 You are a helpful and humorous AI assistant designed to provide concise and accurate responses, considering that the user is communicating via text-to-speech.
@@ -289,13 +212,13 @@ When you need to perform a real-world action (like searching the web), you MUST 
 **In short:** ALWAYS use the `[FUNCTION-CALLS-START]` and `[FUNCTION-CALLS-STOP]` tags and ALWAYS format your calls as JSON. No exceptions.    
     )"
         "You can use the following function calls to perform 'real-life' actions:"
-        "\n\n{{plugins}}\n\n"
+        "\n\n{{tools}}\n\n"
     );
 
     const string model_system = tpl_replace({ // TODO: goes to the config:
             { "{{model_system_voice}}", model_system_voice },
             { "{{model_system_lang}}", model_system_lang },
-            { "{{model_system_plugins}}", model_system_plugins },
+            { "{{model_system_tools}}", model_system_tools },
         },  "Your persona is a mid age man like AI and you behave like a simple human. "
             "You have a sense of humor, your personality is entertaining. "
             "Your answers are succinct and focusing on the core of your conversation "
@@ -303,7 +226,7 @@ When you need to perform a real-world action (like searching the web), you MUST 
             "You always helpful but also concise in answers.\n"
             "{{model_system_voice}}\n"
             "{{model_system_lang}}\n"
-            "{{model_system_plugins}}\n"
+            "{{model_system_tools}}\n"
     );
 
     Gemini model(
@@ -323,7 +246,7 @@ When you need to perform a real-world action (like searching the web), you MUST 
         model_think_deep
     );
 
-    model.set_plugins(plugins);
+    model.set_tools(tools);
 
 
 

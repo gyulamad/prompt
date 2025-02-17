@@ -308,7 +308,7 @@ namespace prompt {
         static bool stream_callback(void* user_void, const string& inference) {
             if (!user_void) return false;
             User* user = (User*)user_void;
-            string inference_to_user = user->model.inference_remove_plugins(inference);
+            string inference_to_user = user->model.inference_remove_tools(inference);
             if (user->speech) user->speech->hide_mic();
 
             // cout << inference_to_user << endl;
@@ -368,7 +368,7 @@ namespace prompt {
                 }
                 if (speech) speech->rand_speak_hesitate();
 
-                if (model.inference_func_calls.empty() && input.empty()) continue;
+                if (model.get_inference_func_calls_cref().empty() && input.empty()) continue;
                 if (!input.empty() && input[0] == '/') {
                     commander.run_command(this, input);
                     continue; 
@@ -380,7 +380,7 @@ namespace prompt {
                     case MODE_CHAT:
                         if (stream) {
                             streaming = true;
-                            model.inference_plugins_reset();
+                            model.inference_tools_reset();
                             response = model.prompt_stream(input, this, stream_callback, stream_done_callback);
                             streaming = false;
                             break;

@@ -202,7 +202,7 @@ namespace tools::llm {
         return implode("\n", results);
     }
     
-    class Plugin {
+    class Tool {
     private:
         string name;
         vector<Parameter> parameters;
@@ -211,7 +211,7 @@ namespace tools::llm {
 
     public:
         
-        Plugin(
+        Tool(
             const string& name,
             const vector<Parameter>& parameters,
             function<string(void*, const JSON&)> callback,
@@ -232,17 +232,17 @@ namespace tools::llm {
         };
     };
 
-    string to_string(const Plugin& plugin) {
-        return "Function name: " + plugin.get_name()
-            + (plugin.get_description().empty() ? "" : ("\nDescription: " + plugin.get_description()))
-            + (plugin.get_parameters_cref().empty() ? "" : ("\nParameters:\n" + to_string(plugin.get_parameters_cref())));
+    string to_string(const Tool& tool) {
+        return "Function name: " + tool.get_name()
+            + (tool.get_description().empty() ? "" : ("\nDescription: " + tool.get_description()))
+            + (tool.get_parameters_cref().empty() ? "" : ("\nParameters:\n" + to_string(tool.get_parameters_cref())));
     }
 
 
-    string to_string(const vector<Plugin>& plugins) {
+    string to_string(const vector<Tool>& tools) {
         vector<string> results;
-        for (const Plugin& plugin: plugins) 
-            results.push_back(to_string(plugin));
+        for (const Tool& tool: tools) 
+            results.push_back(to_string(tool));
         return implode("\n\n", results);
     }
 
@@ -264,6 +264,18 @@ namespace tools::llm {
         double conversation_loss_ratio;
         // think_reporter_func_t default_think_reporter;
         // think_interruptor_func_t default_think_interruptor;
+
+        // --------- tools -----------
+
+        vector<Tool> tools;
+
+        string inference_full;
+        bool inference_stat_in_func_call;
+        string inference_next_func_call;
+        vector<string> inference_func_calls;
+
+        // ---------------------------
+
 
         virtual void think_reporter(const string& thought = "") {
             cout << "\r\033[2K";
@@ -478,10 +490,6 @@ namespace tools::llm {
             function<bool(void*, const string&)> cb_response, 
             function<void(void*, const string&)> cb_done
         ) {
-
-            // inference_plugins_reset();
-
-
             memorize(prmpt, ROLE_INPUT);
             //string response = "";
             string non_interrupted_responses = request_stream(
@@ -494,25 +502,14 @@ namespace tools::llm {
                     return false;
                 }, cb_done
             );
-            if (!non_interrupted_responses.empty()) {
+            if (!non_interrupted_responses.empty())
                 memorize(non_interrupted_responses, ROLE_OUTPUT);
-                //inference_plugins_reset();
-                //non_interrupted_responses = inference_remove_plugins(non_interrupted_responses);
-                // non_interrupted_responses = inference_plugins_process_response_stream(
-                //     non_interrupted_responses, 
-                //     context,
-                //     cb_response, 
-                //     cb_done
-                // );
-            }
 
-            // inference_plugins_reset();
             if (!inference_func_calls.empty()) {
-                string plugin_output = inference_handle_plugins();
-                if (!plugin_output.empty()) {
-                    inference_plugins_reset();
-                    non_interrupted_responses += prompt_stream(plugin_output, context, cb_response, cb_done);
-                    // addContext(plugin_output, ROLE_INPUT);
+                string tool_output = inference_handle_tools();
+                if (!tool_output.empty()) {
+                    inference_tools_reset();
+                    non_interrupted_responses += prompt_stream(tool_output, context, cb_response, cb_done);
                 }
             }
             return non_interrupted_responses;
@@ -527,14 +524,14 @@ namespace tools::llm {
             // memorize(response);
             // return response;
 
-            inference_plugins_reset();
+            inference_tools_reset();
 
 
             memorize(prmpt, ROLE_INPUT);
             string response = request();
             memorize(response, ROLE_OUTPUT);
 
-            return inference_plugins_process_response(response);
+            return inference_tools_process_response(response);
         }
         // string prompt(const string& prmpt, const char* sffx = nullptr) {
         //     string suffix(sffx ? sffx : "");
@@ -647,7 +644,7 @@ namespace tools::llm {
 
         string think(const string& prmpt) {
 
-            inference_plugins_reset(); 
+            inference_tools_reset(); 
 
             think_reporter();
             memorize(prmpt, ROLE_INPUT);
@@ -666,7 +663,7 @@ namespace tools::llm {
 
             memorize(response, ROLE_OUTPUT);
 
-            return inference_plugins_process_response(response);
+            return inference_tools_process_response(response);
             // return response;
         }
 
@@ -679,7 +676,7 @@ namespace tools::llm {
         
         string solve(const string& task, int think_deeper = -1) {
 
-            inference_plugins_reset(); 
+            inference_tools_reset(); 
 
             think_reporter();
             // if (!remember) return prompt(from, task);
@@ -799,7 +796,7 @@ namespace tools::llm {
                         memorize(task, ROLE_INPUT);
                         memorize(results, ROLE_OUTPUT);
 
-                        return inference_plugins_process_response(results);
+                        return inference_tools_process_response(results);
                         // return results;
                     }
                     // there are questions, there are options, we got answers:
@@ -830,7 +827,7 @@ namespace tools::llm {
                     memorize(results, ROLE_OUTPUT);
 
 
-                    return inference_plugins_process_response(results);
+                    return inference_tools_process_response(results);
                     // return results;
                 }
                 // no question, no smaller steps...
@@ -844,66 +841,39 @@ namespace tools::llm {
         }
 
 
-        // ----------------- PLUGINS -------------------
+        // ----------------- TOOLS -------------------
         
 
-        vector<Plugin> plugins;
 
-        void set_plugins(const vector<Plugin> plugins) {
-            this->plugins = plugins;
+        void set_tools(const vector<Tool> tools) {
+            this->tools = tools;
         }
 
-        string inference_full;
-        bool inference_stat_in_func_call;
-        string inference_next_func_call;
-        vector<string> inference_func_calls;
+        const vector<string>& get_inference_func_calls_cref() const {
+            return inference_func_calls;
+        }
 
-        // string inference_plugins_process_response_stream(
-        //     const string& response_orig, 
-        //     void* context,
-        //     function<bool(void*, const string&)> cb_response, 
-        //     function<void(void*, const string&)> cb_done
-        // ) {
-        //     string response = inference_remove_plugins(response_orig);
 
-        //     if (!inference_func_calls.empty()) {
-        //         string plugin_output = inference_handle_plugins();
-        //         if (!plugin_output.empty()) {
-        //             response += prompt_stream(
-        //                 plugin_output, 
-        //                 context,
-        //                 cb_response, 
-        //                 cb_done
-        //             );
-        //             // addContext(plugin_output, ROLE_INPUT);
-        //         }
-        //     }
-
-        //     return response;
-        // }
-
-        string inference_plugins_process_response(const string& response_orig) {
-            string response = inference_remove_plugins(response_orig);
+        string inference_tools_process_response(const string& response_orig) {
+            string response = inference_remove_tools(response_orig);
 
             if (!inference_func_calls.empty()) {
-                string plugin_output = inference_handle_plugins();
-                if (!plugin_output.empty()) {
-                    response += prompt(plugin_output);
-                    // addContext(plugin_output, ROLE_INPUT);
-                }
+                string tool_output = inference_handle_tools();
+                if (!tool_output.empty())
+                    response += prompt(tool_output);
             }
 
             return response;
         }
 
-        void inference_plugins_reset() {
+        void inference_tools_reset() {
             inference_full = "";
             inference_stat_in_func_call = false;
             inference_next_func_call = "";
             inference_func_calls.clear();
         }
 
-        string inference_remove_plugins(const string& inference) {
+        string inference_remove_tools(const string& inference) {
             string result = "";
             for (size_t i = 0; i < inference.length(); i++) {
                 inference_full += inference[i];
@@ -928,7 +898,7 @@ namespace tools::llm {
             }, result);
         }
 
-        string inference_handle_plugins() {
+        string inference_handle_tools() {
             string output = "";
             for (const string& inference_func_call: inference_func_calls) {
                 if (!is_valid_json(inference_func_call)) {
@@ -957,11 +927,11 @@ namespace tools::llm {
                 for (const JSON& fcall: fcalls) {
                     string function_name = fcall.get<string>("function_name");
                     bool found = false;
-                    for (Plugin& plugin: plugins) {
-                        if (plugin.get_name() == function_name) {
+                    for (Tool& tool: tools) {
+                        if (tool.get_name() == function_name) {
                             found = true;
                             bool invalid = false;
-                            for (const Parameter& parameter: plugin.get_parameters_cref()) {
+                            for (const Parameter& parameter: tool.get_parameters_cref()) {
                                 if (!fcall.has(parameter.get_name())) {
                                     if (parameter.is_required()) {
                                         output += 
@@ -976,7 +946,7 @@ namespace tools::llm {
                             if (!invalid) {
                                 string result;
                                 try {
-                                    result = plugin.call(fcall);
+                                    result = tool.call(fcall);
                                 } catch (exception &e) {
                                     result = "Error in function `" + function_name + "`: " + e.what();
                                 }
