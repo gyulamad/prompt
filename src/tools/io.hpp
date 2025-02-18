@@ -94,12 +94,14 @@ namespace tools {
                     << (def == 'y' ? "Y/n" : "y/N") << "): ";
             choice = cin.get();
 
-            //cin.ignore(numeric_limits<streamsize>::max(), '\n');
-
             // Handle Enter (newline) input for default option
             if (choice == '\n') {
+                cin.clear();
                 return def == 'y';
             }
+            cin.clear();
+
+            //cin.clear();// ignore(numeric_limits<streamsize>::max(), '\n');
 
             // Clear the input buffer to handle extra characters after one key press
             // while (cin.get() != '\n') {
@@ -117,6 +119,7 @@ namespace tools {
 
             // Invalid input, prompt again
             cout << "Please press 'y' or 'n'." << endl;
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
         }
     }
 }

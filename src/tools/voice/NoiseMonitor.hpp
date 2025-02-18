@@ -63,15 +63,19 @@ namespace tools::voice {
             });
         }
 
-        void mute() {
-            muted = true;
+        // inline void mute() {
+        //     muted = true;
+        // }
+
+        // inline void unmute() {
+        //     muted = false;
+        // }
+
+        inline void set_muted(bool muted) {
+            this->muted = muted;
         }
 
-        void unmute() {
-            muted = false;
-        }
-
-        bool is_muted() {
+        inline bool is_muted() const {
             return muted;
         }
 

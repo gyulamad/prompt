@@ -3,248 +3,23 @@
 #include <climits>
 #include <functional>
 
-#include "../ERROR.hpp"
-#include "../strings.hpp"
-#include "../vectors.hpp"
-#include "../files.hpp"
-#include "../Rotary.hpp"
-// #include "../Speech.hpp"
-#include "../JSON.hpp"
-#include "../io.hpp"
+#include "tools/ERROR.hpp"
+#include "tools/strings.hpp"
+#include "tools/vectors.hpp"
+#include "tools/files.hpp"
+#include "tools/Rotary.hpp"
+#include "tools/JSON.hpp"
+#include "tools/io.hpp"
+
+#include "Parameter.hpp"
+#include "Tool.hpp"
+#include "Message.hpp"
+#include "Conversation.hpp"
 
 using namespace std;
+using namespace tools;
 
-namespace tools::llm {
-
-    #define ANSI_FMT_MODEL_THINKS ANSI_FMT_C_BLACK // ANSI_FMT_T_DIM
-
-    typedef enum { ROLE_NONE = 0, ROLE_INPUT, ROLE_OUTPUT } role_t;
-    typedef unordered_map<role_t, const string> role_name_map_t;
-    const role_name_map_t default_role_name_map = {
-        { ROLE_NONE, "" },
-        { ROLE_INPUT, "input" },
-        { ROLE_OUTPUT, "output" },
-    };
-
-    string to_string(const role_t& role, const role_name_map_t& role_name_map = default_role_name_map) {
-        return role_name_map.at(role);
-    }
-    
-    class Message {
-    private:
-        string text;
-        role_t role;
-    public:
-
-        Message(
-            const string& text, 
-            const role_t& role
-        ):
-            text(text), 
-            role(role)
-        {}
-
-        virtual ~Message() {}
-
-        JSON toJSON() const {
-            JSON json;
-            json.set("text", text);
-            json.set("role", role);
-            return json;
-        }
-
-        void fromJSON(JSON json) {
-            text = json.get<string>("text");
-            role = json.get<role_t>("role");
-        }
-
-        string get_text() const {
-            return text;
-        }
-
-        void set_text(const string& text) {
-            this->text = text;
-        }
-
-        role_t get_role() const {
-            return role;
-        }
-
-        void set_role(const role_t& role) {
-            this->role = role;
-        }
-
-        size_t length() const {
-            return dump().size();
-        }
-
-        string dump(bool show = false) const {
-            string dump = ((role == ROLE_NONE) ? "" : escape(to_string(role)) + ": ") + escape(text);
-            return dump;
-        }
-    };
-
-    class Conversation {
-    private:
-        vector<Message> messages;
-    public:
-        Conversation() {}
-        
-        virtual ~Conversation() {}
-
-        JSON toJSON() const {
-            json jmessages = json::array();
-            for (const Message& message: messages)
-                jmessages.push_back(message.toJSON().get_json());
-            JSON json(jmessages);
-            return json;
-        }
-
-        void fromJSON(JSON J) {
-            messages.clear();
-            //DEBUG(J.dump());
-            json jmessages = J.get_json();
-            for (const auto& jmessage: jmessages) {
-                add(jmessage.at("text"), (role_t)jmessage.at("role"));
-            }
-        }
-        
-        void add(const string& text, role_t role = ROLE_NONE) {
-            messages.push_back({ text, role });
-        }
-
-        bool empty() const {
-            return messages.empty();
-        }
-
-        Message pop() {
-            Message last = messages.back();
-            messages.pop_back();
-            return last;
-        }
-
-        void clear() {
-            messages.clear();
-        }
-
-        const vector<Message>& get_messages_ref() const {
-            return messages;
-        }
-
-        size_t length() const {
-            size_t l = 0;
-            for (const Message& message: messages) l += message.length() + 1;
-            return l;
-        }
-
-    };
-
-
-    
-    typedef enum { PARAMETER_TYPE_INTEGER, PARAMETER_TYPE_STRING } parameter_type_t;
-
-    string to_string(parameter_type_t type) {
-        switch (type) {
-            case PARAMETER_TYPE_INTEGER:
-                return "integer";
-            case PARAMETER_TYPE_STRING:
-                return "string";
-            default:
-                throw ERROR("Invalid parameter type");
-        }
-    }
-
-    class Parameter {
-    private:
-        string name;
-        parameter_type_t type;
-        bool required;
-        string rules;
-    public:
-        Parameter(
-            const string& name, 
-            parameter_type_t type, 
-            bool required = false, 
-            const string& rules = ""
-        ): 
-            name(name),
-            type(type),
-            required(required),
-            rules(rules)
-        {}
-
-        virtual ~Parameter() {}
-
-        string get_name() const { return name; }
-        parameter_type_t get_type() const { return type; }
-        bool is_required() const { return required; }
-        string get_rules() const { return rules; }
-
-    };
-
-    string to_string(bool b) { // TODO to common libs
-        return b ? "true" : "false";
-    }
-
-    string to_string(const Parameter& parameter) {
-        return 
-            "Parameter name: " + parameter.get_name() + "\n" + 
-            "Type: " + to_string(parameter.get_type()) + "\n" + 
-            "Required: " + to_string(parameter.is_required()) + (
-                parameter.get_rules().empty() ? "" : ("\nRules: " + parameter.get_rules())
-            );
-    }
-
-    string to_string(const vector<Parameter>& parameters) {
-        vector<string> results;
-        for (const Parameter& parameter: parameters)
-            results.push_back(to_string(parameter));
-        return implode("\n", results);
-    }
-    
-    class Tool {
-    private:
-        string name;
-        vector<Parameter> parameters;
-        string description;
-        function<string(void*, const JSON&)> callback;
-
-    public:
-        
-        Tool(
-            const string& name,
-            const vector<Parameter>& parameters,
-            function<string(void*, const JSON&)> callback,
-            const string& description = ""
-        ):
-            name(name),
-            parameters(parameters),
-            callback(callback),
-            description(description)
-        {}
-
-        string get_name() const { return name; }
-        string get_description() const { return description; }
-        const vector<Parameter>& get_parameters_cref() const { return parameters; }
-
-        string call(const JSON& args) {
-            return callback(this, args);
-        };
-    };
-
-    string to_string(const Tool& tool) {
-        return "Function name: " + tool.get_name()
-            + (tool.get_description().empty() ? "" : ("\nDescription: " + tool.get_description()))
-            + (tool.get_parameters_cref().empty() ? "" : ("\nParameters:\n" + to_string(tool.get_parameters_cref())));
-    }
-
-
-    string to_string(const vector<Tool>& tools) {
-        vector<string> results;
-        for (const Tool& tool: tools) 
-            results.push_back(to_string(tool));
-        return implode("\n\n", results);
-    }
+namespace prompt {
 
     class Model {
     // public:
@@ -309,7 +84,7 @@ namespace tools::llm {
 
 
         bool in_compressing_conversation = false;
-        bool compress_conversation() {
+        bool compress_conversation(void* user_void) {
             if (!in_compressing_conversation) in_compressing_conversation = true;
             else return false;
             size_t size = conversation.get_messages_ref().size();
@@ -327,7 +102,8 @@ namespace tools::llm {
                 // think_deep
             );            
             string summary = summariser->prompt(
-                "Summarise the following conversation: " + implode(",", conversation_first_part)
+                "Summarise the following conversation: " + implode(",", conversation_first_part),
+                user_void
             );
             kill(summariser);
 
@@ -468,11 +244,11 @@ namespace tools::llm {
         }
 
         
-        void memorize(const string& prmpt, role_t role = ROLE_INPUT) {
+        void memorize(const string& prmpt, void* user_void, role_t role = ROLE_INPUT) {
             conversation.add(prmpt, role); 
             // check the length of conversation and cut if too long
             if (conversation.length() > conversation_length_max) 
-                if (!compress_conversation()); // break;
+                if (!compress_conversation(user_void)); // break;
 
         //     // TODO: check the length of conversation and cut if too long:
         //     // memory += "\n" + memo;
@@ -486,14 +262,14 @@ namespace tools::llm {
 
         string prompt_stream(
             const string& prmpt, 
-            void* context,
+            void* user_void,
             function<bool(void*, const string&)> cb_response, 
             function<void(void*, const string&)> cb_done
         ) {
-            memorize(prmpt, ROLE_INPUT);
+            memorize(prmpt, user_void, ROLE_INPUT);
             //string response = "";
             string non_interrupted_responses = request_stream(
-                context, 
+                user_void, 
                 [&](void* ctx, const string& text) { 
                     if (cb_response(ctx, text)) {
                         //response += text;
@@ -503,19 +279,19 @@ namespace tools::llm {
                 }, cb_done
             );
             if (!non_interrupted_responses.empty())
-                memorize(non_interrupted_responses, ROLE_OUTPUT);
+                memorize(non_interrupted_responses, user_void, ROLE_OUTPUT);
 
             if (!inference_func_calls.empty()) {
-                string tool_output = inference_handle_tools();
+                string tool_output = inference_handle_tools(user_void);
                 if (!tool_output.empty()) {
                     inference_tools_reset();
-                    non_interrupted_responses += prompt_stream(tool_output, context, cb_response, cb_done);
+                    non_interrupted_responses += prompt_stream(tool_output, user_void, cb_response, cb_done);
                 }
             }
             return non_interrupted_responses;
         }
 
-        string prompt(const string& prmpt/*, const string& suffix*/) {
+        string prompt(const string& prmpt, void* user_void/*, const string& suffix*/) {
             // const string suffix = "";
             // if (!from.empty()) from += ": ";
             // if (!remember) return request(from + prmpt + "\n" + system + "\n" + suffix);
@@ -527,18 +303,18 @@ namespace tools::llm {
             inference_tools_reset();
 
 
-            memorize(prmpt, ROLE_INPUT);
+            memorize(prmpt, user_void, ROLE_INPUT);
             string response = request();
-            memorize(response, ROLE_OUTPUT);
+            memorize(response, user_void, ROLE_OUTPUT);
 
-            return inference_tools_process_response(response);
+            return inference_tools_process_response(user_void, response);
         }
         // string prompt(const string& prmpt, const char* sffx = nullptr) {
         //     string suffix(sffx ? sffx : "");
         //     return prompt(prmpt, suffix);
         // }
 
-        string choose_str(const string& prmpt, const vector<string>& options) {
+        string choose_str(const string& prmpt, void* user_void, const vector<string>& options) {
             if (options.empty()) ERROR("No options to choose from.");
             if (options.size() == 1) return options[0];
             
@@ -546,8 +322,8 @@ namespace tools::llm {
                 prmpt + "\n" + 
                 "Your options are the followings:\n" +           
                 " - " + implode("\n - ", options) + "\n" +
-                "You MUST select one but ONLY one!\n" // + 
-                //"Show your answer in the following format: " + implode_options({ "Your selection here..." }, "")
+                "You MUST select one but ONLY one!\n",
+                user_void
             );
             while(true) {
                 vector<string> selections = explode_options(selection);
@@ -556,7 +332,7 @@ namespace tools::llm {
                     selection = selections[0];
                     break;
                 }
-                selection = prompt("To many. Select only ONE!");
+                selection = prompt("To many. Select only ONE!", user_void);
             }
 
             return selection;
@@ -581,16 +357,16 @@ namespace tools::llm {
             return selection;
         }
 
-        int choose(const string& prmpt, const vector<string>& options) {
+        int choose(const string& prmpt, void* user_void, const vector<string>& options) {
             if (options.empty()) ERROR("No options to choose from.");
             if (options.size() == 1) return 0;
 
-            string choice = choose_str(prmpt, options);
+            string choice = choose_str(prmpt, user_void, options);
             
             return which(choice, options);
         }
 
-        vector<string> multiple_str(const string& prmpt, const vector<string>& options = {}) {
+        vector<string> multiple_str(const string& prmpt, void* user_void, const vector<string>& options = {}) {
             if (options.empty()) ERROR("No options to choose from.");
             if (options.size() == 1) return { options[0] };
             
@@ -602,7 +378,8 @@ namespace tools::llm {
                         implode_options(options)
                 ) + "\n"
                 "Choose your answer and show in the following format:\n" + 
-                implode_options({ "Your selection", "Another, if multiple apply..." })
+                implode_options({ "Your selection", "Another, if multiple apply..." }),
+                user_void
             );
 
             vector<string> selections = explode_options(response);
@@ -611,11 +388,11 @@ namespace tools::llm {
             return selections;
         }
 
-        vector<int> multiple(const string& prmpt, const vector<string>& options) {
+        vector<int> multiple(const string& prmpt, void* user_void, const vector<string>& options) {
             if (options.empty()) ERROR("No options to choose from.");
             if (options.size() == 1) return { 0 };
 
-            vector<string> selections = multiple_str(prmpt, options);
+            vector<string> selections = multiple_str(prmpt, user_void, options);
             if (selections.size() == 0) return {};
             if (selections.size() == 1) return { 0 };
 
@@ -626,44 +403,45 @@ namespace tools::llm {
             return array_unique(results);
         }
 
-        vector<string> choices(const string& prmpt) {
+        vector<string> choices(const string& prmpt, void* user_void) {
             string response = prompt(
                 prmpt + "\n"
                 "List your response in the following format:\n" +
-                implode_options({ "Your selection..", "Other option (if multiple apply)..." })
+                implode_options({ "Your selection..", "Other option (if multiple apply)..." }),
+                user_void
             );
             return explode_options(response);
         }
 
-        bool decide(const string& prmpt, const vector<string>& options = {"Yes", "No"}) {
-            int resp = choose(prmpt, options);
+        bool decide(const string& prmpt, void* user_void, const vector<string>& options = {"Yes", "No"}) {
+            int resp = choose(prmpt, user_void, options);
             if (resp == 0) return true;
             if (resp == 1) return false;
             throw ERROR("Model was unable to decide. Prompt: " + str_cut_end(prmpt));
         }
 
-        string think(const string& prmpt) {
+        string think(const string& prmpt, void* user_void) {
 
             inference_tools_reset(); 
 
             think_reporter();
-            memorize(prmpt, ROLE_INPUT);
+            memorize(prmpt, user_void, ROLE_INPUT);
 
             Model* thinker = (Model*)clone();
 
-            string response = thinker->prompt(prmpt);
+            string response = thinker->prompt(prmpt, user_void);
             think_reporter();
             for (int step = 0; step < think_steps; step++) {
-                response = thinker->prompt("Think deeply and refine the response.");
+                response = thinker->prompt("Think deeply and refine the response.", user_void);
                 think_reporter();
                 if (think_interruptor()) break;
             }
 
             kill(thinker);
 
-            memorize(response, ROLE_OUTPUT);
+            memorize(response, user_void, ROLE_OUTPUT);
 
-            return inference_tools_process_response(response);
+            return inference_tools_process_response(user_void, response);
             // return response;
         }
 
@@ -674,32 +452,32 @@ namespace tools::llm {
         //     return result;
         // }
         
-        string solve(const string& task, int think_deeper = -1) {
+        string solve(const string& task, void* user_void, int think_deeper = -1) {
 
             inference_tools_reset(); 
 
             think_reporter();
             // if (!remember) return prompt(from, task);
             if (think_deeper == -1) think_deeper = think_deep;
-            if (think_deeper <= 0 || think_interruptor()) return prompt(task);
+            if (think_deeper <= 0 || think_interruptor()) return prompt(task, user_void);
             think_deeper--;
             cout << "Thinking progress: " << think_deeper << endl;
 
             Model* helper = (Model*)clone();
 
             think_reporter();
-            if (!helper->decide("Is it even a task?:\n" + task)) {
+            if (!helper->decide("Is it even a task?:\n" + task, user_void)) {
                 // It's not even a task:
                 kill(helper);
                 think_reporter();
-                return prompt(task);
+                return prompt(task, user_void);
             }
             // it's a valid task...
 
             think_reporter();
-            if (helper->decide("Do you have any questions about the task?")) {
+            if (helper->decide("Do you have any questions about the task?", user_void)) {
                 think_reporter();
-                vector<string> questions = helper->choices("What are your most important/relevant questions? (if any)");
+                vector<string> questions = helper->choices("What are your most important/relevant questions? (if any)", user_void);
                 think_reporter();
                 if (!questions.empty()) {
                     // there are questions:
@@ -717,7 +495,8 @@ namespace tools::llm {
                             "The main question now:\n" + question + "\n" + 
                             "Offer a possible answer(s)/resolution(s) for the following question/problem:\n" + 
                             question + "\n"
-                            "Offer fewer options if you can not give precise/related solution and more if you have multiple possibly good and relevant idea. We interested only in relevant and best solutions but if you can only guess we still want to hear you."
+                            "Offer fewer options if you can not give precise/related solution and more if you have multiple possibly good and relevant idea. We interested only in relevant and best solutions but if you can only guess we still want to hear you.",
+                            user_void
                         );
                         think_reporter();
 
@@ -741,7 +520,8 @@ namespace tools::llm {
                                 "Because the task:\n" + task + "\n" + 
                                 "The main question now:\n" + question + "\n" + 
                                 "One possible solution is:\n" + option + "\n" +
-                                "Your current task is to think about this solution!"
+                                "Your current task is to think about this solution!",
+                                user_void
                             );  
                             think_reporter();                         
 
@@ -766,7 +546,8 @@ namespace tools::llm {
                                     "\n" +
                                     thoughts + "\n" +
                                     "\n" +
-                                    "Now your task is to help us to decide which is the better solution?\b",
+                                    "Now your task is to help us to decide which is the better solution?\b", 
+                                    user_void,
                                     { previous_option, thoughts }
                                 );
                                 think_reporter();
@@ -793,16 +574,16 @@ namespace tools::llm {
                         // there are questions, there are options, no answers...
                         string results = implode("\n", questions); // our results with only questions..
                         kill(helper);
-                        memorize(task, ROLE_INPUT);
-                        memorize(results, ROLE_OUTPUT);
+                        memorize(task, user_void, ROLE_INPUT);
+                        memorize(results, user_void, ROLE_OUTPUT);
 
-                        return inference_tools_process_response(results);
+                        return inference_tools_process_response(user_void, results);
                         // return results;
                     }
                     // there are questions, there are options, we got answers:
                     
-                    memorize(task, ROLE_INPUT);
-                    memorize(answers, ROLE_OUTPUT);
+                    memorize(task, user_void, ROLE_INPUT);
+                    memorize(answers, user_void, ROLE_OUTPUT);
                 }
                 // no question...
 
@@ -810,24 +591,24 @@ namespace tools::llm {
             // no question...
 
             think_reporter();
-            if (helper->decide("Is the task too complex, so have to be break down smaller steps?")) {
-                vector<string> small_steps = helper->multiple_str("What are smaller steps to get this task done?");
+            if (helper->decide("Is the task too complex, so have to be break down smaller steps?", user_void)) {
+                vector<string> small_steps = helper->multiple_str("What are smaller steps to get this task done?", user_void);
                 if (!small_steps.empty()) {
                     string results;
                     for (const string& step: small_steps) {
                         think_reporter(step);
-                        string solution = helper->solve(task + "\n" + step, think_deeper);
+                        string solution = helper->solve(task + "\n" + step, user_void, think_deeper);
                         // think_reporter(solution);
                         results += step + "\n" + solution + "\n";
                         if (think_interruptor()) break;
                     }
                     
                     kill(helper);
-                    memorize(task, ROLE_INPUT);
-                    memorize(results, ROLE_OUTPUT);
+                    memorize(task, user_void, ROLE_INPUT);
+                    memorize(results, user_void, ROLE_OUTPUT);
 
 
-                    return inference_tools_process_response(results);
+                    return inference_tools_process_response(user_void, results);
                     // return results;
                 }
                 // no question, no smaller steps...
@@ -837,7 +618,7 @@ namespace tools::llm {
 
             kill(helper);
             think_reporter();
-            return prompt(task);
+            return prompt(task, user_void);
         }
 
 
@@ -854,13 +635,13 @@ namespace tools::llm {
         }
 
 
-        string inference_tools_process_response(const string& response_orig) {
+        string inference_tools_process_response(void* user_void, const string& response_orig) {
             string response = inference_remove_tools(response_orig);
 
             if (!inference_func_calls.empty()) {
-                string tool_output = inference_handle_tools();
+                string tool_output = inference_handle_tools(user_void);
                 if (!tool_output.empty())
-                    response += prompt(tool_output);
+                    response += prompt(tool_output, user_void);
             }
 
             return response;
@@ -898,7 +679,7 @@ namespace tools::llm {
             }, result);
         }
 
-        string inference_handle_tools() {
+        string inference_handle_tools(void* user_void) {
             string output = "";
             for (const string& inference_func_call: inference_func_calls) {
                 if (!is_valid_json(inference_func_call)) {
@@ -946,7 +727,7 @@ namespace tools::llm {
                             if (!invalid) {
                                 string result;
                                 try {
-                                    result = tool.call(fcall);
+                                    result = tool.call(this, user_void, fcall);
                                 } catch (exception &e) {
                                     result = "Error in function `" + function_name + "`: " + e.what();
                                 }

@@ -1,13 +1,14 @@
 #pragma once
 
-#include "tools/llm/Model.hpp"
+#include "tools/strings.hpp"
 #include "tools/Logger.hpp"
 #include "tools/Process.hpp"
 #include "tools/Curl.hpp"
 
+#include "Model.hpp"
+
 using namespace std;
 using namespace tools;
-using namespace tools::llm;
 
 namespace prompt {
 
@@ -242,7 +243,7 @@ namespace prompt {
                 }
             }
             
-            throw ERROR("Unable to reach Gemini API after " + to_string(err_attempts) + " attempts.");
+            throw ERROR("Unable to reach Gemini API after " + tools::to_string(err_attempts) + " attempts.");
         }
         
 

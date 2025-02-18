@@ -14,6 +14,7 @@
 #include "tools/voice/WhisperSTT.hpp"
 
 using namespace std;
+using namespace tools;
 using namespace tools::voice;
 
 namespace prompt {
@@ -21,6 +22,7 @@ namespace prompt {
     class Speech {
     private:
         // bool paused = false;
+        atomic<bool> mic_enabled = true;
 
         // ---- roller ----
 
@@ -127,6 +129,8 @@ namespace prompt {
             Speech& that = *this;
 
             stt->setRMSHandler([&](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {
+                if (!mic_enabled) return;
+
                 string out = ""; 
 
                 // REC status
@@ -152,7 +156,7 @@ namespace prompt {
                 string roll = "";
                 roll += c;
                 out += (stt->getTranscriberCRef().isInProgress() 
-                    ? " [" + roll + "] Progress: " + to_string(that.recs) + ".. " 
+                    ? " [" + roll + "] Progress: " + tools::to_string(that.recs) + ".. " 
                     : "                   ") + " ";
 
                 show_mic(out);
@@ -228,6 +232,22 @@ namespace prompt {
             delete stt;
             delete tts;
         }
+        
+
+        bool is_mic_enabled() const {
+            return mic_enabled;
+        }
+
+        void mic_disable() {
+            mic_mute();
+            hide_mic();
+            mic_enabled = false;
+        }
+
+        void mic_enable() {
+            mic_unmute();
+            mic_enabled = true;
+        }
 
         void show_mic(string& out) {
             mic_out_size = out.size();
@@ -243,11 +263,23 @@ namespace prompt {
             cout << out << flush;
         }
 
+        void mic_mute() {
+            NoiseMonitor* monitor = stt->getMonitorPtr();
+            if (!monitor) return;
+            monitor->set_muted(true);
+        }
+
+        void mic_unmute() {
+            NoiseMonitor* monitor = stt->getMonitorPtr();
+            if (!monitor) return;
+            monitor->set_muted(false);
+        }
+
         void mic_mute_toggle() {
             NoiseMonitor* monitor = stt->getMonitorPtr();
             if (!monitor) return;
-            if (monitor->is_muted()) monitor->unmute();
-            else monitor->mute();
+            if (monitor->is_muted()) monitor->set_muted(false);
+            else monitor->set_muted(true);
         }
 
         // void pause() {

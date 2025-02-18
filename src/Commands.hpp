@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tools/io.hpp"
+#include "tools/strings.hpp"
 
 #include "User.hpp"
 
@@ -145,7 +146,7 @@ namespace prompt {
                         (lnfirst == 0 || ln >= lnfirst) &&
                         (lnlast == 0 || ln <= lnlast)
                     ) show_lines.push_back(
-                        (args[0] == "/send-lines" ? to_string(ln) + ": " : "") + lines[ln-1]
+                        (args[0] == "/send-lines" ? tools::to_string(ln) + ": " : "") + lines[ln-1]
                     );
                 }
                 contents = implode("\n", show_lines);
@@ -168,11 +169,11 @@ namespace prompt {
                     break;
 
                 case MODE_THINK:
-                    mode_s = "think (steps: " + to_string(user->get_model_ref().think_steps) + ")";
+                    mode_s = "think (steps: " + tools::to_string(user->get_model_ref().think_steps) + ")";
                     break;
 
                 case MODE_SOLVE:
-                    mode_s = "solve (steps: " + to_string(user->get_model_ref().think_steps) + ", deep: " + to_string(user->get_model_ref().think_deep) + ")";
+                    mode_s = "solve (steps: " + tools::to_string(user->get_model_ref().think_steps) + ", deep: " + tools::to_string(user->get_model_ref().think_deep) + ")";
                     break;
             
                 default:

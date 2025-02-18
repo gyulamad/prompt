@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/builds/prompt.gdb", // Update this path if needed
             "args": [
-                "--voice", 
+                //"--voice", 
                 "--model", "test4"
             ], // Add program arguments if necessary
             "stopAtEntry": false,

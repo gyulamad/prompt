@@ -2,8 +2,6 @@
 
 #include "../libs/yhirose/cpp-linenoise/linenoise.hpp"
 
-#include "tools/llm/Model.hpp"
-
 #include "tools/ERROR.hpp"
 #include "tools/io.hpp"
 #include "tools/files.hpp"
@@ -17,10 +15,10 @@
 #include "tools/system.hpp"
 #include "tools/Arguments.hpp"
 
+#include "Model.hpp"
 #include "Speech.hpp"
 
 using namespace tools;
-using namespace tools::llm;
 
 namespace prompt {
 
@@ -144,6 +142,19 @@ namespace prompt {
             speech_delete();
         }
 
+
+        bool confirm(const string& prmpt, char def = 'y') {
+            bool was_mic_enabled = false;
+            if (speech) {
+                was_mic_enabled = speech->is_mic_enabled();
+                speech->mic_disable();
+            }
+            bool confirmed = ::confirm(prmpt, def);
+            if (was_mic_enabled && speech) 
+                speech->mic_enable();
+            return confirmed;
+        }
+
         string get_model_file() {
             if (model_name.empty()) throw ERROR("Model name is not set.");
             return basedir + "/models/" + model_name + ".json";
@@ -262,7 +273,8 @@ namespace prompt {
                         "I need a list of 'Filler/Stall word' and 'Hesitation markers/sentences'. "
                         "Write one word long to a full sentence and anything in between. "
                         "We need 7 one-word long, 5 mid sentence and 3 very long full sentence. "
-                        "We need the list in language: " + user_lang
+                        "We need the list in language: " + user_lang,
+                        this
                     ));
                     model.kill(thinker);
                     for (string& hesitor: speech->get_hesitors_ref()) hesitor = str_replace("\n", " ", hesitor);
@@ -278,7 +290,8 @@ namespace prompt {
                     speech->set_repeaters(thinker->multiple_str(
                         "I need a list of 'repeat asking word' and 'small questions'. "
                         "We need 10 few word long, for eg. 'what?', 'sorry can you repeat?', 'what did you say?', 'Ha?', 'tell again?' "
-                        "We need the list in language: " + user_lang
+                        "We need the list in language: " + user_lang,
+                        this
                     ));
                     model.kill(thinker);
                     for (string& repeater: speech->get_repeaters_ref()) repeater = str_replace("\n", " ", repeater);
@@ -336,15 +349,13 @@ namespace prompt {
                 while (!exiting && !commander.is_exiting()) {
                     sleep(1);
                     if (speech && kbhit()) {
-                        bool space = false;
                         while (kbhit()) {
-                            if (' ' == (char)getchar()) {
-                                if (speech) speech->mic_mute_toggle();
-                                space = true;
-                            }
+                            char c = (char)getchar();
+                            if (' ' == c) // SPACE
+                                speech->mic_mute_toggle();
+                            if (27 == c) // ESC
+                                speech_delete();
                         }
-                        if (space) continue;
-                        speech_delete();
                         continue;
                     }
                     if (!speech) {
@@ -393,16 +404,16 @@ namespace prompt {
                             break;
                         }
                         requesting = true;
-                        response = model.prompt(input);
+                        response = model.prompt(input, this);
                         requesting = false;
                         break;
 
                     case MODE_THINK:
-                        response = model.think(input);
+                        response = model.think(input, this);
                         break;
 
                     case MODE_SOLVE:
-                        response = model.solve(input);
+                        response = model.solve(input, this);
                         break;
                 
                     default:

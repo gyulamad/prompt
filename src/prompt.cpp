@@ -2,7 +2,6 @@
 
 #include "../libs/yhirose/cpp-linenoise/linenoise.hpp"
 
-#include "tools/llm/Model.hpp"
 #include "tools/ERROR.hpp"
 #include "tools/io.hpp"
 #include "tools/files.hpp"
@@ -16,7 +15,8 @@
 #include "tools/system.hpp"
 #include "tools/Arguments.hpp"
 
-// #include "Speech.hpp"
+#include "Tool.hpp"
+#include "Model.hpp"
 #include "User.hpp"
 #include "Commands.hpp"
 #include "Tools.hpp"
@@ -24,7 +24,6 @@
 
 using namespace std;
 using namespace tools;
-using namespace tools::llm;
 
 namespace prompt {
 

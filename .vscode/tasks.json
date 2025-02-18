@@ -12,7 +12,7 @@
                 // "-pthread",
                 "${workspaceFolder}/src/prompt.cpp",
                 "-o", "${workspaceFolder}/builds/prompt.gdb",
-                "-g",
+                "-g", "-O0",
                 // "-Ofast",
                 "-I${workspaceFolder}/libs/ggerganov/whisper.cpp/include",
                 "-I${workspaceFolder}/libs/ggerganov/whisper.cpp/ggml/include",
