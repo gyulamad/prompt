@@ -11,6 +11,7 @@ cd ..
 ./models/download-ggml-model.sh base  # Supported models: tiny, base, small, medium, large.
 ./build/bin/quantize models/ggml-base.bin models/ggml-base-q8_0.bin q8_0  # Quantize the model to 5-bit (q5_0)
 cd ../..
+pwd
 sudo ldconfig libs/ggerganov/whisper.cpp/build/src/
 cp example.config.gemini.json config.gemini.json
 cp browse/example.google-search-secret.json browse/google-search-secret.json
