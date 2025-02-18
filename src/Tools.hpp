@@ -97,7 +97,7 @@ namespace prompt {
 
     class BashCommandTool: public Tool {
     private:
-        const int read_timeout_ms = 300;
+        const int read_timeout_ms = 300; // TODO: config?
     public:
         
         BashCommandTool(): Tool(
@@ -112,7 +112,7 @@ namespace prompt {
             "Note: Do not call long running or blocking command that waits for user input etc., otherwise it may timeouts. "
             "Note: Use the (optional) 'reason' parameter to explane to the user before they confirm or reject the command. "
             "Note: You need to avoid commands that don't produce output for more than " 
-            + to_string(read_timeout_ms) + "ms to prevent them from being prematurely terminated. "
+            + ::to_string(read_timeout_ms) + "ms to prevent them from being prematurely terminated. "
         ) {}
 
         static string callback(void* tool_void, void* model_void, void* user_void, const JSON& args) {
@@ -145,7 +145,7 @@ namespace prompt {
             auto start_time = chrono::steady_clock::now();
             while (true) {
 
-                string outp = proc.read(read_timeout_ms);
+                string outp = proc.read(((BashCommandTool*)tool_void)->read_timeout_ms);
                 if (outp.empty()) break;
                 output += outp;
 
