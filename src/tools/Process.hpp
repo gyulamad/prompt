@@ -161,6 +161,7 @@ namespace tools {
         }
 
         string read_chunk(int fd) {
+            if (buffsize > 65535) throw ERROR("Too large buffer size");
             char buffer[buffsize];
             ssize_t n = ::read(fd, buffer, sizeof(buffer) - 1);
             if (n == -1) {

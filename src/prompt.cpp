@@ -103,8 +103,8 @@ int main(int argc, char *argv[]) {
     const string model_name = args.has("model") ? args.getString("model") : "";
 
     // configs
-    JSON config(file_get_contents("config.json"));
-    JSON config_gemini(file_get_contents("config.gemini.json"));
+    JSON config(file_get_contents(get_exec_path() + "/../config.json"));
+    JSON config_gemini(file_get_contents(get_exec_path() + "/../config.gemini.json"));
 
     // logger
     const string basedir = get_exec_path() + "/.prompt";
@@ -168,15 +168,16 @@ int main(int argc, char *argv[]) {
     }, "The user language is [{{user_lang}}], use this language by default to talk to the user.") : "";
 
 
-    vector<Tool> tools = {
+
+    vector<Tool> model_tools = {
         nothingTool,
         googleSearchTool,
         webBrowserTool,
         bashCommandTool,
     };
 
-    string model_system_tools = tools.empty() ? "" : tpl_replace({
-        { "{{tools}}", to_string(tools) },
+    string model_system_tools = model_tools.empty() ? "" : tpl_replace({
+        { "{{model_tools}}", to_string(model_tools) },
     }, 
     R"(
 You are a helpful and humorous AI assistant designed to provide concise and accurate responses, considering that the user is communicating via text-to-speech.
@@ -212,7 +213,7 @@ When you need to perform a real-world action (like searching the web), you MUST 
 **In short:** ALWAYS use the `[FUNCTION-CALLS-START]` and `[FUNCTION-CALLS-STOP]` tags and ALWAYS format your calls as JSON. No exceptions.    
     )"
         "You can use the following function calls to perform 'real-life' actions:"
-        "\n\n{{tools}}\n\n"
+        "\n\n{{model_tools}}\n\n"
     );
 
     const string model_system = tpl_replace({ // TODO: goes to the config:
@@ -229,6 +230,7 @@ When you need to perform a real-world action (like searching the web), you MUST 
             "{{model_system_tools}}\n"
     );
 
+
     Gemini model(
         logger,
         gemini_secret,
@@ -240,13 +242,14 @@ When you need to perform a real-world action (like searching the web), you MUST 
         gemini_stream_request_timeout,
         gemini_tmpfile,
         model_system,
+        model_tools,
         model_conversation_length_max,
         model_conversation_loss_ratio,
         model_think_steps,
         model_think_deep
     );
 
-    model.set_tools(tools);
+    // model.set_tools(tools);
 
 
 

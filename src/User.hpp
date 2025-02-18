@@ -348,9 +348,19 @@ namespace prompt {
             thread keyboard_input_thread([&]{
                 while (!exiting && !commander.is_exiting()) {
                     sleep(1);
+                    
+                    if (stream && streaming) continue;
+                    if (requesting) continue;
+                    if (exiting) break;
+
                     if (speech && kbhit()) {
                         while (kbhit()) {
                             char c = (char)getchar();
+
+                            if (stream && streaming) continue;
+                            if (requesting) continue;
+                            if (exiting) break;
+
                             if (' ' == c) // SPACE
                                 speech->mic_mute_toggle();
                             if (27 == c) // ESC
@@ -359,9 +369,6 @@ namespace prompt {
                         continue;
                     }
                     if (!speech) {
-                        if (stream && streaming) continue;
-                        if (requesting) continue;
-                        if (exiting) break;
                         input = commander.get_command_line_ref().readln();
                         if (input.empty()) speech_create();
                     }

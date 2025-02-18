@@ -32,6 +32,7 @@ namespace prompt {
         const string opt_suffix = "[OPTION-END]";
         string system;
         Conversation conversation;
+        vector<Tool>& tools;
         // bool remember;
         // string memory;
         // size_t memory_max; 
@@ -42,7 +43,7 @@ namespace prompt {
 
         // --------- tools -----------
 
-        vector<Tool> tools;
+        // vector<Tool> tools;
 
         string inference_full;
         bool inference_stat_in_func_call;
@@ -136,6 +137,7 @@ namespace prompt {
 
         #define MODEL_ARGS \
             const string& system, \
+            vector<Tool>& tools, \
             /*Conversation& conversation,*/ \
             /*bool remember = false,*/ \
             /*const string& memory = "",*/ \
@@ -147,6 +149,7 @@ namespace prompt {
             
         #define MODEL_ARGS_PASS \
             system, \
+            tools, \
             /*conversation,*/ \
             /*remember,*/ \
             /*memory,*/ \
@@ -158,6 +161,7 @@ namespace prompt {
             
         Model(MODEL_ARGS):
             system(system),
+            tools(tools),
             // conversation(conversation),
             // remember(remember),
             // memory(memory),
@@ -626,9 +630,9 @@ namespace prompt {
         
 
 
-        void set_tools(const vector<Tool> tools) {
-            this->tools = tools;
-        }
+        // void set_tools(const vector<Tool> tools) {
+        //     this->tools = tools;
+        // }
 
         const vector<string>& get_inference_func_calls_cref() const {
             return inference_func_calls;

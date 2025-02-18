@@ -5,7 +5,7 @@ git clone https://github.com/nlohmann/json libs/nlohmann/json
 git clone https://github.com/yhirose/cpp-linenoise.git libs/yhirose/cpp-linenoise
 
 git clone https://github.com/ggerganov/whisper.cpp.git libs/ggerganov/whisper.cpp
-    libs/ggerganov/whisper.cpp
+    cd libs/ggerganov/whisper.cpp
     # Build without CUDA (default is CPU-only)
     mkdir build
     cd build
@@ -14,7 +14,7 @@ git clone https://github.com/ggerganov/whisper.cpp.git libs/ggerganov/whisper.cp
     cd ..
     ./models/download-ggml-model.sh base  # Supported models: tiny, base, small, medium, large.
     ./build/bin/quantize models/ggml-base.bin models/ggml-base-q8_0.bin q8_0  # Quantize the model to 5-bit (q5_0)
-    sudo ldconfig /mnt/windows/llm/stts/libs/ggerganov/whisper.cpp/build/src/
+    sudo ldconfig libs/ggerganov/whisper.cpp/build/src/
 
 curl/curl.h: sudo apt-get install libcurl4-openssl-dev
 portaudio.h: sudo apt-get install portaudio19-dev
@@ -22,8 +22,11 @@ portaudio.h: sudo apt-get install portaudio19-dev
 if you want to use spchcat, see more: https://github.com/petewarden/spchcat
 for emojies: sudo apt install fonts-noto-color-emoji
 
-build && run:
-g++ -std=c++23 src/prompt.cpp -o builds/prompt.gdb -g -Ilibs/ggerganov/whisper.cpp/include -Ilibs/ggerganov/whisper.cpp/ggml/include libs/ggerganov/whisper.cpp/build/src/libwhisper.so.1.7.4 -Wl,-rpath,libs/ggerganov/whisper.cpp/build/src -lrt -lm -lasound -lportaudio -lcurl -pthread
+build && run: (debug)
+g++ -std=c++23 src/prompt.cpp -o builds/prompt.gdb -g -O3 -Ilibs/ggerganov/whisper.cpp/include -Ilibs/ggerganov/whisper.cpp/ggml/include libs/ggerganov/whisper.cpp/build/src/libwhisper.so.1.7.4 -Wl,-rpath,libs/ggerganov/whisper.cpp/build/src -lrt -lm -lasound -lportaudio -lcurl -pthread
+
+build && run: (fast)
+g++ -std=c++23 src/prompt.cpp -o builds/prompt.gdb -Ofast -Ilibs/ggerganov/whisper.cpp/include -Ilibs/ggerganov/whisper.cpp/ggml/include libs/ggerganov/whisper.cpp/build/src/libwhisper.so.1.7.4 -Wl,-rpath,libs/ggerganov/whisper.cpp/build/src -lrt -lm -lasound -lportaudio -lcurl -pthread
 
 build && deploy:
 g++ -std=c++23 src/prompt.cpp -o builds/prompt && \
