@@ -12,10 +12,11 @@ cd ..
 ./build/bin/quantize models/ggml-base.bin models/ggml-base-q8_0.bin q8_0  # Quantize the model to 5-bit (q5_0)
 cd ../..
 sudo ldconfig libs/ggerganov/whisper.cpp/build/src/
-./compile.sh
 cp example.config.gemini.json config.gemini.json
 cp browse/example.google-search-secret.json browse/google-search-secret.json
 cp example.config.json config.json
 nano config.gemini.json
 nano browse/google-search-secret.json
 nano config.json
+chmod +x compile.sh
+./compile.sh
