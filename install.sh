@@ -55,12 +55,16 @@ echo "Config setup..."
 
 cp example.config.json config.json
 # Use sed to replace placeholders in the file
-sed -i "s/TOOL_BASH_COMMAND_SSH_USERNAME/$username/g" "$file"
-sed -i "s/TOOL_BASH_COMMAND_SSH_HOSTNAME/$hostname/g" "$file"
+sed -i "s/TOOL_BASH_COMMAND_SSH_USERNAME/$username/g" config.json
+sed -i "s/TOOL_BASH_COMMAND_SSH_HOSTNAME/$hostname/g" config.json
 # nano config.json
+
 cp example.config.gemini.json config.gemini.json
+# TODO ask user and replace with sed
 nano config.gemini.json
+
 cp browse/example.google-search-secret.json browse/google-search-secret.json
+# TODO ask user and replace with sed
 nano browse/google-search-secret.json
 
 
