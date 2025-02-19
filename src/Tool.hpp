@@ -19,14 +19,14 @@ namespace prompt {
         string name;
         vector<Parameter> parameters;
         string description;
-        function<string(void* tool_void, void* model_void, void* user_void, const JSON& args)> callback;
+        function<string(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf)> callback;
 
     public:
         
         Tool(
             const string& name,
             const vector<Parameter>& parameters,
-            function<string(void* tool_void, void* model_void, void* user_void, const JSON& args)> callback,
+            function<string(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf)> callback,
             const string& description = ""
         ):
             name(name),
@@ -39,8 +39,8 @@ namespace prompt {
         string get_description() const { return description; }
         const vector<Parameter>& get_parameters_cref() const { return parameters; }
 
-        string call(void* model_void, void* user_void, const JSON& args) {
-            return callback(this, model_void, user_void, args);
+        string call(void* model_void, void* user_void, const JSON& args, const JSON& conf) {
+            return callback(this, model_void, user_void, args, conf);
         };
     };
     

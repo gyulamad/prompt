@@ -7,6 +7,7 @@
 #include <mutex>
 #include <fcntl.h>
 #include <unistd.h>
+#include <pwd.h>
 #include <sys/wait.h>
 #include <sys/select.h>
 
@@ -41,57 +42,13 @@ namespace tools {
         // int err_child[2];   // Pipe for child's stderr
         pid_t pid;
         string program;
+        string username;
+        string directory;
         bool read_error;
         bool read_output;
         __useconds_t __useconds;
         size_t buffsize;
-
-        void cleanup() {
-            // if (pid > 0) {
-                kill(); // Terminate the child process if it's running
-            // }
-            // close(to_child[0]);
-            // close(to_child[1]);
-            // close(from_child[0]);
-            // close(from_child[1]);
-            // close(err_child[0]);
-            // close(err_child[1]);
-        }
-
-        // void start_child_process() {
-        //     if (pipe(to_child) == -1 || pipe(from_child) == -1 || pipe(err_child) == -1)
-        //         throw ERROR("Failed to create pipes");
-
-        //     pid = fork();
-        //     if (pid == -1)
-        //         throw ERROR("Failed to fork process");
-
-        //     if (pid == 0) { // Child process
-        //         close(to_child[1]);
-        //         close(from_child[0]);
-        //         close(err_child[0]);
-
-        //         dup2(to_child[0], STDIN_FILENO);   // Redirect stdin
-        //         dup2(from_child[1], STDOUT_FILENO); // Redirect stdout
-        //         dup2(err_child[1], STDERR_FILENO); // Redirect stderr
-
-        //         close(to_child[0]);
-        //         close(from_child[1]);
-        //         close(err_child[1]);
-
-        //         execlp(program.c_str(), program.c_str(), nullptr);
-        //         perror("execlp failed");
-        //         exit(1);
-        //     } else { // Parent process
-        //         close(to_child[0]);
-        //         close(from_child[1]);
-        //         close(err_child[1]);
-
-        //         // Set pipes to non-blocking mode
-        //         // fcntl(from_child[0], F_SETFL, O_NONBLOCK);
-        //         // fcntl(err_child[0], F_SETFL, O_NONBLOCK);
-        //     }
-        // }
+        
         void start_child_process() {
             pid = fork();
             if (pid == -1)
@@ -110,6 +67,27 @@ namespace tools {
                 close(from_child.write_fd());
                 close(err_child.write_fd());
 
+                // Change to the specified directory
+                if (!directory.empty()) {
+                    if (chdir(directory.c_str())) {
+                        perror("chdir failed");
+                        exit(1);
+                    }
+                }
+
+                // Change to the specified user
+                if (!username.empty()) {
+                    struct passwd *pw = getpwnam(username.c_str());
+                    if (pw == nullptr) {
+                        perror("getpwnam failed");
+                        exit(1);
+                    }
+                    if (setgid(pw->pw_gid) || setuid(pw->pw_uid)) {
+                        perror("setgid/setuid failed");
+                        exit(1);
+                    }
+                }
+
                 execlp(program.c_str(), program.c_str(), nullptr);
                 perror("execlp failed");
                 exit(1);
@@ -123,12 +101,16 @@ namespace tools {
     public:
         Process(
             const string& program = "bash", 
+            const string& username = "", 
+            const string& directory = "", 
             bool read_error = true, 
             bool read_output = true, 
             __useconds_t __useconds = 20000L,
             size_t buffsize = 4096
         ): 
             program(program),
+            username(username),
+            directory(directory),
             read_error(read_error),
             read_output(read_output),
             __useconds(__useconds),
@@ -140,7 +122,7 @@ namespace tools {
         }
 
         virtual ~Process() {
-            cleanup();
+            kill();
             __pcnt--;
             // cout << "--[__pcnt:" <<__pcnt << "]" << endl;
         }
@@ -307,7 +289,7 @@ namespace tools {
         }
 
         void reset() {
-            cleanup();                // Clean up the current process and resources
+            kill();                // Clean up the current process and resources
             start_child_process();    // Restart the process
         }
 
@@ -424,7 +406,7 @@ namespace tools {
                     cout << outp << flush;
                 }
             }
-            process.cleanup();
+            process.kill();
             return output;
         }
 

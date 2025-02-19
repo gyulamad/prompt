@@ -22,6 +22,12 @@ portaudio.h: sudo apt-get install portaudio19-dev
 if you want to use spchcat, see more: https://github.com/petewarden/spchcat
 for emojies: sudo apt install fonts-noto-color-emoji
 
+ssh for bot:
+sudo adduser bot1
+ssh-keygen -t rsa -b 2048
+ssh-copy-id bot1@localhost
+ssh 'bot1@localhost'
+
 build && run: (debug)
 g++ -std=c++23 src/prompt.cpp -o builds/prompt.gdb -g -O3 -Ilibs/ggerganov/whisper.cpp/include -Ilibs/ggerganov/whisper.cpp/ggml/include libs/ggerganov/whisper.cpp/build/src/libwhisper.so.1.7.4 -Wl,-rpath,libs/ggerganov/whisper.cpp/build/src -lrt -lm -lasound -lportaudio -lcurl -pthread
 

@@ -11,7 +11,7 @@
             "program": "${workspaceFolder}/builds/prompt.gdb", // Update this path if needed
             "args": [
                 "--voice", 
-                "--model", "test4"
+                "--model", "test5"
             ], // Add program arguments if necessary
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

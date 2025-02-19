@@ -154,6 +154,8 @@ int main(int argc, char *argv[]) {
     const int model_think_steps = config.get<int>("model.think_steps");
     const int model_think_deep = config.get<int>("model.think_deep");
 
+    const JSON model_tools_config = config.get<JSON>("tools");
+
     string model_system_voice = voice ? tpl_replace({
     },  "The user is using a text-to-speech software for communication. "
         "You are taking into account that the user's responses are being read at loud by a text-to-speech program "
@@ -243,6 +245,7 @@ When you need to perform a real-world action (like searching the web), you MUST 
         gemini_tmpfile,
         model_system,
         model_tools,
+        model_tools_config,
         model_conversation_length_max,
         model_conversation_loss_ratio,
         model_think_steps,

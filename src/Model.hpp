@@ -33,6 +33,7 @@ namespace prompt {
         string system;
         Conversation conversation;
         vector<Tool>& tools;
+        const JSON& tools_config;
         // bool remember;
         // string memory;
         // size_t memory_max; 
@@ -138,6 +139,7 @@ namespace prompt {
         #define MODEL_ARGS \
             const string& system, \
             vector<Tool>& tools, \
+            const JSON& tools_config, \
             /*Conversation& conversation,*/ \
             /*bool remember = false,*/ \
             /*const string& memory = "",*/ \
@@ -150,6 +152,7 @@ namespace prompt {
         #define MODEL_ARGS_PASS \
             system, \
             tools, \
+            tools_config, \
             /*conversation,*/ \
             /*remember,*/ \
             /*memory,*/ \
@@ -162,6 +165,7 @@ namespace prompt {
         Model(MODEL_ARGS):
             system(system),
             tools(tools),
+            tools_config(tools_config),
             // conversation(conversation),
             // remember(remember),
             // memory(memory),
@@ -266,7 +270,7 @@ namespace prompt {
 
         string prompt_stream(
             const string& prmpt, 
-            void* user_void,
+            void* user_void,           
             function<bool(void*, const string&)> cb_response, 
             function<void(void*, const string&)> cb_done
         ) {
@@ -731,7 +735,12 @@ namespace prompt {
                             if (!invalid) {
                                 string result;
                                 try {
-                                    result = tool.call(this, user_void, fcall);
+                                    result = tool.call(
+                                        this, 
+                                        user_void, 
+                                        fcall, 
+                                        tools_config.get<JSON>("tools." + tool.get_name())
+                                    );
                                 } catch (exception &e) {
                                     result = "Error in function `" + function_name + "`: " + e.what();
                                 }

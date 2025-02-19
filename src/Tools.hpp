@@ -1,8 +1,15 @@
 #pragma once
 
+#include <iostream>
+#include <string>
+#include <cstdio>
+#include <memory>
+#include <stdexcept>
+
 #include "tools/Process.hpp"
 #include "tools/io.hpp"
 #include "tools/strings.hpp"
+#include "tools/JSON.hpp"
 
 #include "User.hpp"
 #include "Tool.hpp"
@@ -23,7 +30,7 @@ namespace prompt {
             "Performs nothing. Litterally nothing. It's just a placeholder stuff..."
         ) {}
 
-        static string callback(void* tool_void, void* model_void, void* user_void, const JSON& args) { return ""; }
+        static string callback(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) { return ""; }
 
     } nothingTool;
 
@@ -41,7 +48,7 @@ namespace prompt {
             "Performs a google search and shows the result list."
         ) {}
 
-        static string callback(void* tool_void, void* model_void, void* user_void, const JSON& args) {
+        static string callback(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) {
             string query = args.get<string>("query");
             int max = args.get<int>("max");
             cout << "Google search: '" + escape(query) + "'" << endl;
@@ -74,7 +81,7 @@ namespace prompt {
             "With the script parameter you can inject javascript."
         ) {}
 
-        static string callback(void* tool_void, void* model_void, void* user_void, const JSON& args) {
+        static string callback(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) {
             string url = args.get<string>("url");
             string method = args.has("method") ? args.get<string>("method") : "";
             string data = args.has("data") ? args.get<string>("data") : "";
@@ -97,7 +104,22 @@ namespace prompt {
 
     class BashCommandTool: public Tool {
     private:
-        const int read_timeout_ms = 300; // TODO: config?
+        //const int read_timeout_ms = 1000; // TODO: config?
+
+        static string exec(const char* cmd) {
+            string result = "";
+
+            char buffer[128];
+            shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
+            if (!pipe) throw runtime_error("popen() failed!");
+            while (!feof(pipe.get())) {
+                if (fgets(buffer, 128, pipe.get()) != nullptr)
+                    result += buffer;
+            }
+        
+            return result;
+        }
+
     public:
         
         BashCommandTool(): Tool(
@@ -111,11 +133,11 @@ namespace prompt {
             "Runs a bash command and shows the output. "
             "Note: Do not call long running or blocking command that waits for user input etc., otherwise it may timeouts. "
             "Note: Use the (optional) 'reason' parameter to explane to the user before they confirm or reject the command. "
-            "Note: You need to avoid commands that don't produce output for more than " 
-            + ::to_string(read_timeout_ms) + "ms to prevent them from being prematurely terminated. "
+            // "Note: You need to avoid commands that don't produce output for more than " 
+            // + ::to_string(read_timeout_ms) + "ms to prevent them from being prematurely terminated. "
         ) {}
 
-        static string callback(void* tool_void, void* model_void, void* user_void, const JSON& args) {
+        static string callback(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) {
             string command = args.get<string>("command");
             if (trim(command).empty()) return "Command can not be empty!";
             int timeout = args.has("timeout") ? args.get<int>("timeout") : 10;
@@ -136,30 +158,43 @@ namespace prompt {
             }
 
             // TODO: it could go into common:
-            Process proc;
-            proc.writeln("echo 'Command execution start...'");
-            proc.writeln(command);
-            proc.writeln("echo 'Command execution end.'");
-            string output = "";
+            // Process proc("bash"); // TODO: to config
+            // proc.writeln("echo 'Command execution start...'");
+            string ssh_user = conf.get<string>("ssh_user"); //"bot1"; // TODO: to config
+            string ssh_host = conf.get<string>("ssh_host"); //"localhost"; // TODO: to config
+            string ssh_command = "timeout " + ::to_string(timeout) + "s ssh " + ssh_user + '@' + ssh_host + " \"" + escape(command) + " 2>&1\"";
+            // proc.writeln(ssh_command);
+            // proc.writeln("echo 'Command execution end.'");
+            // string output = "";
 
             auto start_time = chrono::steady_clock::now();
-            while (true) {
+            // while (true) {
 
-                string outp = proc.read(((BashCommandTool*)tool_void)->read_timeout_ms);
-                if (outp.empty()) break;
-                output += outp;
+            //     string outp = proc.read(); //proc.read(((BashCommandTool*)tool_void)->read_timeout_ms);
+            //     if (outp.empty()) break;
+            //     output += outp;
 
-                // Check if the timeout has been reached
-                auto current_time = chrono::steady_clock::now();
-                auto elapsed_time = chrono::duration_cast<chrono::seconds>(current_time - start_time).count();
-                if (elapsed_time >= timeout) {
-                    output += "\nExecution timed out after " + tools::to_string(timeout) + "s";
-                    break; // Timeout reached
-                }
+            //     // Check if the timeout has been reached
+            //     auto current_time = chrono::steady_clock::now();
+            //     auto elapsed_time = chrono::duration_cast<chrono::seconds>(current_time - start_time).count();
+            //     if (elapsed_time >= timeout) {
+            //         output += "\nExecution timed out after " + tools::to_string(timeout) + "s";
+            //         break; // Timeout reached
+            //     }
+            // }
+            // proc.kill();
+            string output = "";
+            try {
+                output = exec(ssh_command.c_str());
+                //cout << "Output:\n" << output << endl;
+            } catch (const runtime_error& e) {
+                output = "Error: " + string(e.what());
+                // cerr << "Error: " << e.what() << endl;
+                // return 1;
             }
             auto current_time = chrono::steady_clock::now();
             auto elapsed_time = chrono::duration_cast<chrono::milliseconds>(current_time - start_time).count();
-            proc.kill();
+            
 
             string elapsed = "Command execution time was: " + tools::to_string(elapsed_time) + "ms";
             cout << output + "\n" + elapsed << endl;

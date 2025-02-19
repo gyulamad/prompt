@@ -95,5 +95,14 @@
         // In deep thinking mode, it splits the problem for smaller chunks and solves recursively.
         // think_deep is the maximum deepness to walk through the problem tree.
         "think_deep": 5
+    },
+    "tools": {
+        "do_nothing": {},
+        "google_search": {},
+        "web_browse": {},
+        "bash_command": {
+            "ssh_user": "TOOL_BASH_COMMAND_SSH_USERNAME",
+            "ssh_host": "TOOL_BASH_COMMAND_SSH_HOSTNAME"
+        }
     }
 }

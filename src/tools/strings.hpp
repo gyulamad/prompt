@@ -47,7 +47,7 @@ namespace tools {
         return oss.str();
     }
 
-    string escape(const string& input, const string& chars = "\\\"'`", const string& esc = "\\") {
+    string escape(const string& input, const string& chars = "$\\\"'`", const string& esc = "\\") {
         string result = input;
         
         // Iterate over each character in the 'chars' string
