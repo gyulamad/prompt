@@ -739,7 +739,7 @@ namespace prompt {
                                         this, 
                                         user_void, 
                                         fcall, 
-                                        tools_config.get<JSON>("tools." + tool.get_name())
+                                        tools_config.get<JSON>(tool.get_name())
                                     );
                                 } catch (exception &e) {
                                     result = "Error in function `" + function_name + "`: " + e.what();

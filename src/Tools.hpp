@@ -106,7 +106,7 @@ namespace prompt {
     private:
         //const int read_timeout_ms = 1000; // TODO: config?
 
-        static string exec(const char* cmd) {
+        static string exec(const char* cmd) { // TODO: to common
             string result = "";
 
             char buffer[128];
@@ -162,7 +162,7 @@ namespace prompt {
             // proc.writeln("echo 'Command execution start...'");
             string ssh_user = conf.get<string>("ssh_user"); //"bot1"; // TODO: to config
             string ssh_host = conf.get<string>("ssh_host"); //"localhost"; // TODO: to config
-            string ssh_command = "timeout " + ::to_string(timeout) + "s ssh " + ssh_user + '@' + ssh_host + " \"" + escape(command) + " 2>&1\"";
+            string ssh_command = "timeout " + ::to_string(timeout) + "s ssh " + ssh_user + '@' + ssh_host + " \"" + escape(command, "$\\\"") + " 2>&1\"";
             // proc.writeln(ssh_command);
             // proc.writeln("echo 'Command execution end.'");
             // string output = "";
