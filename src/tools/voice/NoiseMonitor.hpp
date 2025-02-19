@@ -52,6 +52,7 @@ namespace tools::voice {
                         float rms = calculate_rms(buffer);
                         if (rms >= rmax) rmax = rms;
                         float vol_pc = muted ? 0.0 : (rms / rmax);
+                        if (isnan(vol_pc)) vol_pc = 0;
                         bool noisy = vol_pc > threshold_pc;
 
                         cb(listener, vol_pc, threshold_pc, rmax, rms, noisy, buffer, muted);
