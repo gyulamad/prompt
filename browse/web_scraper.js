@@ -130,68 +130,15 @@ const options = {
     scriptCode: ''
 };
 
-async function scrapeGoogle(query, maxPages = 1) {
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
-
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36');
-    await page.goto('https://www.google.com', { waitUntil: 'load', timeout: 60000 });
-
-    try {
-        await page.waitForSelector('input[name="q"]');
-        await page.type('input[name="q"]', query, { delay: 100 });
-        await page.keyboard.press('Enter');
-    } catch (e) {
-        console.error("Google search failed.");
-        await browser.close();
-        return;
-    }
-
-    let results = [];
-    let currentPage = 1;
-
-    while (currentPage <= maxPages) {
-        await page.waitForSelector('#search');
-
-        let pageResults = await page.evaluate(() => {
-            return [...document.querySelectorAll('.tF2Cxc')].map(el => ({
-                title: el.querySelector('h3')?.innerText || 'No title',
-                link: el.querySelector('a')?.href || 'No link',
-                description: el.querySelector('.VwiC3b')?.innerText || 'No description'
-            }));
-        });
-
-        results.push(...pageResults);
-
-        const nextPageButton = await page.$('#pnnext');
-        if (nextPageButton) {
-            await Promise.all([
-                nextPageButton.click(),
-                page.waitForNavigation({ waitUntil: 'load', timeout: 10000 })
-            ]);
-            currentPage++;
-        } else {
-            break;
-        }
-    }
-
-    fs.writeFileSync('google_results.json', JSON.stringify(results, null, 2), 'utf-8');
-    console.log('Google results saved to google_results.json');
-    await browser.close();
-}
-
 for (let i = 0; i < args.length; i++) {
     if (args[i] === '--url') options.url = args[i + 1];
     if (args[i] === '--method') options.method = args[i + 1];
     if (args[i] === '--data') options.data = args[i + 1];
     if (args[i] === '--cookies') options.cookies = args[i + 1];
     if (args[i] === '--script') options.scriptCode = args[i + 1];
-    if (args[i] === '--google') options.googleQuery = args[i + 1];
 }
 
-if (options.googleQuery) {
-    scrapeGoogle(options.googleQuery, options.googlePages);
-} else if (options.url) {
+if (options.url) {
     fetchPage(options);
 } else {
     console.log("Usage:");

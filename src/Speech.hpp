@@ -23,6 +23,7 @@ namespace prompt {
     private:
         // bool paused = false;
         atomic<bool> mic_enabled = true;
+        atomic<bool> mic_hidden = false;
 
         // ---- roller ----
 
@@ -131,6 +132,21 @@ namespace prompt {
             stt->setRMSHandler([&](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {
                 if (!mic_enabled) return;
 
+                // ----- handle speech interruptions --------------------------------------------
+
+                if (!that.tts_paused && loud && !that.loud_prev && that.tts->is_speaking()) {
+                    //cout << "[DEBUG] speach paused." << endl;
+                    that.tts->speak_pause();
+                    that.tts_paused = true;
+                    that.tts_paused_at = get_time_ms();
+                }
+
+                that.loud_prev = loud;
+
+                // ------------------------------------------------------------------------------
+                
+                if (mic_hidden) return;
+
                 string out = ""; 
 
                 // REC status
@@ -159,18 +175,8 @@ namespace prompt {
                     ? " [" + roll + "] Progress: " + tools::to_string(that.recs) + ".. " 
                     : "                   ") + " ";
 
-                show_mic(out);
+                mic_draw(out);
 
-                // ----- handle speech interruptions -----
-
-                if (!that.tts_paused && loud && !that.loud_prev && that.tts->is_speaking()) {
-                    //cout << "[DEBUG] speach paused." << endl;
-                    that.tts->speak_pause();
-                    that.tts_paused = true;
-                    that.tts_paused_at = get_time_ms();
-                }
-
-                that.loud_prev = loud;
             });
 
             stt->setSpeechHandler([&](vector<float>& record) {
@@ -206,8 +212,9 @@ namespace prompt {
 
                     struct winsize w;
                     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-                    hide_mic();
-                    string outp = "\r" + that.commander.get_command_line_ref().get_prompt() + trim_text;
+                    mic_hide();
+                    //cout << endl;
+                    string outp = that.commander.get_command_line_ref().get_prompt() + trim_text;
                     // for (int i = outp.size(); i < w.ws_col - 2; i++) outp += " ";
                     cout << outp << endl;
                     that.text_puffer.push_back(trim_text);
@@ -228,7 +235,7 @@ namespace prompt {
 
         virtual ~Speech() {
             stt->stop();
-            hide_mic();
+            mic_hide();
             delete stt;
             delete tts;
         }
@@ -240,7 +247,7 @@ namespace prompt {
 
         void mic_disable() {
             mic_mute();
-            hide_mic();
+            mic_hide();
             mic_enabled = false;
         }
 
@@ -249,18 +256,32 @@ namespace prompt {
             mic_enabled = true;
         }
 
-        void show_mic(string& out) {
+        void mic_draw(string out) {
             mic_out_size = out.size();
             for (int i = 0; i < mic_out_size; i++) out += "\b";
             cout << out << flush;
         }
 
-        void hide_mic() {
+        void mic_show() {
+            mic_hidden = false;
+        }
+
+        void mic_clear() {
             string out = "";
             for (int i = 0; i < mic_out_size; i++) out += "\b";
-            for (int i = 0; i < mic_out_size+5; i++) out += " ";
-            for (int i = 0; i < mic_out_size+5; i++) out += "\b";
+            for (int i = 0; i < mic_out_size; i++) out += " ";
+            for (int i = 0; i < mic_out_size; i++) out += "\b";
             cout << out << flush;
+            mic_out_size = 0;
+        }
+
+        void mic_hide() {
+            mic_hidden = true;
+            mic_clear();
+        }
+
+        bool is_mic_hidden() const {
+            return mic_hidden;
         }
 
         void mic_mute() {

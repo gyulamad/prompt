@@ -66,6 +66,7 @@ namespace prompt {
         }
 
         virtual string request() UNIMP
+
         virtual string request_stream(
             void*, // context
             function<bool(void*, const string&)>, // inference chunk recieved

@@ -96,15 +96,15 @@ namespace tools::voice {
         }
 
         void setRMSHandler(SpeechListener::RMSCallback rms_cb) {
-            recogniser->rms_cb = rms_cb;
+            recogniser->set_rms_cb(rms_cb);
         }
 
         void setSpeechHandler(SpeechListener::SpeechCallback speech_cb) {
-            recogniser->speech_cb = speech_cb;
+            recogniser->set_speech_cb(speech_cb);
         }
 
         void setTranscribeHandler(SpeechRecogniser::TranscribeCallback transcribe_cb) {
-            recogniser->transcribe_cb = transcribe_cb;
+            recogniser->set_transcribe_cb(transcribe_cb);
         }
 
         void start() {

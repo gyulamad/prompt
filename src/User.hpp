@@ -321,16 +321,19 @@ namespace prompt {
         static bool stream_callback(void* user_void, const string& inference) {
             if (!user_void) return false;
             User* user = (User*)user_void;
+            // cout << "[DEBUG]: [" << inference << "]" << endl;
             string inference_to_user = user->model.inference_remove_tools(inference);
-            if (user->speech) user->speech->hide_mic();
+            // if (user->speech) user->speech->hide_mic();
 
             // cout << inference_to_user << endl;
 
             // Check if the string ends with a newline character
             if (inference_to_user.empty()) return true;
-            cout << inference_to_user << (inference_to_user.back() == '\n' ? "" : "\n") << flush;
+            // cout << inference_to_user << (inference_to_user.back() == '\n' ? "" : "\n") << flush;
+            cout << inference_to_user << flush;
 
             if (!user->speech) return false;
+            
             return !user->speech->speak(inference_to_user);
         }
 
@@ -338,6 +341,7 @@ namespace prompt {
             if (!user_void) return;
             User* user = (User*)user_void;
             if (user->speech) user->speech->beep();
+            cout << endl;
         }
 
         void start() {
@@ -404,10 +408,18 @@ namespace prompt {
                 {
                     case MODE_CHAT:
                         if (stream) {
+                            bool a_bool = true;
+                            bool was_mic_hidden = true;
+                            if (speech) {
+                                bool a_bool = speech->is_mic_hidden();
+                                was_mic_hidden = a_bool;
+                                if (!was_mic_hidden) speech->mic_hide();
+                            }
                             streaming = true;
                             model.inference_tools_reset();
                             response = model.prompt_stream(input, this, stream_callback, stream_done_callback);
                             streaming = false;
+                            if (speech) speech->mic_show();
                             break;
                         }
                         requesting = true;

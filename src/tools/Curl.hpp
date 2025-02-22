@@ -30,22 +30,24 @@ namespace tools {
 
         ~Curl() = default;
 
+        struct Context {
+            atomic<bool>* cancelled;  // Pointer to parent's cancellation flag
+            StreamCallback cb;
+            string buffer;
+            string upload_data;
+            size_t upload_offset = 0;
+            char error[CURL_ERROR_SIZE]{};
+        };
+
         // === Core Request Method ===
-        bool Request(Method method, const string& url,
-                    const StreamCallback& callback,
-                    const vector<string>& req_headers = {},
-                    const string& data = "") {
+        bool Request(
+            Method method, const string& url,
+            const StreamCallback& callback,
+            const vector<string>& req_headers = {},
+            const string& data = ""
+        ) {
             CURL* handle = curl_easy_init();
             if (!handle) return false;
-
-            struct Context {
-                atomic<bool>* cancelled;  // Pointer to parent's cancellation flag
-                StreamCallback cb;
-                string buffer;
-                string upload_data;
-                size_t upload_offset = 0;
-                char error[CURL_ERROR_SIZE]{};
-            };
             
             auto ctx = make_unique<Context>();
             ctx->cb = callback;
@@ -143,48 +145,62 @@ namespace tools {
         }
 
         // === Convenience Methods ===
-        bool GET(const string& url, 
-                const StreamCallback& callback,
-                const vector<string>& headers = {}) {
+        bool GET(
+            const string& url, 
+            const StreamCallback& callback,
+            const vector<string>& headers = {}
+        ) {
             return Request(Method::GET, url, callback, headers);
         }
 
-        bool POST(const string& url,
-                 const StreamCallback& callback,
-                 const string& data,
-                 const vector<string>& headers = {}) {
+        bool POST(
+            const string& url,
+            const StreamCallback& callback,
+            const string& data,
+            const vector<string>& headers = {}
+        ) {
             return Request(Method::POST, url, callback, headers, data);
         }
 
-        bool PUT(const string& url,
-                const StreamCallback& callback,
-                const string& data,
-                const vector<string>& headers = {}) {
+        bool PUT(
+            const string& url,
+            const StreamCallback& callback,
+            const string& data,
+            const vector<string>& headers = {}
+        ) {
             return Request(Method::PUT, url, callback, headers, data);
         }
 
-        bool DELETE(const string& url,
-                  const StreamCallback& callback,
-                  const vector<string>& headers = {}) {
+        bool DELETE(
+            const string& url,
+            const StreamCallback& callback,
+            const vector<string>& headers = {}
+        ) {
             return Request(Method::DELETE, url, callback, headers);
         }
 
-        bool PATCH(const string& url,
-                  const StreamCallback& callback,
-                  const string& data,
-                  const vector<string>& headers = {}) {
+        bool PATCH(
+            const string& url,
+            const StreamCallback& callback,
+            const string& data,
+            const vector<string>& headers = {}
+        ) {
             return Request(Method::PATCH, url, callback, headers, data);
         }
 
-        bool HEAD(const string& url,
-                 const StreamCallback& callback,
-                 const vector<string>& headers = {}) {
+        bool HEAD(
+            const string& url,
+            const StreamCallback& callback,
+            const vector<string>& headers = {}
+        ) {
             return Request(Method::HEAD, url, callback, headers);
         }
 
-        bool OPTIONS(const string& url,
-                    const StreamCallback& callback,
-                    const vector<string>& headers = {}) {
+        bool OPTIONS(
+            const string& url,
+            const StreamCallback& callback,
+            const vector<string>& headers = {}
+        ) {
             return Request(Method::OPTIONS, url, callback, headers);
         }
 
@@ -244,7 +260,12 @@ namespace tools {
         string proxy;
         inline static once_flag global_init_flag;
 
-        static size_t WriteHandler(char* ptr, size_t size, size_t nmemb, void* userdata) {
+        static size_t WriteHandler(
+            char* ptr, 
+            size_t size, 
+            size_t nmemb, 
+            void* userdata
+        ) {
             auto* ctx = static_cast<Context*>(userdata);
             const size_t total = size * nmemb;
             
@@ -278,14 +299,5 @@ namespace tools {
             
             return copy_size;
         }
-
-        struct Context {
-            atomic<bool>* cancelled;  // Pointer to parent's cancellation flag
-            StreamCallback cb;
-            string buffer;
-            string upload_data;
-            size_t upload_offset = 0;
-            char error[CURL_ERROR_SIZE]{};
-        };
     };
 }

@@ -160,7 +160,7 @@ namespace prompt {
                         "https://generativelanguage.googleapis.com/v1beta/models/" 
                             + variant + ":streamGenerateContent?alt=sse&key=" + escape(secret),
                         [&](const string& chunk) {
-                            // cout << "[DEBUG chunk]: " << chunk << endl;
+                            // cout << "[DEBUG chunk]: [" << chunk << "]" << endl;
                             if (interrupted) return;
 
                             if (is_valid_json(chunk)) {
@@ -173,7 +173,7 @@ namespace prompt {
                             }
 
                             // Process SSE events
-                            vector<string> events = explode("\n\n", str_replace("\r", "", chunk));
+                            vector<string> events = explode("\r\n\r\n", chunk); // str_replace("\r", "", chunk));
                             
                             for (const string& event : events) {
                                 if (!str_contains(event, "data: ")) continue;

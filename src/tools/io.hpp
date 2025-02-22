@@ -87,7 +87,8 @@ namespace tools {
 
         def = tolower(def); // Normalize the default to lowercase
         char choice;
-
+        
+        cin.clear();
         while (true) {
             // Display the prompt with the default option
             cout << message << " (" 
@@ -95,7 +96,7 @@ namespace tools {
             choice = cin.get();
 
             // Handle Enter (newline) input for default option
-            if (choice == '\n') {
+            if (choice == '\n' || choice == '\r') {
                 cin.clear();
                 return def == 'y';
             }
@@ -119,7 +120,7 @@ namespace tools {
 
             // Invalid input, prompt again
             cout << "Please press 'y' or 'n'." << endl;
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            //cin.ignore(numeric_limits<streamsize>::max(), '\n');
         }
     }
 }

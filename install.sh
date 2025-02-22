@@ -28,8 +28,15 @@ curl/curl.h: sudo apt-get install libcurl4-openssl-dev
 portaudio.h: sudo apt-get install portaudio19-dev
 
 
+# ---- INSTALL TOOLS ----
+echo "Preparing tools for bot function calls..."
+cd browse
+npm i
+cd ..
+echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
 
-# ---- CREATE USER FOR BOT ----
+
+# ---- CREATE A USER FOR BOT ----
 echo "Create user for AI..."
 
 

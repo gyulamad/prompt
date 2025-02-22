@@ -45,9 +45,9 @@
             // TODO: it uses espeak command but it perhaps should be replacable later
             "speed": 200,
             "gap": 0,
-            "beep_cmd": "sox -v 0.1 beep.wav -t wav - | aplay -q -N",
+            "beep_cmd": "sox -v 0.03 beep.wav -t wav - | aplay -q -N",
             // "think_cmd": "sox -v 0.1 think.wav -t wav - | aplay -q -N"
-            "think_cmd": "find sounds/r2d2/ -name \"*.wav\" | shuf -n 1 | xargs -I {} bash -c 'sox -v 0.1 \"{}\" -t wav - | aplay -q -N'",
+            "think_cmd": "find sounds/r2d2/ -name \"*.wav\" | shuf -n 1 | xargs -I {} bash -c 'sox -v 0.01 \"{}\" -t wav - | aplay -q -N'",
             "speak_replacements": {
                 "...": "\n.\n.\n.\n",
                 "***": "\n.\n.\n.\n",

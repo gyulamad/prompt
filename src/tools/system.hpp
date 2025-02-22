@@ -10,6 +10,7 @@
 #include <cstring>
 #include <cerrno>
 #include <vector>
+#include <thread>
 
 #include <unistd.h>
 #include <limits.h>
@@ -83,6 +84,10 @@ namespace tools {
             return false;
         }
         return false;
+    }
+
+    void sleep_ms(long ms) {
+        this_thread::sleep_for(chrono::milliseconds(ms));
     }
 
 }

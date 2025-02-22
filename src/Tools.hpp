@@ -35,6 +35,8 @@ namespace prompt {
     } nothingTool;
 
 
+    // TODO: add https://www.firecrawl.dev
+    
     class GoogleSearchTool: public Tool {
     public:
         
@@ -131,9 +133,11 @@ namespace prompt {
             }, 
             callback,
             "Runs a bash command and shows the output. "
-            "Note: Do not call long running or blocking command that waits for user input etc., otherwise it may timeouts. "
-            "Note: Use the (optional) 'reason' parameter to explane to the user before they confirm or reject the command. "
-            // "Note: You need to avoid commands that don't produce output for more than " 
+            "Notes:"
+            "Do not call long running or blocking command that waits for user input etc., otherwise it may timeouts. "
+            "Use the (optional) 'reason' parameter to explane to the user before they confirm or reject the command. "
+            "You need to avoid long running or blocking commands that waits for user input to prevent them from being prematurely terminated when timeouts. " 
+            "Keep in mind, your command will proceed as a bash command as the following: timeout <timeout>s ssh you@host \"<command>\""
             // + ::to_string(read_timeout_ms) + "ms to prevent them from being prematurely terminated. "
         ) {}
 

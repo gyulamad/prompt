@@ -27,67 +27,67 @@ using namespace tools;
 
 namespace prompt {
 
-    class Terminal {
-    private:
-        string outputs;
-    public:
-        // triggered by [SEND-TO-TERMINAL]
-        void send(const string& reason, const string& input) {
+    // class Terminal {
+    // private:
+    //     string outputs;
+    // public:
+    //     // triggered by [SEND-TO-TERMINAL]
+    //     void send(const string& reason, const string& input) {
 
-        }
+    //     }
 
-        // triggered by [RESET-TERMINAL]
-        void reset() {
+    //     // triggered by [RESET-TERMINAL]
+    //     void reset() {
 
-        }
-    };
+    //     }
+    // };
 
-    class Task {
-    public:
-        enum Status { TODO, IN_PROGRESS, DONE, FAIL };
-    private:
-        const string id;
-        const string objective;  
-        Status status;
-        vector<string> results;
-    public:
-        // triggered by [TASK-UPDATE]
-        void update(const string& id, Status* status = nullptr, const string* result = nullptr) {
+    // class Task {
+    // public:
+    //     enum Status { TODO, IN_PROGRESS, DONE, FAIL };
+    // private:
+    //     const string id;
+    //     const string objective;  
+    //     Status status;
+    //     vector<string> results;
+    // public:
+    //     // triggered by [TASK-UPDATE]
+    //     void update(const string& id, Status* status = nullptr, const string* result = nullptr) {
 
-        }
-    };
+    //     }
+    // };
 
-    class Agent {
-    private:
-        const Agent* owner = nullptr;
-        const string name;
-        vector<Agent*> childs;
-        Task task;
-        Terminal terminal;
+    // class Agent {
+    // private:
+    //     const Agent* owner = nullptr;
+    //     const string name;
+    //     vector<Agent*> childs;
+    //     Task task;
+    //     Terminal terminal;
 
-        // triggered by [SENT-TO-PARENT]
-        void report(const string& response) {
+    //     // triggered by [SENT-TO-PARENT]
+    //     void report(const string& response) {
             
-        }
+    //     }
 
-        // triggered by [SPAWN-ASSISTANT]
-        void spawn(const string& name, const Task& task) {
+    //     // triggered by [SPAWN-ASSISTANT]
+    //     void spawn(const string& name, const Task& task) {
 
-        }
+    //     }
 
-        // triggered by [SENT-TO-ASSISTANT]
-        void command(const Agent& children, const string& request) {
+    //     // triggered by [SENT-TO-ASSISTANT]
+    //     void command(const Agent& children, const string& request) {
 
-        }
+    //     }
 
-        // triggered by [KILL-ASSISTANT]
-        void kill(const string& name) {
+    //     // triggered by [KILL-ASSISTANT]
+    //     void kill(const string& name) {
 
-        }
+    //     }
 
-    public:
+    // public:
 
-    };
+    // };
 
     // ----------------------------
     
@@ -216,6 +216,7 @@ When you need to perform a real-world action (like searching the web), you MUST 
     )"
         "You can use the following function calls to perform 'real-life' actions:"
         "\n\n{{model_tools}}\n\n"
+        "Note: you don't need to use ```json tokens to format the json on your output."
     );
 
     const string model_system = tpl_replace({ // TODO: goes to the config:
@@ -316,45 +317,3 @@ When you need to perform a real-world action (like searching the web), you MUST 
     
     return 0;
 }
-
-/*
-
-**Cím:** "Mikrobi: Egy mesterséges intelligencia, aki segít a programozásban"
-
-**Bevezetés:**
-
-*   Bemutatkozás: A nevem "Mikrobi", és egy mesterséges intelligencia vagyok.
-*   Rövid bemutatás a képességeimről:  A szövegértés, a válaszadás, a beszélgetés, a memóriám, a zajszűrés, a nyelvváltás.
-
-**Részek:**
-
-1.  **Memória teszt:**
-    *   Egyszerű számtani feladatok megoldása.
-    *   Korábbi beszélgetések részleteinek felidézése.
-2.  **Zajszűrés teszt:**
-    *   A zajszűrés szintjének beállítása különböző szinteken.
-    *   A zajszűrés hatékonyságának bemutatása.
-3.  **Szövegértés és válaszadás:**
-    *   Egyszerű kérdésekre válaszolás.
-    *   Összetettebb kérdésekre válaszolás.
-    *   **Átvitt értelmű kérdésekre válaszolás:**
-        *   "Milyen a helyzet a jég hátán?" (Kérdező: Mit értesz ez alatt a kérdés alatt?)
-        *   "Ég a ház?" (Kérdező: Mi a jelentése ennek a kérdésnek?)
-4.  **Beszélgetés:**
-    *   Természetesen folytatott párbeszéd.
-    *   A párbeszéd menetének követése.
-    *   A korábbi mondatokra való emlékezés.
-5.  **Nyelvváltás:**
-    *   A nyelvváltás bemutatása angolról magyarra.
-    *   A nyelvváltás bemutatása magyarról angolra.
-
-**Zárás:**
-
-*   Rövid összegzés a képességeimről: 
-    *   "Jól láttátok, hogy képes vagyok a szöveg megértésére, a válaszadásra, a beszélgetésre, a memóriák tárolására, a zajszűrésre, és a nyelvváltásra."
-*   Lehetséges jövőbeli fejlesztések:
-    *   "A jövőben szeretnénk továbbfejleszteni a memóriámat és a nyelvi képességeimet."
-    *   "A 'terminál-asszisztens' funkcióval a programozók munkáját segíthetem a hibakeresésben és a terminál-parancsok megértésében."
-    *   "A 'jegyzetfüzet' funkció segíthet a felhasználóknak a gondolataik és ötleteik rendezésében."
-    *   "A 'több én' koncepció lehetővé teszi a hatékonyabb feladatmegoldást."
- */

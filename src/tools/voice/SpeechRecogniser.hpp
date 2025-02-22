@@ -5,6 +5,8 @@
 #include <thread>
 #include <unistd.h> // For usleep()
 
+#include "../system.hpp"
+
 #include "Transcriber.hpp"
 #include "SpeechListener.hpp"
 
@@ -31,12 +33,6 @@ namespace tools::voice {
     public:
 
         using TranscribeCallback = function<void(const vector<float>& record, const string& text)>;
-
-
-        SpeechListener::RMSCallback rms_cb = [](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {};
-        SpeechListener::SpeechCallback speech_cb = [](vector<float>& record) {};
-        SpeechRecogniser::TranscribeCallback transcribe_cb = [](const vector<float>& record, const string& text) {};
-
 
         SpeechRecogniser(
             VoiceRecorder& recorder, 
@@ -76,7 +72,7 @@ namespace tools::voice {
             // cout << "[DEBUG] SpeachRecogniser transcriber thread start..." << endl;
             transcriberThread = thread([&]{
                 while(running) {
-                    usleep(30000);
+                    sleep_ms(300);
                     // if (paused) continue;
                     if (!records.empty()) {
                         // shift out the first record:
@@ -99,6 +95,25 @@ namespace tools::voice {
             transcriberThread.join();
             listener.stop();
         }
+
+        void set_rms_cb(SpeechListener::RMSCallback rms_cb) {
+            this->rms_cb = rms_cb;
+        }
+
+        void set_speech_cb(SpeechListener::SpeechCallback speech_cb) {
+            this->speech_cb = speech_cb;
+        }
+
+        void set_transcribe_cb(SpeechRecogniser::TranscribeCallback transcribe_cb) {
+            this->transcribe_cb = transcribe_cb;
+        }
+
+    private:
+
+        SpeechListener::RMSCallback rms_cb = [](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {};
+        SpeechListener::SpeechCallback speech_cb = [](vector<float>& record) {};
+        SpeechRecogniser::TranscribeCallback transcribe_cb = [](const vector<float>& record, const string& text) {};
+        
     };
 
 }
