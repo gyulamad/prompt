@@ -2,6 +2,11 @@
 
 This project is under active development and is not intended for production use. Use at your own risk!
 
+Demo and tests:
+https://www.youtube.com/watch?v=ALoWVnyRrPU
+
+Follow this repository for updates
+
 *Install*
 
 All the installation is desingned to Ubuntu (or Debian) based systems. Other system may varies see the `install.sh` for detailed installation process. Windows user may can use `WSL2`.
