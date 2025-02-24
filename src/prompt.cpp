@@ -216,7 +216,9 @@ When you need to perform a real-world action (like searching the web), you MUST 
     )"
         "You can use the following function calls to perform 'real-life' actions:"
         "\n\n{{model_tools}}\n\n"
-        "Note: you don't need to use ```json tokens to format the json on your output."
+        "Note:\n"
+        "**Avoid triple quotes (```json...```) when using function calls.**\n"
+        "**Always double-check the JSON syntax for errors.**\n"
     );
 
     const string model_system = tpl_replace({ // TODO: goes to the config:

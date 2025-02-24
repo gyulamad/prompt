@@ -44,7 +44,7 @@ namespace prompt {
             "google_search", 
             { 
                 { "query", PARAMETER_TYPE_STRING, true }, 
-                { "max", PARAMETER_TYPE_INTEGER, true }, 
+                { "max", PARAMETER_TYPE_INTEGER, false }, 
             }, 
             callback,
             "Performs a google search and shows the result list."

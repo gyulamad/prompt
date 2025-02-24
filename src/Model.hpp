@@ -663,6 +663,16 @@ namespace prompt {
             inference_func_calls.clear();
         }
 
+        void inference_func_call_ends() {
+            if (!inference_stat_in_func_call) return;
+            inference_stat_in_func_call = false;
+            inference_func_calls.push_back(str_replace({
+                { "[FUNCTION-CALLS-START]", "" }, 
+                { "[FUNCTION-CALLS-STOP]", "" }, 
+            }, inference_next_func_call));
+            inference_next_func_call = "";
+        }
+
         string inference_remove_tools(const string& inference) {
             string result = "";
             for (size_t i = 0; i < inference.length(); i++) {
@@ -674,14 +684,10 @@ namespace prompt {
                     inference_next_func_call = "";                    
                 }
                 else if (str_ends_with(inference_full, "[FUNCTION-CALLS-STOP]")) {
-                    inference_stat_in_func_call = false;
-                    inference_func_calls.push_back(str_replace({
-                        { "[FUNCTION-CALLS-START]", "" }, 
-                        { "[FUNCTION-CALLS-STOP]", "" }, 
-                    }, inference_next_func_call));
-                    inference_next_func_call = "";
+                    inference_func_call_ends();
                 }
-            }            
+            }  
+            inference_func_call_ends();          
             return str_replace({
                 { "[FUNCTION-CALLS-START]", "" }, 
                 { "[FUNCTION-CALLS-STOP]", "" }, 
