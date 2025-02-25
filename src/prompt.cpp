@@ -173,6 +173,7 @@ int main(int argc, char *argv[]) {
 
     vector<Tool> model_tools = {
         nothingTool,
+        dateTimeTool,
         googleSearchTool,
         webBrowserTool,
         bashCommandTool,

@@ -98,6 +98,7 @@
     },
     "tools": {
         "do_nothing": {},
+        "datetime": {},
         "google_search": {},
         "web_browse": {},
         "bash_command": {

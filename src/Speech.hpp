@@ -10,6 +10,7 @@
 #include "tools/strings.hpp"
 #include "tools/Process.hpp"
 #include "tools/Commander.hpp"
+#include "tools/datetime.hpp"
 
 #include "tools/voice/WhisperSTT.hpp"
 

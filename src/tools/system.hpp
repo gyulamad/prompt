@@ -38,19 +38,19 @@ namespace tools {
         return "";  
     }
 
-    // Function to get the current time in milliseconds
-    long long get_time_ms() {
-        // Get the current time point
-        auto now = chrono::system_clock::now();
+    // // Function to get the current time in milliseconds
+    // long long get_time_ms() {
+    //     // Get the current time point
+    //     auto now = chrono::system_clock::now();
 
-        // Convert to milliseconds since the Unix epoch
-        auto millis = chrono::duration_cast<chrono::milliseconds>(
-            now.time_since_epoch()
-        );
+    //     // Convert to milliseconds since the Unix epoch
+    //     auto millis = chrono::duration_cast<chrono::milliseconds>(
+    //         now.time_since_epoch()
+    //     );
 
-        // Return the numeric value
-        return millis.count();
-    }
+    //     // Return the numeric value
+    //     return millis.count();
+    // }
 
     bool is_process_running(const std::string& processName) {
         DIR *dir;

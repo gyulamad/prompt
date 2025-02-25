@@ -663,6 +663,11 @@ namespace prompt {
             inference_func_calls.clear();
         }
 
+        void inference_func_call_starts() {
+            inference_stat_in_func_call = true;
+            inference_next_func_call = "";  
+        }
+
         void inference_func_call_ends() {
             if (!inference_stat_in_func_call) return;
             inference_stat_in_func_call = false;
@@ -679,15 +684,14 @@ namespace prompt {
                 inference_full += inference[i];
                 if (inference_stat_in_func_call) inference_next_func_call += inference[i];
                 else result += inference[i];
-                if (str_ends_with(inference_full, "[FUNCTION-CALLS-START]")) {
-                    inference_stat_in_func_call = true;
-                    inference_next_func_call = "";                    
+                if (str_ends_with(inference_full, "[FUNCTION-CALLS-START]")) {  
+                    inference_func_call_starts();              
                 }
                 else if (str_ends_with(inference_full, "[FUNCTION-CALLS-STOP]")) {
                     inference_func_call_ends();
                 }
             }  
-            inference_func_call_ends();          
+            //inference_func_call_ends();          
             return str_replace({
                 { "[FUNCTION-CALLS-START]", "" }, 
                 { "[FUNCTION-CALLS-STOP]", "" }, 

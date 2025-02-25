@@ -10,6 +10,7 @@
 #include "tools/io.hpp"
 #include "tools/strings.hpp"
 #include "tools/JSON.hpp"
+#include "tools/datetime.hpp"
 
 #include "User.hpp"
 #include "Tool.hpp"
@@ -33,6 +34,24 @@ namespace prompt {
         static string callback(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) { return ""; }
 
     } nothingTool;
+
+
+    class DateTimeTool: public Tool {
+    public:
+        
+        DateTimeTool(): Tool(
+            "datetime", 
+            { }, 
+            callback,
+            "This tools shows the systems current date and time "
+            "as the AI does not have access to the real time data but sometimes it's needed."
+        ) {}
+
+        static string callback(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) { 
+            return ms_to_datetime(get_time_ms()); 
+        }
+
+    } dateTimeTool;
 
 
     // TODO: add https://www.firecrawl.dev
@@ -209,4 +228,6 @@ namespace prompt {
 
     } bashCommandTool;
 
+
+    // TODO: add time/date callback
 }
