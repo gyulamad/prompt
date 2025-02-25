@@ -54,6 +54,8 @@ ssh-keygen -t rsa -b 2048 -f "/home/$username/.ssh/id_rsa" -N ""
 ssh-copy-id "$username@$hostname"
 # Optionally, you can SSH into the user's account
 # ssh "$username@$hostname"
+# Add accsess to the AI's home folder
+sudo setfacl -m u:$USER:rwx "/home/$username"
 
 echo "User '$username' created and SSH key configured for host '$hostname'."
 

@@ -27,4 +27,6 @@ namespace tools {
 
     #define DEBUG(msg) debug(msg, __FILE__, __LINE__)
 
+    #define NULLCHK(p) { if (nullptr == p) throw ERROR("nullptr"); }
+
 };

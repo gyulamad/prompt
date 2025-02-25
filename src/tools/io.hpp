@@ -15,7 +15,9 @@ using namespace std;
 namespace tools {
 
     // atomic<bool> io_input_active(false); // Shared boolean variable
-    mutex io_input_mtx; // Mutex to protect access to the variable
+    mutex io_readln_mtx; // Mutex to protect access to the variable
+    mutex io_kbhit_mtx; // Mutex to protect access to the variable
+    mutex io_confirm_mtx; // Mutex to protect access to the variable
 
     void write(const string& output = "") {
         cout << output << flush;
@@ -26,7 +28,7 @@ namespace tools {
     }
 
     string readln(const string& prompt = "") {
-        lock_guard<mutex> lock(io_input_mtx); // Lock the mutex
+        lock_guard<mutex> lock(io_readln_mtx); // Lock the mutex
         // if (io_input_active) return false; // Disable others if input is active
         // io_input_active = true;
 
@@ -46,7 +48,7 @@ namespace tools {
     
     // Function to check if a key has been pressed (non-blocking)
     bool kbhit() {
-        lock_guard<mutex> lock(io_input_mtx); // Lock the mutex
+        lock_guard<mutex> lock(io_kbhit_mtx); // Lock the mutex
         // if (io_input_active) return false; // Disable others if input is active
         // io_input_active = true;
     
@@ -81,7 +83,10 @@ namespace tools {
 
 
     bool confirm(const string& message, char def = 'y') {
-        lock_guard<mutex> lock(io_input_mtx); // Lock the mutex
+        lock_guard<mutex> lock(io_confirm_mtx); // Lock the mutex
+
+        while (kbhit()) getchar();
+
         // if (io_input_active) return false; // Disable others if input is active
         // io_input_active = true;
 

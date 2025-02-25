@@ -124,23 +124,6 @@ namespace prompt {
 
 
     class BashCommandTool: public Tool {
-    private:
-        //const int read_timeout_ms = 1000; // TODO: config?
-
-        static string exec(const char* cmd) { // TODO: to common
-            string result = "";
-
-            char buffer[128];
-            shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
-            if (!pipe) throw runtime_error("popen() failed!");
-            while (!feof(pipe.get())) {
-                if (fgets(buffer, 128, pipe.get()) != nullptr)
-                    result += buffer;
-            }
-        
-            return result;
-        }
-
     public:
         
         BashCommandTool(): Tool(
@@ -157,7 +140,6 @@ namespace prompt {
             "Use the (optional) 'reason' parameter to explane to the user before they confirm or reject the command. "
             "You need to avoid long running or blocking commands that waits for user input to prevent them from being prematurely terminated when timeouts. " 
             "Keep in mind, your command will proceed as a bash command as the following: timeout <timeout>s ssh you@host \"<command>\""
-            // + ::to_string(read_timeout_ms) + "ms to prevent them from being prematurely terminated. "
         ) {}
 
         static string callback(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) {
@@ -166,68 +148,149 @@ namespace prompt {
             int timeout = args.has("timeout") ? args.get<int>("timeout") : 10;
             if (timeout <= 0) return "Parameter 'timeout' can not be less or equal to zero.";
             string reason = args.has("reason") ? args.get<string>("reason") : "";
-            //string fullcmd = "(timeout " + to_string(timeout) + "s " + command + ") || echo 'Command timed out after " + to_string(timeout) + "s!'";
-            // cout << "The following bash command is about to executed with a time window of " + to_string(timeout) + "s:\n" + command + "\n"
-            //     + (reason.empty() ? "" : ("Reason: " + reason)) << endl;
-            
-            if (!user_void) throw ERROR("No user?!");
-            if (!((User*)user_void)->confirm(
-                "The following bash command is about to executed with a time window of " + tools::to_string(timeout) + "s:\n" 
-                + command + "\n" + (reason.empty() ? "" : ("Reason: " + reason)) + "\nDo you want to proceed?"
-            )) {
-                string msg = "User intercepted the command execution";
-                cout << msg + "." << endl;
-                return msg + ":\n" + command;
-            }
-
-            // TODO: it could go into common:
-            // Process proc("bash"); // TODO: to config
-            // proc.writeln("echo 'Command execution start...'");
-            string ssh_user = conf.get<string>("ssh_user"); //"bot1"; // TODO: to config
-            string ssh_host = conf.get<string>("ssh_host"); //"localhost"; // TODO: to config
-            string ssh_command = "timeout " + ::to_string(timeout) + "s ssh " + ssh_user + '@' + ssh_host + " \"" + escape(command, "$\\\"") + " 2>&1\"";
-            // proc.writeln(ssh_command);
-            // proc.writeln("echo 'Command execution end.'");
-            // string output = "";
-
-            auto start_time = chrono::steady_clock::now();
-            // while (true) {
-
-            //     string outp = proc.read(); //proc.read(((BashCommandTool*)tool_void)->read_timeout_ms);
-            //     if (outp.empty()) break;
-            //     output += outp;
-
-            //     // Check if the timeout has been reached
-            //     auto current_time = chrono::steady_clock::now();
-            //     auto elapsed_time = chrono::duration_cast<chrono::seconds>(current_time - start_time).count();
-            //     if (elapsed_time >= timeout) {
-            //         output += "\nExecution timed out after " + tools::to_string(timeout) + "s";
-            //         break; // Timeout reached
-            //     }
-            // }
-            // proc.kill();
-            string output = "";
-            try {
-                output = exec(ssh_command.c_str());
-                //cout << "Output:\n" << output << endl;
-            } catch (const runtime_error& e) {
-                output = "Error: " + string(e.what());
-                // cerr << "Error: " << e.what() << endl;
-                // return 1;
-            }
-            auto current_time = chrono::steady_clock::now();
-            auto elapsed_time = chrono::duration_cast<chrono::milliseconds>(current_time - start_time).count();
-            
-
-            string elapsed = "Command execution time was: " + tools::to_string(elapsed_time) + "ms";
-            cout << output + "\n" + elapsed << endl;
-            return 
-                "Results from command execution:\n" + trim(command) + "\n" + elapsed +
-                "\nOutput:\n" + (output.empty() ? "<empty>" : output);
+            return confirm_execute_ssh(
+                [&](const string& prmpt) { return ((User*)user_void)->confirm(prmpt); }, 
+                conf, reason, command, timeout
+            );
         }
 
     } bashCommandTool;
 
 
-    // TODO: add time/date callback
+    // TODO:
+    // 1.  **Python Script Execution Tool:** (Highest Priority - vast functionality increase) - running in the SSH environment?
+    // ```json
+    // simplifymanager(
+    //     action: str,
+    //     filename: str,
+    //     content: str = "",
+    //     start_line: int = 0,
+    //     end_line: int = 0,
+    //     permissions: str = ""
+    // )
+    // ```
+
+    // Where:
+
+    // *   `action`: Specifies the action to perform (e.g., "create", "modify", "list", "read", "delete", "execute").
+    // *   `filename`: The name of the file to operate on.
+    // *   `content`: (Optional) The content to write to the file (for "create" and "modify").
+    // *   `start_line`: (Optional) The starting line number for "read" (0 for beginning).
+    // *   `end_line`: (Optional) The ending line number for "read" (0 for end).
+    // *   `permissions`: (Optional) The file permissions to set (e.g., "755") (used for "execute").
+
+    // **Action Breakdown:**
+
+    // *   **create:**
+    //     *   `filename`: Required.
+    //     *   `content`: Required.
+    //     *   Example: `simplifymanager(action="create", filename="myfile.txt", content="This is the content.")`
+
+    // *   **modify:**
+    //     *   `filename`: Required.
+    //     *   `content`: Required (replaces the entire file content).
+    //     *   Example: `simplifymanager(action="modify", filename="myfile.txt", content="This is the new content.")`
+
+    // *   **list:**
+    //     *   `filename`: Not required. If specified, list only that file. If not, list all files in the current directory.
+    //     *   Example: `simplifymanager(action="list")` or `simplifymanager(action="list", filename="myfile.txt")`
+
+    // *   **read:**
+    //     *   `filename`: Required.
+    //     *   `start_line`: Optional (default 0).
+    //     *   `end_line`: Optional (default 0).
+    //     *   Example: `simplifymanager(action="read", filename="myfile.txt", start_line=10, end_line=20)`
+
+    // *   **delete:**
+    //     *   `filename`: Required.
+    //     *   Example: `simplifymanager(action="delete", filename="myfile.txt")`
+
+    // *   **execute:**
+    //     *   `filename`: Required.
+    //     *   `permissions`: Optional (e.g., "755" to make it executable). If provided, the tool changes the permissions before executing, if not, then will use it as it is.
+    //     *   Example: `simplifymanager(action="execute", filename="myscript.sh", permissions="755")` or `simplifymanager(action="execute", filename="myscript.py")`
+    class FileManagerTool: public Tool {
+    public:
+        
+        FileManagerTool(): Tool(
+            "file_manager", 
+            { 
+                { "action", PARAMETER_TYPE_STRING, true }, // TODO: use get_required_errors to validate Tools before callback()... Note, I found that it's already validated in some way, using the Parameter::is_required()...
+            }, 
+            callback,
+            "*   `action`: Specifies the action to perform: " + actions_to_string(action_map) + "\n"
+            "\n"
+            "**Action Breakdown:**"
+            "\n"
+            "*   **create:**\n"
+            "    *   `filename`: Required.\n"
+            "    *   `content`: Required.\n"
+            "\n"
+        ) {}
+
+        static string callback(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) {
+            if (!args.has("action")) return "Parameter 'action' is missing!";
+            string action = args.get<string>("action");
+            if (trim(action).empty()) return "Parameter 'action' can not be empty!";
+            auto it = action_map.find(action);
+            if (it == action_map.end()) return "Action '" + it->first + "' does not exists!\nPossible actions are: " + actions_to_string(action_map);
+            return it->second(tool_void, model_void, user_void, args, conf);
+        }
+
+    private:
+
+        static map<string, tool_cb> action_map;
+
+        static string actions_to_string(map<string, tool_cb> action_map) {
+            return "[\"" + implode("\", \"", array_keys(action_map)) + "\"]";
+        }
+
+        string write(void* user_void, const JSON& args, const JSON& conf, bool append) {
+            NULLCHK(user_void);
+            error_to_user(get_required_error<string>(conf, "base_folder"));
+            
+            string errors = get_required_errors<string>(args, { "filename", "content" });
+            if (!errors.empty()) return errors;
+            string filename = args.get<string>("filename");
+            string content = args.get<string>("content"); 
+            errors += get_user_confirm_error(
+                [&](const string& prmpt) { 
+                    return ((User*)user_void)->confirm(prmpt); 
+                }, 
+                    string("File manager tool wants to ") 
+                    + (append ? "append to" : "create a") + " file: " + filename 
+                    + "\nwith contents:\n" + (content.empty() ? "<empty>" : content) 
+                    + "\nDo you want to proceed?",
+                "User intercepted the file operation", filename
+            );
+            if (!errors.empty()) return errors;
+
+            if (!file_put_contents(conf.get<string>("base_folder") + "/" + filename, content, append))
+                return "File write failed: " + filename; 
+
+            return "File writen: " + filename;
+        }
+
+        static string create_cb(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) {
+            NULLCHK(tool_void);
+            FileManagerTool* tool = (FileManagerTool*)tool_void;
+            return tool->write(user_void, args, conf, false);
+        }
+
+        static string append_cb(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) {
+            NULLCHK(tool_void);
+            FileManagerTool* tool = (FileManagerTool*)tool_void;
+            return tool->write(user_void, args, conf, true);
+        }
+
+    } fileManagerTool;
+
+    map<string, tool_cb> FileManagerTool::action_map = {
+        { "create", FileManagerTool::create_cb },
+    };
+
+
+    // TODO 2.  **Bug Reporting/Feedback Tool (with Future Request Integration):** (Crucial for improvement and long-term planning)
+    // TODO 3.  **Note-Taking/Memory Tool:** (Important for efficiency and avoiding repeated work) - notes/per AI AND/OR "global" notes for each AI?; categories for notes?
+    // TODO 4.  **Clarifying Question Prompt:** I'll try to use existing functions and just ask directly. If I still fail to do it, it will be one function for me to ask you some questions before I even start with a task. (later when we have multiple AI but any of them need to ask a question for the subtask, they can send a message to the user directly "bypassing" its parent AI)
 }

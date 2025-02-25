@@ -89,5 +89,19 @@ namespace tools {
     void sleep_ms(long ms) {
         this_thread::sleep_for(chrono::milliseconds(ms));
     }
+    
+    static string execute(const char* cmd) { // TODO: to common
+        string result = "";
+
+        char buffer[128];
+        shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
+        if (!pipe) throw runtime_error("popen() failed!");
+        while (!feof(pipe.get())) {
+            if (fgets(buffer, 128, pipe.get()) != nullptr)
+                result += buffer;
+        }
+    
+        return result;
+    }
 
 }

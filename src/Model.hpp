@@ -732,11 +732,12 @@ namespace prompt {
                             found = true;
                             bool invalid = false;
                             for (const Parameter& parameter: tool.get_parameters_cref()) {
-                                if (!fcall.has(parameter.get_name())) {
+                                string pname = parameter.get_name();
+                                if (!fcall.has(pname)) {
                                     if (parameter.is_required()) {
                                         output += 
                                             "A required parameter is missing in function call: `" 
-                                            + function_name + "." + parameter.get_name() +
+                                            + function_name + "." + pname +
                                             + "`\n";
                                         invalid = true;
                                         continue;

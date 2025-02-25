@@ -61,6 +61,10 @@ namespace tools {
         }
         return result;
     }
+
+    string quote_cmd(const string& input) {
+        return "\"" + escape(input, "$\\\"") + "\"";
+    }
     
     bool str_contains(const string& str, const string& substring) {
         // Use string::find to check if the substring exists

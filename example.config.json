@@ -104,6 +104,9 @@
         "bash_command": {
             "ssh_user": "TOOL_BASH_COMMAND_SSH_USERNAME",
             "ssh_host": "TOOL_BASH_COMMAND_SSH_HOSTNAME"
+        },
+        "file_manager": {
+            "base_folder": "/home/TOOL_BASH_COMMAND_SSH_USERNAME/"
         }
     }
 }
