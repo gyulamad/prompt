@@ -83,38 +83,6 @@ namespace prompt {
             if (show) cout << errmsg + "." << endl;
             return errmsg + (expln.empty() ? "." : (":\n" + expln));
         }
-
-        static string confirm_execute_ssh(confirm_func_t confirm_func, const JSON& conf, const string& reason, const string& command, int timeout = 10) {
-            string error = get_user_confirm_error(
-                confirm_func, 
-                "The following bash command is about to executed with a time window of " + tools::to_string(timeout) + "s:\n" 
-                    + command + "\n" + (reason.empty() ? "" : ("Reason: " + reason)) + "\nDo you want to proceed?",
-                "User intercepted the command execution", command
-            );
-            if (!error.empty()) return error;
-
-            string ssh_user = conf.get<string>("ssh_user");
-            string ssh_host = conf.get<string>("ssh_host");
-            string ssh_command = "timeout " + ::to_string(timeout) + "s ssh " + ssh_user + '@' + ssh_host 
-                + " " + quote_cmd(command + " 2>&1");
-
-            auto start_time = chrono::steady_clock::now();
-            string output = "";
-            try {
-                output = execute(ssh_command.c_str());
-            } catch (const runtime_error& e) {
-                output = "Error: " + string(e.what());
-            }
-            auto current_time = chrono::steady_clock::now();
-            auto elapsed_time = chrono::duration_cast<chrono::milliseconds>(current_time - start_time).count();
-            
-
-            string elapsed = "Command execution time was: " + tools::to_string(elapsed_time) + "ms";
-            cout << "\nOutput:\n" << output + "\n" + elapsed << endl;
-            return 
-                "Results from command execution:\n" + trim(command) + "\n" + elapsed +
-                "\nOutput:\n" + (output.empty() ? "<empty>" : output);
-        }
     };
     
     string to_string(const Tool& tool) {

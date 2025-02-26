@@ -123,7 +123,11 @@ namespace prompt {
     } webBrowserTool;
 
 
-    class BashCommandTool: public Tool {
+    /**
+     * @brief 
+     * @deprecated
+     */
+    class BashCommandTool: public Tool { // TODO: remove this with ssh user all together if the file_manager.exec action works
     public:
         
         BashCommandTool(): Tool(
@@ -154,61 +158,85 @@ namespace prompt {
             );
         }
 
+    private:
+
+        // static string confirm_execute_ssh(confirm_func_t confirm_func, const JSON& conf, const string& reason, const string& command, int timeout = 10) {
+        //     string error = get_user_confirm_error(
+        //         confirm_func, 
+        //         "The following bash command is about to executed with a time window of " + tools::to_string(timeout) + "s:\n" 
+        //             + command + "\n" + (reason.empty() ? "" : ("Reason: " + reason)) + "\nDo you want to proceed?",
+        //         "User intercepted the command execution", command
+        //     );
+        //     if (!error.empty()) return error;
+
+        //     string ssh_user = conf.get<string>("ssh_user");
+        //     string ssh_host = conf.get<string>("ssh_host");
+        //     string ssh_key = "/opt/prompt/keys/id_rsa_" + ssh_user;
+        //     string ssh_command = "timeout " + ::to_string(timeout) + "s ssh -i " + ssh_key + " " + ssh_user + '@' + ssh_host 
+        //         + " " + quote_cmd(command + " 2>&1");
+
+        //     auto start_time = chrono::steady_clock::now();
+        //     string output = "";
+        //     try {
+        //         output = execute(ssh_command.c_str());
+        //     } catch (const runtime_error& e) {
+        //         output = "Error: " + string(e.what());
+        //     }
+        //     auto current_time = chrono::steady_clock::now();
+        //     auto elapsed_time = chrono::duration_cast<chrono::milliseconds>(current_time - start_time).count();
+            
+
+        //     string elapsed = "Command execution time was: " + tools::to_string(elapsed_time) + "ms";
+        //     cout << "\nOutput:\n" << output + "\n" + elapsed << endl;
+        //     return 
+        //         "Results from command execution:\n" + trim(command) + "\n" + elapsed +
+        //         "\nOutput:\n" + (output.empty() ? "<empty>" : output);
+        // }
+        
+        static string confirm_execute_ssh(confirm_func_t confirm_func, const JSON& conf, const string& reason, const string& command, int timeout = 10) {
+            // Step 1: Get user confirmation
+            string error = get_user_confirm_error(
+                confirm_func, 
+                "The following bash command is about to be executed with a time window of " + tools::to_string(timeout) + "s:\n" 
+                    + command + "\n" + (reason.empty() ? "" : ("Reason: " + reason)) + "\nDo you want to proceed?",
+                "User intercepted the command execution", command
+            );
+            if (!error.empty()) return error;
+        
+            // Step 2: Extract SSH configuration
+            string ssh_user = conf.get<string>("ssh_user");
+            string ssh_host = conf.get<string>("ssh_host");
+            string ssh_key = "/opt/prompt/keys/id_rsa_" + ssh_user;
+        
+            // Step 3: Build the SSH command with environment variables and BatchMode
+            // string ssh_command = "SSH_ASKPASS= DISPLAY= timeout " + ::to_string(timeout) + "s ssh -o BatchMode=yes -i " + ssh_key + " " + ssh_user + '@' + ssh_host 
+            //     + " " + quote_cmd(command + " 2>&1");
+
+            string ssh_command = "timeout " + ::to_string(timeout) + "s ssh " + ssh_user + '@' + ssh_host 
+                + " " + quote_cmd(command + " 2>&1");
+        
+            // Step 4: Execute the SSH command
+            auto start_time = chrono::steady_clock::now();
+            string output = "";
+            try {
+                output = execute(ssh_command.c_str());
+            } catch (const runtime_error& e) {
+                output = "Error: " + string(e.what());
+            }
+            auto current_time = chrono::steady_clock::now();
+            auto elapsed_time = chrono::duration_cast<chrono::milliseconds>(current_time - start_time).count();
+        
+            // Step 5: Display and return results
+            string elapsed = "Command execution time was: " + tools::to_string(elapsed_time) + "ms";
+            cout << "\nOutput:\n" << output + "\n" + elapsed << endl;
+            return 
+                "Results from command execution:\n" + trim(command) + "\n" + elapsed +
+                "\nOutput:\n" + (output.empty() ? "<empty>" : output);
+        }
+
     } bashCommandTool;
 
 
-    // TODO:
-    // 1.  **Python Script Execution Tool:** (Highest Priority - vast functionality increase) - running in the SSH environment?
-    // ```json
-    // simplifymanager(
-    //     action: str,
-    //     filename: str,
-    //     content: str = "",
-    //     start_line: int = 0,
-    //     end_line: int = 0,
-    //     permissions: str = ""
-    // )
-    // ```
-
-    // Where:
-
-    // *   `action`: Specifies the action to perform (e.g., "create", "modify", "list", "read", "delete", "execute").
-    // *   `filename`: The name of the file to operate on.
-    // *   `content`: (Optional) The content to write to the file (for "create" and "modify").
-    // *   `start_line`: (Optional) The starting line number for "read" (0 for beginning).
-    // *   `end_line`: (Optional) The ending line number for "read" (0 for end).
-    // *   `permissions`: (Optional) The file permissions to set (e.g., "755") (used for "execute").
-
-    // **Action Breakdown:**
-
-    // *   **create:**
-    //     *   `filename`: Required.
-    //     *   `content`: Required.
-    //     *   Example: `simplifymanager(action="create", filename="myfile.txt", content="This is the content.")`
-
-    // *   **modify:**
-    //     *   `filename`: Required.
-    //     *   `content`: Required (replaces the entire file content).
-    //     *   Example: `simplifymanager(action="modify", filename="myfile.txt", content="This is the new content.")`
-
-    // *   **list:**
-    //     *   `filename`: Not required. If specified, list only that file. If not, list all files in the current directory.
-    //     *   Example: `simplifymanager(action="list")` or `simplifymanager(action="list", filename="myfile.txt")`
-
-    // *   **read:**
-    //     *   `filename`: Required.
-    //     *   `start_line`: Optional (default 0).
-    //     *   `end_line`: Optional (default 0).
-    //     *   Example: `simplifymanager(action="read", filename="myfile.txt", start_line=10, end_line=20)`
-
-    // *   **delete:**
-    //     *   `filename`: Required.
-    //     *   Example: `simplifymanager(action="delete", filename="myfile.txt")`
-
-    // *   **execute:**
-    //     *   `filename`: Required.
-    //     *   `permissions`: Optional (e.g., "755" to make it executable). If provided, the tool changes the permissions before executing, if not, then will use it as it is.
-    //     *   Example: `simplifymanager(action="execute", filename="myscript.sh", permissions="755")` or `simplifymanager(action="execute", filename="myscript.py")`
     class FileManagerTool: public Tool {
     public:
         
@@ -222,9 +250,36 @@ namespace prompt {
             "\n"
             "**Action Breakdown:**"
             "\n"
-            "*   **create:**\n"
+            "*   **create/append:**\n"
             "    *   `filename`: Required.\n"
             "    *   `content`: Required.\n"
+            "    *Note: Create attempt overrides if the file already exists.\n"
+            "\n"
+            "*   **remove:**\n"
+            "    *   `filename`: Required.\n"
+            "\n"
+            "*   **rename:**\n"
+            "    *   `old_filename`: Required.\n"
+            "    *   `new_filename`: Required.\n"
+            "\n"
+            "*   **view:**\n"
+            "    *   `filename`: Required.\n"
+            "    *   `start_line`: Optional (number, default: 1th line).\n"
+            "    *   `end_line`: Optional (number, default: last line).\n"
+            "\n"
+            "*   **edit:**\n"
+            "    *   `filename`: Required.\n"
+            "    *   `start_line`: Optional (number, default: 1th line).\n"
+            "    *   `end_line`: Optional (number, default: last line).\n"
+            "    *   `content`: Required. (send empty string to remove lines)\n"
+            "\n"
+            "*   **exec:**\n"
+            "    *   `command`: Required (bash command).\n"
+            "    *   `timeout`: Optional (number, in seconds).\n"
+            "    *Notes:\n"
+            "       You need to avoid long running or blocking commands\n"
+            "       that waits for user input to prevent them\n"
+            "       from being prematurely terminated when timeouts.\n" 
             "\n"
         ) {}
 
@@ -248,27 +303,214 @@ namespace prompt {
         string write(void* user_void, const JSON& args, const JSON& conf, bool append) {
             NULLCHK(user_void);
             error_to_user(get_required_error<string>(conf, "base_folder"));
+            string base = conf.get<string>("base_folder");
             
             string errors = get_required_errors<string>(args, { "filename", "content" });
             if (!errors.empty()) return errors;
-            string filename = args.get<string>("filename");
+            string filepath = base + args.get<string>("filename");
+            if (!is_valid_filepath(filepath)) return "Filename is invalid: " + filepath;
             string content = args.get<string>("content"); 
             errors += get_user_confirm_error(
                 [&](const string& prmpt) { 
                     return ((User*)user_void)->confirm(prmpt); 
                 }, 
                     string("File manager tool wants to ") 
-                    + (append ? "append to" : "create a") + " file: " + filename 
+                    + (append ? "append to" : "create a") + " file: " + filepath 
                     + "\nwith contents:\n" + (content.empty() ? "<empty>" : content) 
                     + "\nDo you want to proceed?",
-                "User intercepted the file operation", filename
+                "User intercepted the file operation", filepath
             );
             if (!errors.empty()) return errors;
 
-            if (!file_put_contents(conf.get<string>("base_folder") + "/" + filename, content, append))
-                return "File write failed: " + filename; 
+            if (!file_put_contents(filepath, content, append))
+                return "File write failed: " + filepath; 
 
-            return "File writen: " + filename;
+            // if (!append) {
+            //     try {
+            //         chgrp(filepath, group);
+            //         chprm(filepath, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
+            //     } catch (exception &e) {
+            //         return "File write error: " + string(e.what());
+            //     }
+            // }
+
+            string outp = "File writen: " + filepath;
+            cout << outp << "\nContents:\n" + (content.empty() ? "<empty>" : content) << endl;
+            return outp;
+        }
+
+        string remove(void* user_void, const JSON& args, const JSON& conf) {
+            NULLCHK(user_void);
+            error_to_user(get_required_error<string>(conf, "base_folder"));
+            string base = conf.get<string>("base_folder");
+            
+            string errors = get_required_error<string>(args, "filename");
+            if (!errors.empty()) return errors;
+            string filepath = base + args.get<string>("filename");
+            if (!is_valid_filepath(filepath)) return "Filename is invalid: " + filepath;
+            if (!file_exists(filepath)) return "File not exists: " + filepath;
+
+            errors += get_user_confirm_error(
+                [&](const string& prmpt) { 
+                    return ((User*)user_void)->confirm(prmpt); 
+                }, 
+                    string("File manager tool wants to delete file:") + filepath 
+                    + "\nDo you want to proceed?",
+                "User intercepted the file operation", filepath
+            );
+            if (!errors.empty()) return errors;
+
+            if (!tools::remove(filepath, false))
+                return "File remove failed: " + filepath; 
+
+            string ret = "File removed: " + filepath;
+            cout << ret << endl;
+            return ret;
+        }
+
+        string rename(void* user_void, const JSON& args, const JSON& conf) {
+            NULLCHK(user_void);
+            error_to_user(get_required_error<string>(conf, "base_folder"));
+            string base = conf.get<string>("base_folder");
+            
+            string errors = get_required_errors<string>(args, { "old_filename", "new_filename" });
+            if (!errors.empty()) return errors;
+            string old_filepath = base + args.get<string>("old_filename");
+            if (!is_valid_filepath(old_filepath)) return "Old filename is invalid: " + old_filepath;
+            string new_filepath = base + args.get<string>("new_filename");
+            if (!is_valid_filepath(new_filepath)) return "New filename is invalid :" + new_filepath;
+            if (old_filepath == new_filepath) return "Files can not be the same: " + old_filepath;
+            if (!file_exists(old_filepath)) return "File not exists: " + old_filepath;
+            if (file_exists(new_filepath)) return "File already exists: " + new_filepath + "\nYou have to delete first!";
+
+            string to = old_filepath + " to " + new_filepath;
+            errors += get_user_confirm_error(
+                [&](const string& prmpt) { 
+                    return ((User*)user_void)->confirm(prmpt); 
+                }, 
+                    string("File manager tool wants to rename file: ") + to
+                    + "\nDo you want to proceed?",
+                "User intercepted the file operation", to
+            );
+            if (!errors.empty()) return errors;
+
+            if (!tools::rename(old_filepath, new_filepath, false))
+                return "File rename failed: " + to; 
+
+            string ret = "File renamed: " + to;
+            cout << ret << endl;
+            return ret;
+        }
+
+        string view(void* user_void, const JSON& args, const JSON& conf) {
+            error_to_user(get_required_error<string>(conf, "base_folder"));
+            string base = conf.get<string>("base_folder");
+            string errors = get_required_error<string>(args, "filename");
+            if (!errors.empty()) return errors;
+            string filepath = base + args.get<string>("filename");
+            if (!is_valid_filepath(filepath)) return "Filename is invalid: " + filepath;
+            if (!file_exists(filepath)) return "File not exists: " + filepath;
+            vector<string> lines;
+            try {
+                lines = explode("\n", file_get_contents(filepath));
+            } catch (ios_base::failure &e) {
+                return "IO operation failed on file read '" + filepath + "': " + e.what();
+            }
+            if (lines.empty()) return "File '" + filepath + "' is empty.";
+            int start_line = args.has("start_line") ? args.get<int>("start_line") - 1 : 0;
+            int end_line = args.has("end_line") ? args.get<int>("end_line") - 1 : lines.size();
+            if (start_line < 0) return "Start line can not be less than 1!";
+            if (end_line < 0) return "End line can not be less than 1!";
+            string outp = "";
+            for (int i = start_line; i < end_line; i++)
+                outp += ::to_string(i+1) + "|" + lines[i] + "\n";
+            outp = "Contents from file: " + filepath + "\n" + (outp.empty() ? "<empty>" : outp) + "\n";
+            cout << outp << flush;
+            return outp;
+        }
+
+        string edit(void* user_void, const JSON& args, const JSON& conf) {
+            error_to_user(get_required_error<string>(conf, "base_folder"));
+            string base = conf.get<string>("base_folder");
+            string errors = get_required_errors<string>(args, { "filename", "content" });
+            if (!errors.empty()) return errors;
+            string filepath = base + args.get<string>("filename");
+            if (!is_valid_filepath(filepath)) return "Filename is invalid: " + filepath;
+            string content = args.get<string>("content"); 
+            if (!file_exists(filepath)) return "File not exists: " + filepath;
+            vector<string> lines;
+            try {
+                lines = explode("\n", file_get_contents(filepath));
+            } catch (ios_base::failure &e) {
+                return "IO operation failed on file read '" + filepath + "': " + e.what();
+            }
+            
+            errors += get_user_confirm_error(
+                [&](const string& prmpt) { 
+                    return ((User*)user_void)->confirm(prmpt); 
+                }, 
+                    string("File manager tool wants to replace in file: ") + filepath
+                    + "\nDo you want to proceed?",
+                "User intercepted the file operation", filepath
+            );
+            if (!errors.empty()) return errors;
+
+            int start_line = args.has("start_line") ? args.get<int>("start_line") - 1 : 0;
+            int end_line = args.has("end_line") ? args.get<int>("end_line") - 1 : lines.size();
+            if (start_line < 0) return "Start line can not be less than 1!";
+            if (end_line < 0) return "End line can not be less than 1!";
+            vector<string> before;
+            for (int i = 0; i < start_line; i++)
+                before.push_back(lines[i]);
+            vector<string> after;
+            for (int i = end_line; i < lines.size(); i++)
+                after.push_back(lines[i]);
+            string new_content = implode("\n", before) + (content.empty() ? "" : "\n" + content + "\n") + implode("\n", after);
+            if (!file_put_contents(filepath, content))
+                return "File content modification failed: " + filepath; 
+
+            string ret = "File updated: " + filepath;
+            cout << ret + "\nNew contents:\n" + (new_content.empty() ? "<empty>" : new_content) << endl;
+            return ret;
+        }
+
+        string exec(void* user_void, const JSON& args, const JSON& conf) {
+            error_to_user(get_required_error<string>(conf, "base_folder"));
+            string base = conf.get<string>("base_folder");
+
+            string errors = get_required_error<string>(args, { "command" });
+            if (!errors.empty()) return errors;
+
+            string command = args.get<string>("command");
+            int timeout = args.has("timeout") ? args.get<int>("timeout") : 10;
+            
+            errors += get_user_confirm_error(
+                [&](const string& prmpt) { 
+                    return ((User*)user_void)->confirm(prmpt); 
+                }, // solve tools::to_string(..) conflict
+                    string("File manager tool wants to execute a command with timeout ") + ::to_string(timeout) + "s:\n" + command
+                    + "\nDo you want to proceed?",
+                "User intercepted the command execution", command
+            );
+            if (!errors.empty()) return errors;
+            
+            auto start_time = chrono::steady_clock::now();
+            string output = "";
+            try {
+                string full_command = "cd " + base + " && " + (timeout ? string("timeout ") + ::to_string(timeout) + "s " : "") + command + " 2>&1";
+                output = execute(full_command.c_str());
+            } catch (const runtime_error& e) {
+                output = "Command execution failed: " + string(e.what());
+            }
+            auto current_time = chrono::steady_clock::now();
+            auto elapsed_time = chrono::duration_cast<chrono::milliseconds>(current_time - start_time).count();
+
+            // Display and return results
+            string elapsed = "Command execution time was: " + tools::to_string(elapsed_time) + "ms";
+            cout << "\nOutput:\n" << output + "\n" + elapsed << endl;
+            return 
+                "Results from command execution:\n" + trim(command) + "\n" + elapsed +
+                "\nOutput:\n" + (output.empty() ? "<empty>" : output);
         }
 
         static string create_cb(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) {
@@ -283,10 +525,46 @@ namespace prompt {
             return tool->write(user_void, args, conf, true);
         }
 
+        static string remove_cb(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) {
+            NULLCHK(tool_void);
+            FileManagerTool* tool = (FileManagerTool*)tool_void;
+            return tool->remove(user_void, args, conf);
+        }
+
+        static string rename_cb(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) {
+            NULLCHK(tool_void);
+            FileManagerTool* tool = (FileManagerTool*)tool_void;
+            return tool->rename(user_void, args, conf);
+        }
+
+        static string view_cb(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) {
+            NULLCHK(tool_void);
+            FileManagerTool* tool = (FileManagerTool*)tool_void;
+            return tool->view(user_void, args, conf);
+        }
+
+        static string edit_cb(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) {
+            NULLCHK(tool_void);
+            FileManagerTool* tool = (FileManagerTool*)tool_void;
+            return tool->edit(user_void, args, conf);
+        }
+
+        static string exec_cb(void* tool_void, void* model_void, void* user_void, const JSON& args, const JSON& conf) {
+            NULLCHK(tool_void);
+            FileManagerTool* tool = (FileManagerTool*)tool_void;
+            return tool->exec(user_void, args, conf);
+        }
+
     } fileManagerTool;
 
     map<string, tool_cb> FileManagerTool::action_map = {
         { "create", FileManagerTool::create_cb },
+        { "append", FileManagerTool::append_cb },
+        { "remove", FileManagerTool::remove_cb },
+        { "rename", FileManagerTool::rename_cb },
+        { "view", FileManagerTool::view_cb },
+        { "edit", FileManagerTool::edit_cb },
+        { "exec", FileManagerTool::exec_cb },
     };
 
 

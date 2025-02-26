@@ -37,35 +37,61 @@ echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
 
 
 # ---- CREATE A USER FOR BOT ----
-echo "Create user for AI..."
+# echo "Create user for AI..."
+
+# # TODO: remove the AI user all together...
+# # Prompt the user for a username, default to 'promptuser1' if empty
+# read -p "Enter the username (default: ai): " username
+# username=${username:-ai}
+# # Prompt the user for a hostname, default to 'localhost' if empty
+# read -p "Enter the hostname (default: localhost): " hostname
+# hostname=${hostname:-localhost}
+# # Create AI-user common group for file sharing
+# read -p "Enter the AI-user common group for file sharing (default: ai-group): " group
+# username=${group:-ai-group}
+# # Add the user
+# sudo adduser "$username"
+# #sudo ssh-keygen -t rsa -b 2048 -f "/home/$username/.ssh/id_rsa" -N ""
+# #sudo ssh-copy-id -i ~/.ssh/id_rsa.pub ai@localhost
+# #sudo chgrp ai-group /home/ai
+# #sudo chown ai:ai /home/ai/.ssh/authorized_keys
+
+# # Setup SSH access for AI
+
+# # # Generate SSH key
+# # ssh-keygen -t rsa -b 2048 -f "/home/$username/.ssh/id_rsa" -N ""
+# # # Copy the SSH key to the user's authorized_keys on the specified host
+# # ssh-copy-id "$username@$hostname"
+# # # Optionally, you can SSH into the user's account
+# # # ssh "$username@$hostname"
 
 
-# Prompt the user for a username, default to 'promptuser1' if empty
-read -p "Enter the username (default: promptuser1): " username
-username=${username:-promptuser1}
-# Prompt the user for a hostname, default to 'localhost' if empty
-read -p "Enter the hostname (default: localhost): " hostname
-hostname=${hostname:-localhost}
-# Add the user
-sudo adduser "$username"
-# Generate SSH key
-ssh-keygen -t rsa -b 2048 -f "/home/$username/.ssh/id_rsa" -N ""
-# Copy the SSH key to the user's authorized_keys on the specified host
-ssh-copy-id "$username@$hostname"
-# Optionally, you can SSH into the user's account
-# ssh "$username@$hostname"
-# Add accsess to the AI's home folder
-sudo setfacl -m u:$USER:rwx "/home/$username"
+# # As root (or a sudoer):
+# sudo groupadd "$group"  # If the group doesn't exist
+# sudo usermod -a -G $group $USER
+# sudo usermod -a -G $group $username
+# sudo chown $username:$group /home/$username
+# sudo chmod g+s /home/$username
+# sudo chmod 775 /home/$username
 
-echo "User '$username' created and SSH key configured for host '$hostname'."
+# # Add accsess to the AI's home folder
+# sudo setfacl -m u:$USER:rwx "/home/$username"
+
+
+# echo "User '$username' created and SSH key configured for host '$hostname'."
 
 # ---- CONFIG SETUP ----
 echo "Config setup..."
 
 cp example.config.json config.json
 # Use sed to replace placeholders in the file
-sed -i "s/TOOL_BASH_COMMAND_SSH_USERNAME/$username/g" config.json
-sed -i "s/TOOL_BASH_COMMAND_SSH_HOSTNAME/$hostname/g" config.json
+# sed -i "s/TOOL_BASH_COMMAND_SSH_USERNAME/$username/g" config.json
+# sed -i "s/TOOL_BASH_COMMAND_SSH_HOSTNAME/$hostname/g" config.json
+# sed -i "s/TOOL_FILE_MANAGER_GROUP/$group/g" config.json
+
+read -p "Enter default base folder (workspace directory) for file manager tool (default: /home/$USER/.prompt/workspace): " default_base_folder
+username=${default_base_folder:-/home/$USER/.prompt/workspace}
+sed -i "s/TOOL_FILE_MANAGER_BASE_FOLDER/$default_base_folder/g" config.json
 # nano config.json
 
 cp example.config.gemini.json config.gemini.json

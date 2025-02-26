@@ -172,11 +172,11 @@ int main(int argc, char *argv[]) {
 
 
     vector<Tool> model_tools = {
-        nothingTool,
+        // nothingTool,
         dateTimeTool,
         googleSearchTool,
         webBrowserTool,
-        bashCommandTool,
+        // bashCommandTool,
         fileManagerTool,
     };
 

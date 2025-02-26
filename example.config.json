@@ -101,12 +101,14 @@
         "datetime": {},
         "google_search": {},
         "web_browse": {},
-        "bash_command": {
-            "ssh_user": "TOOL_BASH_COMMAND_SSH_USERNAME",
-            "ssh_host": "TOOL_BASH_COMMAND_SSH_HOSTNAME"
-        },
+        // "bash_command": {
+        //     "ssh_user": "TOOL_BASH_COMMAND_SSH_USERNAME",
+        //     "ssh_host": "TOOL_BASH_COMMAND_SSH_HOSTNAME"
+        // },
         "file_manager": {
-            "base_folder": "/home/TOOL_BASH_COMMAND_SSH_USERNAME/"
+            // "group": "TOOL_FILE_MANAGER_GROUP",
+            // "base_folder": "/home/TOOL_BASH_COMMAND_SSH_USERNAME/"
+            "base_folder": "TOOL_FILE_MANAGER_BASE_FOLDER/" // TODO
         }
     }
 }

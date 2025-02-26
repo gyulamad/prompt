@@ -4,7 +4,13 @@
 #include <string>
 #include <fstream>
 #include <filesystem> // Requires C++17 or later
+#include <stdexcept>
+#include <unistd.h>
+#include <pwd.h>
+#include <grp.h>
+#include <errno.h>
 #include <sys/stat.h> // For chmod (permissions)
+#include <sys/types.h>
 
 #include "ERROR.hpp"
 #include "strings.hpp"
@@ -140,4 +146,36 @@ namespace tools {
         return true;
     }
 
+    // Function to change the owner of a file
+    void chown(const string& filename, const string& new_owner_username) {
+        // 1. Get the UID of the new owner.
+        struct passwd *pwd = getpwnam(new_owner_username.c_str());
+        if (pwd == nullptr)
+            throw ERROR("Error: Could not find user " + new_owner_username);
+            
+        uid_t new_owner_uid = pwd->pw_uid;
+
+        // 2. Change the owner of the file
+        if (::chown(filename.c_str(), new_owner_uid, -1) == -1)  // -1 means don't change the group
+            throw ERROR("Error changing owner of " + filename + ": " + to_string(strerror(errno)));
+    }
+
+    void chgrp(const string& filename, const string& groupname) {
+        // 1. Get the GID of the shared group.
+        struct group *grp = getgrnam(groupname.c_str());
+        if (grp == nullptr)
+            throw ERROR("Error: Could not find group " + groupname);
+            
+        gid_t shared_gid = grp->gr_gid;
+    
+        // 2. Change the group ownership of the file.
+        if (::chown(filename.c_str(), -1, shared_gid) == -1) // -1 means don't change the user
+            throw ERROR("Error changing group of " + filename + ": " + to_string(strerror(errno)));
+    }
+
+    void chprm(const string& filename, mode_t mode) {
+        // 3. Set the file permissions.
+        if (::chmod(filename.c_str(), mode) == -1)
+            throw ERROR("Error  changing permissions of " + filename + ": " + to_string(strerror(errno)));
+    }
 }
