@@ -1,0 +1,93 @@
+#pragma once
+
+// build with -DTEST: 
+// note: add -DTEST_CASSERT (optional) // <-- TODO
+// note: add -DTEST_FAILURE_THROWS (optional)
+// add to the main():
+// int main(int argc, char *argv[]) {
+//     run_tests();
+//     ...
+// g++ your_program.cpp -DTEST -o your_program
+
+#ifdef TEST
+
+#include <iostream>
+#include <functional>
+#include <vector>
+#include <string>
+#include <chrono>
+
+#include "ANSI_FMT.hpp"
+#include "ERROR.hpp"
+
+using namespace std;
+
+#define assert(expr) if (!(expr)) throw ERROR("Assert failed: "#expr);
+
+struct Test {
+    string name;
+    function<void()> run;
+    string file;
+    int line;
+};
+
+vector<Test> tests;
+
+#undef TEST
+#define TEST(t) \
+    /* void t(); */\
+    struct test_registrar_##t { \
+        test_registrar_##t() { \
+            tests.push_back({#t, t, __FILE__, __LINE__}); \
+        } \
+    } test_registrar_instance_##t; \
+    /* void t() */
+
+// Test runner
+void run_tests() {
+    size_t n = 0;
+    size_t failed = 0;
+    for (const auto& t : tests) {
+        cout 
+            << "[ ] [.............] Testing: " 
+            << to_string(tests.size()) << "/" << ++n << " " 
+            << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, t.name) << "() at " 
+            << t.file << ":" << t.line << flush;
+        auto start = chrono::high_resolution_clock::now(); // Start timing
+        try {
+            t.run();
+            auto end = chrono::high_resolution_clock::now(); // End timing
+            auto duration = chrono::duration_cast<chrono::nanoseconds>(end - start);
+            cout << "\r[" << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_GREEN, "✓") << "] ";
+            cout << "[" << duration.count() << "ns" << endl; // Show time
+        } catch (exception &e) {
+            auto end = chrono::high_resolution_clock::now(); // End timing
+            auto duration = chrono::duration_cast<chrono::nanoseconds>(end - start);
+            cout << "\r[" << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_RED, "x") << "] ";
+            cout << "[" << duration.count() << "ns" << endl; // Show time
+            cout
+                << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_RED, "Error: ") 
+                << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, e.what()) << endl;
+            failed++;
+#ifdef TEST_FAILURE_DIES
+            exit(1);
+#endif
+#ifdef TEST_FAILURE_THROWS
+            throw e;
+#endif
+        }
+    }
+
+    // Summary message
+    if (failed > 0) {
+        cout << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_RED, to_string(failed) + "/" + to_string(tests.size()) + " test(s) failed");
+    } else {
+        cout << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_GREEN, "All " + to_string(tests.size()) + " tests passed");
+    }
+    cout << endl;
+}
+
+#else
+// #define TEST(t) 
+inline void run_tests() {};
+#endif

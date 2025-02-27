@@ -1,7 +1,6 @@
-#include <cassert>
-
 #include "../libs/yhirose/cpp-linenoise/linenoise.hpp"
 
+#include "tools/Test.hpp"
 #include "tools/ERROR.hpp"
 #include "tools/io.hpp"
 #include "tools/files.hpp"
@@ -14,6 +13,7 @@
 #include "tools/Logger.hpp"
 #include "tools/system.hpp"
 #include "tools/Arguments.hpp"
+#include "tools/Tasks.hpp"
 
 #include "Tool.hpp"
 #include "Model.hpp"
@@ -96,6 +96,7 @@ namespace prompt {
 using namespace prompt;
 
 int main(int argc, char *argv[]) {
+    run_tests();
 
     // args
     Arguments args(argc, argv);
