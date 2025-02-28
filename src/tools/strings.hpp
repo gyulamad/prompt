@@ -357,6 +357,81 @@ namespace tools {
         // If all checks pass, the filename is considered valid
         return true;
     }
+
+    // --------------- DIFFER -----------------
+
+    // Struct to represent a single diff block
+    typedef struct {
+        int bound[2];          // Line range where the difference occurs [start, end]
+        vector<string> added;  // Lines added in s2
+        vector<string> removed; // Lines removed from s1
+    } str_diff_t;
+
+    // Function to compute differences between two strings
+    vector<str_diff_t> str_get_diffs(const string& s1, const string& s2) {
+        vector<string> lines1 = explode("\n", s1);
+        vector<string> lines2 = explode("\n", s2);
+
+        vector<str_diff_t> diffs;
+        size_t i = 0, j = 0;
+
+        while (i < lines1.size() || j < lines2.size()) {
+            // Find the start of a difference
+            if (i < lines1.size() && j < lines2.size() && lines1[i] == lines2[j]) {
+                i++;
+                j++;
+                continue;
+            }
+
+            // Start of a diff block
+            int start = i + 1; // 1-based line numbering
+            vector<string> added;
+            vector<string> removed;
+
+            // Collect removed lines
+            while (i < lines1.size() && (j >= lines2.size() || lines1[i] != lines2[j])) {
+                removed.push_back(lines1[i]);
+                i++;
+            }
+
+            // Collect added lines
+            while (j < lines2.size() && (i >= lines1.size() || lines1[i] != lines2[j])) {
+                added.push_back(lines2[j]);
+                j++;
+            }
+
+            // Record the diff block
+            str_diff_t diff;
+            diff.bound[0] = start;
+            diff.bound[1] = i; // End of the removed block (1-based)
+            diff.added = added;
+            diff.removed = removed;
+            diffs.push_back(diff);
+        }
+
+        return diffs;
+    }
+
+    // Function to display a single diff block
+    void str_show_diff(const str_diff_t& diff) {
+        cout << "changed line(s) " << diff.bound[0] << ".." << diff.bound[1] << ":\n";
+        for (const string& line : diff.added) {
+            cout << ANSI_FMT(ANSI_FMT_C_GREEN, "+ " + line) << "\n";
+        }
+        for (const string& line : diff.removed) {
+            cout << ANSI_FMT(ANSI_FMT_C_RED, "- " + line) << "\n";
+        }
+    }
+
+    // Function to compute and display all differences between two strings
+    vector<str_diff_t> str_diffs_show(const string& s1, const string& s2) {
+        vector<str_diff_t> diffs = str_get_diffs(s1, s2);
+        for (const str_diff_t& diff : diffs) {
+            str_show_diff(diff);
+        }
+        return diffs;
+    }
+
 }
 
 #ifdef TEST

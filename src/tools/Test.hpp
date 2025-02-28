@@ -11,6 +11,7 @@
 // g++ your_program.cpp -DTEST -o your_program
 
 #ifdef TEST
+#define JSON_ASSERT // because json lib overrides assert otherwise
 
 #include <iostream>
 #include <functional>
