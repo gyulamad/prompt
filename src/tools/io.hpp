@@ -5,6 +5,8 @@
 #include <limits>
 #include <atomic>
 #include <mutex>
+#include <sstream> // Required for std::stringstream
+#include <functional> // Add this for std::function
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -128,4 +130,15 @@ namespace tools {
             //cin.ignore(numeric_limits<streamsize>::max(), '\n');
         }
     }
+
+
+    // Helper function to capture cout output
+    string capture_output(function<void()> func) {
+        stringstream buffer;
+        streambuf* old = cout.rdbuf(buffer.rdbuf()); // Redirect cout to buffer
+        func(); // Call the function
+        cout.rdbuf(old); // Restore cout
+        return buffer.str();
+    }
+
 }
