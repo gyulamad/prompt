@@ -9,14 +9,15 @@
 #include "tools/voice/TTS.hpp"
 #include "tools/strings.hpp"
 #include "tools/Process.hpp"
-#include "tools/Commander.hpp"
 #include "tools/datetime.hpp"
 
 #include "tools/voice/WhisperSTT.hpp"
+#include "tools/cmd/Commander.hpp"
 
 using namespace std;
 using namespace tools;
 using namespace tools::voice;
+using namespace tools::cmd;
 
 namespace prompt {
 

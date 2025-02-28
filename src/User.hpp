@@ -9,16 +9,17 @@
 #include "tools/vectors.hpp"
 #include "tools/Process.hpp"
 #include "tools/JSON.hpp"
-#include "tools/Commander.hpp"
 #include "tools/Process.hpp"
 #include "tools/Logger.hpp"
 #include "tools/system.hpp"
 #include "tools/Arguments.hpp"
+#include "tools/cmd/Commander.hpp"
 
 #include "Model.hpp"
 #include "Speech.hpp"
 
 using namespace tools;
+using namespace tools::cmd;
 
 namespace prompt {
 

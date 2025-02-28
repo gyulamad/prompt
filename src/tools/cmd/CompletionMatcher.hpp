@@ -1,20 +1,18 @@
 #pragma once
 
-#include <iostream>
 #include <vector>
 #include <string>
-#include <sstream>
 #include <algorithm>
-#include <map>
-#include <functional>
 #include <dirent.h>
 
-#include "../../libs/yhirose/cpp-linenoise/linenoise.hpp"
+#include "../strings.hpp"
+#include "../vectors.hpp"
 
-#include "strings.hpp"
-#include "vectors.hpp"
 
-namespace tools {
+using namespace std;
+using namespace tools;
+
+namespace tools::cmd {
 
     class CompletionMatcher {
     private:
@@ -224,210 +222,5 @@ namespace tools {
         }
 
     };
-
-    class CommandLine {
-    public:
-        // CompletionMatcher* completion_matcher = nullptr;
-        // typedef function<void(const char*, vector<string>&)> completion_callback_t;
-        // completion_callback_t completion_callback = [&](const char* user_input, vector<string>& completions) {
-        //     // Get completions based on the current input
-        //     completions = completion_matcher.get_completions(user_input);
-        // };
     
-        bool exited = false;
-        string prompt;
-        string history_path;
-        bool multi_line;
-        size_t history_max_length;
-    public:
-
-        CommandLine(
-            const string& prompt = "> ",
-            const string& history_path = "",
-            bool multi_line = true,
-            size_t history_max_length = 0
-        ):
-            prompt(prompt),
-            history_path(history_path),
-            multi_line(multi_line),
-            history_max_length(history_max_length)
-        {}
-
-        ~CommandLine() {}
-
-        bool is_exited() const {
-            return exited;
-        }
-
-        void set_prompt(const string& prompt) {
-            this->prompt = prompt;
-        }
-
-        string get_prompt() const {
-            return this->prompt;
-        }
-
-        void set_completion_matcher(CompletionMatcher& completion_matcher) {
-            // Setup completion words every time when a user types
-            linenoise::SetCompletionCallback([&](const char* input, vector<string>& completions) {
-                // Get completions based on the current input
-                    
-                    vector<string> all_completions = completion_matcher.get_completions(input);
-                    if (all_completions.size() <= 1) {
-                        string input_s(input ? input : "");
-                        bool has_trailing_space;
-                        vector<string> parts = completion_matcher.parse_input(input, has_trailing_space);
-                        if (!has_trailing_space && !parts.empty()) {
-                            parts.pop_back();
-                            input_s = implode(" ", parts);
-                        }
-
-                        if (!input_s.empty()) input_s += " ";
-                        for (const string& elem: all_completions) 
-                            completions.push_back(input_s + elem);
-
-                        // completions = all_completions;
-                        return;                        
-                    }
-                    
-                    // cout << "\r";
-                    // for (size_t i = 0; i < prompt.size(); i++) cout << " ";
-                    // for (int i = 0; input[i++] != '\0';) cout << " ";
-                    cout << endl;
-                    
-                    for (const string& elem: all_completions) 
-                        cout << elem << endl;
-
-                    show(input);
-            });
-        }
-
-        void show(const string& input = "") {
-            cout << prompt << input << flush;
-        }
-
-        string readln() {
-            
-
-            // linenoise::SetCompletionCallback(completion_callback);
-
-            // Enable the multi-line mode
-            linenoise::SetMultiLine(multi_line);
-
-            // Set max length of the history
-            if (history_max_length) linenoise::SetHistoryMaxLen(history_max_length);
-
-            // Load history
-            if (!history_path.empty()) linenoise::LoadHistory(history_path.c_str());
-
-            // Read line
-            string line;
-            exited = linenoise::Readline(prompt.c_str(), line);
-
-            // Add text to history
-            linenoise::AddHistory(line.c_str());
-
-            // Save history
-            if (!history_path.empty()) linenoise::SaveHistory(history_path.c_str());
-
-            return line;
-        }
-    };
-
-
-    class Command {
-    public:
-        virtual ~Command() {}
-
-        virtual vector<string> get_patterns() const UNIMP
-        
-        /**
-         * @brief 
-         * 
-         * @param user 
-         * @param args 
-         * @return string
-         */
-        virtual string run(void*, const vector<string>&) UNIMP
-    };
-
-    class Commander {
-    private:
-        CommandLine command_line;
-        CompletionMatcher cmatcher;
-        bool exiting = false;
-        vector<void*> commands;
-    public:
-        Commander(const CommandLine& command_line): command_line(command_line) {}
-
-        virtual ~Commander() {}
-
-        CommandLine& get_command_line_ref() {
-            return command_line;
-        }
-
-        CompletionMatcher& get_cmatcher_ref() {
-            return cmatcher;
-        }
-
-        bool is_exiting() const {
-            return exiting || command_line.is_exited();
-        }
-        
-        void set_commands(const vector<void*>& commands) {
-            this->commands = commands;
-            
-            // also update command patterns:
-
-            cmatcher.command_patterns = {};
-            for (const void* command: commands)
-                cmatcher.command_patterns = array_merge(
-                    cmatcher.command_patterns, 
-                    ((Command*)command)->get_patterns()
-                );
-            command_line.set_completion_matcher(cmatcher);
-        }
-
-        vector<void*> get_commands_ref() {
-            return commands;
-        }
-
-        const CompletionMatcher& get_cmatcher_ref() const {
-            return cmatcher;
-        }
-
-        void exit() {            
-            exiting = true;
-        }
-
-
-        bool run_command(void* user_context, const string& input) {
-            if (input.empty()) return false;
-            
-            bool trlspc;
-            vector<string> input_parts = array_filter(cmatcher.parse_input(input, trlspc, false));
-
-            bool command_found = false;
-            bool command_arguments_matches = false;
-            for (void* command_void: commands) {
-                Command* command = (Command*)command_void;
-                for (const string& command_pattern: command->get_patterns()) {
-                    vector<string> command_pattern_parts = array_filter(explode(" ", command_pattern));
-                    if (input_parts[0] == command_pattern_parts[0]) {
-                        command_found = true;
-                        if (input_parts.size() == command_pattern_parts.size()) {
-                            command_arguments_matches = true;
-                            cout << command->run(user_context, input_parts) << endl;
-                            break;
-                        }
-                    }
-                }
-                if (command_found) break;
-            }
-            if (!command_found) cout << "Command not found: " << input_parts[0] << endl;
-            else if (!command_arguments_matches) cout << "Invalid argument(s)." << endl;
-            return command_arguments_matches;
-        }
-    };
-
 }

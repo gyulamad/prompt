@@ -8,12 +8,12 @@
 #include "tools/vectors.hpp"
 #include "tools/Process.hpp"
 #include "tools/JSON.hpp"
-#include "tools/Commander.hpp"
 #include "tools/Process.hpp"
 #include "tools/Logger.hpp"
 #include "tools/system.hpp"
 #include "tools/Arguments.hpp"
 #include "tools/Tasks.hpp"
+#include "tools/cmd/Commander.hpp"
 
 #include "Tool.hpp"
 #include "Model.hpp"
@@ -24,6 +24,7 @@
 
 using namespace std;
 using namespace tools;
+using namespace tools::cmd;
 
 namespace prompt {
 
