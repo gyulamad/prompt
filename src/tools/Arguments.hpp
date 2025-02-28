@@ -47,7 +47,7 @@ namespace tools {
         // Get a string value at position
         const string getString(size_t at) const {
             if (at >= args.size()) 
-                throw ERROR("Missing argument at: " + at);
+                throw ERROR("Missing argument at: " + to_string(at));
             return args[at];
         }
 
@@ -62,3 +62,188 @@ namespace tools {
     };
     
 }
+
+#ifdef TEST
+
+using namespace tools;
+
+void test_Arguments_has_found() {
+    vector<string> arg_strings = {"program", "--flag"};
+    vector<char*> argv;
+    for (auto& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    bool actual = args.has("flag");
+    bool expected = true;
+    assert(actual == expected && "Flag should be found");
+}
+
+void test_Arguments_has_not_found() {
+    vector<string> arg_strings = {"program", "--flag"};
+    vector<char*> argv;
+    for (auto& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    bool actual = args.has("missing");
+    bool expected = false;
+    assert(actual == expected && "Missing flag should not be found");
+}
+
+void test_Arguments_indexOf_found() {
+    vector<string> arg_strings = {"program", "--flag"};
+    vector<char*> argv;
+    for (auto& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    long int actual = args.indexOf("flag");
+    long int expected = 1;
+    assert(actual == expected && "Index of flag should be 1");
+}
+
+void test_Arguments_indexOf_not_found() {
+    vector<string> arg_strings = {"program", "--flag"};
+    vector<char*> argv;
+    for (auto& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    long int actual = args.indexOf("missing");
+    long int expected = -1;
+    assert(actual == expected && "Index of missing flag should be -1");
+}
+
+void test_Arguments_getBool_true() {
+    vector<string> arg_strings = {"program", "--flag"};
+    vector<char*> argv;
+    for (auto& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    bool actual = args.getBool("flag");
+    bool expected = true;
+    assert(actual == expected && "getBool should return true for existing flag");
+}
+
+void test_Arguments_getBool_false() {
+    vector<string> arg_strings = {"program", "--flag"};
+    vector<char*> argv;
+    for (auto& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    bool actual = args.getBool("missing");
+    bool expected = false;
+    assert(actual == expected && "getBool should return false for missing flag");
+}
+
+void test_Arguments_getString_valid() {
+    vector<string> arg_strings = {"program", "--key", "value"};
+    vector<char*> argv;
+    for (auto& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    string actual = args.getString("key");
+    string expected = "value";
+    assert(actual == expected && "getString should return the correct value");
+}
+
+void test_Arguments_getString_missing_value() {
+    vector<string> arg_strings = {"program", "--key"};
+    vector<char*> argv;
+    for (auto& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    bool thrown = false;
+    try {
+        args.getString("key");
+    } catch (const exception& e) {
+        thrown = true;
+        string actual = e.what();
+        string expected = "Missing value for argument: key";
+        assert(str_contains(actual, expected) && "Exception message should match");
+    }
+    assert(thrown && "getString should throw an exception for missing value");
+}
+
+void test_Arguments_getString_at_valid() {
+    vector<string> arg_strings = {"program", "--key", "value"};
+    vector<char*> argv;
+    for (auto& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    string actual = args.getString(2);
+    string expected = "value";
+    assert(actual == expected && "getString at position should return the correct value");
+}
+
+void test_Arguments_getString_at_out_of_bounds() {
+    vector<string> arg_strings = {"program", "--key", "value"};
+    vector<char*> argv;
+    for (auto& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    bool thrown = false;
+    try {
+        args.getString(5);
+    } catch (const exception& e) {
+        thrown = true;
+        string actual = e.what();
+        string expected = "Missing argument at: 5";
+        assert(str_contains(actual, expected) && "Exception message should match");
+    }
+    assert(thrown && "getString at out-of-bounds index should throw an exception");
+}
+
+void test_Arguments_getInt_valid() {
+    vector<string> arg_strings = {"program", "--key", "42"};
+    vector<char*> argv;
+    for (auto& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    int actual = args.getInt("key");
+    int expected = 42;
+    assert(actual == expected && "getInt should return the correct integer value");
+}
+
+void test_Arguments_getInt_invalid() {
+    vector<string> arg_strings = {"program", "--key", "not_a_number"};
+    vector<char*> argv;
+    for (auto& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    bool thrown = false;
+    try {
+        args.getInt("key");
+    } catch (const exception& e) {
+        thrown = true;
+        string actual = e.what();
+        string expected = "Invalid integer value at key: key, reason: stoi";
+        assert(actual.find(expected) != string::npos && "Exception message should contain the expected substring");
+    }
+    assert(thrown && "getInt should throw an exception for invalid integer");
+}
+
+
+TEST(test_Arguments_has_found);
+TEST(test_Arguments_has_not_found);
+TEST(test_Arguments_indexOf_found);
+TEST(test_Arguments_indexOf_not_found);
+TEST(test_Arguments_getBool_true);
+TEST(test_Arguments_getBool_false);
+TEST(test_Arguments_getString_valid);
+TEST(test_Arguments_getString_missing_value);
+TEST(test_Arguments_getString_at_valid);
+TEST(test_Arguments_getString_at_out_of_bounds);
+TEST(test_Arguments_getInt_valid);
+TEST(test_Arguments_getInt_invalid);
+
+#endif
