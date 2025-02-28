@@ -12,7 +12,7 @@
                 // "-pthread",
                 "${workspaceFolder}/src/prompt.cpp",
                 "-o", "${workspaceFolder}/builds/prompt.gdb",
-                "-g", "-O0", "-DTEST", //"-DTEST_FAILURE_DIES",
+                "-g", "-O0", "-fsanitize=address", "-DTEST", //"-DTEST_FAILURE_DIES",
                 // "-Ofast",
                 "-I${workspaceFolder}/libs/ggerganov/whisper.cpp/include",
                 "-I${workspaceFolder}/libs/ggerganov/whisper.cpp/ggml/include",
