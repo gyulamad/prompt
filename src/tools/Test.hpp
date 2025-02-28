@@ -2,6 +2,7 @@
 
 // build with -DTEST: 
 // note: add -DTEST_CASSERT (optional) // <-- TODO
+// note: add -DTEST_FAILURE_EXITS (optional)
 // note: add -DTEST_FAILURE_THROWS (optional)
 // add to the main():
 // int main(int argc, char *argv[]) {
@@ -45,17 +46,23 @@ vector<Test> tests;
 
 // Test runner
 void run_tests() {
+    struct failure_s {
+        Test test;
+        string errmsg;
+    };
+    vector<failure_s> failures;
+
     size_t n = 0;
     size_t failed = 0;
-    for (const auto& t : tests) {
+    for (const auto& test : tests) {
         cout 
             << "[ ] [.............] Testing: " 
             << to_string(tests.size()) << "/" << ++n << " " 
-            << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, t.name) << "() at " 
-            << t.file << ":" << t.line << flush;
+            << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, test.name) << "() at " 
+            << test.file << ":" << test.line << flush;
         auto start = chrono::high_resolution_clock::now(); // Start timing
         try {
-            t.run();
+            test.run();
             auto end = chrono::high_resolution_clock::now(); // End timing
             auto duration = chrono::duration_cast<chrono::nanoseconds>(end - start);
             cout << "\r[" << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_GREEN, "✓") << "] ";
@@ -65,26 +72,29 @@ void run_tests() {
             auto duration = chrono::duration_cast<chrono::nanoseconds>(end - start);
             cout << "\r[" << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_RED, "x") << "] ";
             cout << "[" << duration.count() << "ns" << endl; // Show time
-            cout
-                << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_RED, "Error: ") 
-                << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, e.what()) << endl;
+            string errmsg = 
+                ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_RED, "Error: ") +
+                ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, e.what());
+            cout << errmsg << endl;
             failed++;
-#ifdef TEST_FAILURE_DIES
+#ifdef TEST_FAILURE_EXITS
             exit(1);
 #endif
 #ifdef TEST_FAILURE_THROWS
             throw e;
 #endif
+            failures.push_back({ test, errmsg });
         }
     }
 
     // Summary message
     if (failed > 0) {
-        cout << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_RED, to_string(failed) + "/" + to_string(tests.size()) + " test(s) failed");
+        cout << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_RED, to_string(failed) + "/" + to_string(tests.size()) + " test(s) failed:") << endl;
+        for (const failure_s& failure: failures)
+            cout << failure.test.name << "() at " << failure.test.file << ":" << failure.test.line << endl << failure.errmsg << endl;
     } else {
-        cout << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_GREEN, "All " + to_string(tests.size()) + " tests passed");
+        cout << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_GREEN, "All " + to_string(tests.size()) + " tests passed") << endl;
     }
-    cout << endl;
 }
 
 #else
