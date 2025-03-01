@@ -1,325 +1,338 @@
-#include "../libs/yhirose/cpp-linenoise/linenoise.hpp"
-
 #include "tools/Test.hpp"
-#include "tools/ERROR.hpp"
-#include "tools/io.hpp"
-#include "tools/files.hpp"
-#include "tools/strings.hpp"
-#include "tools/vectors.hpp"
-#include "tools/Process.hpp"
-#include "tools/JSON.hpp"
-#include "tools/Process.hpp"
-#include "tools/Logger.hpp"
-#include "tools/system.hpp"
-#include "tools/Arguments.hpp"
-#include "tools/Tasks.hpp"
+// #include "tools/Tasks.hpp"
+#include "tools/RingBuffer.hpp"
 #include "tools/cmd/Commander.hpp"
 
-#include "Tool.hpp"
-#include "Model.hpp"
-#include "User.hpp"
-#include "Commands.hpp"
-#include "Tools.hpp"
-#include "Gemini.hpp"
-
-using namespace std;
 using namespace tools;
-using namespace tools::cmd;
 
-namespace prompt {
 
-    // class Terminal {
-    // private:
-    //     string outputs;
-    // public:
-    //     // triggered by [SEND-TO-TERMINAL]
-    //     void send(const string& reason, const string& input) {
+#include "EventSystem.hpp"
+#include <iostream>
+#include <string>
 
-    //     }
+namespace Example {
 
-    //     // triggered by [RESET-TERMINAL]
-    //     void reset() {
-
-    //     }
-    // };
-
-    // class Task {
-    // public:
-    //     enum Status { TODO, IN_PROGRESS, DONE, FAIL };
-    // private:
-    //     const string id;
-    //     const string objective;  
-    //     Status status;
-    //     vector<string> results;
-    // public:
-    //     // triggered by [TASK-UPDATE]
-    //     void update(const string& id, Status* status = nullptr, const string* result = nullptr) {
-
-    //     }
-    // };
-
-    // class Agent {
-    // private:
-    //     const Agent* owner = nullptr;
-    //     const string name;
-    //     vector<Agent*> childs;
-    //     Task task;
-    //     Terminal terminal;
-
-    //     // triggered by [SENT-TO-PARENT]
-    //     void report(const string& response) {
-            
-    //     }
-
-    //     // triggered by [SPAWN-ASSISTANT]
-    //     void spawn(const string& name, const Task& task) {
-
-    //     }
-
-    //     // triggered by [SENT-TO-ASSISTANT]
-    //     void command(const Agent& children, const string& request) {
-
-    //     }
-
-    //     // triggered by [KILL-ASSISTANT]
-    //     void kill(const string& name) {
-
-    //     }
-
-    // public:
-
-    // };
-
-    // ----------------------------
+// Define some specific event types
+struct TextMessageEvent : public EventSystem::TypedEvent<TextMessageEvent> {
+    std::string message;
+    std::string channel;  // Allow filtering by channel
     
+    TextMessageEvent(const std::string& msg, const std::string& ch) 
+        : message(msg), channel(ch) {}
+};
+
+struct CommandEvent : public EventSystem::TypedEvent<CommandEvent> {
+    std::string command;
+    std::vector<std::string> arguments;
+    
+    CommandEvent(const std::string& cmd, const std::vector<std::string>& args) 
+        : command(cmd), arguments(args) {}
+};
+
+struct OutputEvent : public EventSystem::TypedEvent<OutputEvent> {
+    std::string content;
+    bool isError;
+    
+    OutputEvent(const std::string& c, bool err = false) 
+        : content(c), isError(err) {}
+};
+
+// A chat user that can send and receive messages
+class ChatUser : public EventSystem::BaseEventAgent {
+public:
+    ChatUser(const std::string& username, const std::vector<std::string>& subscribedChannels) 
+        : EventSystem::BaseEventAgent(username),
+          m_username(username),
+          m_subscribedChannels(subscribedChannels) {}
+    
+    // Send a message to a specific channel
+    void sendMessage(const std::string& message, const std::string& channel) {
+        auto event = std::make_shared<TextMessageEvent>(message, channel);
+        publishEvent(event);
+        std::cout << m_username << " sent message to channel " << channel << ": " << message << std::endl;
+    }
+    
+    // Send a direct message to another user
+    void sendDirectMessage(const std::string& message, const std::string& recipientId) {
+        auto event = std::make_shared<TextMessageEvent>(message, "direct");
+        event->targetId = recipientId;  // Set specific target
+        publishEvent(event);
+        std::cout << m_username << " sent direct message to " << recipientId << ": " << message << std::endl;
+    }
+
+protected:
+    void registerEventInterests() override {
+        // Register interest in TextMessageEvent
+        registerHandler<TextMessageEvent>([this](std::shared_ptr<TextMessageEvent> event) {
+            // Filter out messages from channels we haven't subscribed to
+            if (event->targetId.empty()) {  // Broadcast message
+                if (std::find(m_subscribedChannels.begin(), m_subscribedChannels.end(), 
+                             event->channel) != m_subscribedChannels.end()) {
+                    std::cout << m_username << " received channel message from " 
+                             << event->sourceId << ": " << event->message << std::endl;
+                }
+            } else if (event->targetId == getId()) {  // Direct message
+                std::cout << m_username << " received direct message from " 
+                         << event->sourceId << ": " << event->message << std::endl;
+            }
+        });
+    }
+
+private:
+    std::string m_username;
+    std::vector<std::string> m_subscribedChannels;
+};
+
+// A terminal that can run commands and produce output
+class Terminal : public EventSystem::BaseEventAgent {
+public:
+    Terminal(const std::string& id) 
+        : EventSystem::BaseEventAgent(id) {}
+    
+    // Run a command directly
+    void runCommand(const std::string& command, const std::vector<std::string>& args) {
+        std::cout << getId() << " executing: " << command;
+        for (const auto& arg : args) {
+            std::cout << " " << arg;
+        }
+        std::cout << std::endl;
+        
+        // In a real implementation, you would actually run the command here
+        // For this example, we'll just simulate output
+        if (command == "echo") {
+            std::string output;
+            for (const auto& arg : args) {
+                output += arg + " ";
+            }
+            
+            auto outputEvent = std::make_shared<OutputEvent>(output);
+            publishEvent(outputEvent);
+        } else if (command == "error") {
+            auto errorEvent = std::make_shared<OutputEvent>("Unknown command", true);
+            publishEvent(errorEvent);
+        }
+    }
+
+protected:
+    void registerEventInterests() override {
+        // Register interest in CommandEvent
+        registerHandler<CommandEvent>([this](std::shared_ptr<CommandEvent> event) {
+            std::cout << getId() << " received command from " 
+                    << event->sourceId << ": " << event->command << std::endl;
+            
+            runCommand(event->command, event->arguments);
+        });
+    }
+};
+
+// An AI assistant that can monitor both chat and terminal interactions
+class AIAssistant : public EventSystem::BaseEventAgent {
+public:
+    AIAssistant(const std::string& id, const std::vector<std::string>& monitoredChannels) 
+        : EventSystem::BaseEventAgent(id),
+          m_monitoredChannels(monitoredChannels) {}
+    
+    // Respond to a message
+    void respond(const std::string& message, const std::string& targetId) {
+        auto response = std::make_shared<TextMessageEvent>(message, "direct");
+        response->targetId = targetId;
+        publishEvent(response);
+        std::cout << getId() << " responded to " << targetId << ": " << message << std::endl;
+    }
+    
+    // Execute a command
+    void executeCommand(const std::string& command, const std::vector<std::string>& args, 
+                        const std::string& terminalId) {
+        auto cmdEvent = std::make_shared<CommandEvent>(command, args);
+        cmdEvent->targetId = terminalId;  // Target a specific terminal
+        publishEvent(cmdEvent);
+        std::cout << getId() << " sent command to terminal " << terminalId << ": " << command << std::endl;
+    }
+
+protected:
+    void registerEventInterests() override {
+        // Listen for text messages in monitored channels
+        registerHandler<TextMessageEvent>([this](std::shared_ptr<TextMessageEvent> event) {
+            // Only process messages in monitored channels or direct messages to us
+            if ((event->targetId.empty() && 
+                 std::find(m_monitoredChannels.begin(), m_monitoredChannels.end(), 
+                          event->channel) != m_monitoredChannels.end()) ||
+                event->targetId == getId()) {
+                
+                std::cout << getId() << " processing message from " 
+                         << event->sourceId << ": " << event->message << std::endl;
+                
+                // Simple response logic - in a real implementation this would be more sophisticated
+                if (event->message.find("help") != std::string::npos) {
+                    respond("I'm here to help! What do you need?", event->sourceId);
+                }
+            }
+        });
+        
+        // Listen for terminal output to learn and assist
+        registerHandler<OutputEvent>([this](std::shared_ptr<OutputEvent> event) {
+            std::cout << getId() << " observed output from " 
+                     << event->sourceId << ": " << event->content << std::endl;
+            
+            if (event->isError) {
+                // Offer help for errors
+                respond("I noticed an error. Can I help?", event->sourceId);
+            }
+        });
+    }
+
+private:
+    std::vector<std::string> m_monitoredChannels;
+};
+
+// Example of how to use the system
+void RunExample() {
+    // Create the central event bus (with async delivery for thread safety)
+    auto eventBus = std::make_shared<EventSystem::EventBus>(true);
+    
+    // Create some users, terminals, and AI
+    auto user1 = std::make_shared<ChatUser>("Alice", std::vector<std::string>{"general", "dev"});
+    auto user2 = std::make_shared<ChatUser>("Bob", std::vector<std::string>{"general"});
+    auto user3 = std::make_shared<ChatUser>("Charlie", std::vector<std::string>{"dev"});
+    
+    auto terminal1 = std::make_shared<Terminal>("Terminal1");
+    auto terminal2 = std::make_shared<Terminal>("Terminal2");
+    
+    auto assistant = std::make_shared<AIAssistant>("Assistant", std::vector<std::string>{"help"});
+    
+    // Register all components with the event bus
+    user1->registerWithEventBus(eventBus);
+    user2->registerWithEventBus(eventBus);
+    user3->registerWithEventBus(eventBus);
+    terminal1->registerWithEventBus(eventBus);
+    terminal2->registerWithEventBus(eventBus);
+    assistant->registerWithEventBus(eventBus);
+    
+    // Simulate some interactions
+    user1->sendMessage("Hello everyone!", "general");  // Both user2 and user1 will receive this
+    user1->sendMessage("Any devs online?", "dev");     // Only user3 and user1 will receive this
+    user1->sendDirectMessage("Hey Bob, got a minute?", "Bob");  // Only user2 will receive this
+    
+    user2->sendMessage("I need help with something", "help");  // The AI assistant monitors this channel
+    
+    // AI responds and interacts with a terminal
+    assistant->executeCommand("echo", {"Hello", "from", "AI"}, "Terminal1");
+    
+    // Give time for async processing
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
-using namespace prompt;
+// Run the example with the filtered event bus
+void RunFilteredExample() {
+    // Create a logger for the event system
+    auto logger = std::make_shared<tools::Logger>("EventSystem", "event_system.log");
+    logger->setMinLogLevel(tools::Logger::Level::DEBUG);
+    
+    // Create the filtered event bus (with async delivery for thread safety)
+    auto eventBus = std::make_shared<EventSystem::FilteredEventBus>(true, logger);
+    
+    // Get the self-message filter and configure it
+    auto selfFilter = eventBus->getSelfMessageFilter();
+    
+    // Create some users
+    auto user1 = std::make_shared<ChatUser>("Alice", std::vector<std::string>{"general", "dev"});
+    auto user2 = std::make_shared<ChatUser>("Bob", std::vector<std::string>{"general"});
+    auto user3 = std::make_shared<ChatUser>("Charlie", std::vector<std::string>{"dev"});
+    
+    // Register all components with the event bus
+    user1->registerWithEventBus(eventBus);
+    user2->registerWithEventBus(eventBus);
+    user3->registerWithEventBus(eventBus);
+    
+    std::cout << "\n=== With self-message filtering DISABLED ===\n" << std::endl;
+    
+    // Initially, self-message filtering is disabled (default)
+    selfFilter->setFilterSelfMessages(false);
+    
+    // Simulate some interactions (Alice will see her own messages)
+    user1->sendMessage("Hello everyone!", "general");
+    user1->sendMessage("Any devs online?", "dev");
+    
+    // Give time for async processing
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    
+    std::cout << "\n=== With self-message filtering ENABLED ===\n" << std::endl;
+    
+    // Enable self-message filtering
+    selfFilter->setFilterSelfMessages(true);
+    
+    // Simulate the same interactions (Alice will NOT see her own messages)
+    user1->sendMessage("Hello everyone again!", "general");
+    user1->sendMessage("Any devs responding?", "dev");
+    
+    // Give time for async processing
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    
+    // Create a custom filter (for example purposes)
+    class ChannelFilter : public EventSystem::EventFilter {
+    public:
+        ChannelFilter(const std::string& blockedChannel) : m_blockedChannel(blockedChannel) {}
+        
+        bool shouldDeliverEvent(const EventSystem::ComponentId& consumerId, 
+                               std::shared_ptr<EventSystem::Event> event) override {
+            // Try to cast to TextMessageEvent
+            auto textEvent = std::dynamic_pointer_cast<TextMessageEvent>(event);
+            if (textEvent) {
+                // Filter out messages from the blocked channel
+                return textEvent->channel != m_blockedChannel;
+            }
+            return true; // Allow other event types
+        }
+    private:
+        std::string m_blockedChannel;
+    };
+    
+    std::cout << "\n=== With custom channel filtering ===\n" << std::endl;
+    
+    // Add a custom filter to block the "general" channel
+    auto channelFilter = std::make_shared<ChannelFilter>("general");
+    eventBus->addEventFilter(channelFilter);
+    
+    // Simulate messages (general channel messages will be filtered)
+    user1->sendMessage("This is from general channel", "general");
+    user1->sendMessage("This is from dev channel", "dev");
+    
+    // Give time for async processing
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    
+    std::cout << "\n=== After clearing all filters ===\n" << std::endl;
+    
+    // Clear all filters
+    eventBus->clearFilters();
+    selfFilter->setFilterSelfMessages(false);
+    
+    // Simulate messages (all messages should be delivered)
+    user1->sendMessage("After clearing filters (general)", "general");
+    user1->sendMessage("After clearing filters (dev)", "dev");
+    
+    // Give time for async processing
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+}
+
+} // namespace Example
+
+
+// ---------------------------------------
+
+
+
+#ifdef TEST
+using namespace tools;
+
+#endif
 
 int main(int argc, char *argv[]) {
-    run_tests();
+    run_tests("RingBuffer");
 
-    // args
-    Arguments args(argc, argv);
-    const bool voice = args.getBool("voice");
-    const string model_name = args.has("model") ? args.getString("model") : "";
-
-    // configs
-    JSON config(file_get_contents(get_exec_path() + "/../config.json"));
-    JSON config_gemini(file_get_contents(get_exec_path() + "/../config.gemini.json"));
-
-    // logger
-    const string basedir = get_exec_path() + "/.prompt";
-    mkdir(basedir);
-    Logger logger("Prompt-log", basedir + "/prompt.log");
-    logger.info("Prompt started");
-
-    // settings
-    const string gemini_secret = config_gemini.get<string>("secret");
-    const vector<string> gemini_variants = config_gemini.get<vector<string>>("variants");
-    const size_t gemini_current_variant = config_gemini.get<size_t>("current_variant");
-    const int gemini_err_retry_sec = config_gemini.get<size_t>("err_retry_sec");
-    const int gemini_err_attempts = config_gemini.get<size_t>("err_attempts");
-    const vector<string> gemini_sentence_delimiters = config_gemini.get<vector<string>>("sentence_delimiters");
-    const long gemini_stream_request_timeout = config_gemini.get<long>("stream_request_timeout");
-    const string gemini_tmpfile = config_gemini.get<string>("tmpfile");
-
-    const string user_prompt = config.get<string>("user.prompt");
-    const string user_lang = config.get<string>("user.language");
-    const bool user_auto_save = config.get<bool>("user.auto_save");
-    const prompt::mode_t user_mode = get_mode(config.get<string>("user.mode"));
-    const bool user_stream = config.get<bool>("user.stream");
-
-    const bool speech_stall = config.get<bool>("speech.stall");  
-    // const long long speech_speak_wait_ms = config.get<long long>("speech.speak_wait_ms");
-    const vector<string> speech_ignores_rgxs = config.get<vector<string>>("speech.ignores_rgxs");
-    const long long speech_impatient_ms = config.get<long long>("speech.impatient_ms");
-    const bool speech_tts_voice_out = voice && config.get<bool>("speech.tts_voice_out");
-    const int speech_tts_speed = config.get<int>("speech.tts.speed");
-    const int speech_tts_gap = config.get<int>("speech.tts.gap");
-    const string speech_tts_beep_cmd = config.get<string>("speech.tts.beep_cmd");
-    const string speech_tts_think_cmd = config.get<string>("speech.tts.think_cmd");
-    const map<string, string> speech_tts_speak_replacements = config.get<map<string, string>>("speech.tts.speak_replacements");
-    const bool speech_stt_voice_in = voice && config.get<bool>("speech.stt_voice_in");
-    const double speech_stt_voice_recorder_sample_rate = config.get<double>("speech.stt.voice_recorder.sample_rate");
-    const unsigned long speech_stt_voice_recorder_frames_per_buffer = config.get<unsigned long>("speech.stt.voice_recorder.frames_per_buffer");
-    const size_t speech_stt_voice_recorder_buffer_seconds = config.get<size_t>("speech.stt.voice_recorder.buffer_seconds");
-    const float speech_stt_noise_monitor_threshold_pc = config.get<float>("speech.stt.noise_monitor.threshold_pc");
-    const float speech_stt_noise_monitor_rmax_decay_pc = config.get<float>("speech.stt.noise_monitor.rmax_decay_pc");
-    const size_t speech_stt_noise_monitor_window = config.get<size_t>("speech.stt.noise_monitor.window");
-    const string speech_stt_transcriber_model = config.get<string>("speech.stt.transcriber.model");
-    const long speech_stt_poll_interval_ms = config.get<long>("speech.stt.poll_interval_ms");
-
-
-    const size_t model_conversation_length_max = config.get<size_t>("model.memory_max");
-    const double model_conversation_loss_ratio = config.get<double>("model.memory_loss_ratio");
-    const int model_think_steps = config.get<int>("model.think_steps");
-    const int model_think_deep = config.get<int>("model.think_deep");
-
-    const JSON model_tools_config = config.get<JSON>("tools");
-
-    string model_system_voice = voice ? tpl_replace({
-    },  "The user is using a text-to-speech software for communication. "
-        "You are taking into account that the user's responses are being read at loud by a text-to-speech program "
-        "that can be interrupted by background noise or by the user itself."
-        "Repeated interruption changes how you act, "
-        "your responses are becaming more consise and short when you interupted more often recently "
-        "but you can put more context otherwise if it's necessary, tune your response style accordingly. "
-    ) : "";
-    
-    string model_system_lang = user_lang != "en" ? tpl_replace({
-        { "{{user_lang}}", user_lang }
-    }, "The user language is [{{user_lang}}], use this language by default to talk to the user.") : "";
+    // Example::RunExample();
+    // Example::RunFilteredExample();
 
 
 
-    vector<Tool> model_tools = {
-        // nothingTool,
-        dateTimeTool,
-        googleSearchTool,
-        webBrowserTool,
-        // bashCommandTool,
-        fileManagerTool,
-    };
-
-    string model_system_tools = model_tools.empty() ? "" : tpl_replace({
-        { "{{model_tools}}", to_string(model_tools) },
-    }, 
-    R"(
-You are a helpful and humorous AI assistant designed to provide concise and accurate responses, considering that the user is communicating via text-to-speech.
-
-When you need to perform a real-world action (like searching the web), you MUST use the provided `function_calls` format. This format is CRUCIAL for your functionality.
-
-**Function Call Format:**
-
-*   A `function_calls` block will be provided to you.
-*   The `function_calls` block MUST be enclosed within these tokens:
-    *   `[FUNCTION-CALLS-START]` (at the very beginning of the block)
-    *   `[FUNCTION-CALLS-STOP]` (at the very end of the block)
-*   Inside the `function_calls` block, you will have a JSON structure. This JSON structure will contain the following:
-    *   A field called `function_calls` which is an array of function calls.
-    *   Each function call is an object that must contain a `function_name`.
-    *   Each function call can have parameters like `query`, `max`, etc.
-    *   Example:
-
-[FUNCTION-CALLS-START]
-{
-  "function_calls": [
-    {
-      "function_name": "google_search",
-      "query": "best restaurants in London",
-      "max": 3
-    }
-  ]
-}
-[FUNCTION-CALLS-STOP]
-
-*   **IMPORTANT:** If you need to perform a function call, and you fail to enclose your JSON in the tokens or the structure is incorrect, you will be considered to have failed the action!
-
-**In short:** ALWAYS use the `[FUNCTION-CALLS-START]` and `[FUNCTION-CALLS-STOP]` tags and ALWAYS format your calls as JSON. No exceptions.    
-    )"
-        "You can use the following function calls to perform 'real-life' actions:"
-        "\n\n{{model_tools}}\n\n"
-        "Note:\n"
-        "**Avoid triple quotes (```json...```) when using function calls.**\n"
-        "**Always double-check the JSON syntax for errors.**\n"
-    );
-
-    const string model_system = tpl_replace({ // TODO: goes to the config:
-            { "{{model_system_voice}}", model_system_voice },
-            { "{{model_system_lang}}", model_system_lang },
-            { "{{model_system_tools}}", model_system_tools },
-        },  "Your persona is a mid age man like AI and you behave like a simple human. "
-            "You have a sense of humor, your personality is entertaining. "
-            "Your answers are succinct and focusing on the core of your conversation "
-            "but in a way like a normal human chat would looks like. "
-            "You always helpful but also concise in answers.\n"
-            "{{model_system_voice}}\n"
-            "{{model_system_lang}}\n"
-            "{{model_system_tools}}\n"
-    );
-
-
-    Gemini model(
-        logger,
-        gemini_secret,
-        gemini_variants,
-        gemini_current_variant,
-        gemini_err_retry_sec,
-        gemini_err_attempts,
-        gemini_sentence_delimiters,
-        gemini_stream_request_timeout,
-        gemini_tmpfile,
-        model_system,
-        model_tools,
-        model_tools_config,
-        model_conversation_length_max,
-        model_conversation_loss_ratio,
-        model_think_steps,
-        model_think_deep
-    );
-
-    // model.set_tools(tools);
-
-
-
-    User user(
-        model,
-        model_name, 
-        user_lang,
-        user_auto_save,
-        user_mode,
-        user_stream,
-        user_prompt,
-        basedir,
-        speech_stall,
-        speech_ignores_rgxs,
-        speech_impatient_ms,
-        speech_tts_speed,
-        speech_tts_gap,
-        speech_tts_beep_cmd,
-        speech_tts_think_cmd,
-        speech_tts_speak_replacements,
-        speech_stt_voice_in,
-        speech_stt_voice_recorder_sample_rate,
-        speech_stt_voice_recorder_frames_per_buffer,
-        speech_stt_voice_recorder_buffer_seconds,
-        speech_stt_noise_monitor_threshold_pc,
-        speech_stt_noise_monitor_rmax_decay_pc,
-        speech_stt_noise_monitor_window,
-        speech_stt_transcriber_model,
-        speech_stt_poll_interval_ms
-    );
-    
-    if (voice) user.speech_create();
-
-    // TODO:
-    // "/set volume {number}",
-    // "/set voice-input {switch}",
-    // "/cat {filename}",
-    // "/print {string}",
-    // "/print {string} {filename}"
-    user.set_commands({
-        new ExitCommand,
-        new HelpCommand,
-        new VoiceCommand,
-        new SendCommand,
-        new ModeCommand,
-        new ThinkCommand,
-        new SolveCommand,
-        new SaveCommand,
-        new LoadCommand,
-    });
-
-
-
-
-    user.start();
-
-    for (void* command_void: user.get_commands_ref()) {
-        Command* command = (Command*)command_void;
-        delete command;
-    }
-    
     return 0;
 }

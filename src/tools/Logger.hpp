@@ -70,10 +70,15 @@ namespace tools {
             DEBUG,  // Highest level, rules them all
             INFO,
             WARNING,
-            ERROR
+            ERROR,
+            NONE = 100000,
         };
 
         using LogFormatter = function<string(Level, const string&, const string&)>;
+
+        // string noFormatter(Level level, const string& name, const string& message) {
+        //     return ""; //getCurrentTime() + " [" + name + "] " + levelToString(level) + ": " + message;
+        // }
 
     private:
         string name;
@@ -137,11 +142,16 @@ namespace tools {
                 case Level::INFO: return "INFO";
                 case Level::WARNING: return "WARNING";
                 case Level::ERROR: return "ERROR";
+                case Level::NONE: return "NONE";
                 default: return "UNKNOWN";
             }
         }
 
     public:
+        // Delete copy constructor and copy assignment operator
+        Logger(const Logger&) = delete;
+        Logger& operator=(const Logger&) = delete;
+
         Logger(const string& name, const string& filename = "", LogFormatter customFormatter = nullptr)
             : name(name), formatter(customFormatter ? customFormatter : [this](Level level, const string& name, const string& message) {
                 return defaultFormatter(level, name, message);
@@ -175,6 +185,41 @@ namespace tools {
             }
         }
 
+        // Allow move constructor and move assignment operator
+        Logger(Logger&& other) noexcept
+            : name(move(other.name)),
+              logFile(move(other.logFile)),
+              minLogLevel(other.minLogLevel),
+              logQueue(move(other.logQueue)),
+              logThread(move(other.logThread)),
+              stopLogging(other.stopLogging),
+              formatter(move(other.formatter)) {
+            other.stopLogging = true; // Ensure the moved-from object is in a valid state
+        }
+    
+        Logger& operator=(Logger&& other) noexcept {
+            if (this != &other) {
+                {
+                    lock_guard<mutex> lock(queueMutex);
+                    stopLogging = true;
+                }
+                queueCondition.notify_all();
+                if (logThread.joinable()) logThread.join();
+                if (logFile.is_open()) logFile.close();
+    
+                name = move(other.name);
+                logFile = move(other.logFile);
+                minLogLevel = other.minLogLevel;
+                logQueue = move(other.logQueue);
+                logThread = move(other.logThread);
+                stopLogging = other.stopLogging;
+                formatter = move(other.formatter);
+    
+                other.stopLogging = true; // Ensure the moved-from object is in a valid state
+            }
+            return *this;
+        }
+
         void setMinLogLevel(Level level) {
             minLogLevel = level;
         }
@@ -183,6 +228,8 @@ namespace tools {
             if (level < minLogLevel) return; // Skip if below minimum level
             if (message.empty()) return; // Ignore empty log notes
             lock_guard<mutex> lock(queueMutex);
+            // string logNote = formatter(level, name, message);
+            // if (!logNote.empty()) logQueue.push(logNote);
             logQueue.push(formatter(level, name, message));
             queueCondition.notify_one();
         }
