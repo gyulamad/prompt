@@ -211,3 +211,150 @@ namespace tools {
     #define LOG_ERROR(logger, message) logger.error(string(__FILE__) + ":" + to_string(__LINE__) + " " + message)
 
 }
+
+
+#ifdef TEST
+using namespace tools;
+
+void test_Logger_log_console_output() {
+    string output = capture_output([&]() {
+        Logger logger("TestLogger");
+        logger.info("This is a test info message.");
+        logger.warning("This is a test warning message.");
+        logger.error("This is a test error message.");
+        // Sleep to allow the log thread to process messages
+        this_thread::sleep_for(chrono::milliseconds(100));
+    });
+
+    assert(output.find("[TestLogger] INFO: This is a test info message.") != string::npos);
+    assert(output.find("[TestLogger] WARNING: This is a test warning message.") != string::npos);
+    assert(output.find("[TestLogger] ERROR: This is a test error message.") != string::npos);
+}
+
+void test_Logger_log_file_output() {
+    string filename = "test_log.txt";
+    string output = capture_output([&]() {
+        Logger logger("TestLogger", filename);
+        logger.info("This is a test info message.");
+        logger.warning("This is a test warning message.");
+        logger.error("This is a test error message.");
+        // Sleep to allow the log thread to process messages
+        this_thread::sleep_for(chrono::milliseconds(100));
+
+        // Verify file contents
+        ifstream file(filename);
+        assert(file.is_open() && "Log file should be created.");
+        string line;
+        int count = 0;
+        while (getline(file, line)) {
+            assert(!line.empty() && "Log file should contain valid log messages.");
+            count++;
+        }
+        assert(count >= 3 && "Log file should contain at least 3 log messages.");
+        file.close();
+
+        // Clean up
+        filesystem::remove(filename);
+    });
+}
+
+void test_Logger_setMinLogLevel_filter_logs() {
+    string output = capture_output([&]() {
+        Logger logger("TestLogger");
+        logger.setMinLogLevel(Logger::Level::WARNING);
+
+        logger.info("This info message should not appear.");
+        logger.warning("This warning message should appear.");
+        logger.error("This error message should appear.");
+        // Sleep to allow the log thread to process messages
+        this_thread::sleep_for(chrono::milliseconds(100));
+    });
+
+    assert(output.find("[TestLogger] INFO: This info message should not appear.") == string::npos);
+    assert(output.find("[TestLogger] WARNING: This warning message should appear.") != string::npos);
+    assert(output.find("[TestLogger] ERROR: This error message should appear.") != string::npos);
+}
+
+void test_Logger_custom_formatter() {
+    string output = capture_output([&]() {
+        auto customFormatter = [](Logger::Level level, const string& name, const string& message) -> string {
+            return "[" + name + "] Custom: " + message;
+        };
+        Logger logger("TestLogger", "", customFormatter);
+
+        logger.info("This is a test info message with a custom formatter.");
+        // Sleep to allow the log thread to process messages
+        this_thread::sleep_for(chrono::milliseconds(100));
+    });
+
+    assert(output.find("[TestLogger] Custom: This is a test info message with a custom formatter.") != string::npos);
+}
+
+void test_Logger_empty_message() {
+    string output = capture_output([&]() {
+        Logger logger("TestLogger");
+
+        logger.info(""); // Empty message should be ignored
+        logger.warning(""); // Empty message should be ignored
+        logger.error(""); // Empty message should be ignored
+        // Sleep to allow the log thread to process messages
+        this_thread::sleep_for(chrono::milliseconds(100));
+    });
+
+    assert(output.empty() && "Empty messages should not produce any output.");
+}
+
+void test_Logger_thread_safety() {
+    string output;
+    {
+        // Capture all output generated within this scope (including background thread activity)
+        stringstream buffer;
+        streambuf* old = cout.rdbuf(buffer.rdbuf()); // Redirect cout to buffer
+
+        {
+            Logger logger("TestLogger");
+            thread t1([&logger]() {
+                for (int i = 0; i < 100; ++i) {
+                    logger.info("Thread 1 message " + to_string(i));
+                }
+            });
+            thread t2([&logger]() {
+                for (int i = 0; i < 100; ++i) {
+                    logger.info("Thread 2 message " + to_string(i));
+                }
+            });
+            t1.join();
+            t2.join();
+            this_thread::sleep_for(chrono::milliseconds(500)); // Wait for background thread to process logs
+        } // Logger is destroyed here, ensuring all logs are flushed
+
+        cout.rdbuf(old); // Restore original cout buffer
+        output = buffer.str();
+    }
+
+    // Count messages
+    int count1 = 0, count2 = 0;
+    size_t pos = 0;
+    while ((pos = output.find("Thread 1 message", pos)) != string::npos) {
+        count1++;
+        pos += 16; // Length of "Thread 1 message"
+    }
+    pos = 0;
+    while ((pos = output.find("Thread 2 message", pos)) != string::npos) {
+        count2++;
+        pos += 16; // Length of "Thread 2 message"
+    }
+    
+    // Assertions
+    assert(count1 == 100 && "All Thread 1 messages should be logged.");
+    assert(count2 == 100 && "All Thread 2 messages should be logged.");
+}
+
+
+TEST(test_Logger_log_console_output);
+TEST(test_Logger_log_file_output);
+TEST(test_Logger_setMinLogLevel_filter_logs);
+TEST(test_Logger_custom_formatter);
+TEST(test_Logger_empty_message);
+TEST(test_Logger_thread_safety);
+#endif

@@ -261,7 +261,7 @@ void test_regx_match_all_capture_groups() {
     assert(matches[5] == "def" && "Fourth capture group (letters)");
 }
 
-void test_regx_match_single_match_multiple_capture_groups() {
+void test_regx_match_all_single_match_multiple_capture_groups() {
     string pattern = "(\\d+)-(\\w+)";
     string str = "123-abc";
     vector<string> matches;
@@ -274,7 +274,7 @@ void test_regx_match_single_match_multiple_capture_groups() {
     assert(matches[2] == "abc" && "Capture group 2 (letters)");
 }
 
-void test_regx_match_no_matches() {
+void test_regx_match_all_no_matches2() {
     string pattern = "(\\d+)-(\\w+)";
     string str = "no-match-here";
     vector<string> matches;
@@ -520,8 +520,8 @@ TEST(test_regx_match_all_single_match);
 TEST(test_regx_match_all_no_matches);
 TEST(test_regx_match_all_no_match);
 TEST(test_regx_match_all_capture_groups);
-TEST(test_regx_match_single_match_multiple_capture_groups);
-TEST(test_regx_match_no_matches);
+TEST(test_regx_match_all_single_match_multiple_capture_groups);
+TEST(test_regx_match_all_no_matches2);
 TEST(test_regx_match_all_empty_pattern);
 TEST(test_regx_match_all_empty_string);
 TEST(test_regx_match_all_special_characters);
