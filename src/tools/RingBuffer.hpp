@@ -399,9 +399,7 @@ void test_RingBuffer_blocking_read() {
     });
 
     int readData = 0;
-    DEBUG("read starts");
     size_t bytesRead = rb.read(&readData, 1, true); // Blocking read
-    DEBUG("read returns");
 
     assert(bytesRead == 1);
     assert(readData == 42);

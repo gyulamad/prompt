@@ -154,7 +154,7 @@ namespace tools {
         
         // If we're simulating a memory failure for testing
         if (g_simulate_memory_failure) {
-            throw std::bad_alloc();
+            throw bad_alloc();
         }
         
         try {

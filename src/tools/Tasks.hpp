@@ -79,12 +79,12 @@ namespace tools {
             Args&&... args
         ): 
             logger(logger),
-            callback(std::bind(std::forward<Args>(args)...)),
+            callback(bind(forward<Args>(args)...)),
             tickms(tickms),
             immediate_start(immediate_start),
             run_n_times(run_n_times)
         {
-            worker = std::thread(&Task::run, this);
+            worker = thread(&Task::run, this);
         }
     
         ~Task() { stop(); }
@@ -148,49 +148,49 @@ namespace tools {
         // Start a task immediately and run indefinitely (until stopped).
         template<typename... Args>
         Task& timer(int tickms, Args&&... args) {
-            return start(tickms, true, 0, std::forward<Args>(args)...);
+            return start(tickms, true, 0, forward<Args>(args)...);
         }
 
         // Start a task after the first tick and run indefinitely (until stopped).
         template<typename... Args>
         Task& delay(int tickms, Args&&... args) {
-            return start(tickms, false, 0, std::forward<Args>(args)...);
+            return start(tickms, false, 0, forward<Args>(args)...);
         }
 
         // Start a task immediately and run exactly once.
         template<typename... Args>
         Task& fork(Args&&... args) {
-            return start(0, true, 1, std::forward<Args>(args)...);
+            return start(0, true, 1, forward<Args>(args)...);
         }
 
         // Start a task after the first tick and run exactly once.
         template<typename... Args>
         Task& fuze(int tickms, Args&&... args) {
-            return start(tickms, false, 1, std::forward<Args>(args)...);
+            return start(tickms, false, 1, forward<Args>(args)...);
         }
 
         // Start a task immediately and run a specific number of times.
         template<typename... Args>
         Task& repeat(int tickms, int n, Args&&... args) {
-            return start(tickms, true, n, std::forward<Args>(args)...);
+            return start(tickms, true, n, forward<Args>(args)...);
         }
 
         // Start a task after the first tick and run a specific number of times.
         template<typename... Args>
         Task& schedule(int tickms, int n, Args&&... args) {
-            return start(tickms, false, n, std::forward<Args>(args)...);
+            return start(tickms, false, n, forward<Args>(args)...);
         }
 
         // Start a task immediately and run indefinitely (until stopped), with no tick delay.
         template<typename... Args>
         Task& loop(Args&&... args) {
-            return start(0, true, 0, std::forward<Args>(args)...);
+            return start(0, true, 0, forward<Args>(args)...);
         }
 
         // Start a task after the first tick and run indefinitely (until stopped), with no tick delay.
         template<typename... Args>
         Task& defer(Args&&... args) {
-            return start(0, false, 0, std::forward<Args>(args)...);
+            return start(0, false, 0, forward<Args>(args)...);
         }
     };
 

@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string>
+#include <cstring>     // Added for strerror
 #include <fstream>
 #include <filesystem> // Requires C++17 or later
 #include <stdexcept>
@@ -12,8 +13,8 @@
 #include <sys/stat.h> // For chmod (permissions)
 #include <sys/types.h>
 
-#include "ERROR.hpp"
 #include "strings.hpp"
+#include "ERROR.hpp"
 
 using namespace std;
 

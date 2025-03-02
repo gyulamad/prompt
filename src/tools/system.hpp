@@ -52,7 +52,7 @@ namespace tools {
     //     return millis.count();
     // }
 
-    bool is_process_running(const std::string& processName) {
+    bool is_process_running(const string& processName) {
         DIR *dir;
         struct dirent *ent;
         if ((dir = opendir("/proc")) != NULL) {
@@ -61,13 +61,13 @@ namespace tools {
                     char* endptr;
                     long pid = strtol(ent->d_name, &endptr, 10);
                     if (*endptr == '\0') {
-                        std::ifstream cmdline_file("/proc/" + std::string(ent->d_name) + "/cmdline");
+                        ifstream cmdline_file("/proc/" + string(ent->d_name) + "/cmdline");
                         if (cmdline_file.is_open()) {
-                            std::string cmdline;
-                            std::getline(cmdline_file, cmdline);
+                            string cmdline;
+                            getline(cmdline_file, cmdline);
 
                             size_t pos = cmdline.find(processName);
-                            if (pos != std::string::npos) {
+                            if (pos != string::npos) {
                                 cmdline_file.close();
                                 closedir(dir);
                                 return true;
@@ -80,7 +80,7 @@ namespace tools {
             }
             closedir(dir);
         } else {
-            std::cerr << "Error reading /proc: " << strerror(errno) << std::endl;
+            cerr << "Error reading /proc: " << strerror(errno) << endl;
             return false;
         }
         return false;

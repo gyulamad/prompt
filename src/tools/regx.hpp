@@ -5,7 +5,7 @@
 #include "ERROR.hpp"
 
 using namespace std;
-using namespace std::regex_constants;
+using namespace regex_constants;
 
 namespace tools {
 

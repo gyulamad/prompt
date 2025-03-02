@@ -16,7 +16,7 @@ int main() {
     // Simulate a long-running process
     for (int i = 0; i < 100; ++i) {
         rotary.tick();
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        this_thread::sleep_for(chrono::milliseconds(100));
     }
 
     rotary.done("Finished!"); // Use custom done text

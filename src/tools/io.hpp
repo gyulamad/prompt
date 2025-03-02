@@ -5,8 +5,8 @@
 #include <limits>
 #include <atomic>
 #include <mutex>
-#include <sstream> // Required for std::stringstream
-#include <functional> // Add this for std::function
+#include <sstream> // Required for stringstream
+#include <functional> // Add this for function
 
 #include <fcntl.h>
 #include <unistd.h>

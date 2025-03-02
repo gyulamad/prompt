@@ -1220,7 +1220,7 @@ void test_JSON_constructor_invalid() {
 
 void test_JSON_dump() {
     JSON json("{\"key\": \"value\"}");
-    std::string actual = json.dump();
+    string actual = json.dump();
     assert(actual == "{\"key\":\"value\"}" && "Dump should return simulated JSON string");
 }
 
@@ -1280,7 +1280,7 @@ void test_JSON_get_int() {
 
 void test_JSON_get_string() {
     JSON json("{\"key\": \"value\"}");
-    std::string actual = json.get<std::string>(".key");
+    string actual = json.get<string>(".key");
     assert(actual == "value" && "String value should be retrieved correctly");
 }
 

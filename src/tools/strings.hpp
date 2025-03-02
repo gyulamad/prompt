@@ -321,16 +321,16 @@ namespace tools {
         return sstr.str();
     }
 
-    bool is_valid_filepath(const std::string& filename) {
+    bool is_valid_filepath(const string& filename) {
         // List of invalid characters (you can customize this)
-        std::string invalidChars = "\\:*?\"<>|";
+        string invalidChars = "\\:*?\"<>|";
       
         // Check for empty filename
         if (filename.empty()) return false;
       
         // Check if filename contains any invalid characters
         for (char c : invalidChars)
-          if (filename.find(c) != std::string::npos) return false;
+          if (filename.find(c) != string::npos) return false;
         
       
         // Check for reserved names (CON, PRN, AUX, NUL, COM1, COM2, etc.) - Optional
@@ -340,16 +340,16 @@ namespace tools {
         return true;
     }
 
-    bool is_valid_filename(const std::string& filename) {
+    bool is_valid_filename(const string& filename) {
         // List of invalid characters (you can customize this)
-        std::string invalidChars = "\\/:*?\"<>|";
+        string invalidChars = "\\/:*?\"<>|";
       
         // Check for empty filename
         if (filename.empty()) return false;
       
         // Check if filename contains any invalid characters
         for (char c : invalidChars)
-          if (filename.find(c) != std::string::npos) return false;
+          if (filename.find(c) != string::npos) return false;
       
         // Check for reserved names (CON, PRN, AUX, NUL, COM1, COM2, etc.) - Optional
         // This is a more advanced check and might not be necessary for all systems

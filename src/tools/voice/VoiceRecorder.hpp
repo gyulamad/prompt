@@ -22,11 +22,12 @@ namespace tools::voice {
         VoiceRecorder(
             double sampleRate, 
             unsigned long framesPerBuffer, 
-            size_t bufferSeconds
+            size_t bufferSeconds,
+            RingBuffer<float>::WritePolicy writePolicy = RingBuffer<float>::WritePolicy::Rotate
         ):
             sampleRate(sampleRate),
             framesPerBuffer(framesPerBuffer),
-            ringBuffer(sampleRate * bufferSeconds)
+            ringBuffer(sampleRate * bufferSeconds, writePolicy)
         {
 
             PaError err = Pa_Initialize();
