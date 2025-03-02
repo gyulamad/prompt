@@ -327,7 +327,7 @@ using namespace tools;
 #endif
 
 int main(int argc, char *argv[]) {
-    run_tests("RingBuffer");
+    run_tests();
 
     // Example::RunExample();
     // Example::RunFilteredExample();

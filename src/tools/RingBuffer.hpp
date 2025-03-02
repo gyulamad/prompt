@@ -25,8 +25,8 @@ namespace tools {
         // Caller must select a policy
         RingBuffer(size_t capacity, WritePolicy policy) 
             : buffer(capacity), capacity(capacity), policy(policy) {
-            if (capacity < 2) 
-                throw invalid_argument("Capacity must be at least 2");
+            if (capacity < 1) 
+                throw invalid_argument("Capacity must be at least 1");
         }
         
         // Original methods
@@ -193,7 +193,7 @@ void test_RingBuffer_constructor_normal() {
 void test_RingBuffer_constructor_invalid() {
     bool exception_thrown = false;
     try {
-        RingBuffer<int> rb(1, RingBuffer<int>::WritePolicy::Reject); // Less than required minimum of 2
+        RingBuffer<int> rb(0, RingBuffer<int>::WritePolicy::Reject); // Less than required minimum of 1
     } catch (const exception& e) {
         exception_thrown = true;
     }

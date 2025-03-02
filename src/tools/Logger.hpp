@@ -80,8 +80,11 @@ namespace tools {
         //     return ""; //getCurrentTime() + " [" + name + "] " + levelToString(level) + ": " + message;
         // }
 
-    private:
+    protected:
+        LogFormatter formatter;
         string name;
+
+    private:
         ofstream logFile;
         Level minLogLevel = Level::INFO;
         mutex logMutex;
@@ -95,8 +98,6 @@ namespace tools {
         string defaultFormatter(Level level, const string& name, const string& message) {
             return getCurrentTime() + " [" + name + "] " + levelToString(level) + ": " + message;
         }
-
-        LogFormatter formatter;
 
         void processLogs() {
             while (true) {
@@ -224,7 +225,7 @@ namespace tools {
             minLogLevel = level;
         }
 
-        void log(Level level, const string& message) {
+        virtual void log(Level level, const string& message) {
             if (level < minLogLevel) return; // Skip if below minimum level
             if (message.empty()) return; // Ignore empty log notes
             lock_guard<mutex> lock(queueMutex);
@@ -238,7 +239,15 @@ namespace tools {
             log(Level::DEBUG, message);
         }
 
+        void dbg(const string& message) {
+            log(Level::DEBUG, message);
+        }
+
         void info(const string& message) {
+            log(Level::INFO, message);
+        }
+
+        void nfo(const string& message) {
             log(Level::INFO, message);
         }
 
@@ -246,7 +255,15 @@ namespace tools {
             log(Level::WARNING, message);
         }
 
+        void warn(const string& message) {
+            log(Level::WARNING, message);
+        }
+
         void error(const string& message) {
+            log(Level::ERROR, message);
+        }
+
+        void err(const string& message) {
             log(Level::ERROR, message);
         }
     };
