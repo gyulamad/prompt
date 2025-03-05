@@ -64,8 +64,10 @@ void run_tests(const string& filter = "") {
         // skip tests where the filename or the test name both are not containing the filter
         // (or do all if the filter is empty)
         if (!filter.empty() &&
-            test.file.find(filter) == string::npos &&
-            test.name.find(filter) == string::npos
+            !(
+                test.file.find(filter) != string::npos ||
+                test.name.find(filter) != string::npos
+            )
         ) continue;
         
         cout 

@@ -4,3 +4,5 @@
 #include "Commander.hpp"
 #include "CommandLine.hpp"
 #include "CompletionMatcher.hpp"
+#include "ILineEditor.hpp"
+#include "LinenoiseAdapter.hpp"

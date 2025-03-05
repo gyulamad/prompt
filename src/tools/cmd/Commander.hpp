@@ -11,12 +11,14 @@ namespace tools::cmd {
 
     class Commander {
     private:
-        CommandLine command_line;
+        CommandLine command_line; // Still owns the CommandLine
         CompletionMatcher cmatcher;
         bool exiting = false;
         vector<void*> commands;
+
     public:
-        Commander(const CommandLine& command_line): command_line(command_line) {}
+        // Updated constructor: Take CommandLine by value and move it
+        Commander(CommandLine command_line) : command_line(move(command_line)) {}
 
         virtual ~Commander() {}
 
@@ -36,9 +38,8 @@ namespace tools::cmd {
             this->commands = commands;
             
             // also update command patterns:
-
             cmatcher.command_patterns = {};
-            for (const void* command: commands)
+            for (const void* command : commands)
                 cmatcher.command_patterns = array_merge(
                     cmatcher.command_patterns, 
                     ((Command*)command)->get_patterns()
@@ -58,7 +59,6 @@ namespace tools::cmd {
             exiting = true;
         }
 
-
         bool run_command(void* user_context, const string& input) {
             if (input.empty()) return false;
             
@@ -67,9 +67,9 @@ namespace tools::cmd {
 
             bool command_found = false;
             bool command_arguments_matches = false;
-            for (void* command_void: commands) {
+            for (void* command_void : commands) {
                 Command* command = (Command*)command_void;
-                for (const string& command_pattern: command->get_patterns()) {
+                for (const string& command_pattern : command->get_patterns()) {
                     vector<string> command_pattern_parts = array_filter(explode(" ", command_pattern));
                     if (input_parts[0] == command_pattern_parts[0]) {
                         command_found = true;
@@ -88,4 +88,113 @@ namespace tools::cmd {
         }
     };
 
+} // namespace tools::cmd
+
+#ifdef TEST
+
+#include "tests/MockCommand.hpp"
+
+void test_Commander_is_exiting_initial_state() {
+    auto commander = create_commander();
+    bool actual = commander->is_exiting();
+    assert(actual == false && "Commander should not be exiting initially");
 }
+
+void test_Commander_is_exiting_after_exit() {
+    auto commander = create_commander();
+    commander->exit();
+    bool actual = commander->is_exiting();
+    assert(actual == true && "Commander should be exiting after exit() is called");
+}
+
+void test_Commander_is_exiting_after_commandline_exit() {
+    auto mock_editor = make_unique<MockLineEditor>();
+    mock_editor->should_exit = true;
+    auto cl = make_unique<CommandLine>(move(mock_editor));
+    Commander commander(move(*cl)); // Move the CommandLine into Commander
+    commander.get_command_line_ref().readln(); // Call readln() on the Commander's CommandLine
+    bool actual = commander.is_exiting();
+    assert(actual == true && "Commander should be exiting after CommandLine exits");
+}
+
+void test_Commander_get_command_line_ref_returns_reference() {
+    auto cl = make_unique<MockCommandLine>();
+    Commander commander(move(*cl));
+    CommandLine& actual = commander.get_command_line_ref();
+    // Modify the CommandLine via the reference
+    actual.set_prompt("modified> ");
+    // Check if the modification is reflected in Commander's CommandLine
+    string prompt_from_commander = commander.get_command_line_ref().get_prompt();
+    assert(prompt_from_commander == "modified> " && 
+           "get_command_line_ref should return a reference that modifies the internal CommandLine");
+}
+
+void test_Commander_set_commands_updates_patterns() {
+    auto commander = create_commander();
+    auto command = new MockCommand();
+    command->patterns = {"test cmd", "test {param}"};
+    vector<void*> commands = {command};
+    commander->set_commands(commands);
+    const CompletionMatcher& cm = commander->get_cmatcher_ref();
+    vector<string> actual = cm.command_patterns;
+    assert(actual.size() == 2 && "set_commands should update command patterns");
+    assert(actual[0] == "test cmd" && "set_commands should include first pattern");
+    assert(actual[1] == "test {param}" && "set_commands should include second pattern");
+    delete command;
+}
+
+void test_Commander_run_command_empty_input() {
+    auto commander = create_commander();
+    bool actual = commander->run_command(nullptr, "");
+    assert(actual == false && "run_command should return false for empty input");
+}
+
+void test_Commander_run_command_unknown_command() {
+    auto commander = create_commander();
+    auto command = new MockCommand();
+    command->patterns = {"known"};
+    vector<void*> commands = {command};
+    commander->set_commands(commands);
+    bool actual = commander->run_command(nullptr, "unknown");
+    assert(actual == false && "run_command should return false for unknown command");
+    delete command;
+}
+
+void test_Commander_run_command_invalid_arguments() {
+    auto commander = create_commander();
+    auto command = new MockCommand();
+    command->patterns = {"test arg1"};
+    vector<void*> commands = {command};
+    commander->set_commands(commands);
+    bool actual = commander->run_command(nullptr, "test");
+    assert(actual == false && "run_command should return false for invalid argument count");
+    delete command;
+}
+
+void test_Commander_run_command_successful_execution() {
+    auto commander = create_commander();
+    auto command = new MockCommand();
+    command->patterns = {"test arg"};
+    command->run_result = "Command executed";
+    vector<void*> commands = {command};
+    commander->set_commands(commands);
+    bool actual = commander->run_command(nullptr, "test value");
+    assert(actual == true && "run_command should return true for valid command");
+    assert(command->last_args.size() == 2 && "run_command should pass correct number of args");
+    assert(command->last_args[0] == "test" && "run_command should pass command name");
+    assert(command->last_args[1] == "value" && "run_command should pass argument");
+    delete command;
+}
+
+
+TEST(test_Commander_is_exiting_initial_state);
+TEST(test_Commander_is_exiting_after_exit);
+TEST(test_Commander_is_exiting_after_commandline_exit);
+TEST(test_Commander_get_command_line_ref_returns_reference);
+TEST(test_Commander_set_commands_updates_patterns);
+TEST(test_Commander_run_command_empty_input);
+TEST(test_Commander_run_command_unknown_command);
+TEST(test_Commander_run_command_invalid_arguments);
+TEST(test_Commander_run_command_successful_execution);
+
+#endif
