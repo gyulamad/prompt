@@ -5,7 +5,6 @@
 #include <atomic>
 #include <vector>
 #include <chrono>
-#include <cassert>
 #include <condition_variable>
 #include <mutex>
 

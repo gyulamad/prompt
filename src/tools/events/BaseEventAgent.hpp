@@ -32,6 +32,8 @@ namespace tools::events {
         }
         
         void handleEvent(shared_ptr<Event> event) override {
+            NULLCHK(event, "Cannot handle null event");
+            lock_guard<mutex> lock(handlerMutex);  // Protect handler execution
             auto it = m_handlerMap.find(event->getType());
             if (it != m_handlerMap.end()) {
                 it->second(event);
@@ -41,6 +43,7 @@ namespace tools::events {
         // Helper method to publish events
         template<typename EventType>
         void publishEvent(shared_ptr<EventType> event) {
+            NULLCHK(event, "Cannot publish null event");
             if (m_eventBus) {
                 event->sourceId = m_id;
                 event->timestamp = chrono::system_clock::now();
@@ -48,7 +51,6 @@ namespace tools::events {
             }
         }
 
-    protected:
         // Register event handler for a specific event type
         template<typename EventType>
         void registerHandler(function<void(shared_ptr<EventType>)> handler) {
@@ -64,6 +66,7 @@ namespace tools::events {
             }
         }
         
+    protected:
         // Child classes should override this to register their handlers
         virtual void registerEventInterests() = 0;
 
@@ -71,6 +74,7 @@ namespace tools::events {
         ComponentId m_id;
         shared_ptr<EventBus> m_eventBus;
         unordered_map<type_index, function<void(shared_ptr<Event>)>> m_handlerMap;
+        mutex handlerMutex;  // Added for thread safety
     };    
 
 }
@@ -230,6 +234,95 @@ void test_BaseEventAgent_self_communication() {
     assert(receivedEvent->sourceId == "agent1" && "Received event should have agent's ID as source");
 }
 
+// Test exception case: null event pointer in handleEvent
+void test_BaseEventAgent_handleEvent_null_event() {
+    auto agent = make_shared<TestAgent>("agent1");
+    shared_ptr<Event> nullEvent = nullptr;
+
+    bool thrown = false;
+    try {
+        agent->handleEvent(nullEvent);  // Should throw an exception
+    } catch (const exception& e) {
+        thrown = true;
+        string what = e.what();
+        assert(str_contains(what, "Cannot handle null event") && "Exception message should indicate null event error");
+    }
+
+    assert(thrown == true && "handleEvent should throw an exception for null event");
+    size_t eventCount = agent->receivedEvents.size();
+    assert(eventCount == 0 && "No events should be recorded for null event");
+}
+
+// Test exception case: null event pointer in publishEvent throws an exception
+void test_BaseEventAgent_publishEvent_null_event() {
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(false, logger);
+    auto agent = make_shared<TestAgent>("agent1");
+    agent->registerWithEventBus(bus);
+
+    shared_ptr<TestEvent> nullEvent = nullptr;
+    bool thrown = false;
+
+    try {
+        agent->publishEvent(nullEvent);  // Expected to throw
+    } catch (const exception& e) {  // Catch generic exception for custom type
+        thrown = true;
+        string what = e.what();
+        assert(str_contains(what, "Cannot publish null event") && "Exception message should indicate null event error");
+    }
+
+    assert(thrown == true && "publishEvent should throw an exception for null event");
+}
+
+// Test concurrent publish and consume
+void test_BaseEventAgent_publish_and_consume_concurrent() {
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(false, logger);
+    auto agent = make_shared<TestAgent>("agent1");
+    agent->registerWithEventBus(bus);
+
+    const int numThreads = 4;
+    const int eventsPerThread = 10;
+    vector<thread> publishers;
+
+    for (int i = 0; i < numThreads; ++i) {
+        publishers.emplace_back([i, &agent]() {
+            for (int j = 0; j < eventsPerThread; ++j) {
+                auto event = make_shared<TestEvent>(i * eventsPerThread + j);
+                agent->publishEvent(event);
+            }
+        });
+    }
+
+    for (auto& publisher : publishers) {
+        publisher.join();  // Fixed from handler.join() to publisher.join()
+    }
+
+    size_t eventCount = agent->receivedEvents.size();
+    assert(eventCount == numThreads * eventsPerThread && "Agent should receive all events from concurrent publishing");
+}
+
+// Test multiple handlers for the same event type
+void test_BaseEventAgent_registerHandler_multiple_handlers() {
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(false, logger);
+    auto agent = make_shared<TestAgent>("agent1");
+    agent->registerWithEventBus(bus);
+
+    vector<int> values;
+    agent->registerHandler<TestEvent>([&values](shared_ptr<TestEvent> event) {
+        values.push_back(event->value + 1);
+    });
+
+    auto event = make_shared<TestEvent>(42);
+    bus->publishEvent(event);
+    size_t eventCount = agent->receivedEvents.size();
+    assert(eventCount == 0 && "Original handler should not push to receivedEvents due to handler override");
+    assert(values.size() == 2 && "Second handler should record twice due to duplicate interest");
+    assert(values[0] == 43 && "First call should record event.value + 1");
+    assert(values[1] == 43 && "Second call should record event.value + 1");
+}
+
 // Register tests
 TEST(test_BaseEventAgent_registerWithEventBus_basic1);
 TEST(test_BaseEventAgent_registerWithEventBus_basic2);
@@ -241,4 +334,8 @@ TEST(test_BaseEventAgent_handleEvent_unregistered);
 TEST(test_BaseEventAgent_publishEvent_with_bus);
 TEST(test_BaseEventAgent_publishEvent_no_bus);
 TEST(test_BaseEventAgent_self_communication);
+TEST(test_BaseEventAgent_handleEvent_null_event);
+TEST(test_BaseEventAgent_publishEvent_null_event);
+TEST(test_BaseEventAgent_publish_and_consume_concurrent);
+TEST(test_BaseEventAgent_registerHandler_multiple_handlers);
 #endif

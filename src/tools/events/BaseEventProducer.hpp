@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "Event.hpp"
+#include "EventBus.hpp"
 #include "EventProducer.hpp"
 
 using namespace std;
@@ -17,6 +18,7 @@ namespace tools::events {
         BaseEventProducer(const ComponentId& id) : m_id(id) {}
         
         void registerWithEventBus(shared_ptr<EventBus> bus) override {
+            lock_guard<mutex> lock(producerMutex);
             m_eventBus = bus;
             bus->registerProducer(shared_from_this());
         }
@@ -28,6 +30,7 @@ namespace tools::events {
         // Helper method to publish events
         template<typename EventType>
         void publishEvent(shared_ptr<EventType> event) {
+            NULLCHK(event, "Cannot publish null event");
             if (m_eventBus) {
                 event->sourceId = m_id;
                 event->timestamp = chrono::system_clock::now();
@@ -38,6 +41,7 @@ namespace tools::events {
     private:
         ComponentId m_id;
         shared_ptr<EventBus> m_eventBus;
+        mutex producerMutex;
     };
 
 }
@@ -124,10 +128,117 @@ void test_BaseEventProducer_publishEvent_async_bus() {
     assert(receivedEvent->sourceId == "producer1" && "Received event should have producer's ID as source");
 }
 
+// Test exception case: null event pointer in publishEvent throws an exception
+void test_BaseEventProducer_publishEvent_null_event() {
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(false, logger);
+    auto producer = make_shared<BaseEventProducer>("producer1");
+    producer->registerWithEventBus(bus);
+
+    shared_ptr<TestEvent> nullEvent = nullptr;
+    bool thrown = false;
+
+    try {
+        producer->publishEvent(nullEvent);
+    } catch (const exception& e) {
+        thrown = true;
+        string what = e.what();
+        assert(str_contains(what, "Cannot publish null event") && "Exception message should indicate null event error");
+    }
+
+    assert(thrown == true && "publishEvent should throw an exception for null event");
+}
+
+// Test concurrent publishing
+void test_BaseEventProducer_publishEvent_concurrent() {
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(false, logger);
+    auto producer = make_shared<BaseEventProducer>("producer1");
+    auto consumer = make_shared<MockConsumer>("consumer1");
+    producer->registerWithEventBus(bus);
+    consumer->registerWithEventBus(bus);
+
+    const int numThreads = 4;
+    const int eventsPerThread = 10;
+    vector<thread> publishers;
+
+    for (int i = 0; i < numThreads; ++i) {
+        publishers.emplace_back([i, &producer]() {
+            for (int j = 0; j < eventsPerThread; ++j) {
+                auto event = make_shared<TestEvent>(i * eventsPerThread + j);
+                producer->publishEvent(event);
+            }
+        });
+    }
+
+    for (auto& publisher : publishers) {
+        publisher.join();
+    }
+
+    size_t eventCount = consumer->receivedEvents.size();
+    assert(eventCount == numThreads * eventsPerThread && "Consumer should receive all events from concurrent publishing");
+}
+
+// Test multiple event types
+void test_BaseEventProducer_publishEvent_multiple_types() {
+    class OtherEvent : public Event {
+    public:
+        type_index getType() const override { return type_index(typeid(OtherEvent)); }
+        int data;
+        OtherEvent(int d) : data(d) {}
+    };
+
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(false, logger);
+    auto producer = make_shared<BaseEventProducer>("producer1");
+
+    // Custom consumer for multiple event types
+    class MultiTypeConsumer : public EventConsumer, public enable_shared_from_this<MultiTypeConsumer> {
+    public:
+        MultiTypeConsumer(const ComponentId& id) : id(id) {}
+        vector<shared_ptr<Event>> receivedEvents;
+
+        void handleEvent(shared_ptr<Event> event) override { receivedEvents.push_back(event); }
+        void registerWithEventBus(shared_ptr<EventBus> bus) override {
+            bus->registerConsumer(shared_from_this());
+            bus->registerEventInterest(id, type_index(typeid(TestEvent)));
+            bus->registerEventInterest(id, type_index(typeid(OtherEvent)));
+        }
+        ComponentId getId() const override { return id; }
+        bool canHandle(type_index eventType) const override {
+            return eventType == type_index(typeid(TestEvent)) || eventType == type_index(typeid(OtherEvent));
+        }
+
+    private:
+        ComponentId id;
+    };
+
+    auto consumer = make_shared<MultiTypeConsumer>("consumer1");
+    producer->registerWithEventBus(bus);
+    consumer->registerWithEventBus(bus);
+
+    auto testEvent = make_shared<TestEvent>(42);
+    auto otherEvent = make_shared<OtherEvent>(99);
+    producer->publishEvent(testEvent);
+    producer->publishEvent(otherEvent);
+
+    size_t eventCount = consumer->receivedEvents.size();
+    assert(eventCount == 2 && "Consumer should receive both event types");
+    auto receivedTest = static_pointer_cast<TestEvent>(consumer->receivedEvents[0]);
+    auto receivedOther = static_pointer_cast<OtherEvent>(consumer->receivedEvents[1]);
+    assert(receivedTest->value == 42 && "Received TestEvent should match published event");
+    assert(receivedOther->data == 99 && "Received OtherEvent should match published event");
+    assert(receivedTest->sourceId == "producer1" && "TestEvent should have producer's ID as source");
+    assert(receivedOther->sourceId == "producer1" && "OtherEvent should have producer's ID as source");
+}
+
 // Register tests
 TEST(test_BaseEventProducer_registerWithEventBus_basic);
 TEST(test_BaseEventProducer_getId_basic);
 TEST(test_BaseEventProducer_publishEvent_with_bus);
 TEST(test_BaseEventProducer_publishEvent_no_bus);
 TEST(test_BaseEventProducer_publishEvent_async_bus);
+TEST(test_BaseEventProducer_publishEvent_null_event);
+TEST(test_BaseEventProducer_publishEvent_concurrent);
+TEST(test_BaseEventProducer_publishEvent_multiple_types);
 #endif

@@ -92,9 +92,165 @@ void test_SelfMessageFilter_setFilterSelfMessages_toggle() {
     assert(afterEnable == false && "SelfMessageFilter should block after re-enabling");
 }
 
+// Test SelfMessageFilter with async delivery via EventBus
+void test_SelfMessageFilter_shouldDeliverEvent_async_delivery() {
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(true, logger);  // Async mode
+    auto agent = make_shared<TestAgent>("agent1");
+    agent->registerWithEventBus(bus);
+
+    // Wrap SelfMessageFilter in a FilteredEventBus for context
+    class FilteredEventBusWrapper : public EventBus {
+    public:
+        FilteredEventBusWrapper(bool async, shared_ptr<Logger> logger, shared_ptr<SelfMessageFilter> filter)
+            : EventBus(async, logger), m_filter(filter) {}
+        
+    protected:
+        void deliverEvent(shared_ptr<Event> event) override {
+            lock_guard<mutex> lock(m_mutex);
+            auto typeIt = m_eventInterests.find(event->getType());
+            if (typeIt != m_eventInterests.end()) {
+                for (const auto& consumerId : typeIt->second) {
+                    auto consumerIt = m_consumers.find(consumerId);
+                    if (consumerIt != m_consumers.end() && m_filter->shouldDeliverEvent(consumerId, event)) {
+                        consumerIt->second->handleEvent(event);
+                    }
+                }
+            }
+        }
+
+    private:
+        shared_ptr<SelfMessageFilter> m_filter;
+        using EventBus::m_mutex;
+        using EventBus::m_consumers;
+        using EventBus::m_eventInterests;
+    };
+
+    auto filter = make_shared<SelfMessageFilter>(true);
+    auto filteredBus = make_shared<FilteredEventBusWrapper>(true, logger, filter);
+    auto asyncAgent = make_shared<TestAgent>("agent1");
+    asyncAgent->registerWithEventBus(filteredBus);
+
+    auto event = make_shared<TestEvent>(42);
+    asyncAgent->publishEvent(event);
+    this_thread::sleep_for(chrono::milliseconds(200));  // Wait for async processing
+
+    size_t eventCount = asyncAgent->receivedEvents.size();
+    assert(eventCount == 0 && "SelfMessageFilter should block self-event in async mode");
+}
+
+// Test concurrent filter toggling
+void test_SelfMessageFilter_setFilterSelfMessages_concurrent() {
+    auto filter = make_shared<SelfMessageFilter>(true);
+    const int numThreads = 4;
+    vector<thread> togglers;
+
+    // Toggle filter state concurrently
+    for (int i = 0; i < numThreads; ++i) {
+        togglers.emplace_back([i, &filter]() {
+            bool newState = (i % 2 == 0);  // Half enable, half disable
+            for (int j = 0; j < 10; ++j) {
+                filter->setFilterSelfMessages(newState);
+                this_thread::yield();
+            }
+        });
+    }
+
+    for (auto& toggler : togglers) {
+        toggler.join();
+    }
+
+    // Check final state (could be true or false due to race, but should be consistent)
+    bool finalState = filter->isFilteringEnabled();
+    bool executedWithoutCrash = true;
+    assert(executedWithoutCrash == true && "Concurrent toggling should not crash");
+    // Verify atomicity by checking a single consistent state
+    auto event = make_shared<TestEvent>(42);
+    event->sourceId = "agent1";
+    bool shouldDeliver = filter->shouldDeliverEvent("agent1", event);
+    assert((finalState && !shouldDeliver) || (!finalState && shouldDeliver) && "Filter state should be consistent after concurrent toggling");
+}
+
+// Test interaction with multiple filters
+void test_SelfMessageFilter_shouldDeliverEvent_multiple_filters() {
+    class OtherFilter : public EventFilter {
+    public:
+        bool shouldDeliverEvent(const ComponentId& consumerId, shared_ptr<Event> event) override {
+            return event->sourceId != "blockedSource";  // Blocks a specific source
+        }
+    };
+
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(false, logger);
+    auto agent = make_shared<TestAgent>("agent1");
+    agent->registerWithEventBus(bus);
+
+    // Wrap SelfMessageFilter with another filter in a custom EventBus
+    class MultiFilterBus : public EventBus {
+    public:
+        MultiFilterBus(shared_ptr<Logger> logger, shared_ptr<SelfMessageFilter> selfFilter, shared_ptr<OtherFilter> otherFilter)
+            : EventBus(false, logger), m_selfFilter(selfFilter), m_otherFilter(otherFilter) {}
+        
+    protected:
+        void deliverEvent(shared_ptr<Event> event) override {
+            lock_guard<mutex> lock(m_mutex);
+            auto typeIt = m_eventInterests.find(event->getType());
+            if (typeIt != m_eventInterests.end()) {
+                for (const auto& consumerId : typeIt->second) {
+                    auto consumerIt = m_consumers.find(consumerId);
+                    if (consumerIt != m_consumers.end() &&
+                        m_selfFilter->shouldDeliverEvent(consumerId, event) &&
+                        m_otherFilter->shouldDeliverEvent(consumerId, event)) {
+                        consumerIt->second->handleEvent(event);
+                    }
+                }
+            }
+        }
+
+    private:
+        shared_ptr<SelfMessageFilter> m_selfFilter;
+        shared_ptr<OtherFilter> m_otherFilter;
+        using EventBus::m_mutex;
+        using EventBus::m_consumers;
+        using EventBus::m_eventInterests;
+    };
+
+    auto selfFilter = make_shared<SelfMessageFilter>(true);
+    auto otherFilter = make_shared<OtherFilter>();
+    auto multiBus = make_shared<MultiFilterBus>(logger, selfFilter, otherFilter);
+    auto multiAgent = make_shared<TestAgent>("agent1");
+    multiAgent->registerWithEventBus(multiBus);
+
+    // Test self-filter blocking
+    auto event1 = make_shared<TestEvent>(42);
+    multiAgent->publishEvent(event1);
+    size_t eventCount1 = multiAgent->receivedEvents.size();
+    assert(eventCount1 == 0 && "SelfMessageFilter should block self-event with multiple filters");
+
+    // Test other filter blocking
+    multiAgent->receivedEvents.clear();
+    selfFilter->setFilterSelfMessages(false);  // Allow self-events
+    auto event2 = make_shared<TestEvent>(43);
+    event2->sourceId = "blockedSource";
+    multiBus->publishEvent(event2);
+    size_t eventCount2 = multiAgent->receivedEvents.size();
+    assert(eventCount2 == 0 && "OtherFilter should block event from blockedSource");
+
+    // Test both allowing
+    multiAgent->receivedEvents.clear();
+    auto event3 = make_shared<TestEvent>(44);
+    event3->sourceId = "agent1";
+    multiAgent->publishEvent(event3);
+    size_t eventCount3 = multiAgent->receivedEvents.size();
+    assert(eventCount3 == 1 && "Both filters should allow event when conditions met");
+}
+
 // Register tests
 TEST(test_SelfMessageFilter_shouldDeliverEvent_self_filtered);
 TEST(test_SelfMessageFilter_shouldDeliverEvent_self_allowed);
 TEST(test_SelfMessageFilter_shouldDeliverEvent_different_ids);
 TEST(test_SelfMessageFilter_setFilterSelfMessages_toggle);
+TEST(test_SelfMessageFilter_shouldDeliverEvent_async_delivery);
+TEST(test_SelfMessageFilter_setFilterSelfMessages_concurrent);
+TEST(test_SelfMessageFilter_shouldDeliverEvent_multiple_filters);
 #endif

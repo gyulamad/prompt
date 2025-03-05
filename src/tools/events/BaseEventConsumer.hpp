@@ -1,8 +1,11 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
+#include <functional>
 
 #include "Event.hpp"
+#include "EventBus.hpp"
 #include "EventConsumer.hpp"
 
 using namespace std;
@@ -31,6 +34,8 @@ namespace tools::events {
         }
         
         void handleEvent(shared_ptr<Event> event) override {
+            NULLCHK(event, "Cannot handle null event");
+            lock_guard<mutex> lock(handlerMutex);  // Protect handler execution
             auto it = m_handlerMap.find(event->getType());
             if (it != m_handlerMap.end()) {
                 it->second(event);
@@ -60,6 +65,7 @@ namespace tools::events {
         ComponentId m_id;
         shared_ptr<EventBus> m_eventBus;
         unordered_map<type_index, function<void(shared_ptr<Event>)>> m_handlerMap;
+        mutex handlerMutex;  // Added for thread safety
     };
 
 }
@@ -160,6 +166,100 @@ void test_BaseEventConsumer_registerHandler_post_registration() {
     assert(eventCount == 2 && "Handler registered post-registration should also receive event");
 }
 
+// Test exception case: null event pointer in handleEvent throws an exception
+void test_BaseEventConsumer_handleEvent_null_event() {
+    auto consumer = make_shared<TestConsumer>("consumer1");
+    shared_ptr<Event> nullEvent = nullptr;
+
+    bool thrown = false;
+    try {
+        consumer->handleEvent(nullEvent);  // Should throw an exception
+    } catch (const exception& e) {  // Generic catch for custom exception
+        thrown = true;
+        string what = e.what();
+        assert(str_contains(what, "Cannot handle null event") && "Exception message should indicate null event error");
+    }
+
+    assert(thrown == true && "handleEvent should throw an exception for null event");
+    size_t eventCount = consumer->receivedEvents.size();
+    assert(eventCount == 0 && "No events should be recorded for null event");
+}
+
+// Test multi-threaded event handling
+void test_BaseEventConsumer_handleEvent_concurrent() {
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(false, logger);
+    auto consumer = make_shared<TestConsumer>("consumer1");
+    consumer->registerWithEventBus(bus);
+
+    const int numThreads = 4;
+    const int eventsPerThread = 10;
+    vector<thread> handlers;
+
+    for (int i = 0; i < numThreads; ++i) {
+        handlers.emplace_back([i, &consumer]() {
+            for (int j = 0; j < eventsPerThread; ++j) {
+                auto event = make_shared<TestEvent>(i * eventsPerThread + j);
+                event->sourceId = "source" + to_string(i);
+                consumer->handleEvent(event);
+            }
+        });
+    }
+
+    for (auto& handler : handlers) {
+        handler.join();
+    }
+
+    size_t eventCount = consumer->receivedEvents.size();
+    assert(eventCount == numThreads * eventsPerThread && "Consumer should handle all events from concurrent threads");
+}
+
+// Test edge case: registering the same handler multiple times
+void test_BaseEventConsumer_registerHandler_multiple_same() {
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(false, logger);
+    auto consumer = make_shared<TestConsumer>("consumer1");
+    consumer->registerWithEventBus(bus);  // Initial handler registered
+
+    // Register the same handler again
+    consumer->registerHandler<TestEvent>([consumer](shared_ptr<TestEvent> event) {
+        consumer->receivedEvents.push_back(event);
+    });
+
+    auto event = make_shared<TestEvent>(42);
+    bus->publishEvent(event);
+    size_t eventCount = consumer->receivedEvents.size();
+    assert(eventCount == 2 && "Registering same handler again should result in duplicate handling");
+
+    // Verify both executions occurred
+    auto firstEvent = static_pointer_cast<TestEvent>(consumer->receivedEvents[0]);
+    auto secondEvent = static_pointer_cast<TestEvent>(consumer->receivedEvents[1]);
+    assert(firstEvent->value == 42 && "First handled event should match published event");
+    assert(secondEvent->value == 42 && "Second handled event should match published event");
+}
+
+// Test edge case: registering different handlers for the same event type
+void test_BaseEventConsumer_registerHandler_multiple_different() {
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(false, logger);
+    auto consumer = make_shared<TestConsumer>("consumer1");
+    consumer->registerWithEventBus(bus);  // Initial handler pushes to receivedEvents
+
+    // Register a different handler
+    vector<int> values;
+    consumer->registerHandler<TestEvent>([&values](shared_ptr<TestEvent> event) {
+        values.push_back(event->value + 1);  // Different action
+    });
+
+    auto event = make_shared<TestEvent>(42);
+    bus->publishEvent(event);
+    size_t eventCount = consumer->receivedEvents.size();
+    assert(eventCount == 0 && "Original handler should not push to receivedEvents due to handler override");
+    assert(values.size() == 2 && "New handler should record twice due to duplicate interest");
+    assert(values[0] == 43 && "First call should record event.value + 1");
+    assert(values[1] == 43 && "Second call should record event.value + 1");
+}
+
 // Register tests
 TEST(test_BaseEventConsumer_registerWithEventBus_basic);
 TEST(test_BaseEventConsumer_getId_basic);
@@ -168,4 +268,14 @@ TEST(test_BaseEventConsumer_canHandle_unregistered);
 TEST(test_BaseEventConsumer_handleEvent_registered);
 TEST(test_BaseEventConsumer_handleEvent_unregistered);
 TEST(test_BaseEventConsumer_registerHandler_post_registration);
+TEST(test_BaseEventConsumer_handleEvent_null_event);
+TEST(test_BaseEventConsumer_handleEvent_concurrent);
+TEST(test_BaseEventConsumer_registerHandler_multiple_same);
+TEST(test_BaseEventConsumer_registerHandler_multiple_different);
 #endif
+
+/* TODO:
+Limitations:
+Multi-threaded test focuses on handleEvent; concurrent registerHandler calls could race (not tested here due to complexity).
+Exception coverage is limited to null events; no other explicit throws exist in BaseEventConsumer.
+*/

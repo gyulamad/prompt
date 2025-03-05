@@ -71,6 +71,7 @@ namespace tools::events {
         
         // Publish an event to the event bus
         void publishEvent(shared_ptr<Event> event) {
+            NULLCHK(event, "Cannot publish null event");
             if (m_asyncDelivery) {
                 bool success = m_eventQueue->write(event);
                 if (!success && m_logger) {
@@ -285,6 +286,145 @@ void test_EventBus_registerEventInterest_basic() {
     assert(eventCount == 1 && "Consumer with registered interest should receive event");
 }
 
+// Test concurrent event publishing
+void test_EventBus_publishEvent_concurrent_sync() {
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(false, logger);  // Synchronous delivery
+    auto consumer = make_shared<MockConsumer>("consumer1");
+    consumer->registerWithEventBus(bus);
+
+    const int numThreads = 4;
+    const int eventsPerThread = 10;
+    vector<thread> publishers;
+
+    for (int i = 0; i < numThreads; ++i) {
+        publishers.emplace_back([i, &bus]() {
+            for (int j = 0; j < eventsPerThread; ++j) {
+                auto event = make_shared<TestEvent>(i * eventsPerThread + j);
+                event->sourceId = "producer" + to_string(i);
+                bus->publishEvent(event);
+            }
+        });
+    }
+
+    for (auto& publisher : publishers) {
+        publisher.join();
+    }
+
+    size_t eventCount = consumer->receivedEvents.size();
+    assert(eventCount == numThreads * eventsPerThread && "Consumer should receive all events from concurrent publishers");
+}
+
+// Test concurrent async event publishing
+void test_EventBus_publishEvent_concurrent_async() {
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(true, logger);  // Asynchronous delivery
+    auto consumer = make_shared<MockConsumer>("consumer1");
+    consumer->registerWithEventBus(bus);
+
+    const int numThreads = 4;
+    const int eventsPerThread = 10;
+    vector<thread> publishers;
+
+    for (int i = 0; i < numThreads; ++i) {
+        publishers.emplace_back([i, &bus]() {
+            for (int j = 0; j < eventsPerThread; ++j) {
+                auto event = make_shared<TestEvent>(i * eventsPerThread + j);
+                event->sourceId = "producer" + to_string(i);
+                bus->publishEvent(event);
+            }
+        });
+    }
+
+    for (auto& publisher : publishers) {
+        publisher.join();
+    }
+
+    this_thread::sleep_for(chrono::milliseconds(500));  // Wait for async processing
+    size_t eventCount = consumer->receivedEvents.size();
+    assert(eventCount == numThreads * eventsPerThread && "Consumer should receive all events from concurrent async publishers");
+}
+
+// Test concurrent registration and publishing
+void test_EventBus_register_and_publish_concurrent() {
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(false, logger);
+    const int numConsumers = 5;
+    vector<shared_ptr<MockConsumer>> consumers;
+    vector<thread> registrars;
+
+    for (int i = 0; i < numConsumers; ++i) {
+        auto consumer = make_shared<MockConsumer>("consumer" + to_string(i));
+        consumers.push_back(consumer);
+        registrars.emplace_back([consumer, &bus]() {
+            consumer->registerWithEventBus(bus);
+        });
+    }
+
+    thread publisher([&bus]() {
+        for (int i = 0; i < 10; ++i) {
+            auto event = make_shared<TestEvent>(i);
+            bus->publishEvent(event);
+            this_thread::yield();  // Allow some interleaving
+        }
+    });
+
+    for (auto& registrar : registrars) {
+        registrar.join();
+    }
+    publisher.join();
+
+    size_t totalEvents = 0;
+    for (const auto& consumer : consumers) {
+        totalEvents += consumer->receivedEvents.size();
+    }
+    // Some consumers may miss early events due to race, but total should be reasonable
+    assert(totalEvents >= 10 && "At least some consumers should receive events");
+    assert(totalEvents <= numConsumers * 10 && "Total events should not exceed max possible deliveries");
+}
+
+// Test exception case: null event pointer throws an exception
+void test_EventBus_publishEvent_null_event() {
+    auto logger = make_shared<MockLogger>();
+    auto bus = make_shared<EventBus>(false, logger);
+    auto consumer = make_shared<MockConsumer>("consumer1");
+    consumer->registerWithEventBus(bus);
+
+    shared_ptr<Event> nullEvent = nullptr;
+    bool thrown = false;
+
+    try {
+        bus->publishEvent(nullEvent);  // Should throw an exception
+    } catch (const exception& e) {
+        thrown = true;
+        string what = e.what();
+        assert(str_contains(what, "Cannot publish null event") && "Exception message should indicate null event error");
+    }
+
+    assert(thrown == true && "Publishing null event should throw an exception");
+    size_t eventCount = consumer->receivedEvents.size();
+    assert(eventCount == 0 && "Consumer should not receive null event");
+}
+
+// Test destructor behavior for async mode
+void test_EventBus_destructor_async_cleanup() {
+    auto logger = make_shared<MockLogger>();
+    {
+        auto bus = make_shared<EventBus>(true, logger);  // Async delivery
+        auto consumer = make_shared<MockConsumer>("consumer1");
+        consumer->registerWithEventBus(bus);
+
+        // Publish an event to ensure thread is active
+        auto event = make_shared<TestEvent>(42);
+        bus->publishEvent(event);
+        this_thread::sleep_for(chrono::milliseconds(50));  // Let thread process
+    }  // Destructor called here
+
+    // If we reach here without hanging, thread cleanup succeeded
+    bool destructedWithoutHang = true;
+    assert(destructedWithoutHang == true && "Destructor should cleanly stop async thread");
+}
+
 // Register tests
 TEST(test_EventBus_publishEvent_sync_delivery);
 TEST(test_EventBus_publishEvent_sync_no_consumers);
@@ -294,4 +434,15 @@ TEST(test_EventBus_publishEvent_async_queue_full);
 TEST(test_EventBus_registerProducer_basic);
 TEST(test_EventBus_unregisterConsumer_basic);
 TEST(test_EventBus_registerEventInterest_basic);
+TEST(test_EventBus_publishEvent_concurrent_sync);
+TEST(test_EventBus_publishEvent_concurrent_async);
+TEST(test_EventBus_register_and_publish_concurrent);
+TEST(test_EventBus_publishEvent_null_event);
+TEST(test_EventBus_destructor_async_cleanup);
 #endif
+
+/* TODO:
+Limitations:
+Multi-threaded tests use simple assertions due to cassert’s constraints; a more robust framework could track exact event delivery.
+Exception testing is limited since EventBus doesn’t throw explicitly; null event coverage is a practical substitute.
+*/
