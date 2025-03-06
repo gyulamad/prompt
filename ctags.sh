@@ -1,0 +1,1 @@
+ctags --output-format=json -R src/tools | grep -v '"name": "test_' > ctags.json
