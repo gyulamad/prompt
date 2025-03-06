@@ -7,7 +7,7 @@
 
 // Include the nlohmann JSON library: 
 // git clone https://github.com/nlohmann/json
-#include "../../libs/nlohmann/json/single_include/nlohmann/json.hpp"  
+#include "../../../libs/nlohmann/json/single_include/nlohmann/json.hpp"  
 
 #include "ERROR.hpp"
 #include "strings.hpp"
@@ -15,7 +15,7 @@
 using namespace std;
 using namespace nlohmann;
 
-namespace tools {
+namespace tools::utils {
 
     // Function to remove single-line and multi-line comments
     string json_remove_comments(const string& json) {
@@ -439,12 +439,12 @@ namespace tools {
 
 namespace nlohmann {
     template<>
-    struct adl_serializer<tools::JSON> {
-        static tools::JSON from_json(const json& j) {
-            return tools::JSON(j);
+    struct adl_serializer<tools::utils::JSON> {
+        static tools::utils::JSON from_json(const json& j) {
+            return tools::utils::JSON(j);
         }
         
-        static void to_json(json& j, const tools::JSON& jsonObj) {
+        static void to_json(json& j, const tools::utils::JSON& jsonObj) {
             j = jsonObj.get_json();
         }
     };
@@ -452,7 +452,7 @@ namespace nlohmann {
 
 #ifdef TEST
 
-using namespace tools;
+using namespace tools::utils;
 
 
 void test_json_remove_comments_no_comments() {

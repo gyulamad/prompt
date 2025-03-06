@@ -11,7 +11,7 @@
 
 using namespace chrono;
 
-namespace tools {
+namespace tools::utils {
 
     typedef long long time_ms;
     typedef long long time_sec;
@@ -291,7 +291,7 @@ namespace tools {
 
 #ifdef TEST
 
-using namespace tools;
+using namespace tools::utils;
 
 // Test that get_time_ms returns a reasonable current time
 void test_get_time_ms_current() {

@@ -2,12 +2,13 @@
 
 #include <memory>
 
-#include "../Logger.hpp"
-#include "../RingBuffer.hpp"
+#include "../utils/Logger.hpp"
+#include "../utils/RingBuffer.hpp"
 
 #include "EventQueue.hpp"
 
 using namespace std;
+using namespace tools::utils;
 
 namespace tools::events {
     
@@ -47,7 +48,7 @@ namespace tools::events {
 
 #ifdef TEST
 
-#include "../tests/MockLogger.hpp"
+#include "../utils/tests/MockLogger.hpp"
 #include "tests/TestEvent.hpp"
 
 // Test basic write operation

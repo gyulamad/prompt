@@ -7,7 +7,7 @@
 using namespace std;
 using namespace regex_constants;
 
-namespace tools {
+namespace tools::utils {
 
     inline int regx_match(
         const string& pattern, 
@@ -97,7 +97,7 @@ namespace tools {
 
 #ifdef TEST
 
-using namespace tools;
+using namespace tools::utils;
 
 void test_regx_match_basic() {
     string pattern = "hello";

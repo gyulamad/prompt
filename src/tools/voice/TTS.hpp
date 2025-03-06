@@ -2,10 +2,11 @@
 
 #include <atomic>
 
-#include "../strings.hpp"
-#include "../Process.hpp"
+#include "../utils/strings.hpp"
+#include "../utils/Process.hpp"
 
 using namespace std;
+using namespace tools::utils;
 
 namespace tools::voice {
 
@@ -106,10 +107,10 @@ namespace tools::voice {
 
 #ifdef TEST
 
-#include "../tests/MockProcess.hpp"
+#include "../utils/tests/MockProcess.hpp"
 
 using namespace std;
-using namespace tools;
+using namespace tools::utils;
 using namespace tools::voice;
 
 // TTS Tests

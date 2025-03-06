@@ -8,7 +8,7 @@
 
 using namespace std;
 
-namespace tools {
+namespace tools::utils {
 
     #define FILE_LINE_ERROR_MSG (ANSI_FMT_FNAME + file + ANSI_FMT_RESET ":" + to_string(line) + " - " + ANSI_FMT_ERROR + msg + ANSI_FMT_RESET)
     #define FILE_LINE_DEBUG_MSG (ANSI_FMT_FNAME + file + ANSI_FMT_RESET ":" + to_string(line) + " - " + ANSI_FMT_DEBUG + msg + ANSI_FMT_RESET)

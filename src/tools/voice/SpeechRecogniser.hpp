@@ -5,13 +5,13 @@
 #include <thread>
 #include <unistd.h> // For usleep()
 
-#include "../system.hpp"
+#include "../utils/system.hpp"
 
 #include "Transcriber.hpp"
 #include "SpeechListener.hpp"
 
 using namespace std;
-using namespace tools;
+using namespace tools::utils;
 
 namespace tools::voice {
 

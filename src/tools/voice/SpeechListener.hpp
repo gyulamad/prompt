@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../ERROR.hpp"
+#include "../utils/ERROR.hpp"
 #include "NoiseMonitor.hpp"
 
-using namespace tools;
+using namespace tools::utils;
 
 namespace tools::voice {
 

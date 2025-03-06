@@ -42,7 +42,7 @@
 
 using namespace std;
 
-namespace tools {
+namespace tools::utils {
     // string ansi_fmt(const string& fmt, const string& text) {
     //     return fmt + text + ANSI_FMT_RESET;
     // }

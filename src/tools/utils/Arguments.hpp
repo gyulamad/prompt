@@ -9,7 +9,7 @@
 
 using namespace std;
 
-namespace tools {
+namespace tools::utils {
 
     class Arguments {
         vector<string> args;
@@ -66,7 +66,7 @@ namespace tools {
 
 #ifdef TEST
 
-using namespace tools;
+using namespace tools::utils;
 
 void test_Arguments_has_found() {
     vector<string> arg_strings = {"program", "--flag"};

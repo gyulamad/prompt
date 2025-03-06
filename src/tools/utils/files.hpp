@@ -20,7 +20,7 @@ using namespace std;
 
 namespace fs = filesystem; // Alias for convenience
 
-namespace tools {
+namespace tools::utils {
     
     /**
      * Mimics PHP's file_exists function.

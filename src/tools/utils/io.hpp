@@ -14,7 +14,7 @@
 
 using namespace std;
 
-namespace tools {
+namespace tools::utils {
 
     // atomic<bool> io_input_active(false); // Shared boolean variable
     mutex io_readln_mtx; // Mutex to protect access to the variable

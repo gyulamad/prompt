@@ -17,7 +17,7 @@
 
 using namespace std;
 
-namespace tools {
+namespace tools::utils {
     int __pcnt = 0;
 
     class Pipe {

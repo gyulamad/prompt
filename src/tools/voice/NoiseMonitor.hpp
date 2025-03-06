@@ -132,11 +132,11 @@ namespace tools::voice {
 
 #ifdef TEST
 
-#include "../Suppressor.hpp"
+#include "../utils/Suppressor.hpp"
 
 #include "tests/MockVoiceRecorder.hpp"
 
-using namespace tools;
+using namespace tools::utils;
 using namespace tools::voice;
 
 // Test NoiseMonitor constructor

@@ -5,12 +5,12 @@
 #include <algorithm>
 #include <dirent.h>
 
-#include "../strings.hpp"
-#include "../vectors.hpp"
+#include "../utils/strings.hpp"
+#include "../utils/vectors.hpp"
 
 
 using namespace std;
-using namespace tools;
+using namespace tools::utils;
 
 namespace tools::cmd {
 

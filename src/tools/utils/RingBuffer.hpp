@@ -11,7 +11,7 @@
 
 using namespace std;
 
-namespace tools {
+namespace tools::utils {
 
     template<typename T>
     class RingBuffer {
@@ -176,12 +176,12 @@ namespace tools {
         condition_variable cv;
     };
 
-} // namespace tools
+} // namespace tools::utils
 
 
 #ifdef TEST
 
-using namespace tools;
+using namespace tools::utils;
 
 // Test basic initialization 
 void test_RingBuffer_constructor_normal() {

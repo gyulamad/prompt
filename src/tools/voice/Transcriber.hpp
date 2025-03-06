@@ -2,10 +2,10 @@
 
 #include <vector>
 
-#include "../ERROR.hpp"
+#include "../utils/ERROR.hpp"
 
 using namespace std;
-using namespace tools;
+using namespace tools::utils;
 
 namespace tools::voice {
 
@@ -39,12 +39,12 @@ namespace tools::voice {
 
 #ifdef TEST
 
-#include "../Suppressor.hpp"
+#include "../utils/Suppressor.hpp"
 
 #include "tests/MockTranscriber.hpp"
 
 using namespace std;
-using namespace tools;
+using namespace tools::utils;
 using namespace tools::voice;
 
 // Transcriber Tests

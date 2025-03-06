@@ -7,10 +7,10 @@
 #include <fstream> // For file I/O
 #include <portaudio.h>
 
-#include "../RingBuffer.hpp"
+#include "../utils/RingBuffer.hpp"
 
 using namespace std;
-using namespace tools;
+using namespace tools::utils;
 
 namespace tools::voice {
 
@@ -138,10 +138,10 @@ namespace tools::voice {
 
 #ifdef TEST
 
-#include "../Suppressor.hpp"
+#include "../utils/Suppressor.hpp"
 
 using namespace std;
-using namespace tools;
+using namespace tools::utils;
 using namespace tools::voice;
 
 // VoiceRecorder Tests

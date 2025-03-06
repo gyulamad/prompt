@@ -12,7 +12,7 @@
 
 using namespace std;
 
-namespace tools {
+namespace tools::utils {
     
     class Curl {
     public:

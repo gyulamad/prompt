@@ -16,7 +16,7 @@
 
 using namespace std;
 
-namespace tools {
+namespace tools::utils {
 
     vector<string> explode(const string& delimiter, const string& str) {
         if (delimiter.empty()) throw ERROR("Delimeter can not be empty.");
@@ -435,7 +435,7 @@ namespace tools {
 }
 
 #ifdef TEST
-using namespace tools;
+using namespace tools::utils;
 
 void test_explode_basic() {
     auto parts = explode(",", "a,b,c");

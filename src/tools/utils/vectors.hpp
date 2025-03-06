@@ -9,7 +9,7 @@
 
 #include "ERROR.hpp"
 
-namespace tools {
+namespace tools::utils {
 
     template <typename T>
     T array_shift(vector<T>& vec) {
@@ -226,7 +226,7 @@ namespace tools {
 
 #include "io.hpp"
 
-using namespace tools;
+using namespace tools::utils;
 
 void test_array_shift_basic() {
     vector<int> vec = {1, 2, 3};

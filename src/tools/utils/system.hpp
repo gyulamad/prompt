@@ -20,7 +20,7 @@
 using namespace std;
 namespace fs = filesystem;
 
-namespace tools {
+namespace tools::utils {
 
     // Function to extract the directory path using filesystem
     string get_path(const string& filepath) {

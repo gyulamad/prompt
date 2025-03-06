@@ -12,7 +12,7 @@
 
 using namespace std;
 
-namespace tools {
+namespace tools::utils {
 
     class TaskStop: public exception {};
 
@@ -193,10 +193,10 @@ namespace tools {
         }
     };
 
-} // namespace tools
+} // namespace tools::utils
 
 #ifdef TEST
-using namespace tools;
+using namespace tools::utils;
 
 // Test 1: Basic task creation and execution
 void test_Tasks_basic() {

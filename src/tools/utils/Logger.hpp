@@ -62,7 +62,7 @@ int main() {
 
 using namespace std;
 
-namespace tools {
+namespace tools::utils {
 
     class Logger {
     public:
@@ -278,7 +278,7 @@ namespace tools {
 
 
 #ifdef TEST
-using namespace tools;
+using namespace tools::utils;
 
 void test_Logger_log_console_output() {
     string output = capture_output([&]() {

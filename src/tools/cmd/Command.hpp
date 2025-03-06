@@ -3,10 +3,10 @@
 #include <vector>
 #include <string>
 
-#include "../ERROR.hpp"
+#include "../utils/ERROR.hpp"
 
 using namespace std;
-using namespace tools;
+using namespace tools::utils;
 
 namespace tools::cmd {
 
