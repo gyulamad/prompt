@@ -27,6 +27,7 @@ using namespace std;
 #include "ERROR.hpp"
 
 #ifdef TEST_CASSERT
+#include <cassert>
 #else
 #define assert(expr) if (!(expr)) throw ERROR("Assert failed: "#expr);
 #endif

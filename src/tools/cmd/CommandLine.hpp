@@ -15,7 +15,7 @@ namespace tools::cmd {
 
     class CommandLine {
     private:
-        std::unique_ptr<ILineEditor> line_editor;
+        unique_ptr<ILineEditor> line_editor;
         bool exited = false;
         string prompt;
         string history_path;
@@ -24,27 +24,27 @@ namespace tools::cmd {
 
     public:
         CommandLine(
-            std::unique_ptr<ILineEditor> editor = nullptr,
+            unique_ptr<ILineEditor> editor = nullptr,
             const string& prompt = "> ",
             const string& history_path = "",
             bool multi_line = true,
             size_t history_max_length = 0
-        ) : line_editor(std::move(editor)),
+        ) : line_editor(move(editor)),
             prompt(prompt),
             history_path(history_path),
             multi_line(multi_line),
             history_max_length(history_max_length) {
             if (!line_editor) {
-                throw std::runtime_error("ILineEditor implementation must be provided");
+                throw runtime_error("ILineEditor implementation must be provided");
             }
         }
 
         // Move constructor
         CommandLine(CommandLine&& other) noexcept
-            : line_editor(std::move(other.line_editor)),
+            : line_editor(move(other.line_editor)),
             exited(other.exited),
-            prompt(std::move(other.prompt)),
-            history_path(std::move(other.history_path)),
+            prompt(move(other.prompt)),
+            history_path(move(other.history_path)),
             multi_line(other.multi_line),
             history_max_length(other.history_max_length) {
             other.exited = false; // Reset moved-from state if needed
@@ -53,10 +53,10 @@ namespace tools::cmd {
         // Move assignment operator (optional but good practice)
         CommandLine& operator=(CommandLine&& other) noexcept {
             if (this != &other) {
-                line_editor = std::move(other.line_editor);
+                line_editor = move(other.line_editor);
                 exited = other.exited;
-                prompt = std::move(other.prompt);
-                history_path = std::move(other.history_path);
+                prompt = move(other.prompt);
+                history_path = move(other.history_path);
                 multi_line = other.multi_line;
                 history_max_length = other.history_max_length;
                 other.exited = false; // Reset moved-from state if needed

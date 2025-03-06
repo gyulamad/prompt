@@ -141,4 +141,22 @@ namespace tools {
         return buffer.str();
     }
 
+    // Helper function to capture stderr output
+    string capture_stderr(function<void()> func) {
+        stringstream buffer;
+        streambuf* old = cerr.rdbuf(buffer.rdbuf()); // Redirect cerr to buffer
+        func(); // Call the function
+        cerr.rdbuf(old); // Restore cerr
+        return buffer.str();
+    }
+    
+    string capture_output_with_stderr(function<void()> func) {
+        stringstream buffer;
+        streambuf* old_cout = cout.rdbuf(buffer.rdbuf());
+        streambuf* old_cerr = cerr.rdbuf(cout.rdbuf()); // Redirect cerr to cout
+        func();
+        cout.rdbuf(old_cout);
+        cerr.rdbuf(old_cerr);
+        return buffer.str();
+    }
 }

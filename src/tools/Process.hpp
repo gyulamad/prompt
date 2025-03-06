@@ -133,17 +133,17 @@ namespace tools {
         //         throw ERROR("Failed to write to child");
         //     usleep(__useconds);
         // }
-        void write(const string& input) {
+        virtual void write(const string& input) {
             if (::write(to_child.write_fd(), input.c_str(), input.size()) == -1)
                 throw ERROR("Failed to write to child");
             usleep(__useconds);
         }
 
-        void writeln(const string& input) {
+        virtual void writeln(const string& input) {
             write(input + "\n");
         }
 
-        string read_chunk(int fd) {
+        virtual string read_chunk(int fd) {
             if (buffsize > 65535) throw ERROR("Too large buffer size");
             char buffer[buffsize];
             ssize_t n = ::read(fd, buffer, sizeof(buffer) - 1);
@@ -178,7 +178,7 @@ namespace tools {
         //     return results;
         // }
         // non-blocking read but add timeout for blocking read
-        string read(int timeout_ms = 0) {
+        virtual string read(int timeout_ms = 0) {
             string results = "";
             string chunk = "";
 
@@ -235,7 +235,7 @@ namespace tools {
         //     if (read_error && FD_ISSET(err_child[0], &readfds)) status |= PIPE_STDERR;
         //     return status;
         // }
-        int ready() {
+        virtual int ready() {
             usleep(__useconds);
 
             fd_set read_fds;
@@ -269,7 +269,7 @@ namespace tools {
         //         pid = -1;
         //     }
         // }
-        void kill() {
+        virtual void kill() {
             if (pid > 0) {
                 if (::kill(pid, SIGTERM) == -1) {
                     perror("kill(SIGTERM) failed");
@@ -289,7 +289,7 @@ namespace tools {
             }
         }
 
-        void reset() {
+        virtual void reset() {
             kill();                // Clean up the current process and resources
             start_child_process();    // Restart the process
         }
@@ -318,7 +318,7 @@ namespace tools {
 
         //     return results;
         // }
-        string read_blocking(int timeout = 10) {
+        virtual string read_blocking(int timeout = 10) {
             string results = "";
             string chunk = "";
 
@@ -365,7 +365,7 @@ namespace tools {
         //     if (read_error && FD_ISSET(err_child[0], &readfds)) status |= PIPE_STDERR;
         //     return status;
         // }
-        int ready_blocking() {
+        virtual int ready_blocking() {
             fd_set readfds;
             FD_ZERO(&readfds);
             if (read_output) FD_SET(from_child.read_fd(), &readfds);

@@ -753,8 +753,6 @@ void test_get_day_first_sec() {
 
     // Restore original get_time_sec
     get_time_sec = original_get_time_sec;
-
-    cout << "All tests passed!" << endl;
 }
 
 void test_interval_to_sec() {

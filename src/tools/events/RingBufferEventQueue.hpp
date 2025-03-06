@@ -157,7 +157,7 @@ void test_RingBufferEventQueue_constructor_invalid_capacity() {
 
     try {
         RingBufferEventQueue queue(0, logger);  // Capacity < 1 should throw
-    } catch (const std::invalid_argument& e) {
+    } catch (const invalid_argument& e) {
         thrown = true;
         string what = e.what();
         assert(str_contains(what, "Capacity must be at least 1") && "Exception message should indicate invalid capacity");

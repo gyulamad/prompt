@@ -18,7 +18,7 @@ namespace tools {
     }
 
     inline void debug(const string& msg, const string& file, int line) {
-        cout << FILE_LINE_DEBUG_MSG << endl;
+        cout << "[DEBUG] " <<  FILE_LINE_DEBUG_MSG << endl;
     }
 
     #define ERROR(msg) error(msg, __FILE__, __LINE__)
@@ -32,7 +32,7 @@ namespace tools {
     #define NULLCHK_IMPL(p, errmsg) { if (nullptr == p) throw ERROR(errmsg); }
 
     // Define the main macro with optional parameter
-    #define NULLCHK(...) NULLCHK_SELECT(__VA_ARGS__, NULLCHK_2, NULLCHK_1)(__VA_ARGS__)
+    #define     NULLCHK(...) NULLCHK_SELECT(__VA_ARGS__, NULLCHK_2, NULLCHK_1)(__VA_ARGS__)
 
     // Helper macros to select the right implementation based on argument count
     #define NULLCHK_SELECT(_1, _2, NAME, ...) NAME

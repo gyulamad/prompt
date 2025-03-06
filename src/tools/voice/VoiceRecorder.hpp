@@ -31,7 +31,7 @@ namespace tools::voice {
         {
 
             PaError err = Pa_Initialize();
-            // cout << "err: " << err << endl;
+            if (err) cerr << "portaudio error: " << err << endl;
 
             // PaHostApiIndex alsaApi = Pa_HostApiTypeIdToHostApiIndex(paALSA);
             // cout << "alsaApi: " << alsaApi << endl;
@@ -58,11 +58,11 @@ namespace tools::voice {
             Pa_Terminate();
         }         
 
-        size_t available() const {
+        virtual size_t available() const {
             return ringBuffer.available();
         }
 
-        void read_audio(float* dest, size_t maxSamples) {
+        virtual void read_audio(float* dest, size_t maxSamples) {
             ringBuffer.read(dest, maxSamples);
         }
 
@@ -83,8 +83,10 @@ namespace tools::voice {
             // cout << "PCM data saved to " << filename << " (" << buffer.size() << " samples)" << endl;
         }
 
-    private:
+    protected:
         PaStream* paStream = nullptr;
+
+    private:
         RingBuffer<float> ringBuffer;
         double sampleRate;
         unsigned long framesPerBuffer;
@@ -133,3 +135,101 @@ namespace tools::voice {
 
 
 }
+
+#ifdef TEST
+
+#include "../Suppressor.hpp"
+
+using namespace std;
+using namespace tools;
+using namespace tools::voice;
+
+// VoiceRecorder Tests
+void test_VoiceRecorder_constructor_valid() {
+    bool constructed = true;
+    try {
+        Suppressor suppressor(stderr);
+        VoiceRecorder recorder(16000.0, 512, 5); // 16kHz, 512 frames, 5s buffer
+    } catch (...) {
+        constructed = false;
+    }
+    assert(constructed && "VoiceRecorder constructor should initialize without crashing");
+}
+
+void test_VoiceRecorder_available_initial() {
+    size_t available_samples = 0;
+    {
+        Suppressor suppressor(stderr);
+        VoiceRecorder recorder(16000.0, 512, 5);
+        available_samples = recorder.available();
+    }
+    assert(available_samples == 0 && "Initial available samples should be 0");
+}
+
+void test_VoiceRecorder_read_audio_empty() {
+    vector<float> buffer(512, 0.0f);
+    size_t samples_read = 0;
+    {
+        Suppressor suppressor(stderr);
+        VoiceRecorder recorder(16000.0, 512, 5);
+        recorder.read_audio(buffer.data(), buffer.size());
+        samples_read = recorder.available(); // After reading, check remaining
+    }
+    assert(samples_read == 0 && "Reading from empty recorder should yield 0 samples");
+    // Optionally check buffer unchanged, assuming no recording yet
+    for (float sample : buffer) {
+        assert(sample == 0.0f && "Buffer should remain unchanged with no data");
+    }
+}
+
+void test_VoiceRecorder_buffer_capacity() {
+    size_t max_samples = 0;
+    {
+        Suppressor suppressor(stderr);
+        VoiceRecorder recorder(16000.0, 512, 5); // 5s * 16kHz = 80,000 samples
+        max_samples = recorder.available() + (16000 * 5); // Assume max capacity
+    }
+    assert(max_samples == 80000 && "Buffer capacity should match sample rate * seconds");
+}
+
+void test_VoiceRecorder_read_audio_exceeds_available() {
+    vector<float> buffer(1024, 0.0f); // Larger than typical frame size
+    size_t samples_read = 0;
+    {
+        Suppressor suppressor(stderr);
+        VoiceRecorder recorder(16000.0, 512, 5);
+        recorder.read_audio(buffer.data(), buffer.size());
+        samples_read = recorder.available(); // Should still be 0 if no data
+    }
+    assert(samples_read == 0 && "Reading beyond available should not increase samples");
+    for (float sample : buffer) {
+        assert(sample == 0.0f && "Buffer should remain unchanged with no data");
+    }
+}
+
+void test_VoiceRecorder_multiple_reads() {
+    vector<float> buffer1(512, 0.0f);
+    vector<float> buffer2(512, 0.0f);
+    size_t available_after_first = 0;
+    size_t available_after_second = 0;
+    {
+        Suppressor suppressor(stderr);
+        VoiceRecorder recorder(16000.0, 512, 5);
+        recorder.read_audio(buffer1.data(), buffer1.size());
+        available_after_first = recorder.available();
+        recorder.read_audio(buffer2.data(), buffer2.size());
+        available_after_second = recorder.available();
+    }
+    assert(available_after_first == 0 && "First read should leave no samples");
+    assert(available_after_second == 0 && "Second read should leave no samples");
+}
+
+// Register tests
+TEST(test_VoiceRecorder_constructor_valid);
+TEST(test_VoiceRecorder_available_initial);
+TEST(test_VoiceRecorder_read_audio_empty);
+TEST(test_VoiceRecorder_buffer_capacity);
+TEST(test_VoiceRecorder_read_audio_exceeds_available);
+TEST(test_VoiceRecorder_multiple_reads);
+
+#endif

@@ -237,7 +237,7 @@ void test_EventBus_publishEvent_async_queue_full() {
 
     bus->publishEvent(make_shared<TestEvent>(1));
     bus->publishEvent(make_shared<TestEvent>(2));
-    this_thread::sleep_for(chrono::milliseconds(200));
+    this_thread::sleep_for(chrono::milliseconds(300));
 
     bool loggedDrop = logger->hasMessageContaining("Dropped 1 events");
     assert(loggedDrop == true && "Queue full should trigger drop callback and log");

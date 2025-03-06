@@ -331,6 +331,8 @@ using namespace tools;
 
 int main(int argc, char *argv[]) {
     run_tests();
+    // run_tests("voice");
+    // run_tests("test_SpeechListener_noise_cb_speech_detection");
 
     // Example::RunExample();
     // Example::RunFilteredExample();

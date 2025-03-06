@@ -3,6 +3,8 @@
 #include "ILineEditor.hpp"
 #include "../../../libs/yhirose/cpp-linenoise/linenoise.hpp"
 
+using namespace std;
+
 namespace tools::cmd {
 
     class LinenoiseAdapter : public ILineEditor {
@@ -31,7 +33,7 @@ namespace tools::cmd {
             linenoise::AddHistory(line);
         }
 
-        bool Readline(const char* prompt, std::string& line) override {
+        bool Readline(const char* prompt, string& line) override {
             return linenoise::Readline(prompt, line);
         }
     };

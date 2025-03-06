@@ -82,8 +82,8 @@ namespace tools::cmd {
                 }
                 if (command_found) break;
             }
-            if (!command_found) cout << "Command not found: " << input_parts[0] << endl;
-            else if (!command_arguments_matches) cout << "Invalid argument(s)." << endl;
+            if (!command_found) cerr << "Command not found: " << input_parts[0] << endl;
+            else if (!command_arguments_matches) cerr << "Invalid argument(s)." << endl;
             return command_arguments_matches;
         }
     };
@@ -150,40 +150,49 @@ void test_Commander_run_command_empty_input() {
 }
 
 void test_Commander_run_command_unknown_command() {
-    auto commander = create_commander();
-    auto command = new MockCommand();
-    command->patterns = {"known"};
-    vector<void*> commands = {command};
-    commander->set_commands(commands);
-    bool actual = commander->run_command(nullptr, "unknown");
-    assert(actual == false && "run_command should return false for unknown command");
-    delete command;
+    string err = capture_stderr([&]() {
+        auto commander = create_commander();
+        auto command = new MockCommand();
+        command->patterns = {"known"};
+        vector<void*> commands = {command};
+        commander->set_commands(commands);
+        bool actual = commander->run_command(nullptr, "unknown");
+        assert(actual == false && "run_command should return false for unknown command");
+        delete command;
+    });
+    assert(str_contains(err, "Command not found: unknown") && "Should show the correct error");
 }
 
 void test_Commander_run_command_invalid_arguments() {
-    auto commander = create_commander();
-    auto command = new MockCommand();
-    command->patterns = {"test arg1"};
-    vector<void*> commands = {command};
-    commander->set_commands(commands);
-    bool actual = commander->run_command(nullptr, "test");
-    assert(actual == false && "run_command should return false for invalid argument count");
-    delete command;
+    string err = capture_stderr([&]() {
+        auto commander = create_commander();
+        auto command = new MockCommand();
+        command->patterns = {"test arg1"};
+        vector<void*> commands = {command};
+        commander->set_commands(commands);
+        bool actual = commander->run_command(nullptr, "test");
+        assert(actual == false && "run_command should return false for invalid argument count");
+        delete command;
+    });
+    assert(str_contains(err, "Invalid argument(s).") && "Should show the correct error");
 }
 
 void test_Commander_run_command_successful_execution() {
-    auto commander = create_commander();
-    auto command = new MockCommand();
-    command->patterns = {"test arg"};
-    command->run_result = "Command executed";
-    vector<void*> commands = {command};
-    commander->set_commands(commands);
-    bool actual = commander->run_command(nullptr, "test value");
-    assert(actual == true && "run_command should return true for valid command");
-    assert(command->last_args.size() == 2 && "run_command should pass correct number of args");
-    assert(command->last_args[0] == "test" && "run_command should pass command name");
-    assert(command->last_args[1] == "value" && "run_command should pass argument");
-    delete command;
+    string outp = capture_output([&]() {
+        auto commander = create_commander();
+        auto command = new MockCommand();
+        command->patterns = {"test arg"};
+        command->run_result = "Command executed";
+        vector<void*> commands = {command};
+        commander->set_commands(commands);
+        bool actual = commander->run_command(nullptr, "test value");
+        assert(actual == true && "run_command should return true for valid command");
+        assert(command->last_args.size() == 2 && "run_command should pass correct number of args");
+        assert(command->last_args[0] == "test" && "run_command should pass command name");
+        assert(command->last_args[1] == "value" && "run_command should pass argument");
+        delete command;
+    });
+    assert(str_contains(outp, "Command executed") && "Should show the correct output");
 }
 
 
