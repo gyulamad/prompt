@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "../utils/ERROR.hpp"
 #include "EventBus.hpp"
 #include "EventAgent.hpp"
 
@@ -17,7 +18,8 @@ namespace tools::events {
     public:
         BaseEventAgent(const ComponentId& id) : m_id(id) {}
         
-        void registerWithEventBus(shared_ptr<EventBus> bus) override {
+        void registerWithEventBus(EventBus* bus) override {
+            NULLCHK(bus);
             m_eventBus = bus;
             bus->registerProducer(shared_from_this());
             bus->registerConsumer(shared_from_this());
@@ -69,11 +71,11 @@ namespace tools::events {
         
     protected:
         // Child classes should override this to register their handlers
-        virtual void registerEventInterests() = 0;
+        virtual void registerEventInterests() UNIMP
 
     private:
         ComponentId m_id;
-        shared_ptr<EventBus> m_eventBus;
+        EventBus* m_eventBus = nullptr;
         unordered_map<type_index, function<void(shared_ptr<Event>)>> m_handlerMap;
         mutex handlerMutex;  // Added for thread safety
     };    
@@ -89,11 +91,12 @@ namespace tools::events {
 
 // Test registration with EventBus as both producer and consumer
 void test_BaseEventAgent_registerWithEventBus_basic1() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto agent = make_shared<TestAgent>("agent1");
 
-    agent->registerWithEventBus(bus);
+    agent->registerWithEventBus(&bus);
     bool executedWithoutCrash = true;
     assert(executedWithoutCrash == true && "registerWithEventBus should not crash");
 
@@ -105,7 +108,7 @@ void test_BaseEventAgent_registerWithEventBus_basic1() {
     // Reset receivedEvents to test consumer role independently
     agent->receivedEvents.clear();
     auto event2 = make_shared<TestEvent>(43);
-    bus->publishEvent(event2);
+    bus.publishEvent(event2);
     size_t eventCount = agent->receivedEvents.size();
     assert(eventCount == 1 && "Agent should receive event as consumer");
     auto receivedEvent = static_pointer_cast<TestEvent>(agent->receivedEvents[0]);
@@ -113,17 +116,18 @@ void test_BaseEventAgent_registerWithEventBus_basic1() {
 }
 
 void test_BaseEventAgent_registerWithEventBus_basic2() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto agent = make_shared<TestAgent>("agent1");
 
-    agent->registerWithEventBus(bus);
+    agent->registerWithEventBus(&bus);
     bool executedWithoutCrash = true;
     assert(executedWithoutCrash == true && "registerWithEventBus should not crash");
 
     // Test consumer role only
     auto event = make_shared<TestEvent>(42);
-    bus->publishEvent(event);
+    bus.publishEvent(event);
     size_t eventCount = agent->receivedEvents.size();
     assert(eventCount == 1 && "Agent should receive event as consumer");
     assert(static_pointer_cast<TestEvent>(agent->receivedEvents[0])->value == 42 && "Received event should match published event");
@@ -139,10 +143,11 @@ void test_BaseEventAgent_getId_basic() {
 
 // Test canHandle with registered event type
 void test_BaseEventAgent_canHandle_registered() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto agent = make_shared<TestAgent>("agent1");
-    agent->registerWithEventBus(bus);
+    agent->registerWithEventBus(&bus);
 
     bool canHandle = agent->canHandle(type_index(typeid(TestEvent)));
     assert(canHandle == true && "canHandle should return true for registered event type");
@@ -150,10 +155,11 @@ void test_BaseEventAgent_canHandle_registered() {
 
 // Test canHandle with unregistered event type
 void test_BaseEventAgent_canHandle_unregistered() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto agent = make_shared<TestAgent>("agent1");
-    agent->registerWithEventBus(bus);
+    agent->registerWithEventBus(&bus);
 
     bool canHandle = agent->canHandle(type_index(typeid(int)));
     assert(canHandle == false && "canHandle should return false for unregistered event type");
@@ -161,10 +167,11 @@ void test_BaseEventAgent_canHandle_unregistered() {
 
 // Test handleEvent with registered handler
 void test_BaseEventAgent_handleEvent_registered() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto agent = make_shared<TestAgent>("agent1");
-    agent->registerWithEventBus(bus);
+    agent->registerWithEventBus(&bus);
 
     auto event = make_shared<TestEvent>(42);
     agent->handleEvent(event);
@@ -190,13 +197,14 @@ void test_BaseEventAgent_handleEvent_unregistered() {
 
 // Test publishEvent with EventBus
 void test_BaseEventAgent_publishEvent_with_bus() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto agent = make_shared<TestAgent>("agent1");
     auto consumer = make_shared<MockConsumer>("consumer1");
 
-    agent->registerWithEventBus(bus);
-    consumer->registerWithEventBus(bus);
+    agent->registerWithEventBus(&bus);
+    consumer->registerWithEventBus(&bus);
     auto event = make_shared<TestEvent>(42);
     agent->publishEvent(event);
 
@@ -221,10 +229,11 @@ void test_BaseEventAgent_publishEvent_no_bus() {
 
 // Test self-communication (agent publishes and consumes its own event)
 void test_BaseEventAgent_self_communication() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto agent = make_shared<TestAgent>("agent1");
-    agent->registerWithEventBus(bus);
+    agent->registerWithEventBus(&bus);
 
     auto event = make_shared<TestEvent>(42);
     agent->publishEvent(event);
@@ -256,10 +265,11 @@ void test_BaseEventAgent_handleEvent_null_event() {
 
 // Test exception case: null event pointer in publishEvent throws an exception
 void test_BaseEventAgent_publishEvent_null_event() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto agent = make_shared<TestAgent>("agent1");
-    agent->registerWithEventBus(bus);
+    agent->registerWithEventBus(&bus);
 
     shared_ptr<TestEvent> nullEvent = nullptr;
     bool thrown = false;
@@ -277,10 +287,11 @@ void test_BaseEventAgent_publishEvent_null_event() {
 
 // Test concurrent publish and consume
 void test_BaseEventAgent_publish_and_consume_concurrent() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto agent = make_shared<TestAgent>("agent1");
-    agent->registerWithEventBus(bus);
+    agent->registerWithEventBus(&bus);
 
     const int numThreads = 4;
     const int eventsPerThread = 10;
@@ -305,10 +316,11 @@ void test_BaseEventAgent_publish_and_consume_concurrent() {
 
 // Test multiple handlers for the same event type
 void test_BaseEventAgent_registerHandler_multiple_handlers() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto agent = make_shared<TestAgent>("agent1");
-    agent->registerWithEventBus(bus);
+    agent->registerWithEventBus(&bus);
 
     vector<int> values;
     agent->registerHandler<TestEvent>([&values](shared_ptr<TestEvent> event) {
@@ -316,7 +328,7 @@ void test_BaseEventAgent_registerHandler_multiple_handlers() {
     });
 
     auto event = make_shared<TestEvent>(42);
-    bus->publishEvent(event);
+    bus.publishEvent(event);
     size_t eventCount = agent->receivedEvents.size();
     assert(eventCount == 0 && "Original handler should not push to receivedEvents due to handler override");
     assert(values.size() == 2 && "Second handler should record twice due to duplicate interest");

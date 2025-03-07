@@ -2,7 +2,7 @@
 
 #include "../Logger.hpp"
 
-using namespace tools;
+using namespace tools::utils;
 
 class MockLogger : public Logger {
 public:

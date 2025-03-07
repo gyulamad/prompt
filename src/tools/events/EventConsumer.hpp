@@ -2,9 +2,11 @@
 
 #include <memory>
 
+#include "../utils/ERROR.hpp"
 #include "Event.hpp"
 
 using namespace std;
+using namespace tools::utils;
 
 namespace tools::events {
 
@@ -18,16 +20,16 @@ namespace tools::events {
         virtual ~EventConsumer() = default;
         
         // Handle an incoming event
-        virtual void handleEvent(shared_ptr<Event> event) = 0;
+        virtual void handleEvent(shared_ptr<Event> event) UNIMP
         
         // Register this consumer with the event bus
-        virtual void registerWithEventBus(shared_ptr<EventBus> bus) = 0;
+        virtual void registerWithEventBus(EventBus* bus) UNIMP
         
         // Get unique identifier for this consumer
-        virtual ComponentId getId() const = 0;
+        virtual ComponentId getId() const UNIMP
         
         // Check if this consumer can handle a specific event type
-        virtual bool canHandle(type_index eventType) const = 0;
+        virtual bool canHandle(type_index eventType) const UNIMP
     };
     
 }

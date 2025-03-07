@@ -94,17 +94,25 @@ void test_SelfMessageFilter_setFilterSelfMessages_toggle() {
 
 // Test SelfMessageFilter with async delivery via EventBus
 void test_SelfMessageFilter_shouldDeliverEvent_async_delivery() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(true, logger);  // Async mode
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(true, logger, eventQueue);  // Async mode
     auto agent = make_shared<TestAgent>("agent1");
-    agent->registerWithEventBus(bus);
+    agent->registerWithEventBus(&bus);
 
     // Wrap SelfMessageFilter in a FilteredEventBus for context
     class FilteredEventBusWrapper : public EventBus {
     public:
-        FilteredEventBusWrapper(bool async, shared_ptr<Logger> logger, shared_ptr<SelfMessageFilter> filter)
-            : EventBus(async, logger), m_filter(filter) {}
-        
+        FilteredEventBusWrapper(
+            bool async, 
+            Logger& logger, 
+            shared_ptr<SelfMessageFilter> filter,
+            EventQueue& eventQueue
+        ): 
+            EventBus(async, logger, eventQueue), 
+            m_filter(filter) 
+        {}
+
     protected:
         void deliverEvent(shared_ptr<Event> event) override {
             lock_guard<mutex> lock(m_mutex);
@@ -127,9 +135,9 @@ void test_SelfMessageFilter_shouldDeliverEvent_async_delivery() {
     };
 
     auto filter = make_shared<SelfMessageFilter>(true);
-    auto filteredBus = make_shared<FilteredEventBusWrapper>(true, logger, filter);
+    FilteredEventBusWrapper filteredBus(true, logger, filter, eventQueue);
     auto asyncAgent = make_shared<TestAgent>("agent1");
-    asyncAgent->registerWithEventBus(filteredBus);
+    asyncAgent->registerWithEventBus(&filteredBus);
 
     auto event = make_shared<TestEvent>(42);
     asyncAgent->publishEvent(event);
@@ -180,16 +188,25 @@ void test_SelfMessageFilter_shouldDeliverEvent_multiple_filters() {
         }
     };
 
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto agent = make_shared<TestAgent>("agent1");
-    agent->registerWithEventBus(bus);
+    agent->registerWithEventBus(&bus);
 
     // Wrap SelfMessageFilter with another filter in a custom EventBus
     class MultiFilterBus : public EventBus {
     public:
-        MultiFilterBus(shared_ptr<Logger> logger, shared_ptr<SelfMessageFilter> selfFilter, shared_ptr<OtherFilter> otherFilter)
-            : EventBus(false, logger), m_selfFilter(selfFilter), m_otherFilter(otherFilter) {}
+        MultiFilterBus(
+            Logger& logger, 
+            shared_ptr<SelfMessageFilter> selfFilter, 
+            shared_ptr<OtherFilter> otherFilter,
+            EventQueue& eventQueue
+        ): 
+            EventBus(false, logger, eventQueue), 
+            m_selfFilter(selfFilter), 
+            m_otherFilter(otherFilter)
+        {}
         
     protected:
         void deliverEvent(shared_ptr<Event> event) override {
@@ -217,9 +234,9 @@ void test_SelfMessageFilter_shouldDeliverEvent_multiple_filters() {
 
     auto selfFilter = make_shared<SelfMessageFilter>(true);
     auto otherFilter = make_shared<OtherFilter>();
-    auto multiBus = make_shared<MultiFilterBus>(logger, selfFilter, otherFilter);
+    MultiFilterBus multiBus(logger, selfFilter, otherFilter, eventQueue);
     auto multiAgent = make_shared<TestAgent>("agent1");
-    multiAgent->registerWithEventBus(multiBus);
+    multiAgent->registerWithEventBus(&multiBus);
 
     // Test self-filter blocking
     auto event1 = make_shared<TestEvent>(42);
@@ -232,7 +249,7 @@ void test_SelfMessageFilter_shouldDeliverEvent_multiple_filters() {
     selfFilter->setFilterSelfMessages(false);  // Allow self-events
     auto event2 = make_shared<TestEvent>(43);
     event2->sourceId = "blockedSource";
-    multiBus->publishEvent(event2);
+    multiBus.publishEvent(event2);
     size_t eventCount2 = multiAgent->receivedEvents.size();
     assert(eventCount2 == 0 && "OtherFilter should block event from blockedSource");
 

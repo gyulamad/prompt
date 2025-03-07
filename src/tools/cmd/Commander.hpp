@@ -11,14 +11,14 @@ namespace tools::cmd {
 
     class Commander {
     private:
-        CommandLine command_line; // Still owns the CommandLine
+        CommandLine& command_line; // Still owns the CommandLine
         CompletionMatcher cmatcher;
         bool exiting = false;
         vector<void*> commands;
 
     public:
         // Updated constructor: Take CommandLine by value and move it
-        Commander(CommandLine command_line) : command_line(move(command_line)) {}
+        Commander(CommandLine& command_line) : command_line(command_line) {}
 
         virtual ~Commander() {}
 
@@ -95,31 +95,36 @@ namespace tools::cmd {
 #include "tests/MockCommand.hpp"
 
 void test_Commander_is_exiting_initial_state() {
-    auto commander = create_commander();
+    MockLineEditor editor;
+    MockCommandLine cl(editor);
+    auto commander = create_commander(cl);
     bool actual = commander->is_exiting();
     assert(actual == false && "Commander should not be exiting initially");
 }
 
 void test_Commander_is_exiting_after_exit() {
-    auto commander = create_commander();
+    MockLineEditor editor;
+    MockCommandLine cl(editor);
+    auto commander = create_commander(cl);
     commander->exit();
     bool actual = commander->is_exiting();
     assert(actual == true && "Commander should be exiting after exit() is called");
 }
 
 void test_Commander_is_exiting_after_commandline_exit() {
-    auto mock_editor = make_unique<MockLineEditor>();
-    mock_editor->should_exit = true;
-    auto cl = make_unique<CommandLine>(move(mock_editor));
-    Commander commander(move(*cl)); // Move the CommandLine into Commander
+    MockLineEditor mock_editor;
+    mock_editor.should_exit = true;
+    auto cl = make_unique<CommandLine>(mock_editor);
+    Commander commander(*cl); // Move the CommandLine into Commander
     commander.get_command_line_ref().readln(); // Call readln() on the Commander's CommandLine
     bool actual = commander.is_exiting();
     assert(actual == true && "Commander should be exiting after CommandLine exits");
 }
 
 void test_Commander_get_command_line_ref_returns_reference() {
-    auto cl = make_unique<MockCommandLine>();
-    Commander commander(move(*cl));
+    MockLineEditor mock_editor;
+    auto cl = make_unique<MockCommandLine>(mock_editor);
+    Commander commander(*cl);
     CommandLine& actual = commander.get_command_line_ref();
     // Modify the CommandLine via the reference
     actual.set_prompt("modified> ");
@@ -130,7 +135,9 @@ void test_Commander_get_command_line_ref_returns_reference() {
 }
 
 void test_Commander_set_commands_updates_patterns() {
-    auto commander = create_commander();
+    MockLineEditor editor;
+    MockCommandLine cl(editor);
+    auto commander = create_commander(cl);
     auto command = new MockCommand();
     command->patterns = {"test cmd", "test {param}"};
     vector<void*> commands = {command};
@@ -144,14 +151,18 @@ void test_Commander_set_commands_updates_patterns() {
 }
 
 void test_Commander_run_command_empty_input() {
-    auto commander = create_commander();
+    MockLineEditor editor;
+    MockCommandLine cl(editor);
+    auto commander = create_commander(cl);
     bool actual = commander->run_command(nullptr, "");
     assert(actual == false && "run_command should return false for empty input");
 }
 
 void test_Commander_run_command_unknown_command() {
     string err = capture_stderr([&]() {
-        auto commander = create_commander();
+        MockLineEditor editor;
+        MockCommandLine cl(editor);
+        auto commander = create_commander(cl);
         auto command = new MockCommand();
         command->patterns = {"known"};
         vector<void*> commands = {command};
@@ -165,7 +176,9 @@ void test_Commander_run_command_unknown_command() {
 
 void test_Commander_run_command_invalid_arguments() {
     string err = capture_stderr([&]() {
-        auto commander = create_commander();
+        MockLineEditor editor;
+        MockCommandLine cl(editor);
+        auto commander = create_commander(cl);
         auto command = new MockCommand();
         command->patterns = {"test arg1"};
         vector<void*> commands = {command};
@@ -179,7 +192,9 @@ void test_Commander_run_command_invalid_arguments() {
 
 void test_Commander_run_command_successful_execution() {
     string outp = capture_output([&]() {
-        auto commander = create_commander();
+        MockLineEditor editor;
+        MockCommandLine cl(editor);
+        auto commander = create_commander(cl);
         auto command = new MockCommand();
         command->patterns = {"test arg"};
         command->run_result = "Command executed";

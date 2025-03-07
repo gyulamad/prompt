@@ -23,7 +23,21 @@ namespace tools::utils {
 
     #define ERROR(msg) error(msg, __FILE__, __LINE__)
 
-    #define UNIMP { throw ERROR("Unimplemented"); }
+    #ifdef __PRETTY_FUNCTION__
+    #define __FUNC__ __PRETTY_FUNCTION__
+    #else
+    #ifdef __FUNCSIG__
+    #define __FUNC__ __FUNCSIG__
+    #else
+    #ifdef __FUNCTION__
+    #define __FUNC__ __FUNCTION__
+    #else
+    #define __FUNC__ __func__
+    #endif
+    #endif
+    #endif
+
+    #define UNIMP { throw ERROR("Unimplemented: " + string(__FUNC__)); }
 
 
     #define DEBUG(msg) debug(msg, __FILE__, __LINE__)
@@ -32,11 +46,11 @@ namespace tools::utils {
     #define NULLCHK_IMPL(p, errmsg) { if (nullptr == p) throw ERROR(errmsg); }
 
     // Define the main macro with optional parameter
-    #define     NULLCHK(...) NULLCHK_SELECT(__VA_ARGS__, NULLCHK_2, NULLCHK_1)(__VA_ARGS__)
+    #define NULLCHK(...) NULLCHK_SELECT(__VA_ARGS__, NULLCHK_2, NULLCHK_1)(__VA_ARGS__)
 
     // Helper macros to select the right implementation based on argument count
     #define NULLCHK_SELECT(_1, _2, NAME, ...) NAME
-    #define NULLCHK_1(p) NULLCHK_IMPL(p, "nullptr")
+    #define NULLCHK_1(p) NULLCHK_IMPL(p, "nullptr: "#p)
     #define NULLCHK_2(p, errmsg) NULLCHK_IMPL(p, errmsg)
 
 };

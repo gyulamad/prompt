@@ -17,7 +17,8 @@ namespace tools::events {
     public:
         BaseEventProducer(const ComponentId& id) : m_id(id) {}
         
-        void registerWithEventBus(shared_ptr<EventBus> bus) override {
+        void registerWithEventBus(EventBus* bus) override {
+            NULLCHK(bus);
             lock_guard<mutex> lock(producerMutex);
             m_eventBus = bus;
             bus->registerProducer(shared_from_this());
@@ -40,7 +41,7 @@ namespace tools::events {
 
     private:
         ComponentId m_id;
-        shared_ptr<EventBus> m_eventBus;
+        EventBus* m_eventBus = nullptr;
         mutex producerMutex;
     };
 
@@ -54,11 +55,12 @@ namespace tools::events {
 
 // Test registration with EventBus
 void test_BaseEventProducer_registerWithEventBus_basic() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto producer = make_shared<BaseEventProducer>("producer1");
 
-    producer->registerWithEventBus(bus);
+    producer->registerWithEventBus(&bus);
     bool executedWithoutCrash = true;
     assert(executedWithoutCrash == true && "registerWithEventBus should not crash");
 
@@ -78,13 +80,14 @@ void test_BaseEventProducer_getId_basic() {
 
 // Test publishEvent with EventBus
 void test_BaseEventProducer_publishEvent_with_bus() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto producer = make_shared<BaseEventProducer>("producer1");
     auto consumer = make_shared<MockConsumer>("consumer1");
 
-    producer->registerWithEventBus(bus);
-    consumer->registerWithEventBus(bus);
+    producer->registerWithEventBus(&bus);
+    consumer->registerWithEventBus(&bus);
     auto event = make_shared<TestEvent>(42);
     producer->publishEvent(event);
 
@@ -94,6 +97,7 @@ void test_BaseEventProducer_publishEvent_with_bus() {
     assert(receivedEvent->value == 42 && "Received event should match published event");
     assert(receivedEvent->sourceId == "producer1" && "Received event should have producer's ID as source");
     assert(receivedEvent->timestamp <= chrono::system_clock::now() && "Event timestamp should be set");
+    // assert(bus.getEventQueueRef().available() == 0);
 }
 
 // Test publishEvent without EventBus
@@ -110,17 +114,20 @@ void test_BaseEventProducer_publishEvent_no_bus() {
 
 // Test publishEvent with async EventBus
 void test_BaseEventProducer_publishEvent_async_bus() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(true, logger);  // Async mode
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(true, logger, eventQueue);  // Async mode
     auto producer = make_shared<BaseEventProducer>("producer1");
     auto consumer = make_shared<MockConsumer>("consumer1");
 
-    producer->registerWithEventBus(bus);
-    consumer->registerWithEventBus(bus);
+    producer->registerWithEventBus(&bus);
+    consumer->registerWithEventBus(&bus);
+
     auto event = make_shared<TestEvent>(42);
     producer->publishEvent(event);
 
     this_thread::sleep_for(chrono::milliseconds(200));  // Wait for async processing
+
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 1 && "Consumer should receive event in async mode");
     auto receivedEvent = static_pointer_cast<TestEvent>(consumer->receivedEvents[0]);
@@ -130,10 +137,11 @@ void test_BaseEventProducer_publishEvent_async_bus() {
 
 // Test exception case: null event pointer in publishEvent throws an exception
 void test_BaseEventProducer_publishEvent_null_event() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto producer = make_shared<BaseEventProducer>("producer1");
-    producer->registerWithEventBus(bus);
+    producer->registerWithEventBus(&bus);
 
     shared_ptr<TestEvent> nullEvent = nullptr;
     bool thrown = false;
@@ -151,12 +159,13 @@ void test_BaseEventProducer_publishEvent_null_event() {
 
 // Test concurrent publishing
 void test_BaseEventProducer_publishEvent_concurrent() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto producer = make_shared<BaseEventProducer>("producer1");
     auto consumer = make_shared<MockConsumer>("consumer1");
-    producer->registerWithEventBus(bus);
-    consumer->registerWithEventBus(bus);
+    producer->registerWithEventBus(&bus);
+    consumer->registerWithEventBus(&bus);
 
     const int numThreads = 4;
     const int eventsPerThread = 10;
@@ -188,8 +197,9 @@ void test_BaseEventProducer_publishEvent_multiple_types() {
         OtherEvent(int d) : data(d) {}
     };
 
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto producer = make_shared<BaseEventProducer>("producer1");
 
     // Custom consumer for multiple event types
@@ -199,7 +209,8 @@ void test_BaseEventProducer_publishEvent_multiple_types() {
         vector<shared_ptr<Event>> receivedEvents;
 
         void handleEvent(shared_ptr<Event> event) override { receivedEvents.push_back(event); }
-        void registerWithEventBus(shared_ptr<EventBus> bus) override {
+        void registerWithEventBus(EventBus* bus) override {
+            NULLCHK(bus);
             bus->registerConsumer(shared_from_this());
             bus->registerEventInterest(id, type_index(typeid(TestEvent)));
             bus->registerEventInterest(id, type_index(typeid(OtherEvent)));
@@ -214,8 +225,8 @@ void test_BaseEventProducer_publishEvent_multiple_types() {
     };
 
     auto consumer = make_shared<MultiTypeConsumer>("consumer1");
-    producer->registerWithEventBus(bus);
-    consumer->registerWithEventBus(bus);
+    producer->registerWithEventBus(&bus);
+    consumer->registerWithEventBus(&bus);
 
     auto testEvent = make_shared<TestEvent>(42);
     auto otherEvent = make_shared<OtherEvent>(99);

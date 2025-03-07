@@ -4,7 +4,10 @@
 #include <string>
 #include <vector>
 
+#include "../utils/ERROR.hpp"
+
 using namespace std;
+using namespace tools::utils;
 
 namespace tools::cmd {
 
@@ -14,13 +17,16 @@ namespace tools::cmd {
 
         using CompletionCallback = function<void(const char*, vector<string>&)>;
 
-        virtual void SetCompletionCallback(CompletionCallback callback) = 0;
-        virtual void SetMultiLine(bool enable) = 0;
-        virtual void SetHistoryMaxLen(size_t max_len) = 0;
-        virtual void LoadHistory(const char* path) = 0;
-        virtual void SaveHistory(const char* path) = 0;
-        virtual void AddHistory(const char* line) = 0;
-        virtual bool Readline(const char* prompt, string& line) = 0; // Returns true if exited
+        virtual void SetCompletionCallback(CompletionCallback callback) UNIMP
+        virtual void SetMultiLine(bool enable) UNIMP
+        virtual void SetHistoryMaxLen(size_t max_len) UNIMP
+        virtual void LoadHistory(const char* path) UNIMP
+        virtual void SaveHistory(const char* path) UNIMP
+        virtual void AddHistory(const char* line) UNIMP
+        virtual bool Readline(const char* prompt, string& line) UNIMP // Returns true if exited (deprecated)
+        virtual bool Readline(string& line) UNIMP // Returns true if exited
+        virtual void RefreshLine() UNIMP
+        virtual void WipeLine() UNIMP
     };
 
 } // namespace tools::cmd

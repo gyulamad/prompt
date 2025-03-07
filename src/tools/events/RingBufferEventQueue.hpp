@@ -17,13 +17,15 @@ namespace tools::events {
      */
     class RingBufferEventQueue : public EventQueue {
     public:
-        RingBufferEventQueue(size_t capacity, shared_ptr<Logger> logger)
-            : m_ringBuffer(capacity, RingBuffer<shared_ptr<Event>>::WritePolicy::Rotate),
-                m_logger(logger) {
+        RingBufferEventQueue(
+            size_t capacity, 
+            Logger& logger
+        ):
+            m_ringBuffer(capacity, RingBuffer<shared_ptr<Event>>::WritePolicy::Rotate),
+            m_logger(logger)
+        {
             m_ringBuffer.set_drop_callback([this](size_t count) {
-                if (m_logger) {
-                    m_logger->warn("Dropped " + to_string(count) + " events due to full queue");
-                }
+                m_logger.warn("Dropped " + to_string(count) + " events due to full queue");
             });
         }
 
@@ -41,7 +43,7 @@ namespace tools::events {
 
     private:
         RingBuffer<shared_ptr<Event>> m_ringBuffer;
-        shared_ptr<Logger> m_logger;
+        Logger& m_logger;
     };    
 
 }
@@ -53,7 +55,7 @@ namespace tools::events {
 
 // Test basic write operation
 void test_RingBufferEventQueue_write_basic() {
-    auto logger = make_shared<MockLogger>();
+    MockLogger logger;
     RingBufferEventQueue queue(3, logger);
     auto event = make_shared<TestEvent>(42);
 
@@ -65,7 +67,7 @@ void test_RingBufferEventQueue_write_basic() {
 
 // Test reading from queue
 void test_RingBufferEventQueue_read_basic() {
-    auto logger = make_shared<MockLogger>();
+    MockLogger logger;
     RingBufferEventQueue queue(3, logger);
     auto event = make_shared<TestEvent>(42);
     queue.write(event);
@@ -81,7 +83,7 @@ void test_RingBufferEventQueue_read_basic() {
 
 // Test reading from empty queue
 void test_RingBufferEventQueue_read_empty() {
-    auto logger = make_shared<MockLogger>();
+    MockLogger logger;
     RingBufferEventQueue queue(3, logger);
 
     shared_ptr<Event> readEvent;
@@ -92,7 +94,7 @@ void test_RingBufferEventQueue_read_empty() {
 
 // Test write when queue is full (triggers drop callback)
 void test_RingBufferEventQueue_write_full() {
-    auto logger = make_shared<MockLogger>();
+    MockLogger logger;
     RingBufferEventQueue queue(2, logger);  // Capacity of 2
     queue.write(make_shared<TestEvent>(1));
     queue.write(make_shared<TestEvent>(2));
@@ -102,13 +104,13 @@ void test_RingBufferEventQueue_write_full() {
     size_t available = queue.available();
     assert(available == 2 && "Queue should still have 2 events after overwrite");
 
-    bool loggedDrop = logger->hasMessageContaining("Dropped 1 events");
+    bool loggedDrop = logger.hasMessageContaining("Dropped 1 events");
     assert(loggedDrop == true && "Drop callback should log event drop");
 }
 
 // Test available method
 void test_RingBufferEventQueue_available_multiple() {
-    auto logger = make_shared<MockLogger>();
+    MockLogger logger;
     RingBufferEventQueue queue(3, logger);
     queue.write(make_shared<TestEvent>(1));
     queue.write(make_shared<TestEvent>(2));
@@ -124,7 +126,7 @@ void test_RingBufferEventQueue_available_multiple() {
 
 // Test blocking read with timeout (no data)
 void test_RingBufferEventQueue_read_blocking_timeout() {
-    auto logger = make_shared<MockLogger>();
+    MockLogger logger;
     RingBufferEventQueue queue(3, logger);
 
     auto start = chrono::steady_clock::now();
@@ -139,7 +141,7 @@ void test_RingBufferEventQueue_read_blocking_timeout() {
 
 // Test blocking read with data available
 void test_RingBufferEventQueue_read_blocking_success() {
-    auto logger = make_shared<MockLogger>();
+    MockLogger logger;
     RingBufferEventQueue queue(3, logger);
     auto event = make_shared<TestEvent>(99);
     queue.write(event);
@@ -153,7 +155,7 @@ void test_RingBufferEventQueue_read_blocking_success() {
 
 // Test constructor with invalid capacity
 void test_RingBufferEventQueue_constructor_invalid_capacity() {
-    auto logger = make_shared<MockLogger>();
+    MockLogger logger;
     bool thrown = false;
 
     try {
@@ -168,7 +170,7 @@ void test_RingBufferEventQueue_constructor_invalid_capacity() {
 
 // Test concurrent writes
 void test_RingBufferEventQueue_write_concurrent() {
-    auto logger = make_shared<MockLogger>();
+    MockLogger logger;
     RingBufferEventQueue queue(100, logger);  // Large capacity to avoid drops
 
     vector<thread> writers;
@@ -196,7 +198,7 @@ void test_RingBufferEventQueue_write_concurrent() {
 
 // Test concurrent reads and writes
 void test_RingBufferEventQueue_read_write_concurrent() {
-    auto logger = make_shared<MockLogger>();
+    MockLogger logger;
     RingBufferEventQueue queue(50, logger);
     const int numWrites = 30;
     const int numReads = 20;

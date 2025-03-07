@@ -21,14 +21,15 @@ namespace tools::events {
      */
     class EventBus : public enable_shared_from_this<EventBus> {
     public:
-        EventBus(bool asyncDelivery = false, shared_ptr<Logger> logger = nullptr,
-                unique_ptr<EventQueue> eventQueue = nullptr)
-            : m_asyncDelivery(asyncDelivery), m_logger(logger) {
-            if (!eventQueue) {
-                m_eventQueue = make_unique<RingBufferEventQueue>(1000, m_logger);  // Default: RingBuffer
-            } else {
-                m_eventQueue = move(eventQueue);
-            }
+        EventBus(
+            bool asyncDelivery, 
+            Logger& logger,
+            EventQueue& eventQueue
+        ): 
+            m_asyncDelivery(asyncDelivery), 
+            m_logger(logger),
+            m_eventQueue(eventQueue)
+        {
             if (m_asyncDelivery) {
                 startEventProcessingThread();
             }
@@ -74,15 +75,16 @@ namespace tools::events {
         void publishEvent(shared_ptr<Event> event) {
             NULLCHK(event, "Cannot publish null event");
             if (m_asyncDelivery) {
-                bool success = m_eventQueue->write(event);
-                if (!success && m_logger) {
-                    m_logger->warn("Failed to queue event from " + event->sourceId);
-                } else {
-                    m_queueCondition.notify_one();
-                }
+                bool success = m_eventQueue.write(event);
+                if (!success) m_logger.warn("Failed to queue event from " + event->sourceId);
+                else m_queueCondition.notify_one();
             } else {
                 deliverEvent(event);
             }
+        }
+
+        EventQueue& getEventQueueRef() {
+            return m_eventQueue;
         }
 
     protected:
@@ -118,14 +120,14 @@ namespace tools::events {
             m_processingThread = thread([this]() {
                 while (m_running) {
                     unique_lock<mutex> lock(m_queueMutex);
-                    m_queueCondition.wait_for(lock, chrono::milliseconds(100),
-                        [this]() { return m_eventQueue->available() > 0 || !m_running; });
-                    if (!m_running) break;
-
-                    shared_ptr<Event> event;
-                    if (m_eventQueue->read(event, false, 0) == 1) {
-                        lock.unlock();
-                        deliverEvent(event);
+                    bool hasEvents = m_queueCondition.wait_for(lock, chrono::milliseconds(100),
+                        [this]() { return m_eventQueue.available() > 0 || !m_running; });
+                    if (m_running && hasEvents && m_eventQueue.available() > 0) {
+                        shared_ptr<Event> event;
+                        if (m_eventQueue.read(event, false, 0) == 1) {
+                            lock.unlock();
+                            deliverEvent(event);
+                        }
                     }
                 }
             });
@@ -133,7 +135,10 @@ namespace tools::events {
         
         // Stop the background thread for async event processing
         void stopEventProcessingThread() {
-            m_running = false;
+            {
+                std::lock_guard<mutex> lock(m_queueMutex); // Lock same mutex as thread
+                m_running = false;
+            }
             m_queueCondition.notify_all();
             if (m_processingThread.joinable()) {
                 m_processingThread.join();
@@ -158,8 +163,8 @@ namespace tools::events {
         bool m_asyncDelivery;
         bool m_running = false;
         thread m_processingThread;
-        unique_ptr<EventQueue> m_eventQueue;  // Use abstracted EventQueue
-        shared_ptr<Logger> m_logger;          // Logger dependency
+        EventQueue& m_eventQueue;  // Use abstracted EventQueue
+        Logger& m_logger;          // Logger dependency
     };
     
 }
@@ -172,12 +177,15 @@ namespace tools::events {
 
 // Test synchronous event delivery to a single consumer
 void test_EventBus_publishEvent_sync_delivery() {
-    auto bus = make_shared<EventBus>(false);  // Synchronous delivery
+    MockLogger logger;
+    // eventQueue = make_unique<RingBufferEventQueue>(1000, m_logger);
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);  // Synchronous delivery
     auto consumer = make_shared<MockConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);
+    consumer->registerWithEventBus(&bus);
     auto event = make_shared<TestEvent>(42);
 
-    bus->publishEvent(event);
+    bus.publishEvent(event);
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 1 && "Consumer should receive 1 event in sync mode");
     auto receivedEvent = static_pointer_cast<TestEvent>(consumer->receivedEvents[0]);
@@ -186,10 +194,12 @@ void test_EventBus_publishEvent_sync_delivery() {
 
 // Test synchronous delivery with no interested consumers
 void test_EventBus_publishEvent_sync_no_consumers() {
-    auto bus = make_shared<EventBus>(false);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto event = make_shared<TestEvent>(42);
 
-    bus->publishEvent(event);  // No consumers registered
+    bus.publishEvent(event);  // No consumers registered
     // No assertion needed; just ensure no crash occurs
     bool executedWithoutCrash = true;
     assert(executedWithoutCrash == true && "Publishing with no consumers should not crash");
@@ -197,15 +207,17 @@ void test_EventBus_publishEvent_sync_no_consumers() {
 
 // Test targeted event delivery
 void test_EventBus_publishEvent_targeted_delivery() {
-    auto bus = make_shared<EventBus>(false);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto consumer1 = make_shared<MockConsumer>("consumer1");
     auto consumer2 = make_shared<MockConsumer>("consumer2");
-    consumer1->registerWithEventBus(bus);
-    consumer2->registerWithEventBus(bus);
+    consumer1->registerWithEventBus(&bus);
+    consumer2->registerWithEventBus(&bus);
     auto event = make_shared<TestEvent>(42);
     event->targetId = "consumer1";
 
-    bus->publishEvent(event);
+    bus.publishEvent(event);
     size_t count1 = consumer1->receivedEvents.size();
     size_t count2 = consumer2->receivedEvents.size();
     assert(count1 == 1 && "Targeted consumer should receive event");
@@ -214,13 +226,14 @@ void test_EventBus_publishEvent_targeted_delivery() {
 
 // Test async event delivery with RingBufferEventQueue
 void test_EventBus_publishEvent_async_delivery() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(true, logger);  // Async delivery
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(true, logger, eventQueue);  // Async delivery
     auto consumer = make_shared<MockConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);
+    consumer->registerWithEventBus(&bus);
     auto event = make_shared<TestEvent>(42);
 
-    bus->publishEvent(event);
+    bus.publishEvent(event);
     this_thread::sleep_for(chrono::milliseconds(200));  // Wait for async processing
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 1 && "Consumer should receive 1 event in async mode");
@@ -230,33 +243,38 @@ void test_EventBus_publishEvent_async_delivery() {
 
 // Test async queue full scenario with logging
 void test_EventBus_publishEvent_async_queue_full() {
-    auto logger = make_shared<MockLogger>();
-    auto queue = make_unique<RingBufferEventQueue>(1, logger);
-    auto bus = make_shared<EventBus>(true, logger, move(queue));
+    MockLogger logger;
+    RingBufferEventQueue queue(1, logger);
+    EventBus bus(true, logger, queue);
     auto consumer = make_shared<MockConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);
+    consumer->registerWithEventBus(&bus);
 
-    bus->publishEvent(make_shared<TestEvent>(1));
-    bus->publishEvent(make_shared<TestEvent>(2));
+    bus.publishEvent(make_shared<TestEvent>(1));
+    bus.publishEvent(make_shared<TestEvent>(2));
     this_thread::sleep_for(chrono::milliseconds(300));
 
-    bool loggedDrop = logger->hasMessageContaining("Dropped 1 events");
-    assert(loggedDrop == true && "Queue full should trigger drop callback and log");
+    bool loggedDrop = logger.hasMessageContaining("Dropped 1 events");
+    assert(loggedDrop == true && "Queue full should trigger drop callback and log"); // TODO: it's randomly failing (sometimes)
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 1 && "Consumer should receive only 1 event due to capacity");
 }
 
 // Test producer registration
 void test_EventBus_registerProducer_basic() {
-    auto bus = make_shared<EventBus>(false);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     class MockProducer : public EventProducer, public enable_shared_from_this<MockProducer> {
     public:
         MockProducer() {}
-        void registerWithEventBus(shared_ptr<EventBus> b) override { b->registerProducer(shared_from_this()); }
+        void registerWithEventBus(EventBus* b) override { 
+            NULLCHK(b);
+            b->registerProducer(shared_from_this()); 
+        }
         ComponentId getId() const override { return "producer1"; }
     };
     auto producer = make_shared<MockProducer>();
-    producer->registerWithEventBus(bus);
+    producer->registerWithEventBus(&bus);
 
     bool registeredWithoutCrash = true;
     assert(registeredWithoutCrash == true && "Producer registration should not crash");
@@ -264,35 +282,40 @@ void test_EventBus_registerProducer_basic() {
 
 // Test consumer unregistration
 void test_EventBus_unregisterConsumer_basic() {
-    auto bus = make_shared<EventBus>(false);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto consumer = make_shared<MockConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);
-    bus->unregisterConsumer("consumer1");
+    consumer->registerWithEventBus(&bus);
+    bus.unregisterConsumer("consumer1");
 
     auto event = make_shared<TestEvent>(42);
-    bus->publishEvent(event);
+    bus.publishEvent(event);
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 0 && "Unregistered consumer should not receive event");
 }
 
 // Test event interest registration
 void test_EventBus_registerEventInterest_basic() {
-    auto bus = make_shared<EventBus>(false);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto consumer = make_shared<MockConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);  // Registers interest in TestEvent
+    consumer->registerWithEventBus(&bus);  // Registers interest in TestEvent
 
     auto event = make_shared<TestEvent>(42);
-    bus->publishEvent(event);
+    bus.publishEvent(event);
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 1 && "Consumer with registered interest should receive event");
 }
 
 // Test concurrent event publishing
 void test_EventBus_publishEvent_concurrent_sync() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);  // Synchronous delivery
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);  // Synchronous delivery
     auto consumer = make_shared<MockConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);
+    consumer->registerWithEventBus(&bus);
 
     const int numThreads = 4;
     const int eventsPerThread = 10;
@@ -303,7 +326,7 @@ void test_EventBus_publishEvent_concurrent_sync() {
             for (int j = 0; j < eventsPerThread; ++j) {
                 auto event = make_shared<TestEvent>(i * eventsPerThread + j);
                 event->sourceId = "producer" + to_string(i);
-                bus->publishEvent(event);
+                bus.publishEvent(event);
             }
         });
     }
@@ -318,10 +341,11 @@ void test_EventBus_publishEvent_concurrent_sync() {
 
 // Test concurrent async event publishing
 void test_EventBus_publishEvent_concurrent_async() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(true, logger);  // Asynchronous delivery
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(true, logger, eventQueue);  // Asynchronous delivery
     auto consumer = make_shared<MockConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);
+    consumer->registerWithEventBus(&bus);
 
     const int numThreads = 4;
     const int eventsPerThread = 10;
@@ -332,7 +356,7 @@ void test_EventBus_publishEvent_concurrent_async() {
             for (int j = 0; j < eventsPerThread; ++j) {
                 auto event = make_shared<TestEvent>(i * eventsPerThread + j);
                 event->sourceId = "producer" + to_string(i);
-                bus->publishEvent(event);
+                bus.publishEvent(event);
             }
         });
     }
@@ -348,8 +372,9 @@ void test_EventBus_publishEvent_concurrent_async() {
 
 // Test concurrent registration and publishing
 void test_EventBus_register_and_publish_concurrent() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     const int numConsumers = 5;
     vector<shared_ptr<MockConsumer>> consumers;
     vector<thread> registrars;
@@ -358,14 +383,14 @@ void test_EventBus_register_and_publish_concurrent() {
         auto consumer = make_shared<MockConsumer>("consumer" + to_string(i));
         consumers.push_back(consumer);
         registrars.emplace_back([consumer, &bus]() {
-            consumer->registerWithEventBus(bus);
+            consumer->registerWithEventBus(&bus);
         });
     }
 
     thread publisher([&bus]() {
         for (int i = 0; i < 10; ++i) {
             auto event = make_shared<TestEvent>(i);
-            bus->publishEvent(event);
+            bus.publishEvent(event);
             this_thread::yield();  // Allow some interleaving
         }
     });
@@ -386,16 +411,17 @@ void test_EventBus_register_and_publish_concurrent() {
 
 // Test exception case: null event pointer throws an exception
 void test_EventBus_publishEvent_null_event() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto consumer = make_shared<MockConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);
+    consumer->registerWithEventBus(&bus);
 
     shared_ptr<Event> nullEvent = nullptr;
     bool thrown = false;
 
     try {
-        bus->publishEvent(nullEvent);  // Should throw an exception
+        bus.publishEvent(nullEvent);  // Should throw an exception
     } catch (const exception& e) {
         thrown = true;
         string what = e.what();
@@ -409,15 +435,16 @@ void test_EventBus_publishEvent_null_event() {
 
 // Test destructor behavior for async mode
 void test_EventBus_destructor_async_cleanup() {
-    auto logger = make_shared<MockLogger>();
+    MockLogger logger;
     {
-        auto bus = make_shared<EventBus>(true, logger);  // Async delivery
+        RingBufferEventQueue eventQueue(1000, logger);
+        EventBus bus(true, logger, eventQueue);  // Async delivery
         auto consumer = make_shared<MockConsumer>("consumer1");
-        consumer->registerWithEventBus(bus);
+        consumer->registerWithEventBus(&bus);
 
         // Publish an event to ensure thread is active
         auto event = make_shared<TestEvent>(42);
-        bus->publishEvent(event);
+        bus.publishEvent(event);
         this_thread::sleep_for(chrono::milliseconds(50));  // Let thread process
     }  // Destructor called here
 

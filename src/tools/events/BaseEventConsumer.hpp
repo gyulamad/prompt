@@ -20,7 +20,8 @@ namespace tools::events {
     public:
         BaseEventConsumer(const ComponentId& id) : m_id(id) {}
         
-        void registerWithEventBus(shared_ptr<EventBus> bus) override {
+        void registerWithEventBus(EventBus* bus) override {
+            NULLCHK(bus);
             m_eventBus = bus;
             bus->registerConsumer(shared_from_this());
             registerEventInterests();
@@ -60,11 +61,11 @@ namespace tools::events {
         
     protected:
         // Child classes should override this to register their handlers
-        virtual void registerEventInterests() = 0;
+        virtual void registerEventInterests() UNIMP
 
     private:
         ComponentId m_id;
-        shared_ptr<EventBus> m_eventBus;
+        EventBus* m_eventBus;
         unordered_map<type_index, function<void(shared_ptr<Event>)>> m_handlerMap;
         mutex handlerMutex;  // Added for thread safety
     };
@@ -79,13 +80,14 @@ namespace tools::events {
 
 // Test registration with EventBus
 void test_BaseEventConsumer_registerWithEventBus_basic() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto consumer = make_shared<TestConsumer>("consumer1");
 
-    consumer->registerWithEventBus(bus);
+    consumer->registerWithEventBus(&bus);
     auto event = make_shared<TestEvent>(42);
-    bus->publishEvent(event);
+    bus.publishEvent(event);
 
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 1 && "Consumer should receive event after registration");
@@ -103,10 +105,11 @@ void test_BaseEventConsumer_getId_basic() {
 
 // Test canHandle with registered event type
 void test_BaseEventConsumer_canHandle_registered() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto consumer = make_shared<TestConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);  // Trigger registration of event interests
+    consumer->registerWithEventBus(&bus);  // Trigger registration of event interests
 
     bool canHandle = consumer->canHandle(type_index(typeid(TestEvent)));
     assert(canHandle == true && "canHandle should return true for registered event type");
@@ -122,10 +125,11 @@ void test_BaseEventConsumer_canHandle_unregistered() {
 
 // Test handleEvent with registered handler
 void test_BaseEventConsumer_handleEvent_registered() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto consumer = make_shared<TestConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);  // Register to populate m_handlerMap
+    consumer->registerWithEventBus(&bus);  // Register to populate m_handlerMap
 
     auto event = make_shared<TestEvent>(42);
     consumer->handleEvent(event);
@@ -151,17 +155,18 @@ void test_BaseEventConsumer_handleEvent_unregistered() {
 
 // Test registerHandler after EventBus registration
 void test_BaseEventConsumer_registerHandler_post_registration() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto consumer = make_shared<TestConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);
+    consumer->registerWithEventBus(&bus);
 
     // Register a second handler for the same event type
     consumer->registerHandler<TestEvent>([consumer](shared_ptr<TestEvent> event) {
         consumer->receivedEvents.push_back(event);  // Double push for this test
     });
     auto event = make_shared<TestEvent>(42);
-    bus->publishEvent(event);
+    bus.publishEvent(event);
 
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 2 && "Handler registered post-registration should also receive event");
@@ -188,10 +193,11 @@ void test_BaseEventConsumer_handleEvent_null_event() {
 
 // Test multi-threaded event handling
 void test_BaseEventConsumer_handleEvent_concurrent() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto consumer = make_shared<TestConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);
+    consumer->registerWithEventBus(&bus);
 
     const int numThreads = 4;
     const int eventsPerThread = 10;
@@ -217,10 +223,11 @@ void test_BaseEventConsumer_handleEvent_concurrent() {
 
 // Test edge case: registering the same handler multiple times
 void test_BaseEventConsumer_registerHandler_multiple_same() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto consumer = make_shared<TestConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);  // Initial handler registered
+    consumer->registerWithEventBus(&bus);  // Initial handler registered
 
     // Register the same handler again
     consumer->registerHandler<TestEvent>([consumer](shared_ptr<TestEvent> event) {
@@ -228,7 +235,7 @@ void test_BaseEventConsumer_registerHandler_multiple_same() {
     });
 
     auto event = make_shared<TestEvent>(42);
-    bus->publishEvent(event);
+    bus.publishEvent(event);
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 2 && "Registering same handler again should result in duplicate handling");
 
@@ -241,10 +248,11 @@ void test_BaseEventConsumer_registerHandler_multiple_same() {
 
 // Test edge case: registering different handlers for the same event type
 void test_BaseEventConsumer_registerHandler_multiple_different() {
-    auto logger = make_shared<MockLogger>();
-    auto bus = make_shared<EventBus>(false, logger);
+    MockLogger logger;
+    RingBufferEventQueue eventQueue(1000, logger);
+    EventBus bus(false, logger, eventQueue);
     auto consumer = make_shared<TestConsumer>("consumer1");
-    consumer->registerWithEventBus(bus);  // Initial handler pushes to receivedEvents
+    consumer->registerWithEventBus(&bus);  // Initial handler pushes to receivedEvents
 
     // Register a different handler
     vector<int> values;
@@ -253,7 +261,7 @@ void test_BaseEventConsumer_registerHandler_multiple_different() {
     });
 
     auto event = make_shared<TestEvent>(42);
-    bus->publishEvent(event);
+    bus.publishEvent(event);
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 0 && "Original handler should not push to receivedEvents due to handler override");
     assert(values.size() == 2 && "New handler should record twice due to duplicate interest");

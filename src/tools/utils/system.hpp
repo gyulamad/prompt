@@ -104,4 +104,17 @@ namespace tools::utils {
         return result;
     }
 
+    size_t get_threads_count() {
+        ifstream stat("/proc/self/stat");
+        if (!stat) return 0;
+        string line;
+        getline(stat, line);
+        istringstream iss(line);
+        string token;
+        for (int i = 1; i <= 20; ++i) {
+            iss >> token;
+            if (i == 20) return stoul(token);
+        }
+        return 0;
+    }
 }

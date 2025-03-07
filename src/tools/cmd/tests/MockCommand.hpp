@@ -29,6 +29,6 @@ public:
 };
 
 // Helper to create a Commander with a mock CommandLine
-unique_ptr<Commander> create_commander(unique_ptr<CommandLine> cl = make_unique<MockCommandLine>()) {
-    return make_unique<Commander>(move(*cl)); // Move the CommandLine into Commander
+unique_ptr<Commander> create_commander(CommandLine& cl) {
+    return make_unique<Commander>(cl); // Move the CommandLine into Commander
 }

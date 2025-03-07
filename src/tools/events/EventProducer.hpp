@@ -2,9 +2,11 @@
 
 #include <memory>
 
+#include "../utils/ERROR.hpp"
 #include "Event.hpp"
 
 using namespace std;
+using namespace tools::utils;
 
 namespace tools::events {
 
@@ -18,10 +20,10 @@ namespace tools::events {
         virtual ~EventProducer() = default;
         
         // Register this producer with the event bus
-        virtual void registerWithEventBus(shared_ptr<EventBus> bus) = 0;
+        virtual void registerWithEventBus(EventBus* bus) UNIMP
         
         // Get unique identifier for this producer
-        virtual ComponentId getId() const = 0;
+        virtual ComponentId getId() const UNIMP
     };
 
 }

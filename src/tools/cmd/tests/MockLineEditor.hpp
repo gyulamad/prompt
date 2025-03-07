@@ -26,13 +26,13 @@ public:
     void LoadHistory(const char* path) override { loaded_history_path = path; }
     void SaveHistory(const char* path) override { saved_history_path = path; }
     void AddHistory(const char* line) override { history.push_back(line); }
-    bool Readline(const char* prompt, string& line) override {
+    bool Readline(string& line) override {
         line = next_input;
         return should_exit;
     }
 };
 
 // Helper to create a CommandLine with a mock editor
-unique_ptr<CommandLine> create_command_line(unique_ptr<MockLineEditor> editor = make_unique<MockLineEditor>()) {
-    return make_unique<CommandLine>(move(editor), "> ", "test_history.txt", true, 10);
+unique_ptr<CommandLine> create_command_line(MockLineEditor& editor) {
+    return make_unique<CommandLine>(editor, "> ", "test_history.txt", true, 10);
 }

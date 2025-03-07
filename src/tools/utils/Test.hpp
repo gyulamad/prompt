@@ -25,6 +25,9 @@ using namespace std;
 
 #include "ANSI_FMT.hpp"
 #include "ERROR.hpp"
+#include "system.hpp"
+
+using namespace tools::utils;
 
 #ifdef TEST_CASSERT
 #include <cassert>
@@ -81,6 +84,21 @@ void run_tests(const string& filter = "") {
             test.run();
             auto end = chrono::high_resolution_clock::now(); // End timing
             auto duration = chrono::duration_cast<chrono::nanoseconds>(end - start);
+
+            // quick thread check
+            size_t threads_count;
+            long n = 0;
+            long ms = 100;
+            long m = 3000;
+            while ((threads_count = get_threads_count()) > 1) {
+                sleep_ms(ms);
+                n += ms;
+                if (n > m) break;
+            }
+            threads_count = get_threads_count();
+            if (threads_count > 1)
+                throw ERROR(to_string(threads_count-1) + " thread(s) stuck in background after " + to_string(m) + "ms");
+
             cout << "\r[" << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_GREEN, "✓") << "] ";
             cout << "[" << duration.count() << "ns" << endl; // Show time
             passed++;
