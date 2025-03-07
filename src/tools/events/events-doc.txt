@@ -1,36 +1,37 @@
 Tools::Events Library Documentation
 
 How it Works?
-The tools::events library operates as a centralized event system where components communicate via a hub called EventBus. Here’s the flow: 
-Producers (like BaseEventProducer) create events—small data packets with a type, source, and optional target—and publish them to the EventBus. 
-The EventBus then distributes these events either synchronously (immediately) or asynchronously (via a queue like RingBufferEventQueue) 
-to registered Consumers (like BaseEventConsumer) or Agents (like BaseEventAgent), which can both produce and consume. 
-Consumers and Agents register handlers for specific event types, ensuring they only process relevant events. 
-Optionally, a FilteredEventBus can apply filters (e.g., SelfMessageFilter) to decide which events reach which components, enhancing control. 
-Thread safety is built-in with mutexes, so multiple components can operate concurrently without conflicts. 
+The tools::events library operates as a centralized event system where components communicate via a hub called EventBus. 
+Here’s the flow: Producers (like BaseEventProducer) create events—small data packets with a type, source, and optional 
+target—and publish them to the EventBus. The EventBus then distributes these events either synchronously (immediately) 
+or asynchronously (via a queue like RingBufferEventQueue) to registered Consumers (like BaseEventConsumer) or Agents 
+(like BaseEventAgent), which can both produce and consume. Consumers and Agents register handlers for specific event 
+types via registerEventInterest or registerHandler, ensuring they only process relevant events. Optionally, a 
+FilteredEventBus can apply filters (e.g., SelfMessageFilter) to decide which events reach which components, enhancing 
+control. Thread safety is built-in with mutexes, so multiple components can operate concurrently without conflicts. 
 This setup allows components to work independently while reacting to system-wide changes.
 
 What is an Event System?
-An event system is a design pattern that enables components in a software application 
-to communicate asynchronously by sending and receiving events—discrete messages that signal something has happened. 
-This decouples producers (who generate events) from consumers (who react to events), promoting modularity, scalability, and flexibility. 
-The tools::events library provides a robust, reusable implementation of this pattern in C++.
+An event system is a design pattern that enables components in a software application to communicate asynchronously 
+by sending and receiving events—discrete messages that signal something has happened. This decouples producers (who 
+generate events) from consumers (who react to events), promoting modularity, scalability, and flexibility. The 
+tools::events library provides a robust, reusable implementation of this pattern in C++.
 
 Why and When to Use This Library?
-Use this library when you need a system where components operate independently 
-but must respond to state changes or actions elsewhere in your application—e.g., in GUIs, game engines, distributed systems, or real-time simulations. 
-It’s ideal for scenarios requiring loose coupling, extensibility, or concurrent event handling. 
-The library solves challenges like managing event distribution, ensuring thread safety, and filtering irrelevant events, 
-saving you from building these mechanisms from scratch.
+Use this library when you need a system where components operate independently but must respond to state changes or 
+actions elsewhere in your application—e.g., in GUIs, game engines, distributed systems, or real-time simulations. 
+It’s ideal for scenarios requiring loose coupling, extensibility, or concurrent event handling. The library solves 
+challenges like managing event distribution, ensuring thread safety, and filtering irrelevant events, saving you 
+from building these mechanisms from scratch.
 
 Overview
-The tools::events library is a C++ event-handling framework designed for building event-driven systems. 
-It provides a flexible, thread-safe infrastructure for producing, consuming, and filtering events through a central EventBus. 
-This documentation outlines the library’s components, usage, and examples, based on the implementation in src/tools/events/.
-
+The tools::events library is a C++ event-handling framework designed for building event-driven systems. It provides 
+a flexible, thread-safe infrastructure for producing, consuming, and filtering events through a central EventBus. 
+This documentation outlines the library’s components, usage, and examples, based on the implementation in 
+src/tools/events/.
 Namespace: tools::events
-Purpose: Enable event-driven communication with support for synchronous/asynchronous delivery, type-safe event handling, and customizable filtering.
-
+Purpose: Enable event-driven communication with support for synchronous/asynchronous delivery, type-safe event 
+handling, and customizable filtering.
 Key Features:
 - Abstract interfaces for producers, consumers, agents, queues, and filters.
 - Base implementations for rapid development.
@@ -40,225 +41,212 @@ Key Features:
 Components
 
 Core Classes
-- Event: Abstract base class for all events. Contains sourceId (string), targetId (string, empty for broadcast), and timestamp (chrono::system_clock). Requires subclasses to implement getType() for runtime type identification via type_index.
-- TypedEvent<T>: Template base class for creating concrete event types, automatically implementing getType() as type_index(typeid(T)).
-- EventBus: Central hub for event distribution. Supports synchronous or asynchronous delivery with an optional EventQueue and Logger.
-- FilteredEventBus: Extends EventBus with event filtering, including a default SelfMessageFilter and support for custom filters.
+- Event: Abstract base class for all events. Contains sourceId (string), targetId (string, empty for broadcast), and 
+timestamp (chrono::time_point<chrono::system_clock>). Requires subclasses to implement getType() for runtime type 
+identification via type_index.
+- TypedEvent<T>: Template base class for creating concrete event types, automatically implementing getType() as 
+type_index(typeid(T)).
+- EventBus: Central hub for event distribution. Constructor takes asyncDelivery (bool), optional shared_ptr<Logger>, 
+and optional unique_ptr<EventQueue>. Supports synchronous or asynchronous delivery.
+- FilteredEventBus: Extends EventBus with event filtering, including a default SelfMessageFilter and support for 
+custom filters.
 
 Interfaces
 - EventProducer: Interface for event-generating components, requiring registerWithEventBus and getId.
-- EventConsumer: Interface for components that process events, requiring handleEvent, registerWithEventBus, getId, and canHandle.
-- EventAgent: Interface combining EventProducer and EventConsumer for components that both produce and consume events.
+- EventConsumer: Interface for components that process events, requiring handleEvent, registerWithEventBus, getId, 
+and canHandle.
+- EventAgent: Interface combining EventProducer and EventConsumer for components that both produce and consume 
+events.
 
 Implementations
-- BaseEventProducer: Base class for producers. Manages registration with EventBus and provides a publishEvent template method to send events with automatic sourceId and timestamp setup.
-- BaseEventConsumer: Base class for consumers. Supports handler registration via registerHandler and event processing with handleEvent, using a map of type-specific callbacks.
-- BaseEventAgent: Base class for dual-role components that both produce and consume events. Combines the functionality of BaseEventProducer and BaseEventConsumer, allowing a single component to send events (e.g., to signal its own state changes) and react to events from others (e.g., to coordinate actions). Useful for self-contained modules that need to interact bidirectionally with the system, such as a game entity that both triggers and responds to updates.
-- RingBufferEventQueue: EventQueue implementation using a ring buffer. Provides a fixed-capacity queue for asynchronous event delivery with overflow handling.
-- SelfMessageFilter: EventFilter implementation to block self-sent events, configurable via setFilterSelfMessages to prevent components from reacting to their own messages.
+- BaseEventProducer: Base class for producers. Manages registration with EventBus and provides a publishEvent 
+template method to send events with automatic sourceId and timestamp setup.
+- BaseEventConsumer: Base class for consumers. Supports handler registration via registerHandler and event 
+processing with handleEvent, using a map of type-specific callbacks.
+- BaseEventAgent: Base class for dual-role components that both produce and consume events. Combines the 
+functionality of BaseEventProducer and BaseEventConsumer, allowing a single component to send events (e.g., to 
+signal its own state changes) and react to events from others (e.g., to coordinate actions). Useful for 
+self-contained modules that need to interact bidirectionally with the system, such as a game entity that both 
+triggers and responds to updates.
+- RingBufferEventQueue: EventQueue implementation using a ring buffer. Provides a fixed-capacity queue for 
+asynchronous event delivery with overflow handling.
+- SelfMessageFilter: EventFilter implementation to block self-sent events, configurable via setFilterSelfMessages 
+to prevent components from reacting to their own messages.
 
 Prerequisites
 - C++17 or later (uses shared_ptr, type_index, mutex, etc.).
 - Include necessary headers: <memory>, <thread>, <typeindex>, <mutex>, etc.
-- Optional: Logger for logging and RingBuffer for RingBufferEventQueue (assumed available).
+- Optional: tools::utils::Logger for logging and tools::utils::RingBuffer for RingBufferEventQueue (assumed 
+available). Note: Examples assume a consolidated "tools/events/events.hpp" header; adjust to individual headers 
+if not used.
 
 Usage
 
 1. Defining Custom Events
 Use TypedEvent<T> to create type-safe event classes that inherit runtime type identification.
-
 Example:
-
-#include "tools/events/events.hpp"
-
-using namespace std;
-using namespace tools::events;
-
-class MyEvent : public TypedEvent<MyEvent> {
-public:
-    MyEvent(int data) : data(data) {}
-    int data;
-};
+    #include "tools/events/events.hpp"
+    using namespace std;
+    using namespace tools::events;
+    class MyEvent : public TypedEvent<MyEvent> {
+    public:
+        MyEvent(int data) : data(data) {}
+        int data;
+    };
 
 2. Creating a Producer
 Extend BaseEventProducer to publish events to an EventBus.
-
 Example:
-
-#include "tools/events/events.hpp"
-
-using namespace std;
-using namespace tools::events;
-
-class MyProducer : public BaseEventProducer {
-public:
-    MyProducer(const ComponentId& id) : BaseEventProducer(id) {}
-    void sendEvent(int data) {
-        auto event = make_shared<MyEvent>(data);
-        publishEvent(event);
-    }
-};
+    #include "tools/events/events.hpp"
+    using namespace std;
+    using namespace tools::events;
+    class MyProducer : public BaseEventProducer {
+    public:
+        MyProducer(const ComponentId& id) : BaseEventProducer(id) {}
+        void sendEvent(int data) {
+            auto event = make_shared<MyEvent>(data);
+            publishEvent(event);
+        }
+    };
 
 3. Creating a Consumer
 Extend BaseEventConsumer to handle events with custom logic, registering handlers in registerEventInterests.
-
 Example:
-
-#include "tools/events/events.hpp"
-
-using namespace std;
-using namespace tools::events;
-
-#include <iostream>
-class MyConsumer : public BaseEventConsumer {
-public:
-    MyConsumer(const ComponentId& id) : BaseEventConsumer(id) {}
-protected:
-    void registerEventInterests() override {
-        registerHandler<MyEvent>([this](shared_ptr<MyEvent> event) {
-            cout << "Received event from " << event->sourceId << " with data: " << event->data << endl;
-        });
-    }
-};
+    #include "tools/events/events.hpp"
+    using namespace std;
+    using namespace tools::events;
+    #include <iostream>
+    class MyConsumer : public BaseEventConsumer {
+    public:
+        MyConsumer(const ComponentId& id) : BaseEventConsumer(id) {}
+    protected:
+        void registerEventInterests() override {
+            registerHandler<MyEvent>([this](shared_ptr<MyEvent> event) {
+                cout << "Received event from " << event->sourceId << " with data: " << event->data << endl;
+            });
+        }
+    };
 
 4. Creating an Agent
-Extend BaseEventAgent for components that both produce and consume events, integrating publishing and handling in one class.
-
+Extend BaseEventAgent for components that both produce and consume events, integrating publishing and handling in 
+one class.
 Example:
-
-#include "tools/events/events.hpp"
-
-using namespace std;
-using namespace tools::events;
-
-#include <iostream>
-class MyAgent : public BaseEventAgent {
-public:
-    MyAgent(const ComponentId& id) : BaseEventAgent(id) {}
-    void sendEvent(int data) {
-        auto event = make_shared<MyEvent>(data);
-        publishEvent(event);
-    }
-protected:
-    void registerEventInterests() override {
-        registerHandler<MyEvent>([this](shared_ptr<MyEvent> event) {
-            cout << "Agent " << getId() << " received data: " << event->data << endl;
-        });
-    }
-};
+    #include "tools/events/events.hpp"
+    using namespace std;
+    using namespace tools::events;
+    #include <iostream>
+    class MyAgent : public BaseEventAgent {
+    public:
+        MyAgent(const ComponentId& id) : BaseEventAgent(id) {}
+        void sendEvent(int data) {
+            auto event = make_shared<MyEvent>(data);
+            publishEvent(event);
+        }
+    protected:
+        void registerEventInterests() override {
+            registerHandler<MyEvent>([this](shared_ptr<MyEvent> event) {
+                cout << "Agent " << getId() << " received data: " << event->data << endl;
+            });
+        }
+    };
 
 5. Using EventBus
 Connect producers, consumers, and agents via an EventBus for synchronous or asynchronous event delivery.
-
 Example (Synchronous):
-
-#include "tools/events/events.hpp"
-
-using namespace std;
-using namespace tools::events;
-
-int main() {
-    auto bus = make_shared<EventBus>(false); // Synchronous mode
-    auto producer = make_shared<MyProducer>("prod1");
-    auto consumer = make_shared<MyConsumer>("cons1");
-    auto agent = make_shared<MyAgent>("agent1");
-    producer->registerWithEventBus(bus);
-    consumer->registerWithEventBus(bus);
-    agent->registerWithEventBus(bus);
-    producer->sendEvent(42); // Outputs from consumer and agent
-    agent->sendEvent(99);    // Outputs from consumer and agent (unless filtered)
-    return 0;
-}
-
+    #include "tools/events/events.hpp"
+    using namespace std;
+    using namespace tools::events;
+    int main() {
+        auto bus = make_shared<EventBus>(false); // Synchronous mode
+        auto producer = make_shared<MyProducer>("prod1");
+        auto consumer = make_shared<MyConsumer>("cons1");
+        auto agent = make_shared<MyAgent>("agent1");
+        producer->registerWithEventBus(bus);
+        consumer->registerWithEventBus(bus);
+        agent->registerWithEventBus(bus);
+        producer->sendEvent(42); // Outputs from consumer and agent
+        agent->sendEvent(99);    // Outputs from consumer and agent (unless filtered)
+        return 0;
+    }
 Example (Asynchronous):
-
-#include "tools/utils/Logger.hpp"
-#include "tools/events/events.hpp"
-
-using namespace std;
-using namespace tools::events;
-using namespace tools::utils;
-
-int main() {
-    auto logger = make_shared<Logger>();
-    auto queue = make_unique<RingBufferEventQueue>(100, logger);
-    auto bus = make_shared<EventBus>(true, logger, move(queue));
-    auto producer = make_shared<MyProducer>("prod1");
-    auto consumer = make_shared<MyConsumer>("cons1");
-    producer->registerWithEventBus(bus);
-    consumer->registerWithEventBus(bus);
-    producer->sendEvent(42);
-    this_thread::sleep_for(chrono::milliseconds(100)); // Wait for async processing
-    return 0;
-}
+    #include "tools/utils/Logger.hpp"
+    #include "tools/events/events.hpp"
+    using namespace std;
+    using namespace tools::events;
+    using namespace tools::utils;
+    int main() {
+        auto logger = make_shared<Logger>();
+        auto queue = make_unique<RingBufferEventQueue>(100, logger);
+        auto bus = make_shared<EventBus>(true, logger, move(queue));
+        auto producer = make_shared<MyProducer>("prod1");
+        auto consumer = make_shared<MyConsumer>("cons1");
+        producer->registerWithEventBus(bus);
+        consumer->registerWithEventBus(bus);
+        producer->sendEvent(42);
+        this_thread::sleep_for(chrono::milliseconds(100)); // Wait for async processing
+        return 0;
+    }
 
 6. Filtering Events
 Use FilteredEventBus to apply filters, such as blocking self-messages with SelfMessageFilter.
-
 Example:
-
-#include "tools/events/events.hpp"
-
-using namespace std;
-using namespace tools::events;
-
-int main() {
-    auto bus = make_shared<FilteredEventBus>(false);
-    auto agent = make_shared<MyAgent>("agent1");
-    agent->registerWithEventBus(bus);
-    bus->getSelfMessageFilter()->setFilterSelfMessages(true); // Block self-events
-    agent->sendEvent(42); // No output due to self-filtering
-    return 0;
-}
+    #include "tools/events/events.hpp"
+    using namespace std;
+    using namespace tools::events;
+    int main() {
+        auto bus = make_shared<FilteredEventBus>(false);
+        auto agent = make_shared<MyAgent>("agent1");
+        agent->registerWithEventBus(bus);
+        bus->getSelfMessageFilter()->setFilterSelfMessages(true); // Block self-events
+        agent->sendEvent(42); // No output due to self-filtering
+        return 0;
+    }
 
 7. Custom Filters
 Add multiple custom filters to FilteredEventBus using addEventFilter.
-
 Example:
-
-#include "tools/events/events.hpp"
-
-using namespace std;
-using namespace tools::events;
-
-class EvenDataFilter : public EventFilter {
-public:
-    bool shouldDeliverEvent(const ComponentId&, shared_ptr<Event> event) override {
-        auto myEvent = static_pointer_cast<MyEvent>(event);
-        return myEvent->data % 2 == 0; // Only even numbers
+    #include "tools/events/events.hpp"
+    using namespace std;
+    using namespace tools::events;
+    class EvenDataFilter : public EventFilter {
+    public:
+        bool shouldDeliverEvent(const ComponentId&, shared_ptr<Event> event) override {
+            auto myEvent = static_pointer_cast<MyEvent>(event);
+            return myEvent->data % 2 == 0; // Only even numbers
+        }
+    };
+    int main() {
+        auto bus = make_shared<FilteredEventBus>(false);
+        auto producer = make_shared<MyProducer>("prod1");
+        auto consumer = make_shared<MyConsumer>("cons1");
+        producer->registerWithEventBus(bus);
+        consumer->registerWithEventBus(bus);
+        bus->addEventFilter(make_shared<EvenDataFilter>());
+        producer->sendEvent(41); // No output (odd, filtered)
+        producer->sendEvent(42); // Outputs: "Received event from prod1 with data: 42"
+        return 0;
     }
-};
-int main() {
-    auto bus = make_shared<FilteredEventBus>(false);
-    auto producer = make_shared<MyProducer>("prod1");
-    auto consumer = make_shared<MyConsumer>("cons1");
-    producer->registerWithEventBus(bus);
-    consumer->registerWithEventBus(bus);
-    bus->addEventFilter(make_shared<EvenDataFilter>());
-    producer->sendEvent(41); // No output (odd, filtered)
-    producer->sendEvent(42); // Outputs: "Received event from prod1 with data: 42"
-    return 0;
-}
 
 Advanced Usage
 
 Thread Safety
-- Operations like publishEvent, handleEvent, and registration methods are thread-safe due to mutexes in EventBus, BaseEventProducer, BaseEventConsumer, and BaseEventAgent.
+- Operations like publishEvent, handleEvent, and registration methods are thread-safe due to mutexes in EventBus, 
+BaseEventProducer, BaseEventConsumer, and BaseEventAgent. The EventBus destructor (~EventBus) ensures proper 
+cleanup of async threads.
 - RingBufferEventQueue uses internal synchronization for concurrent read/write.
 - Custom implementations should ensure thread safety if extending beyond provided classes.
 
 Targeted Events
 Set targetId to deliver events to a specific consumer or agent by ID.
 Example:
-
     auto event = make_shared<MyEvent>(42);
     event->targetId = "cons1";
     producer->publishEvent(event); // Only "cons1" receives it
 
 Event Interest Registration
-Consumers and agents can specify event types of interest using EventBus::registerEventInterest, typically called by BaseEventConsumer::registerHandler or BaseEventAgent::registerHandler.
+Consumers and agents can specify event types of interest using EventBus::registerEventInterest, typically called 
+by BaseEventConsumer::registerHandler or BaseEventAgent::registerHandler.
 Example (Manual Registration):
-
     bus->registerEventInterest("cons1", type_index(typeid(MyEvent)));
 
 Managing Components
@@ -277,7 +265,7 @@ Best Practices
 - Use filters to optimize event delivery and reduce processing overhead.
 
 Dependencies
-- Internal: Logger (logging), RingBuffer (queue implementation).
+- Internal: tools::utils::Logger (logging), tools::utils::RingBuffer (queue implementation).
 - External: Standard C++ libraries (<memory>, <thread>, <typeindex>, <mutex>, <chrono>, etc.).
 
 Limitations
@@ -288,4 +276,5 @@ Limitations
 Contributing
 - Extend BaseEventProducer, BaseEventConsumer, or BaseEventAgent for custom behavior.
 - Implement new EventQueue or EventFilter classes for specialized needs.
+- Define new event types using TypedEvent<T> for additional functionality.
 - Submit enhancements or bug fixes to src/tools/events/.

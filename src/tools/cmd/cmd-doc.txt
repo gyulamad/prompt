@@ -1,0 +1,155 @@
+Tools::Cmd::Commander Documentation
+
+Overview
+The tools::cmd::Commander class is a central component for building interactive command-line interfaces in C++. It 
+orchestrates user input handling, command execution, and auto-completion, making it a powerful tool for creating 
+robust CLI applications. The Commander integrates with CommandLine for reading and managing user input, 
+CompletionMatcher for providing completion suggestions, and Command objects for defining and executing specific 
+commands.
+Namespace: tools::cmd
+
+Key Components
+
+CommandLine
+- Purpose: Manages the reading of input lines from the user, handles command history, and supports multi-line input. 
+It relies on an ILineEditor interface for the underlying line editing functionality.
+- Implementation: Typically uses LinenoiseAdapter, which wraps the linenoise library to provide features like 
+history and completions.
+- Interaction: Owned by Commander and configured with a CompletionMatcher to enable real-time completion 
+suggestions.
+
+CompletionMatcher
+- Purpose: Generates completion suggestions based on the current user input and predefined command patterns.
+- Functionality: Parses input and matches it against command patterns, suggesting possible next words or parameter 
+values (e.g., "on" or "off" for a {switch} parameter).
+- Configuration: Updated by Commander with command patterns when commands are set.
+
+Command
+- Purpose: An abstract base class defining the interface for executable commands.
+- Requirements: Subclasses must implement:
+  - get_patterns(): Returns a vector of command pattern strings (e.g., "set {switch}").
+  - run(): Executes the command with provided arguments and returns a result string.
+- Role: Instances are registered with Commander to define the available commands.
+
+Usage
+
+1. Creating a Commander Instance
+To use Commander, instantiate it with a CommandLine object, typically created with a LinenoiseAdapter for line 
+editing.
+Example:
+        #include "tools/cmd/cmd.hpp"
+        using namespace std;
+        using namespace tools::cmd;
+        int main() {
+            auto editor = make_unique<LinenoiseAdapter>();
+            auto command_line = make_unique<CommandLine>(move(editor));
+            Commander commander(move(*command_line));
+            // Further setup...
+            return 0;
+        }
+
+2. Defining Custom Commands
+Create custom commands by inheriting from tools::cmd::Command and implementing the required virtual methods.
+Example:
+        #include "tools/cmd/cmd.hpp"
+        using namespace std;
+        using namespace tools::cmd;
+        class MyCommand : public Command {
+        public:
+            vector<string> get_patterns() const override {
+                return {"mycommand {param}"};
+            }
+            string run(void* user_context, const vector<string>& args) override {
+                if (args.size() < 2) return "Error: Parameter required";
+                return "Executed with param: " + args[1];
+            }
+        };
+
+3. Setting Commands in Commander
+Register your commands with the Commander instance. This also updates the CompletionMatcher with the command 
+patterns.
+Example:
+        #include "tools/cmd/cmd.hpp"
+        using namespace std;
+        using namespace tools::cmd;
+        int main() {
+            auto editor = make_unique<LinenoiseAdapter>();
+            auto command_line = make_unique<CommandLine>(move(editor));
+            Commander commander(move(*command_line));
+            vector<void*> commands = {new MyCommand()};
+            commander.set_commands(commands);
+            return 0;
+        }
+
+4. Running the Command Loop
+Implement a loop to continuously read input and execute commands until the Commander exits (e.g., via Ctrl+D or an 
+explicit exit() call).
+Example:
+        #include "tools/cmd/cmd.hpp"
+        using namespace std;
+        using namespace tools::cmd;
+        int main() {
+            auto editor = make_unique<LinenoiseAdapter>();
+            auto command_line = make_unique<CommandLine>(move(editor));
+            Commander commander(move(*command_line));
+            vector<void*> commands = {new MyCommand()};
+            commander.set_commands(commands);
+            while (!commander.is_exiting()) {
+                string input = commander.get_command_line_ref().readln();
+                if (!input.empty()) {
+                    commander.run_command(nullptr, input);
+                }
+            }
+            return 0;
+        }
+
+Completions
+The CompletionMatcher powers the auto-completion feature by analyzing command patterns and user input. Command 
+patterns are strings that define the structure of commands, using:
+- Fixed Words: Literal parts of the command (e.g., "set").
+- Parameters: Enclosed in {} (e.g., {switch}), which can trigger specific completion handlers.
+
+Example
+For a pattern "set {switch}":
+- Typing "set " suggests "on" and "off".
+- Typing "set o" suggests "on".
+The CompletionMatcher supports custom handlers (e.g., for {switch} or {filename}) and can be extended for 
+additional parameter types.
+
+Advanced Usage and Best Practices
+- Thread Safety: If used in a multi-threaded environment, ensure that command executions and shared resources are 
+thread-safe, as Commander itself does not provide synchronization.
+- Memory Management: Commander stores commands as void* pointers. Manage the lifetime of these objects (e.g., 
+delete them when Commander is destroyed) to prevent memory leaks.
+- Custom Completions: Extend CompletionMatcher::handlers with new parameter types and their completion logic for 
+more specific suggestions.
+- Error Handling: Implement robust error handling in run() methods to provide clear feedback to the user, as 
+Commander outputs errors to cerr for unmatched commands or arguments.
+- User Context: Pass a void* user_context to run_command() to provide commands with application-specific data.
+
+Class Details
+
+Constructor
+- Signature: Commander(CommandLine command_line)
+- Behavior: Takes ownership of the CommandLine object via move semantics.
+
+Public Methods
+- CommandLine& get_command_line_ref(): Returns a reference to the internal CommandLine for configuration or direct 
+access.
+- CompletionMatcher& get_cmatcher_ref(): Returns a reference to the internal CompletionMatcher.
+- bool is_exiting() const: Returns true if the Commander is exiting (via exit() or CommandLine exit).
+- void set_commands(const vector<void*>& commands): Sets the list of command pointers and updates the 
+CompletionMatcher with their patterns.
+- vector<void*> get_commands_ref(): Returns the current list of command pointers.
+- void exit(): Signals the Commander to exit the command loop.
+- bool run_command(void* user_context, const string& input): Parses the input, matches it to a command, executes 
+it if valid, and returns true on success.
+
+Dependencies
+- Internal: ILineEditor, CommandLine, CompletionMatcher, Command.
+- External: Standard C++ libraries (<string>, <vector>, etc.), linenoise (via LinenoiseAdapter).
+
+Contributing
+- New Commands: Add functionality by creating new Command subclasses and registering them with Commander.
+- Completion Enhancements: Extend CompletionMatcher with custom parameter handlers.
+- Source Contributions: Submit improvements to src/tools/cmd/ in the project repository.
