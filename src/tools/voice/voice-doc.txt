@@ -1,4 +1,4 @@
-Tools::Voice Library Documentation
+Voice Library Documentation
 
 Overview
 The tools::voice library provides a suite of C++ classes for handling voice input and output, including recording, 

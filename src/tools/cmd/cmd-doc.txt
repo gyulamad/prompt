@@ -1,4 +1,4 @@
-Tools::Cmd::Commander Documentation
+Commander Documentation
 
 Overview
 The tools::cmd::Commander class is a central component for building interactive command-line interfaces in C++. It 
