@@ -61,7 +61,7 @@ namespace tools::cmd {
             if (param_type == "switch") {
                 vector<string> options = {"on", "off"};
                 vector<string> matches;
-                for (const auto& opt : options) {
+                for (const string& opt: options) {
                     if (str_starts_with(opt, partial)) {
                         matches.push_back(opt);
                     }
@@ -78,7 +78,7 @@ namespace tools::cmd {
         
             // Parse command patterns into structured form
             vector<CommandPattern> patterns;
-            for (const auto& pattern_str : command_patterns) {
+            for (const string& pattern_str: command_patterns) {
                 CommandPattern pattern;
                 pattern.parts = parse_pattern(pattern_str);
                 patterns.push_back(pattern);
@@ -88,7 +88,7 @@ namespace tools::cmd {
         
             // Case 1: Empty input - suggest first word of each pattern
             if (current_parts.empty() || (current_parts.size() == 1 && current_parts[0].empty())) {
-                for (const auto& pattern : patterns) {
+                for (const CommandPattern& pattern: patterns) {
                     if (!pattern.parts.empty()) {
                         completions.push_back(pattern.parts[0].value);
                     }
@@ -96,7 +96,7 @@ namespace tools::cmd {
             }
             // Case 2: Non-empty input
             else {
-                for (const auto& pattern : patterns) {
+                for (const CommandPattern& pattern: patterns) {
                     // Check if the input matches the pattern up to the current point
                     if (!matches_current_input(pattern, current_parts)) {
                         continue;
@@ -196,7 +196,7 @@ namespace tools::cmd {
             {"switch", [](const string& partial) {
                 vector<string> options = {"on", "off"};
                 vector<string> completions;
-                for (const auto& opt : options) {
+                for (const string& opt: options) {
                     if (str_starts_with(opt, partial)) {
                         completions.push_back(opt);
                     }

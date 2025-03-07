@@ -27,8 +27,3 @@ public:
         return run_result;
     }
 };
-
-// Helper to create a Commander with a mock CommandLine
-unique_ptr<Commander> create_commander(CommandLine& cl) {
-    return make_unique<Commander>(cl); // Move the CommandLine into Commander
-}

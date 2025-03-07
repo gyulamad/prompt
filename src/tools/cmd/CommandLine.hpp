@@ -158,17 +158,17 @@ void test_CommandLine_is_exited_after_readline_exit() {
 
 void test_CommandLine_set_prompt_changes_prompt() {
     MockLineEditor mock;
-    auto cl = create_command_line(mock);
-    cl->set_prompt("new> ");
-    string actual = cl->get_prompt();
+    CommandLine cl(mock, "> ", "test_history.txt", true, 10);
+    cl.set_prompt("new> ");
+    string actual = cl.get_prompt();
     assert(actual == "new> " && "set_prompt should update the prompt string");
     // No fix needed: no direct mock access
 }
 
 void test_CommandLine_get_prompt_returns_initial_prompt() {
     MockLineEditor mock;
-    auto cl = create_command_line(mock);
-    string actual = cl->get_prompt();
+    CommandLine cl(mock, "> ", "test_history.txt", true, 10);
+    string actual = cl.get_prompt();
     assert(actual == "> " && "get_prompt should return the initial prompt");
     // No fix needed: no direct mock access
 }
@@ -176,16 +176,16 @@ void test_CommandLine_get_prompt_returns_initial_prompt() {
 void test_CommandLine_readln_reads_input() {
     MockLineEditor mock;
     mock.next_input = "test input";
-    auto cl = create_command_line(mock);
-    string actual = cl->readln();
+    CommandLine cl(mock, "> ", "test_history.txt", true, 10);
+    string actual = cl.readln();
     assert(actual == "test input" && "readln should return the input from the editor");
     // Fixed: Added mock_ptr to set next_input before move
 }
 
 void test_CommandLine_readln_sets_multi_line() {
     MockLineEditor mock;
-    auto cl = create_command_line(mock);
-    cl->readln();
+    CommandLine cl(mock, "> ", "test_history.txt", true, 10);
+    cl.readln();
     bool actual = mock.multi_line_enabled; // Use raw pointer
     assert(actual == true && "readln should enable multi-line mode based on constructor arg");
     // Already fixed in your example
@@ -193,8 +193,8 @@ void test_CommandLine_readln_sets_multi_line() {
 
 void test_CommandLine_readln_sets_history_max_length() {
     MockLineEditor mock;
-    auto cl = create_command_line(mock);
-    cl->readln();
+    CommandLine cl(mock, "> ", "test_history.txt", true, 10);
+    cl.readln();
     size_t actual = mock.max_history_len;
     assert(actual == 10 && "readln should set history max length based on constructor arg");
     // Fixed: Added mock_ptr to access max_history_len after move
@@ -202,8 +202,8 @@ void test_CommandLine_readln_sets_history_max_length() {
 
 void test_CommandLine_readln_loads_history() {
     MockLineEditor mock;
-    auto cl = create_command_line(mock);
-    cl->readln();
+    CommandLine cl(mock, "> ", "test_history.txt", true, 10);
+    cl.readln();
     string actual = mock.loaded_history_path;
     assert(actual == "test_history.txt" && "readln should load history from the specified path");
     // Fixed: Added mock_ptr to access loaded_history_path after move
@@ -212,8 +212,8 @@ void test_CommandLine_readln_loads_history() {
 void test_CommandLine_readln_adds_to_history() {
     MockLineEditor mock;
     mock.next_input = "test command";
-    auto cl = create_command_line(mock);
-    cl->readln();
+    CommandLine cl(mock, "> ", "test_history.txt", true, 10);
+    cl.readln();
     size_t actual_size = mock.history.size();
     string actual_entry = mock.history[0];
     assert(actual_size == 1 && "readln should add input to history");
@@ -223,8 +223,8 @@ void test_CommandLine_readln_adds_to_history() {
 
 void test_CommandLine_readln_saves_history() {
     MockLineEditor mock;
-    auto cl = create_command_line(mock);
-    cl->readln();
+    CommandLine cl(mock, "> ", "test_history.txt", true, 10);
+    cl.readln();
     string actual = mock.saved_history_path;
     assert(actual == "test_history.txt" && "readln should save history to the specified path");
     // Fixed: Added mock_ptr to access saved_history_path after move

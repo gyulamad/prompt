@@ -31,8 +31,3 @@ public:
         return should_exit;
     }
 };
-
-// Helper to create a CommandLine with a mock editor
-unique_ptr<CommandLine> create_command_line(MockLineEditor& editor) {
-    return make_unique<CommandLine>(editor, "> ", "test_history.txt", true, 10);
-}
