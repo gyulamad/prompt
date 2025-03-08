@@ -153,10 +153,16 @@ namespace tools::utils {
         Logger(const Logger&) = delete;
         Logger& operator=(const Logger&) = delete;
 
-        Logger(const string& name, const string& filename = "", LogFormatter customFormatter = nullptr)
-            : name(name), formatter(customFormatter ? customFormatter : [this](Level level, const string& name, const string& message) {
+        Logger(
+            const string& name, 
+            const string& filename = "", 
+            LogFormatter customFormatter = nullptr
+        ): 
+            name(name), 
+            formatter(customFormatter ? customFormatter : [this](Level level, const string& name, const string& message) {
                 return defaultFormatter(level, name, message);
-            }) {
+            }) 
+        {
             if (!filename.empty()) {
 
                 // Extract the directory path                
@@ -166,8 +172,7 @@ namespace tools::utils {
                 // }
 
                 logFile.open(filename, ios::app);
-                if (!logFile.is_open())
-                {
+                if (!logFile.is_open()) {
                     cerr << "Failed to create log file: " << filename << endl;
                 }
             }

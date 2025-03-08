@@ -43,14 +43,21 @@ namespace tools::utils {
     #define DEBUG(msg) debug(msg, __FILE__, __LINE__)
 
     // Define a helper macro for the implementation details
-    #define NULLCHK_IMPL(p, errmsg) { if (nullptr == p) throw ERROR(errmsg); }
+    #define NULLCHK_IMPL(ptr, errmsg) { if (nullptr == ptr) throw ERROR(errmsg); }
 
     // Define the main macro with optional parameter
     #define NULLCHK(...) NULLCHK_SELECT(__VA_ARGS__, NULLCHK_2, NULLCHK_1)(__VA_ARGS__)
 
     // Helper macros to select the right implementation based on argument count
     #define NULLCHK_SELECT(_1, _2, NAME, ...) NAME
-    #define NULLCHK_1(p) NULLCHK_IMPL(p, "nullptr: "#p)
-    #define NULLCHK_2(p, errmsg) NULLCHK_IMPL(p, errmsg)
+    #define NULLCHK_1(ptr) NULLCHK_IMPL(ptr, "nullptr: "#ptr)
+    #define NULLCHK_2(ptr, errmsg) NULLCHK_IMPL(ptr, errmsg)
 
+    // Dereference to a specific type of pointer with nullptr safety check
+    template<typename T>
+    T& dref(void* ptr) {
+        NULLCHK(ptr, "Null pointer dereference");
+        T& ref = (*(T*)ptr);
+        return ref;
+    }
 };

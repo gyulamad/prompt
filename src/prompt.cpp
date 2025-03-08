@@ -1,3 +1,6 @@
+#include <iostream>    // for cerr, cout
+#include <unistd.h>    // for sleep()
+#include <algorithm>   // for reverse()
 #include <memory>
 
 #include "tools/utils/utils.hpp"
@@ -11,6 +14,18 @@ using namespace tools::cmd;
 using namespace tools::events;
 using namespace tools::voice;
 
+
+class IUserAgent: public BaseEventAgent {
+public:
+    IUserAgent(const ComponentId& id, Commander& commander, Logger& logger): BaseEventAgent(id), commander(commander), logger(logger) {}
+    Commander& getCommanderRef() { return commander; }
+    Logger& getLoggerRef() { return logger; }
+protected:
+    Commander& commander;
+    Logger& logger;
+};
+
+
 class ExitCommand : public Command {
 public:
     // Define the command pattern(s) this class will match
@@ -20,8 +35,9 @@ public:
 
     // Execute the command logic
     string run(void* user_context, const vector<string>& args) override {
-        // Cast the user_context to Commander and signal it to exit
-        static_cast<Commander*>(user_context)->exit();
+        IUserAgent& user = dref<IUserAgent>(user_context);
+        Commander& commander = user.getCommanderRef();
+        commander.exit();
         return "Exiting...";
     }
 };
@@ -30,47 +46,43 @@ public:
 class UserInputEvent : public TypedEvent<UserInputEvent> {
 public:
     UserInputEvent(
-        ILineEditor& editor, 
-        const string& input
+        IUserAgent& user, 
+        const string& input,
+        bool newln
     ): 
         TypedEvent<UserInputEvent>(), 
-        editor(editor),
-        input(input)
+        user(user),
+        input(input + (newln ? "\n" : ""))
     {}
 
     string getInput() const { return input; }
-    ILineEditor& getEditorRef() { return editor; }
+    IUserAgent& getUserRef() { return user; }
 
 private:
-    ILineEditor& editor;
+    IUserAgent& user;
     string input;
 };
 
-class UserAgent: public BaseEventAgent {
+class UserTextInputAgent: public IUserAgent {
 public:
-    UserAgent(const ComponentId& id): BaseEventAgent(id) {}
+    UserTextInputAgent(const ComponentId& id, Commander& commander, Logger& logger): IUserAgent(id, commander, logger) {}
 
-    void run() {
-        const string prompt = "> ";
-
-        // Setup CommandLine with a LinenoiseAdapter for input
-        LinenoiseAdapter editor(prompt);
-        CommandLine command_line(editor);
-        Commander commander(command_line);
-
-        // Register commands
-        ExitCommand exitCommand;
-        vector<void*> commands = { &exitCommand };
-        commander.set_commands(commands);
-
-        // Command loop
+    void run() { // Command loop
         string input;
+        Commander& commander = getCommanderRef();
+        CommandLine& cline = commander.get_command_line_ref();
+        ILineEditor& editor = cline.getEditorRef();
         while (!commander.is_exiting()) {
-            editor.Readline(input); // commander.get_command_line_ref().readln(); // TODO: use editor.ReadLine() ???
-            if (input.empty()) continue;
-            // Try to execute the input as a command
-            if (input[0] == '/') commander.run_command(&commander, input);
-            else publishEvent(make_shared<UserInputEvent>(editor, input)); // Publishes to the EventBus
+            try {
+                if (editor.Readline(input)) input = "/exit"; // Readline => returns true for Ctrl+C
+                if (input.empty()) continue;
+                if (input[0] == '/') commander.run_command(this, input); // Try to execute the input as a command
+                else publishEvent(make_shared<UserInputEvent>(*this, input, true)); // Publishes to the EventBus
+            } catch (exception &e) {
+                string errmsg = "Runtime error: " + string(e.what());
+                cerr << errmsg << endl;
+                logger.err(errmsg);
+            }
         }
     }
 
@@ -92,49 +104,61 @@ protected:
 
     void registerEventInterests() override {
         registerHandler<UserInputEvent>([this](shared_ptr<UserInputEvent> event) {
-            sleep(3);
             string data = event->getInput();
-            reverse(data.begin(), data.end());
-            ILineEditor& editor = event->getEditorRef();
-            editor.WipeLine(); // hide user input area (clear the actual line)  
-            cout << "Echo: " << data << endl;            
-            editor.RefreshLine(); // show the user input prompt (linenoise readln) so that user can continue typing...
+            IUserAgent& user = event->getUserRef();
+            Commander& commander = user.getCommanderRef();
+            CommandLine& cline = commander.get_command_line_ref();
+            ILineEditor& editor = cline.getEditorRef();
+            {
+                lock_guard<mutex> lock(mtx);
+                editor.WipeLine(); // hide user input area (clear the actual line)  
+                cout << data << flush;
+                editor.RefreshLine(); // show the user input prompt (linenoise readln) so that user can continue typing...
+            }
         });
     }
+
+private:
+    static mutex mtx;
 };
+mutex EchoAgent::mtx;
 
 
 int main(int argc, char *argv[]) {
     run_tests();
-    // run_tests("test_BaseEventProducer_publishEvent_async_bus");
-    // run_tests("event");
-    // run_tests("test_RingBufferEventQueue");
-    // run_tests("test_EventBus");
-    // run_tests("test_BaseEventAgent");
-    // run_tests("test_BaseEventConsumer");
-    // run_tests("test_BaseEventProducer");
-    // run_tests("test_SelfMessageFilter");
-    // run_tests("test_FilteredEventBus");
-    // sleep(3);
-    // return 0;
 
-    // TODO: use configs:
-    size_t capacity = 100;
-    bool async = true;
-    long ms = 300;
+    try {
+        // TODO: use configs:
+        size_t capacity = 100;
+        bool async = true;
+        long ms = 300;
 
+        const string prompt = "> ";
 
-    Logger logger("logger");
-    RingBufferEventQueue queue(capacity, logger);
-    EventBus bus(async, logger, queue);
-    shared_ptr user = make_shared<UserAgent>("user");
-    shared_ptr echo = make_shared<EchoAgent>("echo");
-    user->registerWithEventBus(&bus);
-    echo->registerWithEventBus(&bus);
+        Logger logger("applog", "app.log");
+        RingBufferEventQueue queue(capacity, logger);
+        EventBus bus(async, logger, queue);
+        
+        LinenoiseAdapter editor(prompt);
+        CommandLine cline(editor);
+        Commander commander(cline);
+        // Register commands
+        ExitCommand exitCommand;
+        vector<void*> commands = { &exitCommand };
+        commander.set_commands(commands);
+        shared_ptr userTextInput = make_shared<UserTextInputAgent>("user-text-input", commander, logger);
 
-    // Start the input loop
-    user->run();
+        shared_ptr echo = make_shared<EchoAgent>("echo");
+        
+        userTextInput->registerWithEventBus(&bus);
+        echo->registerWithEventBus(&bus);
 
-    sleep(3);
+        // Start the input loop
+        userTextInput->run();
+    } catch (exception &e) {
+        cerr << "Error: " << e.what() << endl;
+        return 1;
+    }
+
     return 0;
 }

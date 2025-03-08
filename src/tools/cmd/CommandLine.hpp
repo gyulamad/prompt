@@ -71,6 +71,8 @@ namespace tools::cmd {
 
         ~CommandLine() = default;
 
+        ILineEditor& getEditorRef() { return line_editor; }
+
         bool is_exited() const {
             return exited;
         }
