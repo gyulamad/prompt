@@ -79,7 +79,8 @@ void run_tests(const string& filter = "") {
 
     size_t n = 0;
     size_t passed = 0;
-    string outputs = "";
+    string test_outputs = "";
+    string thread_warns = "";
     for (const auto& test : tests) { 
         // skip tests where the filename or the test name both are not containing the filter
         // (or do all if the filter is empty)
@@ -97,13 +98,13 @@ void run_tests(const string& filter = "") {
             << test.file << ":" << test.line << flush;
         auto start = chrono::high_resolution_clock::now(); // Start timing
         try {
-            string outp = test_capture_cout_cerr([&test]() {
+            string test_output = test_capture_cout_cerr([&test]() {
                 test.run();
             });
-            if (!outp.empty()) 
-                outputs += 
+            if (!test_output.empty()) 
+                test_outputs += 
                     "Test " + ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, test.name) + "() at " + 
-                    test.file + ":" + to_string(test.line) + " outputs:\n" + outp + "\n";
+                    test.file + ":" + to_string(test.line) + " outputs:\n" + test_output + "\n";
             
             auto end = chrono::high_resolution_clock::now(); // End timing
             auto duration = chrono::duration_cast<chrono::nanoseconds>(end - start);
@@ -113,7 +114,11 @@ void run_tests(const string& filter = "") {
             long n = 0;
             long ms = 100;
             long m = 3000;
+            string thread_warn = "";
             while ((threads_count = get_threads_count()) > 1) {
+                if (thread_warn.empty()) thread_warn = 
+                    "Test " + ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, test.name) + "() at " + 
+                    test.file + ":" + to_string(test.line) + " left threads: " + to_string(threads_count) + "\n";
                 sleep_ms(ms);
                 n += ms;
                 if (n > m) break;
@@ -121,6 +126,7 @@ void run_tests(const string& filter = "") {
             threads_count = get_threads_count();
             if (threads_count > 1)
                 throw ERROR(to_string(threads_count-1) + " thread(s) stuck in background after " + to_string(m) + "ms");
+            thread_warns += thread_warn;
 
             cout << "\r[" << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_GREEN, "✓") << "] ";
             cout << "[" << duration.count() << "ns" << endl; // Show time
@@ -146,8 +152,10 @@ void run_tests(const string& filter = "") {
         }
     }
 
-    if (!outputs.empty())
-        cout << ANSI_FMT(ANSI_FMT_WARNING, "Some test(s) still outputs:") << endl << outputs << flush;
+    if (!test_outputs.empty())
+        cout << ANSI_FMT(ANSI_FMT_WARNING, "Warning: Some test(s) left outputs:") << endl << test_outputs << flush;
+    if (!thread_warns.empty())
+        cout << ANSI_FMT(ANSI_FMT_WARNING, "Warning: Some test(s) left running threads after completion:") << endl << thread_warns << flush;
 
     // Summary message
     if (failures.size() != 0) {

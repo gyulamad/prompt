@@ -39,6 +39,7 @@ int safe_main(int argc, char *argv[]) {
     // run_tests("test_SharedPtrFactory_");
     // run_tests("test_SharedPtrFactory_concurrent_create_strict_with_holders");
 
+    SharedPtrFactory spfactory;
     try {
         // TODO: use configs:
         size_t capacity = 100;
@@ -58,8 +59,6 @@ int safe_main(int argc, char *argv[]) {
         ExitCommand exitCommand;
         vector<void*> commands = { &exitCommand };
         commander.set_commands(commands);
-
-        SharedPtrFactory spfactory;
 
         shared_ptr userTextInput = SP_CREATE(spfactory, UserTextInputAgent, "user-text-input", commander, logger);
         shared_ptr echo = SP_CREATE(spfactory, EchoAgent, "echo");
