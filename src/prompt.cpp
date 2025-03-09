@@ -36,8 +36,9 @@ using namespace prompt::events;
 
 int safe_main(int argc, char *argv[]) {
     run_tests();
-    // run_tests("test_SharedPtrFactory_");
-    // run_tests("test_SharedPtrFactory_concurrent_create_strict_with_holders");
+    // run_tests("test_Logger_");
+    // run_tests("test_Logger_log_console_output");
+    // run_tests("test_Logger_thread_safety");
 
     SharedPtrFactory spfactory;
     try {

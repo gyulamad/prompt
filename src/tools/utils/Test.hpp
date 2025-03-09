@@ -112,8 +112,9 @@ void run_tests(const string& filter = "") {
             // quick thread check
             size_t threads_count;
             long n = 0;
-            long ms = 100;
-            long m = 3000;
+            long ms = 100; // steps time to re-check stuck threads
+            long m = 3000; // max tolerance we could wait before a thread considered stuck
+            long t = 1000; // timewindow for the OS to manage the threads
             string thread_warn = "";
             while ((threads_count = get_threads_count()) > 1) {
                 if (thread_warn.empty()) thread_warn = 
@@ -123,6 +124,7 @@ void run_tests(const string& filter = "") {
                 n += ms;
                 if (n > m) break;
             }
+            if (n < t) thread_warn = ""; // suppress the thread warning if it less that the time window that OS need for bookkeeping
             threads_count = get_threads_count();
             if (threads_count > 1)
                 throw ERROR(to_string(threads_count-1) + " thread(s) stuck in background after " + to_string(m) + "ms");

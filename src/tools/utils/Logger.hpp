@@ -114,14 +114,9 @@ namespace tools::utils {
                     // Write to file only (if filename is provided)
                     lock_guard<mutex> fileLock(logMutex); // Ensure thread-safe file writing
                     logFile << logMessage << endl;
-                    if (logFile.fail()) {
-                        cerr << "Failed to write to log file." << endl;
-                    }
+                    if (logFile.fail()) cerr << "Failed to write to log file." << endl;
                     logFile.flush(); // Flush to ensure the message is written to the file
-                } else {
-                    // Write to console only (if no filename is provided)
-                    cout << logMessage << endl;
-                }
+                } else cout << logMessage << endl; // Write to console only (if no filename is provided)
             }
         }
 
@@ -183,12 +178,11 @@ namespace tools::utils {
             {
                 lock_guard<mutex> lock(queueMutex);
                 stopLogging = true;
+                while (!logQueue.empty()) logQueue.pop(); // Clear queue to ensure exit
             }
             queueCondition.notify_all();
-            logThread.join();
-            if (logFile.is_open()) {
-                logFile.close();
-            }
+            if (logThread.joinable()) logThread.join();
+            if (logFile.is_open()) logFile.close();
         }
 
         // Allow move constructor and move assignment operator
@@ -224,6 +218,16 @@ namespace tools::utils {
                 other.stopLogging = true; // Ensure the moved-from object is in a valid state
             }
             return *this;
+        }
+        
+        void flush() {
+            unique_lock<mutex> lock(queueMutex);
+            queueCondition.notify_all();
+            while (!logQueue.empty()) {
+                lock.unlock();
+                this_thread::yield(); // Allow logThread to process
+                lock.lock();
+            }
         }
 
         void setMinLogLevel(Level level) {
@@ -283,6 +287,9 @@ namespace tools::utils {
 
 
 #ifdef TEST
+
+#include "Test.hpp"
+
 using namespace tools::utils;
 
 void test_Logger_log_console_output() {
@@ -291,6 +298,7 @@ void test_Logger_log_console_output() {
         logger.info("This is a test info message.");
         logger.warning("This is a test warning message.");
         logger.error("This is a test error message.");
+        logger.flush(); // Ensure all messages are processed
         // Sleep to allow the log thread to process messages
         this_thread::sleep_for(chrono::milliseconds(100));
     });
@@ -336,6 +344,7 @@ void test_Logger_setMinLogLevel_filter_logs() {
         logger.warning("This warning message should appear.");
         logger.error("This error message should appear.");
         // Sleep to allow the log thread to process messages
+        logger.flush(); // Ensure logThread writes before capture ends
         this_thread::sleep_for(chrono::milliseconds(100));
     });
 
@@ -345,17 +354,16 @@ void test_Logger_setMinLogLevel_filter_logs() {
 }
 
 void test_Logger_custom_formatter() {
-    string output = capture_cout([&]() {
-        auto customFormatter = [](Logger::Level level, const string& name, const string& message) -> string {
-            return "[" + name + "] Custom: " + message;
-        };
-        Logger logger("TestLogger", "", customFormatter);
-
+    string output;
+    auto customFormatter = [](Logger::Level level, const string& name, const string& message) -> string {
+        return "[" + name + "] Custom: " + message;
+    };
+    Logger logger("TestLogger", "", customFormatter);
+    output = capture_cout([&logger]() {
         logger.info("This is a test info message with a custom formatter.");
-        // Sleep to allow the log thread to process messages
-        this_thread::sleep_for(chrono::milliseconds(100));
+        logger.flush(); // Ensure logThread writes before capture ends
     });
-
+    this_thread::sleep_for(chrono::milliseconds(100));
     assert(output.find("[TestLogger] Custom: This is a test info message with a custom formatter.") != string::npos);
 }
 
@@ -380,22 +388,21 @@ void test_Logger_thread_safety() {
         stringstream buffer;
         streambuf* old = cout.rdbuf(buffer.rdbuf()); // Redirect cout to buffer
 
-        {
-            Logger logger("TestLogger");
-            thread t1([&logger]() {
-                for (int i = 0; i < 100; ++i) {
-                    logger.info("Thread 1 message " + to_string(i));
-                }
-            });
-            thread t2([&logger]() {
-                for (int i = 0; i < 100; ++i) {
-                    logger.info("Thread 2 message " + to_string(i));
-                }
-            });
-            t1.join();
-            t2.join();
-            this_thread::sleep_for(chrono::milliseconds(500)); // Wait for background thread to process logs
-        } // Logger is destroyed here, ensuring all logs are flushed
+        Logger logger("TestLogger");
+        size_t t_before = get_threads_count();
+        thread t1([&logger]() { for (int i = 0; i < 100; ++i) logger.info("Thread 1 message " + to_string(i)); });
+        size_t t_after_spawn = get_threads_count();
+        assert(t_after_spawn - t_before == 1 && "Spawning the first thread (t1) increases the thread count by exactly 1, as Logger’s logThread is already running.");
+        thread t2([&logger]() { for (int i = 0; i < 100; ++i) logger.info("Thread 2 message " + to_string(i)); });
+        t1.join();
+        t2.join();
+        sleep_ms(50); // OS cleanup time
+        size_t t_after_join = get_threads_count();
+        assert(t_after_join == t_before && "Joining t1 and t2 returns the thread count to its initial state (main + logThread), as spawned threads complete.");
+        logger.flush();
+        sleep_ms(500); // Wait for log processing
+        size_t t_after_sleep = get_threads_count();
+        assert(t_after_sleep == t_before && "After a 500ms delay, the thread count remains stable at its initial value, as Logger is still active.");
 
         cout.rdbuf(old); // Restore original cout buffer
         output = buffer.str();

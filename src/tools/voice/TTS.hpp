@@ -107,6 +107,7 @@ namespace tools::voice {
 
 #ifdef TEST
 
+#include "../utils/Test.hpp"
 #include "../utils/tests/MockProcess.hpp"
 
 using namespace std;

@@ -33,7 +33,3 @@ namespace tools::events {
     };
     
 }
-
-#ifdef TEST
-
-#endif

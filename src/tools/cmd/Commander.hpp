@@ -93,6 +93,8 @@ namespace tools::cmd {
 
 #ifdef TEST
 
+#include "../utils/Test.hpp"
+
 #include "tests/MockCommand.hpp"
 
 void test_Commander_is_exiting_initial_state() {

@@ -196,6 +196,9 @@ namespace tools::utils {
 } // namespace tools::utils
 
 #ifdef TEST
+
+#include "Test.hpp"
+
 using namespace tools::utils;
 
 // Test 1: Basic task creation and execution

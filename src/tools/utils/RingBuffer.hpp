@@ -181,6 +181,8 @@ namespace tools::utils {
 
 #ifdef TEST
 
+#include "Test.hpp"
+
 using namespace tools::utils;
 
 // Test basic initialization 

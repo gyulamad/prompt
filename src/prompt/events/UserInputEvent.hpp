@@ -33,20 +33,7 @@ namespace prompt::events {
 
 #ifdef TEST
 
-// // MockLogger and MockCommander for IUserAgent construction
-// class MockLogger : public Logger {
-// public:
-//     MockLogger() : Logger("mocklog", "mock.log") {}
-//     void err(const string&) override {}
-// };
-
-// class MockCommander : public Commander {
-// public:
-//     MockCommander(CommandLine& cl) : Commander(cl) {}
-//     bool is_exiting() const override { return false; }
-//     void exit() override {}
-//     void run_command(void*, const string&) override {}
-// };
+#include "../../tools/utils/Test.hpp"
 
 using namespace prompt::events;
 

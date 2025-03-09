@@ -70,6 +70,8 @@ namespace tools::voice {
 
 #ifdef TEST
 
+#include "../utils/Test.hpp"
+
 #include "tests/MockNoiseMonitor.hpp"
 
 using namespace tools::voice;

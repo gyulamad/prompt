@@ -45,6 +45,7 @@ namespace prompt::agents {
 
 #ifdef TEST
 
+#include "../../tools/utils/Test.hpp"
 #include "../../tools/events/Event.hpp"
 #include "../../tools/events/tests/MockEventBus.hpp"
 

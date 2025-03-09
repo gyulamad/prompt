@@ -224,6 +224,7 @@ namespace tools::utils {
 
 #ifdef TEST
 
+#include "Test.hpp"
 #include "io.hpp"
 
 using namespace tools::utils;

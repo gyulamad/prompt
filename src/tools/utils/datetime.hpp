@@ -291,6 +291,8 @@ namespace tools::utils {
 
 #ifdef TEST
 
+#include "Test.hpp"
+
 using namespace tools::utils;
 
 // Test that get_time_ms returns a reasonable current time

@@ -137,6 +137,8 @@ namespace tools::cmd {
 
 #ifdef TEST
 
+#include "../utils/Test.hpp"
+
 #include "tests/MockLineEditor.hpp"
 
 void test_CommandLine_is_exited_initial_state() {

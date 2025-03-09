@@ -84,6 +84,7 @@ namespace tools::events {
 
 #ifdef TEST
 
+#include "../utils/Test.hpp"
 #include "../utils/tests/MockLogger.hpp"
 #include "tests/TestEvent.hpp"
 #include "tests/MockConsumer.hpp"

@@ -138,6 +138,7 @@ namespace tools::voice {
 
 #ifdef TEST
 
+#include "../utils/Test.hpp"
 #include "../utils/Suppressor.hpp"
 
 using namespace std;

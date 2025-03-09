@@ -132,6 +132,7 @@ namespace tools::voice {
 
 #ifdef TEST
 
+#include "../utils/Test.hpp"
 #include "../utils/Suppressor.hpp"
 
 #include "tests/MockVoiceRecorder.hpp"

@@ -42,6 +42,8 @@ namespace tools::events {
 
 #ifdef TEST
 
+#include "../utils/Test.hpp"
+
 #include "tests/TestEvent.hpp"
 
 // Test SelfMessageFilter with filtering enabled

@@ -452,6 +452,8 @@ namespace nlohmann {
 
 #ifdef TEST
 
+#include "Test.hpp"
+
 using namespace tools::utils;
 
 

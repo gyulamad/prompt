@@ -296,6 +296,8 @@ namespace tools::cmd {
 
 #ifdef TEST
 
+#include "../utils/Test.hpp"
+
 using namespace tools::cmd;
 
 void test_CompletionMatcher_parse_input_basic() {

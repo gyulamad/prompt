@@ -27,6 +27,7 @@ namespace prompt::commands {
 
 #ifdef TEST
 
+#include "../../tools/utils/Test.hpp"
 #include "../../tools/cmd/tests/MockCommander.hpp"
 
 using namespace prompt::commands;

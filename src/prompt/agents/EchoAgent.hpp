@@ -41,6 +41,8 @@ namespace prompt::agents {
 
 #ifdef TEST
 
+#include "../../tools/utils/Test.hpp"
+
 // Tests for EchoAgent
 void test_EchoAgent_registerEventInterests_handlesUserInputEvent() {
     MockLogger logger;

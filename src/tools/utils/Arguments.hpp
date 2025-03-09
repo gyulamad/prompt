@@ -66,6 +66,8 @@ namespace tools::utils {
 
 #ifdef TEST
 
+#include "Test.hpp"
+
 using namespace tools::utils;
 
 void test_Arguments_has_found() {
