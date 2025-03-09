@@ -133,30 +133,99 @@ namespace tools::utils {
 
 
     // Helper function to capture cout output
-    string capture_output(function<void()> func) {
+    string capture_cout(function<void()> func) {
+        streambuf* original_cout_buffer = cout.rdbuf(); // Store original buffer
         stringstream buffer;
-        streambuf* old = cout.rdbuf(buffer.rdbuf()); // Redirect cout to buffer
+        cout.rdbuf(buffer.rdbuf()); // Redirect cout to buffer
         func(); // Call the function
-        cout.rdbuf(old); // Restore cout
+        cout.rdbuf(original_cout_buffer); // Restore original cout
+        cout.clear(); // Clear any error flags
         return buffer.str();
     }
 
+    // // Helper function to capture stderr output
+    // string capture_cerr(function<void()> func) {
+    //     streambuf* original_cerr_buffer = cerr.rdbuf();
+    //     stringstream buffer;
+    //     cerr.rdbuf(buffer.rdbuf());
+    //     func();
+    //     cerr.rdbuf(original_cerr_buffer);
+    //     cerr.clear(); // Clear any error flags
+    //     return buffer.str();
+    // }
     // Helper function to capture stderr output
-    string capture_stderr(function<void()> func) {
+    string capture_cerr(function<void()> func) {
+        streambuf* original_cerr_buffer = cerr.rdbuf(); // Store original buffer
         stringstream buffer;
-        streambuf* old = cerr.rdbuf(buffer.rdbuf()); // Redirect cerr to buffer
+        cerr.rdbuf(buffer.rdbuf()); // Redirect cerr to buffer
         func(); // Call the function
-        cerr.rdbuf(old); // Restore cerr
+        cerr.rdbuf(original_cerr_buffer); // Restore original cerr
+        cerr.clear(); // Clear any error flags
         return buffer.str();
     }
     
-    string capture_output_with_stderr(function<void()> func) {
+    // Helper function to capture both cout and cerr output
+    string capture_cout_cerr(function<void()> func) {
+        streambuf* original_cout_buffer = cout.rdbuf(); // Store original buffers
+        streambuf* original_cerr_buffer = cerr.rdbuf();
         stringstream buffer;
-        streambuf* old_cout = cout.rdbuf(buffer.rdbuf());
-        streambuf* old_cerr = cerr.rdbuf(cout.rdbuf()); // Redirect cerr to cout
-        func();
-        cout.rdbuf(old_cout);
-        cerr.rdbuf(old_cerr);
+        cout.rdbuf(buffer.rdbuf()); // Redirect cout to buffer
+        cerr.rdbuf(cout.rdbuf()); // Redirect cerr to cout's redirected buffer
+        func(); // Call the function
+        cout.rdbuf(original_cout_buffer); // Restore original cout
+        cerr.rdbuf(original_cerr_buffer); // Restore original cerr
+        cout.clear(); // Clear any error flags on cout
+        cerr.clear(); // Clear any error flags on cerr
         return buffer.str();
     }
+
 }
+
+#ifdef TEST
+
+#include "Test.hpp"
+
+using namespace tools::utils;
+
+void test_capture_cout_basic() {
+    string actual = capture_cout([]() { cout << "Hello, world!"; });
+    assert(actual == "Hello, world!" && "capture_cout: Basic cout capture failed");
+}
+
+void test_capture_cout_empty() {
+    string actual = capture_cout([]() {});
+    assert(actual.empty() && "capture_cout: Empty output should return an empty string");
+}
+
+void test_capture_cerr_basic() {
+    string actual = capture_cerr([]() { cerr << "Error occurred!"; });
+    assert(actual == "Error occurred!" && "capture_cerr: Basic cerr capture failed");
+}
+
+void test_capture_cerr_empty() {
+    string actual = capture_cerr([]() {});
+    assert(actual.empty() && "capture_cerr: Empty output should return an empty string");
+}
+
+void test_capture_cout_cerr_basic() {
+    string actual = capture_cout_cerr([]() {
+        cout << "Stdout message. ";
+        cerr << "Stderr message.";
+    });
+    assert(actual == "Stdout message. Stderr message." && "capture_cout_cerr: Combined output capture failed");
+}
+
+void test_capture_cout_cerr_empty() {
+    string actual = capture_cout_cerr([]() {});
+    assert(actual.empty() && "capture_cout_cerr: Empty output should return an empty string");
+}
+
+// Register tests
+TEST(test_capture_cout_basic);
+TEST(test_capture_cout_empty);
+TEST(test_capture_cerr_basic);
+TEST(test_capture_cerr_empty);
+TEST(test_capture_cout_cerr_basic);
+TEST(test_capture_cout_cerr_empty);
+
+#endif

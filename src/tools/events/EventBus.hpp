@@ -72,7 +72,7 @@ namespace tools::events {
         }
         
         // Publish an event to the event bus
-        void publishEvent(shared_ptr<Event> event) {
+        virtual void publishEvent(shared_ptr<Event> event) {
             NULLCHK(event, "Cannot publish null event");
             if (m_asyncDelivery) {
                 bool success = m_eventQueue.write(event);
@@ -136,7 +136,7 @@ namespace tools::events {
         // Stop the background thread for async event processing
         void stopEventProcessingThread() {
             {
-                std::lock_guard<mutex> lock(m_queueMutex); // Lock same mutex as thread
+                lock_guard<mutex> lock(m_queueMutex); // Lock same mutex as thread
                 m_running = false;
             }
             m_queueCondition.notify_all();
@@ -249,12 +249,23 @@ void test_EventBus_publishEvent_async_queue_full() {
     auto consumer = make_shared<MockConsumer>("consumer1");
     consumer->registerWithEventBus(&bus);
 
+    // Publish two events
     bus.publishEvent(make_shared<TestEvent>(1));
     bus.publishEvent(make_shared<TestEvent>(2));
-    this_thread::sleep_for(chrono::milliseconds(300));
 
-    bool loggedDrop = logger.hasMessageContaining("Dropped 1 events");
-    assert(loggedDrop == true && "Queue full should trigger drop callback and log"); // TODO: it's randomly failing (sometimes)
+    // Poll for the drop message
+    auto start = chrono::steady_clock::now();
+    bool loggedDrop = false;
+    while (!loggedDrop && chrono::steady_clock::now() - start < chrono::seconds(1)) {
+        loggedDrop = logger.hasMessageContaining("Dropped 1 events");
+        if (!loggedDrop) {
+            this_thread::sleep_for(chrono::milliseconds(50));
+        }
+    }
+    assert(loggedDrop == true && "Queue full should trigger drop callback and log");
+
+    // Wait a bit more for consumer processing
+    this_thread::sleep_for(chrono::milliseconds(100));
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 1 && "Consumer should receive only 1 event due to capacity");
 }

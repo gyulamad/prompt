@@ -15,6 +15,7 @@
 #include "regx.hpp"
 #include "RingBuffer.hpp"
 #include "Rotary.hpp"
+#include "SharedPtrFactory.hpp"
 #include "strings.hpp"
 #include "system.hpp"
 #include "Tasks.hpp"

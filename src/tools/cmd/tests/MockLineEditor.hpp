@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <queue>
 
 #include "../ILineEditor.hpp"
 #include "../CommandLine.hpp"
@@ -27,7 +28,27 @@ public:
     void SaveHistory(const char* path) override { saved_history_path = path; }
     void AddHistory(const char* line) override { history.push_back(line); }
     bool Readline(string& line) override {
+        if (useQueue) {
+            if (inputs.empty()) return false;
+            line = inputs.front();
+            inputs.pop();
+            return line == "ctrl+c";
+        }
         line = next_input;
         return should_exit;
     }
+    void WipeLine() override { wiped = true; }
+    void RefreshLine() override { refreshed = true; }
+    
+    void queueInput(const string& input) { useQueue = true; inputs.push(input); }
+    bool wasWiped() const { return wiped; }
+    bool wasRefreshed() const { return refreshed; }
+    void resetFlags() { wiped = false; refreshed = false; }
+    
+private:
+    bool useQueue = false;
+    string prompt;
+    queue<string> inputs;
+    bool wiped = false;
+    bool refreshed = false;
 };

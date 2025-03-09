@@ -240,35 +240,35 @@ namespace tools::utils {
             queueCondition.notify_one();
         }
 
-        void debug(const string& message) {
+        virtual void debug(const string& message) {
             log(Level::DEBUG, message);
         }
 
-        void dbg(const string& message) {
+        virtual void dbg(const string& message) {
             log(Level::DEBUG, message);
         }
 
-        void info(const string& message) {
+        virtual void info(const string& message) {
             log(Level::INFO, message);
         }
 
-        void nfo(const string& message) {
+        virtual void nfo(const string& message) {
             log(Level::INFO, message);
         }
 
-        void warning(const string& message) {
+        virtual void warning(const string& message) {
             log(Level::WARNING, message);
         }
 
-        void warn(const string& message) {
+        virtual void warn(const string& message) {
             log(Level::WARNING, message);
         }
 
-        void error(const string& message) {
+        virtual void error(const string& message) {
             log(Level::ERROR, message);
         }
 
-        void err(const string& message) {
+        virtual void err(const string& message) {
             log(Level::ERROR, message);
         }
     };
@@ -286,7 +286,7 @@ namespace tools::utils {
 using namespace tools::utils;
 
 void test_Logger_log_console_output() {
-    string output = capture_output([&]() {
+    string output = capture_cout([&]() {
         Logger logger("TestLogger");
         logger.info("This is a test info message.");
         logger.warning("This is a test warning message.");
@@ -302,7 +302,7 @@ void test_Logger_log_console_output() {
 
 void test_Logger_log_file_output() {
     string filename = "test_log.txt";
-    string output = capture_output([&]() {
+    string output = capture_cout([&]() {
         Logger logger("TestLogger", filename);
         logger.info("This is a test info message.");
         logger.warning("This is a test warning message.");
@@ -328,7 +328,7 @@ void test_Logger_log_file_output() {
 }
 
 void test_Logger_setMinLogLevel_filter_logs() {
-    string output = capture_output([&]() {
+    string output = capture_cout([&]() {
         Logger logger("TestLogger");
         logger.setMinLogLevel(Logger::Level::WARNING);
 
@@ -345,7 +345,7 @@ void test_Logger_setMinLogLevel_filter_logs() {
 }
 
 void test_Logger_custom_formatter() {
-    string output = capture_output([&]() {
+    string output = capture_cout([&]() {
         auto customFormatter = [](Logger::Level level, const string& name, const string& message) -> string {
             return "[" + name + "] Custom: " + message;
         };
@@ -360,7 +360,7 @@ void test_Logger_custom_formatter() {
 }
 
 void test_Logger_empty_message() {
-    string output = capture_output([&]() {
+    string output = capture_cout([&]() {
         Logger logger("TestLogger");
 
         logger.info(""); // Empty message should be ignored

@@ -49,7 +49,7 @@ Utility Macros
 - ANSI_FMT_RESET: "\033[0m" - Resets all formatting to default.
 - ANSI_FMT(fmt, text): Combines a format string with text and appends a reset code.
   - Definition: (string(fmt) + text + ANSI_FMT_RESET)
-  - Returns: A std::string with the formatted text, ensuring styles don’t bleed into subsequent output.
+  - Returns: A string with the formatted text, ensuring styles don’t bleed into subsequent output.
 
 Predefined Themes
 - Purpose: User-specific combinations of formatting for common use cases.
@@ -171,7 +171,7 @@ Key Components
 Constructor
 - Signature: Arguments(int argc, char* argv[])
 - Purpose: Initializes the class by converting command-line arguments into a vector of strings.
-- Behavior: Each argv element is stored as a std::string, including the program name (argv[0]).
+- Behavior: Each argv element is stored as a string, including the program name (argv[0]).
 
 Methods
 - bool has(const string& arg) const
@@ -318,7 +318,7 @@ Key Components
 
 Constructor and Destructor
 - Constructor: Curl()
-  - Initializes libcurl globally using curl_global_init() in a thread-safe manner (via std::call_once).
+  - Initializes libcurl globally using curl_global_init() in a thread-safe manner (via call_once).
 - Destructor: ~Curl()
   - Default destructor; does not perform cleanup of global libcurl state (handled by the OS or explicit 
 curl_global_cleanup() if needed elsewhere).
@@ -666,7 +666,7 @@ Macros for Formatting
 
 Core Functions
 - runtime_error error(const string& msg, const string& file, int line): Creates a runtime_error with a formatted message.
-  - Returns: std::runtime_error with FILE_LINE_ERROR_MSG as the error string.
+  - Returns: runtime_error with FILE_LINE_ERROR_MSG as the error string.
 - void debug(const string& msg, const string& file, int line): Outputs a debug message to stdout with "[DEBUG]" prefix.
   - Outputs: "[DEBUG] " followed by FILE_LINE_DEBUG_MSG.
 
@@ -1021,11 +1021,11 @@ Input Functions
   - Thread-safe via io_confirm_mtx mutex.
 
 Output Capture Helpers
-- string capture_output(function<void()> func): Captures stdout output from a function.
+- string capture_cout(function<void()> func): Captures stdout output from a function.
   - Returns: The captured stdout as a string.
-- string capture_stderr(function<void()> func): Captures stderr output from a function.
+- string capture_cerr(function<void()> func): Captures stderr output from a function.
   - Returns: The captured stderr as a string.
-- string capture_output_with_stderr(function<void()> func): Captures both stdout and stderr (redirecting stderr to stdout).
+- string capture_cout_cerr(function<void()> func): Captures both stdout and stderr (redirecting stderr to stdout).
   - Returns: The combined output as a string.
 
 Usage
@@ -1095,13 +1095,13 @@ Example:
         using namespace std;
         using namespace tools::utils;
         int main() {
-            string output = capture_output([]() {
+            string output = capture_cout([]() {
                 writeln("This goes to stdout");
             });
-            string error = capture_stderr([]() {
+            string error = capture_cerr([]() {
                 cerr << "This goes to stderr" << endl;
             });
-            string combined = capture_output_with_stderr([]() {
+            string combined = capture_cout_cerr([]() {
                 writeln("To stdout");
                 cerr << "To stderr" << endl;
             });
@@ -1890,7 +1890,7 @@ RotaryFrames Class
   - Parameters:
     - frames: A list of strings representing animation frames.
     - speed_divider: Controls the speed of frame updates.
-  - Throws: std::invalid_argument if frames are empty.
+  - Throws: invalid_argument if frames are empty.
 - Methods:
   - string getNextFrame()
     - Returns the next frame in the sequence, cycling through frames based on speed_divider.

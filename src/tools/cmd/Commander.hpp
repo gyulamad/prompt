@@ -30,7 +30,7 @@ namespace tools::cmd {
             return cmatcher;
         }
 
-        bool is_exiting() const {
+        virtual bool is_exiting() const {
             return exiting || command_line.is_exited();
         }
         
@@ -55,11 +55,11 @@ namespace tools::cmd {
             return cmatcher;
         }
 
-        void exit() {            
+        virtual void exit() {            
             exiting = true;
         }
 
-        bool run_command(void* user_context, const string& input) {
+        virtual bool run_command(void* user_context, const string& input) {
             if (input.empty()) return false;
             
             bool trlspc;
@@ -159,7 +159,7 @@ void test_Commander_run_command_empty_input() {
 }
 
 void test_Commander_run_command_unknown_command() {
-    string err = capture_stderr([&]() {
+    string err = capture_cerr([&]() {
         MockLineEditor editor;
         MockCommandLine cl(editor);
         Commander commander(cl);
@@ -174,7 +174,7 @@ void test_Commander_run_command_unknown_command() {
 }
 
 void test_Commander_run_command_invalid_arguments() {
-    string err = capture_stderr([&]() {
+    string err = capture_cerr([&]() {
         MockLineEditor editor;
         MockCommandLine cl(editor);
         Commander commander(cl);
@@ -189,7 +189,7 @@ void test_Commander_run_command_invalid_arguments() {
 }
 
 void test_Commander_run_command_successful_execution() {
-    string outp = capture_output([&]() {
+    string outp = capture_cout([&]() {
         MockLineEditor editor;
         MockCommandLine cl(editor);
         Commander commander(cl);

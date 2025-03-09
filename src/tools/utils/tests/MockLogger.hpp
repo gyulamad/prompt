@@ -17,4 +17,10 @@ public:
         return any_of(loggedMessages.begin(), loggedMessages.end(),
                         [&substring](const string& msg) { return msg.find(substring) != string::npos; });
     }
+
+    void err(const string& msg) override { lastError = msg; }
+    string getLastError() const { return lastError; }
+    
+private:
+    string lastError;
 };

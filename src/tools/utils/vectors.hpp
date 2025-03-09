@@ -384,7 +384,7 @@ void test_array_dump_basic() {
         "1: 2\n"
         "2: 3\n";
     
-    string output = capture_output([&]() { array_dump(vec); });
+    string output = capture_cout([&]() { array_dump(vec); });
     assert(output == expected && "Basic dump");
 }
 
@@ -393,7 +393,7 @@ void test_array_dump_empty_vector() {
     string expected = 
         "dump vector(0):\n";
     
-    string output = capture_output([&]() { array_dump(vec); });
+    string output = capture_cout([&]() { array_dump(vec); });
     assert(output == expected && "Empty vector dump");
 }
 
@@ -404,7 +404,7 @@ void test_array_dump_strings() {
         "0: hello\n"
         "1: world\n";
     
-    string output = capture_output([&]() { array_dump(vec); });
+    string output = capture_cout([&]() { array_dump(vec); });
     assert(output == expected && "Strings dump");
 }
 
@@ -415,7 +415,7 @@ void test_array_dump_no_debug() {
         "1: 2\n"
         "2: 3\n";
     
-    string output = capture_output([&]() { array_dump(vec, false); });
+    string output = capture_cout([&]() { array_dump(vec, false); });
     assert(output == expected && "No debug dump");
 }
 
