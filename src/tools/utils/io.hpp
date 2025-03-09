@@ -143,16 +143,6 @@ namespace tools::utils {
         return buffer.str();
     }
 
-    // // Helper function to capture stderr output
-    // string capture_cerr(function<void()> func) {
-    //     streambuf* original_cerr_buffer = cerr.rdbuf();
-    //     stringstream buffer;
-    //     cerr.rdbuf(buffer.rdbuf());
-    //     func();
-    //     cerr.rdbuf(original_cerr_buffer);
-    //     cerr.clear(); // Clear any error flags
-    //     return buffer.str();
-    // }
     // Helper function to capture stderr output
     string capture_cerr(function<void()> func) {
         streambuf* original_cerr_buffer = cerr.rdbuf(); // Store original buffer

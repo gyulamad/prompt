@@ -59,8 +59,10 @@ int safe_main(int argc, char *argv[]) {
         vector<void*> commands = { &exitCommand };
         commander.set_commands(commands);
 
-        shared_ptr userTextInput = make_shared<UserTextInputAgent>("user-text-input", commander, logger);
-        shared_ptr echo = make_shared<EchoAgent>("echo");
+        SharedPtrFactory spfactory;
+
+        shared_ptr userTextInput = SP_CREATE(spfactory, UserTextInputAgent, "user-text-input", commander, logger);
+        shared_ptr echo = SP_CREATE(spfactory, EchoAgent, "echo");
         
         userTextInput->registerWithEventBus(&bus);
         echo->registerWithEventBus(&bus);

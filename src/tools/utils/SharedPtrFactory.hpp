@@ -21,18 +21,20 @@ namespace tools::utils {
     
     class SharedPtrFactory {
     public:
-        explicit SharedPtrFactory() {}
+        SharedPtrFactory() = default;
     
         template<typename T, typename... Args>
         shared_ptr<T> create(const char* file, int line, Args&&... args) {
             lock_guard<mutex> lock(mtx); // mtx is a member mutex
             auto ptr = make_shared<T>(forward<Args>(args)...);
-            pointers.push_back(PointerEntry{ptr, file, line, typeid(T).name()});
+            pointers.emplace_back(PointerEntry{ptr, file, line, typeid(T).name()});
             return ptr;
         }
 
         ~SharedPtrFactory() noexcept(false) {
             lock_guard<mutex> lock(mtx);
+            if (pointers.empty()) return; // Early exit if no pointers
+
             string errs = "";
             for (const auto& entry : pointers)
                 if (entry.ptr.use_count() > 1) {
@@ -148,7 +150,7 @@ void test_SharedPtrFactory_create_strict_stderr_output() {
     } catch (const runtime_error& e) {
         output = e.what(); // Get the exception message
     }
-    cout << "Captured exception message: [" << output << "]\n"; // Breakpoint here will be reached
+    
     assert(str_contains(output, "SharedPtrFactory destruction failed") && "Exception should contain factory failure message");
     assert(str_contains(output, "use_count = 2") && "Exception should show use_count");
     assert(str_contains(output, __FILE__) && "Exception should include source file");
@@ -184,7 +186,6 @@ void test_SharedPtrFactory_concurrent_create_strict_with_holders() {
 
     // Example assertions (adjust based on your test requirements)
     assert(holders.size() == 5 && "All objects should be created");
-    // Additional checks on output if needed
 }
 
 // Register tests
