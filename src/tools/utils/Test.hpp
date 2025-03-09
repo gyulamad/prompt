@@ -69,6 +69,8 @@ string test_capture_cout_cerr(function<void()> func) {
     return buffer.str();
 }
 
+#define TEST_WARN_SIGN "[" ANSI_FMT_WARNING "!" ANSI_FMT_RESET "]"
+
 // Test runner
 void run_tests(const string& filter = "") {
     struct failure_s {
@@ -103,7 +105,7 @@ void run_tests(const string& filter = "") {
             });
             if (!test_output.empty()) 
                 test_outputs += 
-                    "Test " + ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, test.name) + "() at " + 
+                    TEST_WARN_SIGN " Test " + ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, test.name) + "() at " + 
                     test.file + ":" + to_string(test.line) + " outputs:\n" + test_output + "\n";
             
             auto end = chrono::high_resolution_clock::now(); // End timing
@@ -118,7 +120,7 @@ void run_tests(const string& filter = "") {
             string thread_warn = "";
             while ((threads_count = get_threads_count()) > 1) {
                 if (thread_warn.empty()) thread_warn = 
-                    "Test " + ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, test.name) + "() at " + 
+                    TEST_WARN_SIGN " Test " + ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, test.name) + "() at " + 
                     test.file + ":" + to_string(test.line) + " left threads: " + to_string(threads_count) + "\n";
                 sleep_ms(ms);
                 n += ms;
