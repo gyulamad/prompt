@@ -22,11 +22,9 @@ namespace tools::events {
             EventQueue& eventQueue
         ): 
             EventBus(asyncDelivery, logger, eventQueue),  // Pass logger to base class
-            m_logger(logger) 
-        {
-            // Create a default self-message filter
-            m_selfMessageFilter = make_shared<SelfMessageFilter>(false);
-        }
+            m_logger(logger),
+            m_selfMessageFilter(false)
+        {}
         
         // Add a custom event filter
         void addEventFilter(shared_ptr<EventFilter> filter) {
@@ -41,7 +39,7 @@ namespace tools::events {
         }
         
         // Get the self-message filter (for enabling/disabling)
-        shared_ptr<SelfMessageFilter> getSelfMessageFilter() {
+        SelfMessageFilter& getSelfMessageFilter() {
             return m_selfMessageFilter;
         }
         
@@ -120,17 +118,13 @@ namespace tools::events {
             }
             
             // Also check the self-message filter
-            if (m_selfMessageFilter && !m_selfMessageFilter->shouldDeliverEvent(consumerId, event)) {
-                return false;
-            }
-            
-            return true;
+            return m_selfMessageFilter.shouldDeliverEvent(consumerId, event);
         }
         
         // Filtering
         mutex m_filterMutex;
         vector<shared_ptr<EventFilter>> m_filters;
-        shared_ptr<SelfMessageFilter> m_selfMessageFilter;
+        SelfMessageFilter m_selfMessageFilter;
         Logger& m_logger;
     };    
 
@@ -165,7 +159,7 @@ void test_FilteredEventBus_deliverEvent_self_filtered() {
     auto agent = make_shared<TestAgent>("agent1");
     agent->registerWithEventBus(&bus);
 
-    bus.getSelfMessageFilter()->setFilterSelfMessages(true);
+    bus.getSelfMessageFilter().setFilterSelfMessages(true);
     auto event = make_shared<TestEvent>(42);
     agent->publishEvent(event);
     size_t eventCount = agent->receivedEvents.size();
@@ -203,7 +197,7 @@ void test_FilteredEventBus_deliverEvent_targeted_self_filtered() {
     auto agent = make_shared<TestAgent>("agent1");
     agent->registerWithEventBus(&bus);
 
-    bus.getSelfMessageFilter()->setFilterSelfMessages(true);
+    bus.getSelfMessageFilter().setFilterSelfMessages(true);
     auto event = make_shared<TestEvent>(42);
     event->targetId = "agent1";  // Target itself
     agent->publishEvent(event);
@@ -219,7 +213,7 @@ void test_FilteredEventBus_clearFilters_restores_delivery() {
     auto agent = make_shared<TestAgent>("agent1");
     agent->registerWithEventBus(&bus);
 
-    bus.getSelfMessageFilter()->setFilterSelfMessages(true);
+    bus.getSelfMessageFilter().setFilterSelfMessages(true);
     bus.addEventFilter(make_shared<SelfMessageFilter>(true));
     auto event = make_shared<TestEvent>(42);
     agent->publishEvent(event);
@@ -227,7 +221,7 @@ void test_FilteredEventBus_clearFilters_restores_delivery() {
     assert(initialCount == 0 && "Agent should not receive event with filters enabled");
 
     bus.clearFilters();
-    bus.getSelfMessageFilter()->setFilterSelfMessages(false);  // Reset to default
+    bus.getSelfMessageFilter().setFilterSelfMessages(false);  // Reset to default
     agent->receivedEvents.clear();
     agent->publishEvent(event);
     size_t afterClearCount = agent->receivedEvents.size();
