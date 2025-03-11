@@ -15,9 +15,7 @@ namespace prompt::commands {
 
         // Execute the command logic
         string run(void* user_context, const vector<string>& args) override {
-            IUserAgent& user = dref<IUserAgent>(user_context);
-            Commander& commander = user.getCommanderRef();
-            commander.exit();
+            dref<IUserAgent>(user_context).exit();
             return "Exiting...";
         }
     };

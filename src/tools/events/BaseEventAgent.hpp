@@ -36,34 +36,29 @@ namespace tools::events {
         
         void handleEvent(shared_ptr<Event> event) override {
             NULLCHK(event, "Cannot handle null event");
-            lock_guard<mutex> lock(handlerMutex);  // Protect handler execution
+            lock_guard<mutex> lock(handlerMutex);
             auto it = m_handlerMap.find(event->getType());
             if (it != m_handlerMap.end()) {
-                it->second(event);
+                for (const auto& handler : it->second) {
+                    handler(event); // Run all handlers
+                }
             }
         }
 
-        // Helper method to publish events
-        template<typename EventType>
-        void publishEvent(shared_ptr<EventType> event) {
-            NULLCHK(event, "Cannot publish null event");
-            if (m_eventBus) {
-                event->sourceId = m_id;
-                event->timestamp = chrono::system_clock::now();
-                m_eventBus->publishEvent(event);
-            }
+        template<typename EventType, typename... Args>
+        void publishEvent(const ComponentId& targetId = "", Args&&... args) {
+            NULLCHK(m_eventBus);
+            m_eventBus->createAndPublishEvent<EventType>(m_id, targetId, forward<Args>(args)...);
         }
 
-        // Register event handler for a specific event type
         template<typename EventType>
         void registerHandler(function<void(shared_ptr<EventType>)> handler) {
             type_index typeIdx(typeid(EventType));
-            
-            m_handlerMap[typeIdx] = [handler](shared_ptr<Event> baseEvent) {
+            auto eventHandler = [handler](shared_ptr<Event> baseEvent) {
                 auto derivedEvent = static_pointer_cast<EventType>(baseEvent);
                 handler(derivedEvent);
             };
-            
+            m_handlerMap[typeIdx].push_back(eventHandler); // Append, don’t overwrite
             if (m_eventBus) {
                 m_eventBus->registerEventInterest(m_id, typeIdx);
             }
@@ -71,12 +66,12 @@ namespace tools::events {
         
     protected:
         // Child classes should override this to register their handlers
-        virtual void registerEventInterests() UNIMP
+        virtual void registerEventInterests() { }
 
     private:
         ComponentId m_id;
         EventBus* m_eventBus = nullptr;
-        unordered_map<type_index, function<void(shared_ptr<Event>)>> m_handlerMap;
+        unordered_map<type_index, vector<function<void(shared_ptr<Event>)>>> m_handlerMap;
         mutex handlerMutex;  // Added for thread safety
     };    
 
@@ -102,14 +97,14 @@ void test_BaseEventAgent_registerWithEventBus_basic1() {
     assert(executedWithoutCrash == true && "registerWithEventBus should not crash");
 
     // Test producer role
-    auto event1 = make_shared<TestEvent>(42);
-    agent->publishEvent(event1);
+    agent->publishEvent<TestEvent>("agent1", 42); // Uses agent's publishEvent, which calls createAndPublishEvent
+    auto event1 = static_pointer_cast<TestEvent>(agent->receivedEvents.back()); // Assuming TestAgent echoes to itself
     assert(event1->sourceId == "agent1" && "Published event should have agent's ID as source");
 
     // Reset receivedEvents to test consumer role independently
     agent->receivedEvents.clear();
-    auto event2 = make_shared<TestEvent>(43);
-    bus.publishEvent(event2);
+    ComponentId sourceId = "test-source";
+    bus.createAndPublishEvent<TestEvent>(sourceId, "agent1", 43);
     size_t eventCount = agent->receivedEvents.size();
     assert(eventCount == 1 && "Agent should receive event as consumer");
     auto receivedEvent = static_pointer_cast<TestEvent>(agent->receivedEvents[0]);
@@ -127,8 +122,8 @@ void test_BaseEventAgent_registerWithEventBus_basic2() {
     assert(executedWithoutCrash == true && "registerWithEventBus should not crash");
 
     // Test consumer role only
-    auto event = make_shared<TestEvent>(42);
-    bus.publishEvent(event);
+    ComponentId sourceId = "test-source";
+    bus.createAndPublishEvent<TestEvent>(sourceId, "agent1", 42);
     size_t eventCount = agent->receivedEvents.size();
     assert(eventCount == 1 && "Agent should receive event as consumer");
     assert(static_pointer_cast<TestEvent>(agent->receivedEvents[0])->value == 42 && "Received event should match published event");
@@ -206,26 +201,13 @@ void test_BaseEventAgent_publishEvent_with_bus() {
 
     agent->registerWithEventBus(&bus);
     consumer->registerWithEventBus(&bus);
-    auto event = make_shared<TestEvent>(42);
-    agent->publishEvent(event);
+    agent->publishEvent<TestEvent>("consumer1", 42);
 
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 1 && "Consumer should receive event published by agent");
     auto receivedEvent = static_pointer_cast<TestEvent>(consumer->receivedEvents[0]);
     assert(receivedEvent->value == 42 && "Received event should match published event");
     assert(receivedEvent->sourceId == "agent1" && "Received event should have agent's ID as source");
-}
-
-// Test publishEvent without EventBus
-void test_BaseEventAgent_publishEvent_no_bus() {
-    auto agent = make_shared<TestAgent>("agent1");
-    auto event = make_shared<TestEvent>(42);
-
-    agent->publishEvent(event);
-    bool executedWithoutCrash = true;
-    assert(executedWithoutCrash == true && "publishEvent without bus should not crash");
-    assert(event->sourceId.empty() && "Event sourceId should not be set without bus");
-    assert(event->timestamp == chrono::time_point<chrono::system_clock>() && "Event timestamp should not be set without bus");
 }
 
 // Test self-communication (agent publishes and consumes its own event)
@@ -236,8 +218,7 @@ void test_BaseEventAgent_self_communication() {
     auto agent = make_shared<TestAgent>("agent1");
     agent->registerWithEventBus(&bus);
 
-    auto event = make_shared<TestEvent>(42);
-    agent->publishEvent(event);
+    agent->publishEvent<TestEvent>("", 42);
     size_t eventCount = agent->receivedEvents.size();
     assert(eventCount == 1 && "Agent should receive its own published event");
     auto receivedEvent = static_pointer_cast<TestEvent>(agent->receivedEvents[0]);
@@ -264,28 +245,6 @@ void test_BaseEventAgent_handleEvent_null_event() {
     assert(eventCount == 0 && "No events should be recorded for null event");
 }
 
-// Test exception case: null event pointer in publishEvent throws an exception
-void test_BaseEventAgent_publishEvent_null_event() {
-    MockLogger logger;
-    RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(false, logger, eventQueue);
-    auto agent = make_shared<TestAgent>("agent1");
-    agent->registerWithEventBus(&bus);
-
-    shared_ptr<TestEvent> nullEvent = nullptr;
-    bool thrown = false;
-
-    try {
-        agent->publishEvent(nullEvent);  // Expected to throw
-    } catch (const exception& e) {  // Catch generic exception for custom type
-        thrown = true;
-        string what = e.what();
-        assert(str_contains(what, "Cannot publish null event") && "Exception message should indicate null event error");
-    }
-
-    assert(thrown == true && "publishEvent should throw an exception for null event");
-}
-
 // Test concurrent publish and consume
 void test_BaseEventAgent_publish_and_consume_concurrent() {
     MockLogger logger;
@@ -301,14 +260,13 @@ void test_BaseEventAgent_publish_and_consume_concurrent() {
     for (int i = 0; i < numThreads; ++i) {
         publishers.emplace_back([i, &agent]() {
             for (int j = 0; j < eventsPerThread; ++j) {
-                auto event = make_shared<TestEvent>(i * eventsPerThread + j);
-                agent->publishEvent(event);
+                agent->publishEvent<TestEvent>("", i * eventsPerThread + j);
             }
         });
     }
 
     for (auto& publisher : publishers) {
-        publisher.join();  // Fixed from handler.join() to publisher.join()
+        publisher.join();
     }
 
     size_t eventCount = agent->receivedEvents.size();
@@ -324,15 +282,18 @@ void test_BaseEventAgent_registerHandler_multiple_handlers() {
     agent->registerWithEventBus(&bus);
 
     vector<int> values;
-    agent->registerHandler<TestEvent>([&values](shared_ptr<TestEvent> event) {
+    // Register the same handler twice
+    auto handler = [&values](shared_ptr<TestEvent> event) {
         values.push_back(event->value + 1);
-    });
+    };
+    agent->registerHandler<TestEvent>(handler);
+    agent->registerHandler<TestEvent>(handler);
 
     auto event = make_shared<TestEvent>(42);
-    bus.publishEvent(event);
+    agent->handleEvent(event);
     size_t eventCount = agent->receivedEvents.size();
-    assert(eventCount == 0 && "Original handler should not push to receivedEvents due to handler override");
-    assert(values.size() == 2 && "Second handler should record twice due to duplicate interest");
+    assert(eventCount == 1 && "Original handler should push to receivedEvents"); // Update intent
+    assert(values.size() == 2 && "Second handler should record twice due to duplicate registration");
     assert(values[0] == 43 && "First call should record event.value + 1");
     assert(values[1] == 43 && "Second call should record event.value + 1");
 }
@@ -346,10 +307,8 @@ TEST(test_BaseEventAgent_canHandle_unregistered);
 TEST(test_BaseEventAgent_handleEvent_registered);
 TEST(test_BaseEventAgent_handleEvent_unregistered);
 TEST(test_BaseEventAgent_publishEvent_with_bus);
-TEST(test_BaseEventAgent_publishEvent_no_bus);
 TEST(test_BaseEventAgent_self_communication);
 TEST(test_BaseEventAgent_handleEvent_null_event);
-TEST(test_BaseEventAgent_publishEvent_null_event);
 TEST(test_BaseEventAgent_publish_and_consume_concurrent);
 TEST(test_BaseEventAgent_registerHandler_multiple_handlers);
 #endif

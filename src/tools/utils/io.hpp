@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <termios.h> // For tcgetattr(), tcsetattr()
 
+#include "ERROR.hpp"
+
 using namespace std;
 
 namespace tools::utils {
@@ -137,7 +139,12 @@ namespace tools::utils {
         streambuf* original_cout_buffer = cout.rdbuf(); // Store original buffer
         stringstream buffer;
         cout.rdbuf(buffer.rdbuf()); // Redirect cout to buffer
-        func(); // Call the function
+        try {
+            func(); // Call the function
+        } catch (exception& e) {
+            cout.rdbuf(original_cout_buffer); // Restore original cout
+            throw ERROR("Error in stdout capture: " + string(e.what()));
+        }
         cout.rdbuf(original_cout_buffer); // Restore original cout
         cout.clear(); // Clear any error flags
         return buffer.str();
@@ -148,7 +155,12 @@ namespace tools::utils {
         streambuf* original_cerr_buffer = cerr.rdbuf(); // Store original buffer
         stringstream buffer;
         cerr.rdbuf(buffer.rdbuf()); // Redirect cerr to buffer
-        func(); // Call the function
+        try {
+            func(); // Call the function
+        } catch (exception& e) {
+            cerr.rdbuf(original_cerr_buffer); // Restore original cerr
+            throw ERROR("Error in stderr capture: " + string(e.what()));
+        }
         cerr.rdbuf(original_cerr_buffer); // Restore original cerr
         cerr.clear(); // Clear any error flags
         return buffer.str();
@@ -161,7 +173,13 @@ namespace tools::utils {
         stringstream buffer;
         cout.rdbuf(buffer.rdbuf()); // Redirect cout to buffer
         cerr.rdbuf(cout.rdbuf()); // Redirect cerr to cout's redirected buffer
-        func(); // Call the function
+        try {
+            func(); // Call the function
+        } catch (exception& e) {
+            cout.rdbuf(original_cout_buffer); // Restore original cout
+            cerr.rdbuf(original_cerr_buffer); // Restore original cerr
+            throw ERROR("Error in stdout and stderr capture: " + string(e.what()));
+        }
         cout.rdbuf(original_cout_buffer); // Restore original cout
         cerr.rdbuf(original_cerr_buffer); // Restore original cerr
         cout.clear(); // Clear any error flags on cout

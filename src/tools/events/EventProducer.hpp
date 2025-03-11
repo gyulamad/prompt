@@ -20,10 +20,10 @@ namespace tools::events {
         virtual ~EventProducer() = default;
         
         // Register this producer with the event bus
-        virtual void registerWithEventBus(EventBus* bus) UNIMP
+        virtual void registerWithEventBus(EventBus* bus) UNIMP_THROWS
         
         // Get unique identifier for this producer
-        virtual ComponentId getId() const UNIMP
+        virtual ComponentId getId() const UNIMP_THROWS
     };
 
 }

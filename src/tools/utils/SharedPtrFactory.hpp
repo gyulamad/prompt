@@ -31,6 +31,15 @@ namespace tools::utils {
             return ptr;
         }
 
+        void release(shared_ptr<void> ptr) {
+            lock_guard<mutex> lock(mtx);
+            auto it = find_if(pointers.begin(), pointers.end(),
+                              [&ptr](const PointerEntry& entry) { return entry.ptr == ptr; });
+            if (it != pointers.end()) {
+                pointers.erase(it);
+            }
+        }
+
         ~SharedPtrFactory() noexcept(false) {
             lock_guard<mutex> lock(mtx);
             if (pointers.empty()) return; // Early exit if no pointers
@@ -42,7 +51,7 @@ namespace tools::utils {
                     errs += " - Pointer at " + to_string(reinterpret_cast<uintptr_t>(entry.ptr.get())) +
                             ", use_count = " + to_string(entry.ptr.use_count()) +
                             ", type = " + entry.type +
-                            ", created at " + entry.file + ":" + to_string(entry.line) + "\n";
+                            ", created at " + ANSI_FMT_FILE_LINE(entry.file, entry.line) + "\n";
                 }
                 
             if (!errs.empty()) throw ERROR(errs);

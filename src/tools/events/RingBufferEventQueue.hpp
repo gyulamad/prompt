@@ -20,30 +20,43 @@ namespace tools::events {
         RingBufferEventQueue(
             size_t capacity, 
             Logger& logger
+             // TODO: add expiry default NEVER, and remove expired evens periodically or when the buffer is full!!!
         ):
-            m_ringBuffer(capacity, RingBuffer<shared_ptr<Event>>::WritePolicy::Rotate),
-            m_logger(logger)
+            ringBuffer(capacity, RingBuffer<shared_ptr<Event>>::WritePolicy::Rotate),
+            logger(logger)
         {
-            m_ringBuffer.set_drop_callback([this](size_t count) {
-                m_logger.warn("Dropped " + to_string(count) + " events due to full queue");
+            ringBuffer.set_drop_callback([this, &logger](size_t count) {
+                logger.warn("Dropped " + to_string(count) + " event(s) due to full queue");
+                if (dropCallback) dropCallback(count);
             });
         }
 
         bool write(shared_ptr<Event> event) override {
-            return m_ringBuffer.write(&event, 1);
+            return ringBuffer.write(&event, 1);
         }
 
         size_t read(shared_ptr<Event>& event, bool blocking, int timeoutMs) override {
-            return m_ringBuffer.read(&event, 1, blocking, timeoutMs);
+            return ringBuffer.read(&event, 1, blocking, timeoutMs);
         }
 
         size_t available() const override {
-            return m_ringBuffer.available();
+            return ringBuffer.available();
+        }
+
+        using DropCallback = function<void(size_t)>;
+
+        void setDropCallback(DropCallback callback) {
+            dropCallback = callback;
+        }
+
+        size_t getCapacity() const {
+            return ringBuffer.getCapacity();
         }
 
     private:
-        RingBuffer<shared_ptr<Event>> m_ringBuffer;
-        Logger& m_logger;
+        RingBuffer<shared_ptr<Event>> ringBuffer;
+        Logger& logger;
+        DropCallback dropCallback;
     };    
 
 }
@@ -105,7 +118,7 @@ void test_RingBufferEventQueue_write_full() {
     size_t available = queue.available();
     assert(available == 2 && "Queue should still have 2 events after overwrite");
 
-    bool loggedDrop = logger.hasMessageContaining("Dropped 1 events");
+    bool loggedDrop = logger.hasMessageContaining("Dropped 1 event(s) due to full queue");
     assert(loggedDrop == true && "Drop callback should log event drop");
 }
 

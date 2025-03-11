@@ -13,7 +13,7 @@ namespace prompt::agents {
     
         void run() { // Command loop
             string input;
-            Commander& commander = getCommanderRef();
+            // Commander& commander = getCommanderRef();
             CommandLine& cline = commander.get_command_line_ref();
             ILineEditor& editor = cline.getEditorRef();
             while (!commander.is_exiting()) {
@@ -21,7 +21,7 @@ namespace prompt::agents {
                     if (editor.Readline(input)) input = "/exit"; // Readline => returns true for Ctrl+C
                     if (input.empty()) continue;
                     if (input[0] == '/') commander.run_command(this, input); // Try to execute the input as a command
-                    else publishEvent(make_shared<UserInputEvent>(*this, input, true)); // Publishes to the EventBus
+                    else publishEvent<UserInputEvent>("", *this, input, true); // Publishes to the EventBus
                 } catch (exception &e) {
                     string errmsg = "Runtime error: " + string(e.what());
                     cerr << errmsg << endl;

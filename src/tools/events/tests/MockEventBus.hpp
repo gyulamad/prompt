@@ -11,13 +11,13 @@ public:
     MockEventBus(bool async, Logger& logger, EventQueue& queue) : EventBus(async, logger, queue) {}
     vector<shared_ptr<Event>> publishedEvents;
 
-    void publishEvent(shared_ptr<Event> event) {
-        publishedEvents.push_back(event);
-        // Simulate immediate handling
-        for (auto& consumer : consumers) {
-            consumer.lock()->handleEvent(event);
-        }
-    }
+    // void publishEvent(shared_ptr<Event> event) {
+    //     publishedEvents.push_back(event);
+    //     // Simulate immediate handling
+    //     for (auto& consumer : consumers) {
+    //         consumer.lock()->handleEvent(event);
+    //     }
+    // }
 
     void registerProducer(shared_ptr<EventAgent> producer) {
         producers.push_back(producer);
@@ -28,6 +28,17 @@ public:
     }
 
     void start() { } // Stub for base class
+
+protected:
+    void deliverEventInternal(shared_ptr<Event> event) override { // Override the new virtual function
+        publishedEvents.push_back(event);
+        // Simulate immediate handling
+        for (auto& consumer : consumers) {
+            if (auto consumerPtr = consumer.lock()) {
+                consumerPtr->handleEvent(event);
+            }
+        }
+    }
 
 private:
     vector<shared_ptr<EventAgent>> producers;

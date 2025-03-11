@@ -34,12 +34,18 @@
 // ---------------------------------------------------------------
 // User specific theme
 
-#define ANSI_FMT_FNAME ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE
-#define ANSI_FMT_ERROR ANSI_FMT_T_BOLD ANSI_FMT_C_RED
+// #define ANSI_FMT_FNAME ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE
+#define ANSI_FMT_SUCCESS ANSI_FMT_T_BOLD ANSI_FMT_C_GREEN
 #define ANSI_FMT_WARNING ANSI_FMT_T_BOLD ANSI_FMT_C_YELLOW
-#define ANSI_FMT_DEBUG ANSI_FMT_C_BLACK
+#define ANSI_FMT_ERROR ANSI_FMT_T_BOLD ANSI_FMT_C_RED
+#define ANSI_FMT_DEBUG ANSI_FMT_RESET ANSI_FMT_C_BLACK
+#define ANSI_FMT_FILE ANSI_FMT_RESET ANSI_FMT_C_BLACK
+#define ANSI_FMT_FUNC ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE
+#define ANSI_FMT_HIGHLIGHT ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE
 
-#define ANSI_FMT(fmt, text) (string(fmt) + text + ANSI_FMT_RESET)
+#define ANSI_FMT(fmt, text) (string(ANSI_FMT_RESET) + fmt + text + ANSI_FMT_RESET)
+#define ANSI_FMT_FILE_LINE(file, line) ANSI_FMT(ANSI_FMT_FILE, file + ":" + to_string(line))
+#define ANSI_FMT_CALL(func, file, line) ANSI_FMT(ANSI_FMT_FUNC, func + "()" + ANSI_FMT_RESET + " at " + ANSI_FMT_FILE_LINE(file, line))
 
 using namespace std;
 

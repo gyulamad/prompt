@@ -19,10 +19,10 @@ namespace tools::events {
         virtual ~Event() = default;
         
         // Source component that created this event
-        ComponentId sourceId;
+        ComponentId sourceId = "";
         
         // Optional target component (empty string means broadcast)
-        ComponentId targetId;
+        ComponentId targetId = "";
         
         // Timestamp when the event was created
         chrono::time_point<chrono::system_clock> timestamp;

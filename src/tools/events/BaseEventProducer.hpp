@@ -29,14 +29,10 @@ namespace tools::events {
         }
 
         // Helper method to publish events
-        template<typename EventType>
-        void publishEvent(shared_ptr<EventType> event) {
-            NULLCHK(event, "Cannot publish null event");
-            if (m_eventBus) {
-                event->sourceId = m_id;
-                event->timestamp = chrono::system_clock::now();
-                m_eventBus->publishEvent(event);
-            }
+        template<typename EventType, typename... Args>
+        void publishEvent(const ComponentId& targetId, Args&&... args) {
+            NULLCHK(m_eventBus, "Cannot publish event, event bus is nullptr.");
+            m_eventBus->createAndPublishEvent<EventType>(m_id, targetId, forward<Args>(args)...);
         }
 
     private:
@@ -53,23 +49,6 @@ namespace tools::events {
 #include "../utils/tests/MockLogger.hpp"
 #include "tests/TestEvent.hpp"
 #include "tests/MockConsumer.hpp"
-
-// Test registration with EventBus
-void test_BaseEventProducer_registerWithEventBus_basic() {
-    MockLogger logger;
-    RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(false, logger, eventQueue);
-    auto producer = make_shared<BaseEventProducer>("producer1");
-
-    producer->registerWithEventBus(&bus);
-    bool executedWithoutCrash = true;
-    assert(executedWithoutCrash == true && "registerWithEventBus should not crash");
-
-    // Verify producer can publish after registration (indirect test of registration)
-    auto event = make_shared<TestEvent>(42);
-    producer->publishEvent(event);
-    assert(event->sourceId == "producer1" && "Published event should have producer's ID as source");
-}
 
 // Test getId method
 void test_BaseEventProducer_getId_basic() {
@@ -89,8 +68,7 @@ void test_BaseEventProducer_publishEvent_with_bus() {
 
     producer->registerWithEventBus(&bus);
     consumer->registerWithEventBus(&bus);
-    auto event = make_shared<TestEvent>(42);
-    producer->publishEvent(event);
+    producer->publishEvent<TestEvent>("consumer1", 42);
 
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 1 && "Consumer should receive event published by producer");
@@ -104,17 +82,19 @@ void test_BaseEventProducer_publishEvent_with_bus() {
 // Test publishEvent without EventBus
 void test_BaseEventProducer_publishEvent_no_bus() {
     auto producer = make_shared<BaseEventProducer>("producer1");
-    auto event = make_shared<TestEvent>(42);
-
-    producer->publishEvent(event);  // No bus registered
-    bool executedWithoutCrash = true;
-    assert(executedWithoutCrash == true && "publishEvent without bus should not crash");
-    assert(event->sourceId.empty() && "Event sourceId should not be set without bus");
-    assert(event->timestamp == chrono::time_point<chrono::system_clock>() && "Event timestamp should not be set without bus");
+    bool thrown = false;
+    try {
+        producer->publishEvent<TestEvent>("", 42);  // No bus registered
+    } catch (exception &e) {
+        thrown = true;
+        assert(str_contains(e.what(), "Cannot publish event, event bus is nullptr."));
+    }
+    assert(thrown && "Producer withour bus should throw");
 }
 
 // Test publishEvent with async EventBus
 void test_BaseEventProducer_publishEvent_async_bus() {
+    // TEST_SKIP("TODO: Async queue delivery mechanism needs refact");
     MockLogger logger;
     RingBufferEventQueue eventQueue(1000, logger);
     EventBus bus(true, logger, eventQueue);  // Async mode
@@ -124,8 +104,7 @@ void test_BaseEventProducer_publishEvent_async_bus() {
     producer->registerWithEventBus(&bus);
     consumer->registerWithEventBus(&bus);
 
-    auto event = make_shared<TestEvent>(42);
-    producer->publishEvent(event);
+    producer->publishEvent<TestEvent>("consumer1", 42);
 
     this_thread::sleep_for(chrono::milliseconds(200));  // Wait for async processing
 
@@ -134,28 +113,6 @@ void test_BaseEventProducer_publishEvent_async_bus() {
     auto receivedEvent = static_pointer_cast<TestEvent>(consumer->receivedEvents[0]);
     assert(receivedEvent->value == 42 && "Received event should match published event");
     assert(receivedEvent->sourceId == "producer1" && "Received event should have producer's ID as source");
-}
-
-// Test exception case: null event pointer in publishEvent throws an exception
-void test_BaseEventProducer_publishEvent_null_event() {
-    MockLogger logger;
-    RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(false, logger, eventQueue);
-    auto producer = make_shared<BaseEventProducer>("producer1");
-    producer->registerWithEventBus(&bus);
-
-    shared_ptr<TestEvent> nullEvent = nullptr;
-    bool thrown = false;
-
-    try {
-        producer->publishEvent(nullEvent);
-    } catch (const exception& e) {
-        thrown = true;
-        string what = e.what();
-        assert(str_contains(what, "Cannot publish null event") && "Exception message should indicate null event error");
-    }
-
-    assert(thrown == true && "publishEvent should throw an exception for null event");
 }
 
 // Test concurrent publishing
@@ -175,8 +132,7 @@ void test_BaseEventProducer_publishEvent_concurrent() {
     for (int i = 0; i < numThreads; ++i) {
         publishers.emplace_back([i, &producer]() {
             for (int j = 0; j < eventsPerThread; ++j) {
-                auto event = make_shared<TestEvent>(i * eventsPerThread + j);
-                producer->publishEvent(event);
+                producer->publishEvent<TestEvent>("consumer1", i * eventsPerThread + j);
             }
         });
     }
@@ -229,10 +185,8 @@ void test_BaseEventProducer_publishEvent_multiple_types() {
     producer->registerWithEventBus(&bus);
     consumer->registerWithEventBus(&bus);
 
-    auto testEvent = make_shared<TestEvent>(42);
-    auto otherEvent = make_shared<OtherEvent>(99);
-    producer->publishEvent(testEvent);
-    producer->publishEvent(otherEvent);
+    producer->publishEvent<TestEvent>("consumer1", 42);
+    producer->publishEvent<OtherEvent>("consumer1", 99);
 
     size_t eventCount = consumer->receivedEvents.size();
     assert(eventCount == 2 && "Consumer should receive both event types");
@@ -245,12 +199,10 @@ void test_BaseEventProducer_publishEvent_multiple_types() {
 }
 
 // Register tests
-TEST(test_BaseEventProducer_registerWithEventBus_basic);
 TEST(test_BaseEventProducer_getId_basic);
 TEST(test_BaseEventProducer_publishEvent_with_bus);
 TEST(test_BaseEventProducer_publishEvent_no_bus);
 TEST(test_BaseEventProducer_publishEvent_async_bus);
-TEST(test_BaseEventProducer_publishEvent_null_event);
 TEST(test_BaseEventProducer_publishEvent_concurrent);
 TEST(test_BaseEventProducer_publishEvent_multiple_types);
 #endif

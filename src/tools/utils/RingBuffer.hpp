@@ -163,6 +163,10 @@ namespace tools::utils {
             dropCallback = callback;
         }
 
+        size_t getCapacity() const {
+            return capacity;
+        }
+        
     private:
         vector<T> buffer;
         size_t capacity;

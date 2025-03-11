@@ -10,8 +10,8 @@ using namespace std;
 
 namespace tools::utils {
 
-    #define FILE_LINE_ERROR_MSG (ANSI_FMT_FNAME + file + ANSI_FMT_RESET ":" + to_string(line) + " - " + ANSI_FMT_ERROR + msg + ANSI_FMT_RESET)
-    #define FILE_LINE_DEBUG_MSG (ANSI_FMT_FNAME + file + ANSI_FMT_RESET ":" + to_string(line) + " - " + ANSI_FMT_DEBUG + msg + ANSI_FMT_RESET)
+    #define FILE_LINE_ERROR_MSG (ANSI_FMT_FILE_LINE(file, line) + " - " + ANSI_FMT_ERROR + msg + ANSI_FMT_RESET)
+    #define FILE_LINE_DEBUG_MSG (ANSI_FMT_FILE_LINE(file, line) + " - " + ANSI_FMT_DEBUG + msg + ANSI_FMT_RESET)
 
     inline runtime_error error(const string& msg, const string& file, int line) {
         return runtime_error(FILE_LINE_ERROR_MSG.c_str());
@@ -37,7 +37,10 @@ namespace tools::utils {
     #endif
     #endif
 
-    #define UNIMP { throw ERROR("Unimplemented: " + string(__FUNC__)); }
+    
+    #define UNIMP_NEED = 0;
+    #define UNIMP_SKIP {}
+    #define UNIMP_THROWS { throw ERROR("Unimplemented function: " + string(__FUNC__)); }
 
 
     #define DEBUG(msg) debug(msg, __FILE__, __LINE__)

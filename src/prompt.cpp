@@ -36,7 +36,6 @@ using namespace prompt::events;
 
 int safe_main(int argc, char *argv[]) {
     run_tests();
-    // run_tests("test_FilteredEventBus");
 
     SharedPtrFactory spfactory;
     try {

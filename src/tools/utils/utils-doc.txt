@@ -673,8 +673,8 @@ Core Functions
 Utility Macros
 - ERROR(msg): Creates a runtime_error with the given message, including current file and line; must be thrown explicitly.
   - Usage: throw ERROR("Something went wrong")
-- UNIMP: Throws an "Unimplemented" error with file and line information.
-  - Usage: UNIMP (no arguments needed)
+- UNIMP_THROWS: Throws an "Unimplemented" error with file and line information.
+  - Usage: UNIMP_THROWS (no arguments needed)
 - DEBUG(msg): Prints a debug message with the given text, including file and line.
   - Usage: DEBUG("Processing data")
 - NULLCHK(p, [errmsg]): Checks if a pointer is null; throws an ERROR with a default or custom message if true.
@@ -701,13 +701,13 @@ Example:
         // Output example: "main.cpp:10 - Invalid operation" (with ANSI formatting)
 
 2. Marking Unimplemented Code
-Use UNIMP to indicate unfinished sections; it automatically throws the error.
+Use UNIMP_THROWS to indicate unfinished sections; it automatically throws the error.
 Example:
         #include "tools/utils/ERROR.hpp"
         using namespace std;
         using namespace tools::utils;
         void unfinished_function() {
-            UNIMP;
+            UNIMP_THROWS;
         }
         int main() {
             try {
@@ -794,7 +794,7 @@ Example:
 
 Best Practices
 - Use throw ERROR for critical failures that should halt execution or be caught higher up.
-- Reserve UNIMP for placeholders during development; replace with proper implementations before release.
+- Reserve UNIMP_THROWS for placeholders during development; replace with proper implementations before release.
 - Use DEBUG sparingly in production code to avoid cluttering output; consider a debug flag to toggle it.
 - Ensure ANSI-compatible terminals for formatted output (e.g., Linux/macOS terminals, Windows Terminal); 
 non-compatible terminals may show raw escape codes.

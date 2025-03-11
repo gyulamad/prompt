@@ -92,13 +92,33 @@ namespace tools::utils {
         mutex queueMutex;
         condition_variable queueCondition;
         thread logThread;
-        bool stopLogging = false;
+        bool stopLogging = false;atomic<bool> writingToOutput{false};
 
         // Default log formatter
         string defaultFormatter(Level level, const string& name, const string& message) {
             return getCurrentTime() + " [" + name + "] " + levelToString(level) + ": " + message;
         }
 
+        // void processLogs() {
+        //     while (true) {
+        //         string logMessage;
+        //         {
+        //             unique_lock<mutex> lock(queueMutex);
+        //             queueCondition.wait(lock, [this] { return !logQueue.empty() || stopLogging; });
+        //             if (stopLogging && logQueue.empty()) break;
+        //             logMessage = logQueue.front();
+        //             logQueue.pop();
+        //         }
+
+        //         if (logFile.is_open()) {
+        //             // Write to file only (if filename is provided)
+        //             lock_guard<mutex> fileLock(logMutex); // Ensure thread-safe file writing
+        //             logFile << logMessage << endl;
+        //             if (logFile.fail()) cerr << "Failed to write to log file." << endl;
+        //             logFile.flush(); // Flush to ensure the message is written to the file
+        //         } else cout << logMessage << endl; // Write to console only (if no filename is provided)
+        //     }
+        // }
         void processLogs() {
             while (true) {
                 string logMessage;
@@ -109,14 +129,16 @@ namespace tools::utils {
                     logMessage = logQueue.front();
                     logQueue.pop();
                 }
-
+                writingToOutput = true;
                 if (logFile.is_open()) {
-                    // Write to file only (if filename is provided)
-                    lock_guard<mutex> fileLock(logMutex); // Ensure thread-safe file writing
+                    lock_guard<mutex> fileLock(logMutex);
                     logFile << logMessage << endl;
                     if (logFile.fail()) cerr << "Failed to write to log file." << endl;
-                    logFile.flush(); // Flush to ensure the message is written to the file
-                } else cout << logMessage << endl; // Write to console only (if no filename is provided)
+                    logFile.flush();
+                } else {
+                    cout << logMessage << endl;
+                }
+                writingToOutput = false;
             }
         }
 
@@ -142,6 +164,8 @@ namespace tools::utils {
                 default: return "UNKNOWN";
             }
         }
+        
+        bool logThreadWriting() const { return writingToOutput; }
 
     public:
         // Delete copy constructor and copy assignment operator
@@ -223,9 +247,9 @@ namespace tools::utils {
         void flush() {
             unique_lock<mutex> lock(queueMutex);
             queueCondition.notify_all();
-            while (!logQueue.empty()) {
+            while (!logQueue.empty() || logThreadWriting()) { // Check if thread is still writing
                 lock.unlock();
-                this_thread::yield(); // Allow logThread to process
+                this_thread::yield();
                 lock.lock();
             }
         }

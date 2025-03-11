@@ -28,8 +28,9 @@ public:
     void SaveHistory(const char* path) override { saved_history_path = path; }
     void AddHistory(const char* line) override { history.push_back(line); }
     bool Readline(string& line) override {
+        line = "";
         if (useQueue) {
-            if (inputs.empty()) return false;
+            if (inputs.empty()) return true;
             line = inputs.front();
             inputs.pop();
             return line == "ctrl+c";

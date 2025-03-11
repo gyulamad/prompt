@@ -19,9 +19,13 @@ namespace prompt::events {
             user(user),
             input(input + (newln ? "\n" : ""))
         {}
+
+        void echo(const string& echo) const {
+            user.echo(echo);
+        }
     
         string getInput() const { return input; }
-        IUserAgent& getUserRef() { return user; }
+        // IUserAgent& getUserRef() { return user; }
     
     private:
         IUserAgent& user;
@@ -77,18 +81,18 @@ void test_UserInputEvent_getInput_returnsCorrectString() {
     assert(actual == "hello\n" && "UserInputEvent::getInput should return input with newline");
 }
 
-void test_UserInputEvent_getUserRef_returnsSameUser() {
-    MockLogger logger;
-    MockLineEditor editor;
-    MockCommandLine cline(editor);
-    MockCommander commander(cline);
-    IUserAgent user("user", commander, logger);
+// void test_UserInputEvent_getUserRef_returnsSameUser() {
+//     MockLogger logger;
+//     MockLineEditor editor;
+//     MockCommandLine cline(editor);
+//     MockCommander commander(cline);
+//     IUserAgent user("user", commander, logger);
 
-    UserInputEvent event(user, "test", true);
-    IUserAgent& actual = event.getUserRef();
+//     UserInputEvent event(user, "test", true);
+//     IUserAgent& actual = event.getUserRef();
 
-    assert(&actual == &user && "UserInputEvent::getUserRef should return the same user reference");
-}
+//     assert(&actual == &user && "UserInputEvent::getUserRef should return the same user reference");
+// }
 
 void test_UserInputEvent_constructor_handlesEmptyInput() {
     MockLogger logger;
@@ -111,7 +115,7 @@ void test_UserInputEvent_constructor_handlesEmptyInput() {
 TEST(test_UserInputEvent_constructor_appendsNewline);
 TEST(test_UserInputEvent_constructor_noNewline);
 TEST(test_UserInputEvent_getInput_returnsCorrectString);
-TEST(test_UserInputEvent_getUserRef_returnsSameUser);
+// TEST(test_UserInputEvent_getUserRef_returnsSameUser);
 TEST(test_UserInputEvent_constructor_handlesEmptyInput);
 
 #endif

@@ -14,7 +14,7 @@ namespace tools::cmd {
     public:
         virtual ~Command() {}
 
-        virtual vector<string> get_patterns() const UNIMP
+        virtual vector<string> get_patterns() const UNIMP_THROWS
         
         /**
          * @brief 
@@ -23,7 +23,7 @@ namespace tools::cmd {
          * @param args 
          * @return string
          */
-        virtual string run(void*, const vector<string>&) UNIMP
+        virtual string run(void*, const vector<string>&) UNIMP_THROWS
     };    
 
 }
