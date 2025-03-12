@@ -27,12 +27,6 @@ namespace tools::cmd {
         virtual bool Readline(string& line) UNIMP_THROWS // Returns true if exited
         virtual void RefreshLine() UNIMP_THROWS
         virtual void WipeLine() UNIMP_THROWS
-
-        virtual void echo(const string& echo) {
-            WipeLine();
-            cout << echo << flush;
-            RefreshLine();
-        }
     };
 
 } // namespace tools::cmd

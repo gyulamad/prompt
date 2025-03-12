@@ -73,8 +73,6 @@ namespace tools::cmd {
 
         ILineEditor& getEditorRef() { return line_editor; }
 
-        void echo(const string& echo) const { line_editor.echo(echo); }
-
         bool is_exited() const {
             return exited;
         }

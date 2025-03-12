@@ -1,71 +1,132 @@
-// #include <iostream>    // for cerr, cout
-// #include <unistd.h>    // for sleep()
-// #include <algorithm>   // for reverse()
-// #include <memory>
-
 #include "tools/utils/utils.hpp"
-#include "tools/cmd/cmd.hpp"
-#include "tools/events/events.hpp"
-#include "tools/voice/voice.hpp"
+// #include "tools/cmd/cmd.hpp"
+// #include "tools/voice/voice.hpp"
+#include "tools/agency/agency.hpp"
 
 #include "tools/utils/Test.hpp"
 
-#include "prompt/agents/IUserAgent.hpp"
-#include "prompt/commands/ExitCommand.hpp"
-#include "prompt/events/UserInputEvent.hpp"
-#include "prompt/agents/UserTextInputAgent.hpp"
-#include "prompt/agents/EchoAgent.hpp"
-
-
 using namespace std;
-// using namespace tools::utils;
-using namespace tools::cmd;
-// using namespace tools::events;
+using namespace tools::utils;
+// using namespace tools::cmd;
+using namespace tools::agency;
 // using namespace tools::voice;
 
-using namespace prompt::agents;
-using namespace prompt::commands;
-using namespace prompt::events;
+template<typename T>
+class UserAgent: public Agent<T> {
+public:
+    UserAgent(PackQueue<string>& queue): Agent<T>(queue, "user") {}
 
-#ifdef TEST
+    bool tick() override {
+        T input;
+        cin >> input;
+        this->send(input, "echo");
+        if (input == "exit") this->exit();
+        return true;
+    }
+};
 
-// #include "tools/utils/tests/MockLogger.hpp"
-// #include "tools/cmd/tests/MockCommander.hpp"
+template<typename T>
+class EchoAgent: public Agent<T> {
+public:
+    EchoAgent(PackQueue<T>& queue): Agent<T>(queue, "echo") {}
 
-#endif
+    bool handle(const string& sender, const T& item) override {
+        sleep(2); // emulate some background work;
+        cout << "Echo: '" << sender << "' -> " << item << endl;
+        return true;
+    }
+};
+
+template<typename T>
+class Agency: public Agent<T> {
+public:
+    Agency(PackQueue<T> queue = PackQueue<T>(), long ms = 100): Agent<T>(queue, "agency", ms) {}
+
+    // virtual ~Agency() {
+    //     for (const Agent<T>* agent: agents) agent->die();
+    //     if (t.joinable()) t.join();
+    // }
+
+    // void run() {
+    //     t = thread([this]() {
+    //         while(true) {
+    //             vector<Agent<T>*> result;
+    //             copy_if(agents.begin(), agents.end(), back_inserter(result), [this](const Agent<T>* agent) {
+    //                 if (agent->isExited()) {
+    //                     // Remove packs from queue which addressed to the agent but never will be delivered
+    //                     queue.drop(agent->getName());
+    //                     delete agent;
+    //                     return false;
+    //                 }
+    //                 return true;
+    //             });
+    //             agents = result;
+    //             sleep_ms(ms);
+    //         }
+    //     });
+    // }
+    
+    // template<typename AgentT, typename... Args>
+    // AgentT* spawn(Args&&... args) {
+    //     Agent<T>* agent = new AgentT(queue, forward<Args>(args)...);
+    //     // agent->name should be unique! check for agent name in agents vector first!
+    //     string name = agent->getName();
+    //     for (const Agent<T>* a: agents)
+    //         if (a->getName() == name) {
+    //             delete agent;
+    //             return nullptr;
+    //         }
+    //     agents.push_back(agent);
+    //     return (AgentT*)agent;
+    // }
+    
+    // template<typename AgentT, typename... Args>
+    // void kill(AgentT* agent) {
+    //     agent->die();
+    // }
+
+    // void kill(const string& name) {
+    //     for (const Agent<T>* agent: agents)
+    //         if (agent->getName() == name) agent->die();
+    // }
+
+protected:
+    // PackQueue<T> queue;
+    // long ms;
+    // thread t;
+};
+
 
 int safe_main(int argc, char *argv[]) {
     run_tests();
 
-    SharedPtrFactory spfactory;
     try {
-        // TODO: use configs:
-        size_t capacity = 100;
-        bool async = true;
-        long ms = 300;
+        // vector<Agent<string>*> agents;
 
-        const string prompt = "> ";
+        Agency<string> agency;
+        agency.spawn<EchoAgent<string>>()->start();
+        agency.spawn<UserAgent<string>>()->start();
+        // agency.run();
 
-        Logger logger("applog", "app.log");
-        RingBufferEventQueue queue(capacity, logger);
-        EventBus bus(async, logger, queue);
-        
-        LinenoiseAdapter editor(prompt);
-        CommandLine cline(editor);
-        Commander commander(cline);
-        // Register commands
-        ExitCommand exitCommand;
-        vector<void*> commands = { &exitCommand };
-        commander.set_commands(commands);
+        // EchoAgent echo(queue);
+        // agents.push_back(&echo);
+        // echo.start();
 
-        shared_ptr userTextInput = SP_CREATE(spfactory, UserTextInputAgent, "user-text-input", commander, logger);
-        shared_ptr echo = SP_CREATE(spfactory, EchoAgent, "echo");
-        
-        userTextInput->registerWithEventBus(&bus);
-        echo->registerWithEventBus(&bus);
+        // UserAgent user(queue);
+        // agents.push_back(&user);
+        // user.start();
 
-        // Start the input loop
-        userTextInput->run();
+        // while (true) {
+        //     bool exit = true;
+        //     for (const Agent<string>* agent: agents) 
+        //         if (!agent->isExited()) {
+        //             exit = false;
+        //             break;
+        //         }
+        //     if (exit) break;
+        //     sleep_ms(100);
+        // }
+
     } catch (exception &e) {
         cerr << "Error: " << e.what() << endl;
         return 1;

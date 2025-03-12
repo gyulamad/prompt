@@ -10,15 +10,15 @@
 using namespace std;
 using namespace tools::events;
 
-class MockConsumer : public EventConsumer, public enable_shared_from_this<MockConsumer> {
+class MockConsumer : public EventConsumer {
 public:
     MockConsumer(const ComponentId& id) : id(id) {}
-    vector<shared_ptr<Event>> receivedEvents;
+    vector<Event*> receivedEvents;
     // Callback type for event handling notification
-    using Callback = function<void(shared_ptr<Event>)>;
+    using Callback = function<void(Event&)>;
 
-    void handleEvent(shared_ptr<Event> event) override {
-        receivedEvents.push_back(event);
+    void handleEvent(Event& event) override {
+        receivedEvents.push_back(&event);
         if (callback) {
             callback(event); // Invoke callback if set
         }
@@ -26,7 +26,7 @@ public:
 
     void registerWithEventBus(EventBus* bus) override {
         NULLCHK(bus);
-        bus->registerConsumer(shared_from_this());
+        bus->registerConsumer(*this);
         bus->registerEventInterest(id, type_index(typeid(TestEvent)));
     }
 

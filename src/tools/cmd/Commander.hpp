@@ -59,8 +59,6 @@ namespace tools::cmd {
             exiting = true;
         }
 
-        void echo(const string& echo) const { command_line.echo(echo); }
-
         virtual bool run_command(void* user_context, const string& input) {
             if (input.empty()) return false;
             

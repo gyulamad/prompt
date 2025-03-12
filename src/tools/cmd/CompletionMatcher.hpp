@@ -135,59 +135,6 @@ namespace tools::cmd {
             completions.erase(last, completions.end());
             return completions;
         }
-        // vector<string> get_completions_internal(const string& input, const vector<string>& command_patterns) {
-        //     bool has_trailing_space;
-        //     vector<string> current_parts = parse_input(input, has_trailing_space);
-            
-        //     vector<CommandPattern> patterns;
-        //     for (const auto& pattern_str : command_patterns) {
-        //         CommandPattern pattern;
-        //         pattern.parts = parse_pattern(pattern_str);
-        //         patterns.push_back(pattern);
-        //     }
-
-        //     vector<string> completions;
-        //     if (current_parts.empty()) {
-        //         // Empty input: return first part of all patterns
-        //         for (const auto& pattern : patterns) {
-        //             if (!pattern.parts.empty()) {
-        //                 completions.push_back(pattern.parts[0].value);
-        //             }
-        //         }
-        //     } else {
-        //         for (const auto& pattern : patterns) {
-        //             if (!matches_current_input(pattern, current_parts)) {
-        //                 continue;
-        //             }
-        //             // Base next_part_index on the number of meaningful parts
-        //             int next_part_index = current_parts.size() - (has_trailing_space ? 1 : 0);
-        //             if (next_part_index < 0 || next_part_index >= pattern.parts.size()) {
-        //                 continue;
-        //             }
-        //             const PatternPart& next_part = pattern.parts[next_part_index];
-        //             // If no trailing space, partial is the last part; otherwise, empty
-        //             string partial = (!has_trailing_space && next_part_index < current_parts.size()) 
-        //                              ? current_parts[next_part_index] 
-        //                              : "";
-        //             if (next_part.is_parameter) {
-        //                 vector<string> options = generate_param_completions(next_part.value, partial);
-        //                 for (const string& opt : options) {
-        //                     completions.push_back(opt);
-        //                 }
-        //             } else {
-        //                 if (str_starts_with(next_part.value, partial)) {
-        //                     completions.push_back(next_part.value);
-        //                 }
-        //             }
-        //         }
-        //     }
-
-        //     sort(completions.begin(), completions.end());
-        //     auto last = unique(completions.begin(), completions.end());
-        //     completions.erase(last, completions.end());
-
-        //     return completions;
-        // }
 
     public:
     

@@ -13,7 +13,7 @@ namespace tools::events {
     /**
      * Base implementation of an event producer with helper methods
      */
-    class BaseEventProducer : public EventProducer, public enable_shared_from_this<BaseEventProducer> {
+    class BaseEventProducer : public EventProducer {
     public:
         BaseEventProducer(const ComponentId& id) : m_id(id) {}
         
@@ -21,7 +21,7 @@ namespace tools::events {
             NULLCHK(bus);
             lock_guard<mutex> lock(producerMutex);
             m_eventBus = bus;
-            bus->registerProducer(shared_from_this());
+            bus->registerProducer(*this);
         }
         
         ComponentId getId() const override {
@@ -52,8 +52,8 @@ namespace tools::events {
 
 // Test getId method
 void test_BaseEventProducer_getId_basic() {
-    auto producer = make_shared<BaseEventProducer>("producer1");
-    string id = producer->getId();
+    BaseEventProducer producer("producer1");
+    string id = producer.getId();
 
     assert(id == "producer1" && "getId should return the constructor-provided ID");
 }
@@ -62,17 +62,17 @@ void test_BaseEventProducer_getId_basic() {
 void test_BaseEventProducer_publishEvent_with_bus() {
     MockLogger logger;
     RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(false, logger, eventQueue);
-    auto producer = make_shared<BaseEventProducer>("producer1");
-    auto consumer = make_shared<MockConsumer>("consumer1");
+    EventBus bus(logger, eventQueue);
+    BaseEventProducer producer("producer1");
+    MockConsumer consumer("consumer1");
 
-    producer->registerWithEventBus(&bus);
-    consumer->registerWithEventBus(&bus);
-    producer->publishEvent<TestEvent>("consumer1", 42);
+    producer.registerWithEventBus(&bus);
+    consumer.registerWithEventBus(&bus);
+    producer.publishEvent<TestEvent>("consumer1", 42);
 
-    size_t eventCount = consumer->receivedEvents.size();
+    size_t eventCount = consumer.receivedEvents.size();
     assert(eventCount == 1 && "Consumer should receive event published by producer");
-    auto receivedEvent = static_pointer_cast<TestEvent>(consumer->receivedEvents[0]);
+    TestEvent* receivedEvent = (TestEvent*)consumer.receivedEvents[0];
     assert(receivedEvent->value == 42 && "Received event should match published event");
     assert(receivedEvent->sourceId == "producer1" && "Received event should have producer's ID as source");
     assert(receivedEvent->timestamp <= chrono::system_clock::now() && "Event timestamp should be set");
@@ -81,10 +81,10 @@ void test_BaseEventProducer_publishEvent_with_bus() {
 
 // Test publishEvent without EventBus
 void test_BaseEventProducer_publishEvent_no_bus() {
-    auto producer = make_shared<BaseEventProducer>("producer1");
+    BaseEventProducer producer("producer1");
     bool thrown = false;
     try {
-        producer->publishEvent<TestEvent>("", 42);  // No bus registered
+        producer.publishEvent<TestEvent>("", 42);  // No bus registered
     } catch (exception &e) {
         thrown = true;
         assert(str_contains(e.what(), "Cannot publish event, event bus is nullptr."));
@@ -92,38 +92,15 @@ void test_BaseEventProducer_publishEvent_no_bus() {
     assert(thrown && "Producer withour bus should throw");
 }
 
-// Test publishEvent with async EventBus
-void test_BaseEventProducer_publishEvent_async_bus() {
-    // TEST_SKIP("TODO: Async queue delivery mechanism needs refact");
-    MockLogger logger;
-    RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(true, logger, eventQueue);  // Async mode
-    auto producer = make_shared<BaseEventProducer>("producer1");
-    auto consumer = make_shared<MockConsumer>("consumer1");
-
-    producer->registerWithEventBus(&bus);
-    consumer->registerWithEventBus(&bus);
-
-    producer->publishEvent<TestEvent>("consumer1", 42);
-
-    this_thread::sleep_for(chrono::milliseconds(200));  // Wait for async processing
-
-    size_t eventCount = consumer->receivedEvents.size();
-    assert(eventCount == 1 && "Consumer should receive event in async mode");
-    auto receivedEvent = static_pointer_cast<TestEvent>(consumer->receivedEvents[0]);
-    assert(receivedEvent->value == 42 && "Received event should match published event");
-    assert(receivedEvent->sourceId == "producer1" && "Received event should have producer's ID as source");
-}
-
 // Test concurrent publishing
 void test_BaseEventProducer_publishEvent_concurrent() {
     MockLogger logger;
     RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(false, logger, eventQueue);
-    auto producer = make_shared<BaseEventProducer>("producer1");
-    auto consumer = make_shared<MockConsumer>("consumer1");
-    producer->registerWithEventBus(&bus);
-    consumer->registerWithEventBus(&bus);
+    EventBus bus(logger, eventQueue);
+    BaseEventProducer producer("producer1");
+    MockConsumer consumer("consumer1");
+    producer.registerWithEventBus(&bus);
+    consumer.registerWithEventBus(&bus);
 
     const int numThreads = 4;
     const int eventsPerThread = 10;
@@ -132,16 +109,16 @@ void test_BaseEventProducer_publishEvent_concurrent() {
     for (int i = 0; i < numThreads; ++i) {
         publishers.emplace_back([i, &producer]() {
             for (int j = 0; j < eventsPerThread; ++j) {
-                producer->publishEvent<TestEvent>("consumer1", i * eventsPerThread + j);
+                producer.publishEvent<TestEvent>("consumer1", i * eventsPerThread + j);
             }
         });
     }
 
-    for (auto& publisher : publishers) {
-        publisher.join();
+    for (thread& publisher : publishers) {
+        if (publisher.joinable()) publisher.join();
     }
 
-    size_t eventCount = consumer->receivedEvents.size();
+    size_t eventCount = consumer.receivedEvents.size();
     assert(eventCount == numThreads * eventsPerThread && "Consumer should receive all events from concurrent publishing");
 }
 
@@ -156,19 +133,19 @@ void test_BaseEventProducer_publishEvent_multiple_types() {
 
     MockLogger logger;
     RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(false, logger, eventQueue);
-    auto producer = make_shared<BaseEventProducer>("producer1");
+    EventBus bus(logger, eventQueue);
+    BaseEventProducer producer("producer1");
 
     // Custom consumer for multiple event types
-    class MultiTypeConsumer : public EventConsumer, public enable_shared_from_this<MultiTypeConsumer> {
+    class MultiTypeConsumer : public EventConsumer {
     public:
         MultiTypeConsumer(const ComponentId& id) : id(id) {}
-        vector<shared_ptr<Event>> receivedEvents;
+        vector<Event*> receivedEvents;
 
-        void handleEvent(shared_ptr<Event> event) override { receivedEvents.push_back(event); }
+        void handleEvent(Event& event) override { receivedEvents.push_back(&event); }
         void registerWithEventBus(EventBus* bus) override {
             NULLCHK(bus);
-            bus->registerConsumer(shared_from_this());
+            bus->registerConsumer(*this);
             bus->registerEventInterest(id, type_index(typeid(TestEvent)));
             bus->registerEventInterest(id, type_index(typeid(OtherEvent)));
         }
@@ -181,17 +158,17 @@ void test_BaseEventProducer_publishEvent_multiple_types() {
         ComponentId id;
     };
 
-    auto consumer = make_shared<MultiTypeConsumer>("consumer1");
-    producer->registerWithEventBus(&bus);
-    consumer->registerWithEventBus(&bus);
+    MultiTypeConsumer consumer("consumer1");
+    producer.registerWithEventBus(&bus);
+    consumer.registerWithEventBus(&bus);
 
-    producer->publishEvent<TestEvent>("consumer1", 42);
-    producer->publishEvent<OtherEvent>("consumer1", 99);
+    producer.publishEvent<TestEvent>("consumer1", 42);
+    producer.publishEvent<OtherEvent>("consumer1", 99);
 
-    size_t eventCount = consumer->receivedEvents.size();
+    size_t eventCount = consumer.receivedEvents.size();
     assert(eventCount == 2 && "Consumer should receive both event types");
-    auto receivedTest = static_pointer_cast<TestEvent>(consumer->receivedEvents[0]);
-    auto receivedOther = static_pointer_cast<OtherEvent>(consumer->receivedEvents[1]);
+    TestEvent* receivedTest = (TestEvent*)consumer.receivedEvents[0];
+    OtherEvent* receivedOther = (OtherEvent*)consumer.receivedEvents[1];
     assert(receivedTest->value == 42 && "Received TestEvent should match published event");
     assert(receivedOther->data == 99 && "Received OtherEvent should match published event");
     assert(receivedTest->sourceId == "producer1" && "TestEvent should have producer's ID as source");
@@ -202,7 +179,6 @@ void test_BaseEventProducer_publishEvent_multiple_types() {
 TEST(test_BaseEventProducer_getId_basic);
 TEST(test_BaseEventProducer_publishEvent_with_bus);
 TEST(test_BaseEventProducer_publishEvent_no_bus);
-TEST(test_BaseEventProducer_publishEvent_async_bus);
 TEST(test_BaseEventProducer_publishEvent_concurrent);
 TEST(test_BaseEventProducer_publishEvent_multiple_types);
 #endif

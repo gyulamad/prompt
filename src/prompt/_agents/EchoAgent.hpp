@@ -16,20 +16,28 @@ namespace prompt::agents {
     protected:
     
         void registerEventInterests() override {
-            registerHandler<UserInputEvent>([this](shared_ptr<UserInputEvent> event) {
-                sleep(2); // TODO: waiting for a bit to emulate some work (for testing only, it need to be removed!!!!)
-                string data = event->getInput();
-                // IUserAgent& user = event->getUserRef();
-                // Commander& commander = user.getCommanderRef();
-                // CommandLine& cline = commander.get_command_line_ref();
-                // ILineEditor& editor = cline.getEditorRef();
-                {
-                    lock_guard<mutex> lock(mtx);
-                    event->echo(data);
-                //     editor.WipeLine(); // hide user input area (clear the actual line)
-                //     cout << data << flush;
-                //     editor.RefreshLine(); // show the user input prompt (linenoise readln) so that user can continue typing...
-                }
+            registerHandler<UserInputEvent>([this](UserInputEvent& event) {
+                event.hold();
+                lock_guard<mutex> lock(mtx);
+                thread([&event]() {
+                    string data = event.getInput();
+                    IUserAgent& user = event.getUserRef();
+
+                    // IUserAgent& user = event->getUserRef();
+                    // Commander& commander = user.getCommanderRef();
+                    // CommandLine& cline = commander.get_command_line_ref();
+                    // ILineEditor& editor = cline.getEditorRef();
+                    // {
+                        // lock_guard<mutex> lock(mtx);
+                        sleep(2); // TODO: waiting for a bit to emulate some work (for testing only, it need to be removed!!!!)
+                        user.print("Echo: " + data);
+                    //     editor.WipeLine(); // hide user input area (clear the actual line)
+                    //     cout << data << flush;
+                    //     editor.RefreshLine(); // show the user input prompt (linenoise readln) so that user can continue typing...
+                    // }
+                    event.release();
+                }).detach(); //.join();
+
             });
         }
     
@@ -49,9 +57,9 @@ namespace prompt::agents {
 void test_EchoAgent_registerEventInterests_handlesUserInputEvent() {
     MockLogger logger;
     RingBufferEventQueue queue(100, logger);
-    EventBus bus(false, logger, queue);
-    shared_ptr agent = make_shared<EchoAgent>("echo");
-    agent->registerWithEventBus(&bus);
+    EventBus bus(logger, queue);
+    EchoAgent agent("echo");
+    agent.registerWithEventBus(&bus);
 
     MockLineEditor editor;
     MockCommandLine cline(editor);
@@ -76,9 +84,9 @@ void test_EchoAgent_registerEventInterests_outputsToCout() {
     // TEST_SKIP("TODO: Async queue delivery mechanism needs refact");
     MockLogger logger;
     RingBufferEventQueue queue(100, logger);
-    EventBus bus(false, logger, queue);
-    shared_ptr agent = make_shared<EchoAgent>("echo");
-    agent->registerWithEventBus(&bus);
+    EventBus bus(logger, queue);
+    EchoAgent agent("echo");
+    agent.registerWithEventBus(&bus);
 
     MockLineEditor editor;
     MockCommandLine cline(editor);
@@ -90,16 +98,17 @@ void test_EchoAgent_registerEventInterests_outputsToCout() {
         this_thread::sleep_for(chrono::milliseconds(50)); // Wait for async processing
     });
 
-    assert(actualOutput == "Test input to echo\n" && "EchoAgent should output 'Test echo' followed by newline");
+    assert(str_contains(actualOutput, "Test input to echo") && "EchoAgent should output the same message");
+    assert(str_ends_with(actualOutput, "\n") && "EchoAgent's output should followed by newline");
 }
 
 void test_EchoAgent_registerEventInterests_handlesEmptyInput() {
     // TEST_SKIP("TODO: Async queue delivery mechanism needs refact");
     MockLogger logger;
     RingBufferEventQueue queue(100, logger);
-    EventBus bus(false, logger, queue);
-    shared_ptr agent = make_shared<EchoAgent>("echo");
-    agent->registerWithEventBus(&bus);
+    EventBus bus(logger, queue);
+    EchoAgent agent("echo");
+    agent.registerWithEventBus(&bus);
 
     MockLineEditor editor;
     MockCommandLine cline(editor);
@@ -116,7 +125,7 @@ void test_EchoAgent_registerEventInterests_handlesEmptyInput() {
 
     assert(wiped == true && "EchoAgent should wipe the line even with empty input");
     assert(refreshed == true && "EchoAgent should refresh the line even with empty input");
-    assert(actualOutput == "\n" && "EchoAgent should output just a newline for empty input");
+    assert(str_ends_with(actualOutput, "\n") && "EchoAgent should output just a newline for empty input");
 }
 
 // Register all tests

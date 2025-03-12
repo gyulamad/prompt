@@ -90,7 +90,7 @@ namespace tools::utils {
         this_thread::sleep_for(chrono::milliseconds(ms));
     }
     
-    static string execute(const char* cmd) { // TODO: to common
+    static string execute(const char* cmd) {
         string result = "";
 
         char buffer[128];

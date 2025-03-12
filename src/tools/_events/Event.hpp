@@ -28,7 +28,19 @@ namespace tools::events {
         chrono::time_point<chrono::system_clock> timestamp;
         
         // Type information for runtime type checking
-        virtual type_index getType() const = 0;
+        virtual type_index getType() const { return type_index(typeid(Event)); }
+
+        void hold() {
+            holders++;
+        }
+        void release() {
+            holders--;
+        }
+        bool isHolded() {
+            return !!holders;
+        }
+    private:
+        size_t holders = 0;
     };
 
 }

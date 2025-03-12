@@ -20,16 +20,16 @@ namespace tools::events {
         virtual ~EventConsumer() = default;
         
         // Handle an incoming event
-        virtual void handleEvent(shared_ptr<Event> event) UNIMP_THROWS
+        virtual void handleEvent(Event& event) UNIMP_NEED
         
         // Register this consumer with the event bus
-        virtual void registerWithEventBus(EventBus* bus) UNIMP_THROWS
+        virtual void registerWithEventBus(EventBus* bus) UNIMP_NEED
         
         // Get unique identifier for this consumer
-        virtual ComponentId getId() const UNIMP_THROWS
+        virtual ComponentId getId() const UNIMP_NEED
         
         // Check if this consumer can handle a specific event type
-        virtual bool canHandle(type_index eventType) const UNIMP_THROWS
+        virtual bool canHandle(type_index eventType) const UNIMP_NEED
     };
     
 }

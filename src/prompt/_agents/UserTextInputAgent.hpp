@@ -136,16 +136,16 @@ void test_UserTextInputAgent_run_publishesNonCommandInput() {
     MockCommandLine cline(editor);
     MockCommander commander(cline);
     RingBufferEventQueue queue(100, logger);
-    MockEventBus bus(false, logger, queue);
-    auto agent = make_shared<UserTextInputAgent>("user-text-input", commander, logger);
-    agent->registerWithEventBus(&bus);
+    MockEventBus bus(logger, queue);
+    UserTextInputAgent agent("user-text-input", commander, logger);
+    agent.registerWithEventBus(&bus);
     bus.start();
 
     editor.queueInput("hello");
     editor.queueInput("/exit");
-    agent->run();
+    agent.run();
 
-    string actual = bus.publishedEvents.empty() ? "" : dynamic_pointer_cast<UserInputEvent>(bus.publishedEvents[0])->getInput();
+    string actual = bus.publishedEvents.empty() ? "" : ((UserInputEvent*)bus.publishedEvents[0])->getInput();
     assert(actual == "hello\n" && "UserTextInputAgent::run should publish non-command input with newline");
 }
 
@@ -172,19 +172,19 @@ void test_UserTextInputAgent_run_handlesMultipleInputs() {
     MockCommandLine cline(editor);
     MockCommander commander(cline);
     RingBufferEventQueue queue(100, logger);
-    MockEventBus bus(false, logger, queue);
-    auto agent = make_shared<UserTextInputAgent>("user-text-input", commander, logger);
-    agent->registerWithEventBus(&bus);
+    MockEventBus bus(logger, queue);
+    UserTextInputAgent agent("user-text-input", commander, logger);
+    agent.registerWithEventBus(&bus);
     bus.start();
 
     editor.queueInput("hello");
     editor.queueInput("world");
     editor.queueInput("/exit");
-    agent->run();
+    agent.run();
 
     vector<string> actual;
-    for (const auto& event : bus.publishedEvents) {
-        actual.push_back(dynamic_pointer_cast<UserInputEvent>(event)->getInput());
+    for (Event*& event : bus.publishedEvents) {
+        actual.push_back(((UserInputEvent*)event)->getInput());
     }
     
     vector<string> expected = {"hello\n", "world\n"};

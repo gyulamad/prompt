@@ -14,7 +14,7 @@ namespace tools::events {
         virtual ~EventFilter() = default;
         
         // Return true if the event should be delivered, false if it should be filtered out
-        virtual bool shouldDeliverEvent(const ComponentId& consumerId, shared_ptr<Event> event) = 0;
+        virtual bool shouldDeliverEvent(const ComponentId& consumerId, Event& event) = 0;
     };
 
 }

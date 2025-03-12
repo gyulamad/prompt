@@ -13,12 +13,12 @@ using namespace tools::events;
 class TestAgent : public BaseEventAgent {
 public:
     TestAgent(const ComponentId& id) : BaseEventAgent(id) {}
-    vector<shared_ptr<Event>> receivedEvents;
+    vector<Event*> receivedEvents;
 
 protected:
     void registerEventInterests() override {
-        registerHandler<TestEvent>([this](shared_ptr<TestEvent> event) {
-            receivedEvents.push_back(event);
+        registerHandler<TestEvent>([this](TestEvent& event) {
+            receivedEvents.push_back(&event);
         });
     }
 };

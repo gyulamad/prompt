@@ -26,7 +26,7 @@ namespace tools::utils {
         RingBuffer(size_t capacity, WritePolicy policy) 
             : buffer(capacity), capacity(capacity), policy(policy) {
             if (capacity < 1) 
-                throw invalid_argument("Capacity must be at least 1");
+                throw ERROR("Capacity must be at least 1");
         }
         
         // Original methods

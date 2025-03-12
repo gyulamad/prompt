@@ -22,7 +22,7 @@ namespace tools::events {
             Logger& logger
              // TODO: add expiry default NEVER, and remove expired evens periodically or when the buffer is full!!!
         ):
-            ringBuffer(capacity, RingBuffer<shared_ptr<Event>>::WritePolicy::Rotate),
+            ringBuffer(capacity, RingBuffer<Event>::WritePolicy::Rotate),
             logger(logger)
         {
             ringBuffer.set_drop_callback([this, &logger](size_t count) {
@@ -31,11 +31,11 @@ namespace tools::events {
             });
         }
 
-        bool write(shared_ptr<Event> event) override {
+        bool write(Event& event) override {
             return ringBuffer.write(&event, 1);
         }
 
-        size_t read(shared_ptr<Event>& event, bool blocking, int timeoutMs) override {
+        size_t read(Event& event, bool blocking, int timeoutMs) override {
             return ringBuffer.read(&event, 1, blocking, timeoutMs);
         }
 
@@ -54,7 +54,7 @@ namespace tools::events {
         }
 
     private:
-        RingBuffer<shared_ptr<Event>> ringBuffer;
+        RingBuffer<Event> ringBuffer;
         Logger& logger;
         DropCallback dropCallback;
     };    
@@ -71,7 +71,7 @@ namespace tools::events {
 void test_RingBufferEventQueue_write_basic() {
     MockLogger logger;
     RingBufferEventQueue queue(3, logger);
-    auto event = make_shared<TestEvent>(42);
+    TestEvent event(42);
 
     bool success = queue.write(event);
     assert(success == true && "Write should succeed with empty queue");
@@ -83,14 +83,13 @@ void test_RingBufferEventQueue_write_basic() {
 void test_RingBufferEventQueue_read_basic() {
     MockLogger logger;
     RingBufferEventQueue queue(3, logger);
-    auto event = make_shared<TestEvent>(42);
+    TestEvent event(42);
     queue.write(event);
 
-    shared_ptr<Event> readEvent;
+    TestEvent readEvent(0);
     size_t readCount = queue.read(readEvent, false, 0);
     assert(readCount == 1 && "Read should return 1 event");
-    auto testEvent = static_pointer_cast<TestEvent>(readEvent);
-    assert(testEvent->value == 42 && "Read event should match written event");
+    assert(readEvent.value == 42 && "Read event should match written event");
     size_t available = queue.available();
     assert(available == 0 && "Queue should be empty after read");
 }
@@ -100,20 +99,23 @@ void test_RingBufferEventQueue_read_empty() {
     MockLogger logger;
     RingBufferEventQueue queue(3, logger);
 
-    shared_ptr<Event> readEvent;
+    TestEvent readEvent(0);
     size_t readCount = queue.read(readEvent, false, 0);
     assert(readCount == 0 && "Read from empty queue should return 0");
-    assert(readEvent == nullptr && "Read event should be null when queue is empty");
+    // assert(readEvent == nullptr && "Read event should be null when queue is empty");
 }
 
 // Test write when queue is full (triggers drop callback)
 void test_RingBufferEventQueue_write_full() {
     MockLogger logger;
     RingBufferEventQueue queue(2, logger);  // Capacity of 2
-    queue.write(make_shared<TestEvent>(1));
-    queue.write(make_shared<TestEvent>(2));
+    TestEvent event1(1);
+    TestEvent event2(2);
+    queue.write(event1);
+    queue.write(event2);
     
-    bool success = queue.write(make_shared<TestEvent>(3));  // Should overwrite oldest
+    TestEvent event3(3);
+    bool success = queue.write(event3);  // Should overwrite oldest
     assert(success == true && "Write should succeed with Rotate policy");
     size_t available = queue.available();
     assert(available == 2 && "Queue should still have 2 events after overwrite");
@@ -126,13 +128,15 @@ void test_RingBufferEventQueue_write_full() {
 void test_RingBufferEventQueue_available_multiple() {
     MockLogger logger;
     RingBufferEventQueue queue(3, logger);
-    queue.write(make_shared<TestEvent>(1));
-    queue.write(make_shared<TestEvent>(2));
+    TestEvent event1(1);
+    TestEvent event2(2);
+    queue.write(event1);
+    queue.write(event2);
 
     size_t available = queue.available();
     assert(available == 2 && "Available should return 2 after two writes");
 
-    shared_ptr<Event> readEvent;
+    TestEvent readEvent(0);
     queue.read(readEvent, false, 0);
     available = queue.available();
     assert(available == 1 && "Available should return 1 after one read");
@@ -144,7 +148,7 @@ void test_RingBufferEventQueue_read_blocking_timeout() {
     RingBufferEventQueue queue(3, logger);
 
     auto start = chrono::steady_clock::now();
-    shared_ptr<Event> readEvent;
+    TestEvent readEvent(0);
     size_t readCount = queue.read(readEvent, true, 500);  // 500ms timeout
     auto end = chrono::steady_clock::now();
     auto durationMs = chrono::duration_cast<chrono::milliseconds>(end - start).count();
@@ -157,14 +161,13 @@ void test_RingBufferEventQueue_read_blocking_timeout() {
 void test_RingBufferEventQueue_read_blocking_success() {
     MockLogger logger;
     RingBufferEventQueue queue(3, logger);
-    auto event = make_shared<TestEvent>(99);
+    TestEvent event(99);
     queue.write(event);
 
-    shared_ptr<Event> readEvent;
+    TestEvent readEvent(0);
     size_t readCount = queue.read(readEvent, true, 500);
     assert(readCount == 1 && "Blocking read should return 1 when data is available");
-    auto testEvent = static_pointer_cast<TestEvent>(readEvent);
-    assert(testEvent->value == 99 && "Read event should match written event");
+    assert(readEvent.value == 99 && "Read event should match written event");
 }
 
 // Test constructor with invalid capacity
@@ -194,7 +197,7 @@ void test_RingBufferEventQueue_write_concurrent() {
     for (int i = 0; i < numThreads; ++i) {
         writers.emplace_back([i, &queue]() {
             for (int j = 0; j < writesPerThread; ++j) {
-                auto event = make_shared<TestEvent>(i * writesPerThread + j);
+                TestEvent event(i * writesPerThread + j);
                 while (!queue.write(event)) {
                     this_thread::yield();  // Retry if full (unlikely with large capacity)
                 }
@@ -202,7 +205,7 @@ void test_RingBufferEventQueue_write_concurrent() {
         });
     }
 
-    for (auto& writer : writers) {
+    for (thread& writer : writers) {
         writer.join();
     }
 
@@ -222,7 +225,7 @@ void test_RingBufferEventQueue_read_write_concurrent() {
     // Writer thread
     thread writer([&]() {
         for (int i = 0; i < numWrites; ++i) {
-            auto event = make_shared<TestEvent>(i);
+            TestEvent event(i);
             while (!queue.write(event)) {
                 this_thread::yield();
             }
@@ -233,7 +236,7 @@ void test_RingBufferEventQueue_read_write_concurrent() {
     // Reader thread
     thread reader([&]() {
         for (int i = 0; i < numReads; ++i) {
-            shared_ptr<Event> event;
+            Event event;
             size_t count = queue.read(event, true, 1000);
             if (count == 1) {
                 readCount++;

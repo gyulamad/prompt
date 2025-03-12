@@ -16,14 +16,14 @@ namespace tools::events {
     /**
      * Base implementation of an event consumer with helper methods
      */
-    class BaseEventConsumer : public EventConsumer, public enable_shared_from_this<BaseEventConsumer> {
+    class BaseEventConsumer : public EventConsumer {
     public:
         BaseEventConsumer(const ComponentId& id) : m_id(id) {}
         
         void registerWithEventBus(EventBus* bus) override {
             NULLCHK(bus);
             m_eventBus = bus;
-            bus->registerConsumer(shared_from_this());
+            bus->registerConsumer(*this);
             registerEventInterests();
         }
         
@@ -35,10 +35,9 @@ namespace tools::events {
             return m_handlerMap.find(eventType) != m_handlerMap.end();
         }
         
-        void handleEvent(shared_ptr<Event> event) override {
-            NULLCHK(event, "Cannot handle null event");
+        void handleEvent(Event& event) override {
             lock_guard<mutex> lock(handlerMutex);
-            auto it = m_handlerMap.find(event->getType());
+            auto it = m_handlerMap.find(event.getType());
             if (it != m_handlerMap.end()) {
                 for (auto& handler : it->second) {
                     handler(event);
@@ -47,11 +46,11 @@ namespace tools::events {
         }
 
         template<typename EventType>
-        void registerHandler(function<void(shared_ptr<EventType>)> handler) {
+        void registerHandler(function<void(EventType&)> handler) {
             type_index typeIdx(typeid(EventType));
             
-            auto wrapper = [handler](shared_ptr<Event> baseEvent) {
-                auto derivedEvent = static_pointer_cast<EventType>(baseEvent);
+            auto wrapper = [handler](Event& baseEvent) {
+                EventType& derivedEvent = (EventType&)baseEvent;
                 handler(derivedEvent);
             };
             
@@ -70,7 +69,7 @@ namespace tools::events {
     private:
         ComponentId m_id;
         EventBus* m_eventBus;
-        unordered_map<type_index, vector<function<void(shared_ptr<Event>)>>> m_handlerMap;
+        unordered_map<type_index, vector<function<void(Event&)>>> m_handlerMap;
         mutex handlerMutex;  // Added for thread safety
     };
 
@@ -87,22 +86,22 @@ namespace tools::events {
 void test_BaseEventConsumer_registerWithEventBus_basic() {
     MockLogger logger;
     RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(false, logger, eventQueue);
-    auto consumer = make_shared<TestConsumer>("consumer1");
+    EventBus bus(logger, eventQueue);
+    TestConsumer consumer("consumer1");
 
-    consumer->registerWithEventBus(&bus);
-    bus.createAndPublishEvent<TestEvent>("source1", consumer->getId(), 42);
+    consumer.registerWithEventBus(&bus);
+    bus.createAndPublishEvent<TestEvent>("source1", consumer.getId(), 42);
 
-    size_t eventCount = consumer->receivedEvents.size();
+    size_t eventCount = consumer.receivedEvents.size();
     assert(eventCount == 1 && "Consumer should receive event after registration");
-    auto receivedEvent = static_pointer_cast<TestEvent>(consumer->receivedEvents[0]);
+    TestEvent* receivedEvent = (TestEvent*)consumer.receivedEvents[0];
     assert(receivedEvent->value == 42 && "Received event should match published event");
 }
 
 // Test getId method
 void test_BaseEventConsumer_getId_basic() {
-    auto consumer = make_shared<TestConsumer>("consumer1");
-    string id = consumer->getId();
+    TestConsumer consumer("consumer1");
+    string id = consumer.getId();
 
     assert(id == "consumer1" && "getId should return the constructor-provided ID");
 }
@@ -111,18 +110,18 @@ void test_BaseEventConsumer_getId_basic() {
 void test_BaseEventConsumer_canHandle_registered() {
     MockLogger logger;
     RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(false, logger, eventQueue);
-    auto consumer = make_shared<TestConsumer>("consumer1");
-    consumer->registerWithEventBus(&bus);  // Trigger registration of event interests
+    EventBus bus(logger, eventQueue);
+    TestConsumer consumer("consumer1");
+    consumer.registerWithEventBus(&bus);  // Trigger registration of event interests
 
-    bool canHandle = consumer->canHandle(type_index(typeid(TestEvent)));
+    bool canHandle = consumer.canHandle(type_index(typeid(TestEvent)));
     assert(canHandle == true && "canHandle should return true for registered event type");
 }
 
 // Test canHandle with unregistered event type
 void test_BaseEventConsumer_canHandle_unregistered() {
-    auto consumer = make_shared<TestConsumer>("consumer1");
-    bool canHandle = consumer->canHandle(type_index(typeid(int)));  // Arbitrary unrelated type
+    TestConsumer consumer("consumer1");
+    bool canHandle = consumer.canHandle(type_index(typeid(int)));  // Arbitrary unrelated type
 
     assert(canHandle == false && "canHandle should return false for unregistered event type");
 }
@@ -131,15 +130,15 @@ void test_BaseEventConsumer_canHandle_unregistered() {
 void test_BaseEventConsumer_handleEvent_registered() {
     MockLogger logger;
     RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(false, logger, eventQueue);
-    auto consumer = make_shared<TestConsumer>("consumer1");
-    consumer->registerWithEventBus(&bus);  // Register to populate m_handlerMap
+    EventBus bus(logger, eventQueue);
+    TestConsumer consumer("consumer1");
+    consumer.registerWithEventBus(&bus);  // Register to populate m_handlerMap
 
-    auto event = make_shared<TestEvent>(42);
-    consumer->handleEvent(event);
-    size_t eventCount = consumer->receivedEvents.size();
+    TestEvent event(42);
+    consumer.handleEvent(event);
+    size_t eventCount = consumer.receivedEvents.size();
     assert(eventCount == 1 && "handleEvent should invoke registered handler");
-    auto receivedEvent = static_pointer_cast<TestEvent>(consumer->receivedEvents[0]);
+    TestEvent* receivedEvent = (TestEvent*)consumer.receivedEvents[0];
     assert(receivedEvent->value == 42 && "Received event should match handled event");
 }
 
@@ -149,11 +148,11 @@ void test_BaseEventConsumer_handleEvent_unregistered() {
     public:
         type_index getType() const override { return type_index(typeid(OtherEvent)); }
     };
-    auto consumer = make_shared<TestConsumer>("consumer1");
-    auto event = make_shared<OtherEvent>();
+    TestConsumer consumer("consumer1");
+    OtherEvent event;
 
-    consumer->handleEvent(event);
-    size_t eventCount = consumer->receivedEvents.size();
+    consumer.handleEvent(event);
+    size_t eventCount = consumer.receivedEvents.size();
     assert(eventCount == 0 && "handleEvent should not invoke handler for unregistered event type");
 }
 
@@ -161,46 +160,27 @@ void test_BaseEventConsumer_handleEvent_unregistered() {
 void test_BaseEventConsumer_registerHandler_post_registration() {
     MockLogger logger;
     RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(false, logger, eventQueue);
-    auto consumer = make_shared<TestConsumer>("consumer1");
-    consumer->registerWithEventBus(&bus);
+    EventBus bus(logger, eventQueue);
+    TestConsumer consumer("consumer1");
+    consumer.registerWithEventBus(&bus);
 
     // Register a second handler for the same event type
-    consumer->registerHandler<TestEvent>([consumer](shared_ptr<TestEvent> event) {
-        consumer->receivedEvents.push_back(event);  // Double push for this test
+    consumer.registerHandler<TestEvent>([&consumer](TestEvent& event) {
+        consumer.receivedEvents.push_back(&event);  // Double push for this test
     });
-    bus.createAndPublishEvent<TestEvent>("source1", consumer->getId(), 42);
+    bus.createAndPublishEvent<TestEvent>("source1", consumer.getId(), 42);
 
-    size_t eventCount = consumer->receivedEvents.size();
+    size_t eventCount = consumer.receivedEvents.size();
     assert(eventCount == 2 && "Handler registered post-registration should also receive event");
-}
-
-// Test exception case: null event pointer in handleEvent throws an exception
-void test_BaseEventConsumer_handleEvent_null_event() {
-    auto consumer = make_shared<TestConsumer>("consumer1");
-    shared_ptr<Event> nullEvent = nullptr;
-
-    bool thrown = false;
-    try {
-        consumer->handleEvent(nullEvent);  // Should throw an exception
-    } catch (const exception& e) {  // Generic catch for custom exception
-        thrown = true;
-        string what = e.what();
-        assert(str_contains(what, "Cannot handle null event") && "Exception message should indicate null event error");
-    }
-
-    assert(thrown == true && "handleEvent should throw an exception for null event");
-    size_t eventCount = consumer->receivedEvents.size();
-    assert(eventCount == 0 && "No events should be recorded for null event");
 }
 
 // Test multi-threaded event handling
 void test_BaseEventConsumer_handleEvent_concurrent() {
     MockLogger logger;
     RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(false, logger, eventQueue);
-    auto consumer = make_shared<TestConsumer>("consumer1");
-    consumer->registerWithEventBus(&bus);
+    EventBus bus(logger, eventQueue);
+    TestConsumer consumer("consumer1");
+    consumer.registerWithEventBus(&bus);
 
     const int numThreads = 4;
     const int eventsPerThread = 10;
@@ -209,18 +189,18 @@ void test_BaseEventConsumer_handleEvent_concurrent() {
     for (int i = 0; i < numThreads; ++i) {
         handlers.emplace_back([i, &consumer]() {
             for (int j = 0; j < eventsPerThread; ++j) {
-                auto event = make_shared<TestEvent>(i * eventsPerThread + j);
-                event->sourceId = "source" + to_string(i);
-                consumer->handleEvent(event);
+                TestEvent event(i * eventsPerThread + j);
+                event.sourceId = "source" + to_string(i);
+                consumer.handleEvent(event);
             }
         });
     }
 
-    for (auto& handler : handlers) {
+    for (thread& handler : handlers) {
         handler.join();
     }
 
-    size_t eventCount = consumer->receivedEvents.size();
+    size_t eventCount = consumer.receivedEvents.size();
     assert(eventCount == numThreads * eventsPerThread && "Consumer should handle all events from concurrent threads");
 }
 
@@ -228,22 +208,22 @@ void test_BaseEventConsumer_handleEvent_concurrent() {
 void test_BaseEventConsumer_registerHandler_multiple_same() {
     MockLogger logger;
     RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(false, logger, eventQueue);
-    auto consumer = make_shared<TestConsumer>("consumer1");
-    consumer->registerWithEventBus(&bus);  // Initial handler registered
+    EventBus bus(logger, eventQueue);
+    TestConsumer consumer("consumer1");
+    consumer.registerWithEventBus(&bus);  // Initial handler registered
 
     // Register the same handler again
-    consumer->registerHandler<TestEvent>([consumer](shared_ptr<TestEvent> event) {
-        consumer->receivedEvents.push_back(event);
+    consumer.registerHandler<TestEvent>([&consumer](TestEvent& event) {
+        consumer.receivedEvents.push_back(&event);
     });
 
-    bus.createAndPublishEvent<TestEvent>("source1", consumer->getId(), 42);
-    size_t eventCount = consumer->receivedEvents.size();
+    bus.createAndPublishEvent<TestEvent>("source1", consumer.getId(), 42);
+    size_t eventCount = consumer.receivedEvents.size();
     assert(eventCount == 2 && "Registering same handler again should result in duplicate handling");
 
     // Verify both executions occurred
-    auto firstEvent = static_pointer_cast<TestEvent>(consumer->receivedEvents[0]);
-    auto secondEvent = static_pointer_cast<TestEvent>(consumer->receivedEvents[1]);
+    TestEvent* firstEvent = (TestEvent*)consumer.receivedEvents[0];
+    TestEvent* secondEvent = (TestEvent*)consumer.receivedEvents[1];
     assert(firstEvent->value == 42 && "First handled event should match published event");
     assert(secondEvent->value == 42 && "Second handled event should match published event");
 }
@@ -252,18 +232,18 @@ void test_BaseEventConsumer_registerHandler_multiple_same() {
 void test_BaseEventConsumer_registerHandler_multiple_different() {
     MockLogger logger;
     RingBufferEventQueue eventQueue(1000, logger);
-    EventBus bus(false, logger, eventQueue);
-    auto consumer = make_shared<TestConsumer>("consumer1");
-    consumer->registerWithEventBus(&bus);
+    EventBus bus(logger, eventQueue);
+    TestConsumer consumer("consumer1");
+    consumer.registerWithEventBus(&bus);
 
     vector<int> values;
-    consumer->registerHandler<TestEvent>([&values](shared_ptr<TestEvent> event) {
-        values.push_back(event->value + 1);
+    consumer.registerHandler<TestEvent>([&values](TestEvent& event) {
+        values.push_back(event.value + 1);
     });
 
-    bus.createAndPublishEvent<TestEvent>("source1", consumer->getId(), 42);
+    bus.createAndPublishEvent<TestEvent>("source1", consumer.getId(), 42);
 
-    size_t eventCount = consumer->receivedEvents.size();
+    size_t eventCount = consumer.receivedEvents.size();
     assert(eventCount == 1 && "Original handler should push to receivedEvents");
     assert(values.size() == 1 && "New handler should record once for one event");
     assert(values[0] == 43 && "New handler should record event.value + 1");
@@ -277,7 +257,6 @@ TEST(test_BaseEventConsumer_canHandle_unregistered);
 TEST(test_BaseEventConsumer_handleEvent_registered);
 TEST(test_BaseEventConsumer_handleEvent_unregistered);
 TEST(test_BaseEventConsumer_registerHandler_post_registration);
-TEST(test_BaseEventConsumer_handleEvent_null_event);
 TEST(test_BaseEventConsumer_handleEvent_concurrent);
 TEST(test_BaseEventConsumer_registerHandler_multiple_same);
 TEST(test_BaseEventConsumer_registerHandler_multiple_different);

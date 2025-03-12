@@ -73,7 +73,7 @@ using namespace tools::utils;
 void test_Arguments_has_found() {
     vector<string> arg_strings = {"program", "--flag"};
     vector<char*> argv;
-    for (auto& str : arg_strings) {
+    for (string& str : arg_strings) {
         argv.push_back(const_cast<char*>(str.c_str()));
     }
     Arguments args(static_cast<int>(argv.size()), argv.data());
@@ -85,7 +85,7 @@ void test_Arguments_has_found() {
 void test_Arguments_has_not_found() {
     vector<string> arg_strings = {"program", "--flag"};
     vector<char*> argv;
-    for (auto& str : arg_strings) {
+    for (string& str : arg_strings) {
         argv.push_back(const_cast<char*>(str.c_str()));
     }
     Arguments args(static_cast<int>(argv.size()), argv.data());
@@ -97,7 +97,7 @@ void test_Arguments_has_not_found() {
 void test_Arguments_indexOf_found() {
     vector<string> arg_strings = {"program", "--flag"};
     vector<char*> argv;
-    for (auto& str : arg_strings) {
+    for (string& str : arg_strings) {
         argv.push_back(const_cast<char*>(str.c_str()));
     }
     Arguments args(static_cast<int>(argv.size()), argv.data());
@@ -109,7 +109,7 @@ void test_Arguments_indexOf_found() {
 void test_Arguments_indexOf_not_found() {
     vector<string> arg_strings = {"program", "--flag"};
     vector<char*> argv;
-    for (auto& str : arg_strings) {
+    for (string& str : arg_strings) {
         argv.push_back(const_cast<char*>(str.c_str()));
     }
     Arguments args(static_cast<int>(argv.size()), argv.data());
@@ -121,7 +121,7 @@ void test_Arguments_indexOf_not_found() {
 void test_Arguments_getBool_true() {
     vector<string> arg_strings = {"program", "--flag"};
     vector<char*> argv;
-    for (auto& str : arg_strings) {
+    for (string& str : arg_strings) {
         argv.push_back(const_cast<char*>(str.c_str()));
     }
     Arguments args(static_cast<int>(argv.size()), argv.data());
@@ -133,7 +133,7 @@ void test_Arguments_getBool_true() {
 void test_Arguments_getBool_false() {
     vector<string> arg_strings = {"program", "--flag"};
     vector<char*> argv;
-    for (auto& str : arg_strings) {
+    for (string& str : arg_strings) {
         argv.push_back(const_cast<char*>(str.c_str()));
     }
     Arguments args(static_cast<int>(argv.size()), argv.data());
@@ -145,7 +145,7 @@ void test_Arguments_getBool_false() {
 void test_Arguments_getString_valid() {
     vector<string> arg_strings = {"program", "--key", "value"};
     vector<char*> argv;
-    for (auto& str : arg_strings) {
+    for (string& str : arg_strings) {
         argv.push_back(const_cast<char*>(str.c_str()));
     }
     Arguments args(static_cast<int>(argv.size()), argv.data());
@@ -157,7 +157,7 @@ void test_Arguments_getString_valid() {
 void test_Arguments_getString_missing_value() {
     vector<string> arg_strings = {"program", "--key"};
     vector<char*> argv;
-    for (auto& str : arg_strings) {
+    for (string& str : arg_strings) {
         argv.push_back(const_cast<char*>(str.c_str()));
     }
     Arguments args(static_cast<int>(argv.size()), argv.data());
@@ -176,7 +176,7 @@ void test_Arguments_getString_missing_value() {
 void test_Arguments_getString_at_valid() {
     vector<string> arg_strings = {"program", "--key", "value"};
     vector<char*> argv;
-    for (auto& str : arg_strings) {
+    for (string& str : arg_strings) {
         argv.push_back(const_cast<char*>(str.c_str()));
     }
     Arguments args(static_cast<int>(argv.size()), argv.data());
@@ -188,7 +188,7 @@ void test_Arguments_getString_at_valid() {
 void test_Arguments_getString_at_out_of_bounds() {
     vector<string> arg_strings = {"program", "--key", "value"};
     vector<char*> argv;
-    for (auto& str : arg_strings) {
+    for (string& str : arg_strings) {
         argv.push_back(const_cast<char*>(str.c_str()));
     }
     Arguments args(static_cast<int>(argv.size()), argv.data());
@@ -207,7 +207,7 @@ void test_Arguments_getString_at_out_of_bounds() {
 void test_Arguments_getInt_valid() {
     vector<string> arg_strings = {"program", "--key", "42"};
     vector<char*> argv;
-    for (auto& str : arg_strings) {
+    for (string& str : arg_strings) {
         argv.push_back(const_cast<char*>(str.c_str()));
     }
     Arguments args(static_cast<int>(argv.size()), argv.data());
@@ -219,7 +219,7 @@ void test_Arguments_getInt_valid() {
 void test_Arguments_getInt_invalid() {
     vector<string> arg_strings = {"program", "--key", "not_a_number"};
     vector<char*> argv;
-    for (auto& str : arg_strings) {
+    for (string& str : arg_strings) {
         argv.push_back(const_cast<char*>(str.c_str()));
     }
     Arguments args(static_cast<int>(argv.size()), argv.data());
