@@ -9,9 +9,7 @@ namespace tools::agency {
     public:
         PackQueueHolder(PackQueue<T>& queue): queue(queue) {}
         
-        PackQueue<T>& getPackQueueRef() {
-            return queue;
-        }
+        PackQueue<T>& getPackQueueRef() { return queue; }
 
     protected:
         PackQueue<T>& queue;

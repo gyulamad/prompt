@@ -84,6 +84,7 @@
         "strstream": "cpp",
         "*.ipp": "cpp",
         "future": "cpp",
-        "coroutine": "cpp"
+        "coroutine": "cpp",
+        "*.inc": "cpp"
     }
 }

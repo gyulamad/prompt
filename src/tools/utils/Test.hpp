@@ -87,14 +87,16 @@ string test_capture_cout_cerr(function<void()> func) {
     return buffer.str();
 }
 
+
+#include "strings.hpp"
+
 #define TEST_SIGN_NONE ANSI_FMT_RESET "[ " ANSI_FMT_RESET "]"
 #define TEST_SIGN_PASS ANSI_FMT_RESET "[" ANSI_FMT_SUCCESS "✓" ANSI_FMT_RESET "]"
 #define TEST_SIGN_WARN ANSI_FMT_RESET "[" ANSI_FMT_WARNING "!" ANSI_FMT_RESET "]"
 #define TEST_SIGN_FAIL ANSI_FMT_RESET "[" ANSI_FMT_ERROR "x" ANSI_FMT_RESET "]"
 
-
 // Test runner
-void run_tests(const string& filter = "") {
+void run_tests(const vector<string>& filters = {}) {
     struct failure_s {
         Test test;
         string errmsg;
@@ -107,14 +109,33 @@ void run_tests(const string& filter = "") {
     string test_outputs = "";
     string thread_warns = "";
     for (const auto& test : tests) { 
+
         // skip tests where the filename or the test name both are not containing the filter
-        // (or do all if the filter is empty)
-        if (!filter.empty() &&
-            !(
-                test.file.find(filter) != string::npos ||
-                test.name.find(filter) != string::npos
-            )
-        ) continue;
+        // (or do all if the filter is empty)        
+        bool skip = false;
+        if (!filters.empty()) {
+            skip = true;
+            for (const string& filter: filters) {
+                if (!filter.empty() &&
+                    (
+                        test.file.find(filter) != string::npos ||
+                        test.name.find(filter) != string::npos
+                    )
+                ) {
+                    skip = false;
+                    break;
+                }
+            }
+        }
+        if (skip) continue;
+        
+        
+        // if (!filter.empty() &&
+        //     !(
+        //         test.file.find(filter) != string::npos ||
+        //         test.name.find(filter) != string::npos
+        //     )
+        // ) continue;
         
         cout 
             << TEST_SIGN_NONE " [.............] Testing: " 
@@ -222,7 +243,7 @@ void run_tests(const string& filter = "") {
             cout << ANSI_FMT(ANSI_FMT_SUCCESS, to_string(tests.size()) + "/" + to_string(passed) + " tests passed") << endl;
     }
     if (failures.size() + passed != tests.size())
-        cout << ANSI_FMT(ANSI_FMT_WARNING, to_string(tests.size()) + "/" + to_string(tests.size() - passed) + " tests are skipped, filtered by keyword: '" + filter + "'") << endl;
+        cout << ANSI_FMT(ANSI_FMT_WARNING, to_string(tests.size()) + "/" + to_string(tests.size() - passed) + " tests are skipped, filtered by keyword(s): '" + implode("', '", filters) + "'") << endl;
 
 #ifdef TEST_ONLY
     exit(passed != tests.size());
