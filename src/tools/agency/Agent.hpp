@@ -28,14 +28,13 @@ namespace tools::agency {
             name(name),
             ms(ms)
         {}
+    
+        virtual ~Agent() {
+            if (t.joinable()) t.join();
+        }
 
         virtual void start() {
             t = thread([this]() { loop(); });
-        }
-    
-        virtual ~Agent() {
-            for (Agent<T>* agent: agents) agent->die();
-            if (t.joinable()) t.join();
         }
 
         [[nodiscard]]
@@ -46,33 +45,6 @@ namespace tools::agency {
         string getName() const {
             return name;
         }
-
-
-        // ===== handle children ================================================
-        template<typename AgentT, typename... Args>
-        AgentT* spawn(Args&&... args) {
-            Agent<T>* agent = new AgentT(queue, forward<Args>(args)...);
-            // agent->name should be unique! check for agent name in agents vector first!
-            string name = agent->getName();
-            for (const Agent<T>* a: agents)
-                if (a->getName() == name) {
-                    delete agent;
-                    return nullptr;
-                }
-            agents.push_back(agent);
-            return (AgentT*)agent;
-        }
-        
-        template<typename AgentT, typename... Args>
-        void kill(AgentT* agent) {
-            agent->die();
-        }
-
-        void kill(const string& name) {
-            for (const Agent<T>* agent: agents)
-                if (agent->getName() == name) agent->die();
-        }
-        // ======================================================================
 
     protected:
 
@@ -98,25 +70,8 @@ namespace tools::agency {
             Pack<T> pack;
             while (true) {
                 try {
-
-                    // ===== handle children ================================================
-                    size_t kills = 0;
-                    vector<Agent<T>*> result;
-                    copy_if(agents.begin(), agents.end(), back_inserter(result), [this, &kills](const Agent<T>* agent) {
-                        if (agent->isExited()) {
-                            // Remove packs from queue which addressed to the agent but never will be delivered
-                            queue.drop(agent->getName());
-                            delete agent;
-                            kills++;
-                            return false;
-                        }
-                        return true;
-                    });
-                    if (kills) agents = result;
-                    // ======================================================================
-
-                    if (!tick()) break;
                     if (ms) sleep_ms(ms);
+                    if (!tick()) break;
 
                     queue.Hold();
 
@@ -168,15 +123,12 @@ namespace tools::agency {
         [[nodiscard]]
         virtual bool tick() { return true; }
 
-
         atomic<bool> exited = false;
         atomic<bool> dying = false;
         PackQueue<T>& queue;
         string name;
         long ms;
         thread t;
-
-        vector<Agent<T>*> agents;
     };
 
 }
