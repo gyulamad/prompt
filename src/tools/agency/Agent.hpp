@@ -8,6 +8,7 @@
 
 #include "Pack.hpp"
 #include "PackQueue.hpp"
+#include "PackQueueHolder.hpp"
 
 using namespace std;
 using namespace tools::utils;
@@ -20,11 +21,13 @@ namespace tools::agency {
     class Agent {
     public:
         Agent(
-            PackQueue<T>& queue, 
+            PackQueueHolder<T>& agency,
+            // PackQueue<T>& queue, 
             const string& name = "",
             long ms = 0
         ):
-            queue(queue), 
+            agency(agency),
+            // queue(queue), 
             name(name),
             ms(ms)
         {}
@@ -53,7 +56,8 @@ namespace tools::agency {
 
         void send(T item, string recipient) {
             Pack<string> pack(item, name, recipient);
-            queue.Produce(move(pack));
+            agency.getPackQueueRef().Produce(move(pack));
+            // queue.Produce(move(pack));
         }
 
         void send(T item, vector<string> recipients) {
@@ -63,11 +67,13 @@ namespace tools::agency {
         void exit() {
             T item;
             Pack<string> pack(item, AGENT_SENDER_EXIT_SIGNALER);
-            queue.Produce(move(pack));
+            agency.getPackQueueRef().Produce(move(pack));
+            // queue.Produce(move(pack));
         }
 
         void loop() {
             Pack<T> pack;
+            PackQueue<T>& queue = agency.getPackQueueRef();
             while (true) {
                 try {
                     if (ms) sleep_ms(ms);
@@ -125,7 +131,8 @@ namespace tools::agency {
 
         atomic<bool> exited = false;
         atomic<bool> dying = false;
-        PackQueue<T>& queue;
+        PackQueueHolder<T>& agency;
+        // PackQueue<T>& queue;
         string name;
         long ms;
         thread t;

@@ -14,7 +14,7 @@ using namespace tools::agency;
 template<typename T>
 class UserAgent: public Agent<T> {
 public:
-    UserAgent(PackQueue<string>& queue): Agent<T>(queue, "user") {}
+    UserAgent(PackQueueHolder<T>& agency): Agent<T>(agency, "user") {}
 
     bool tick() override {
         T input;
@@ -28,7 +28,7 @@ public:
 template<typename T>
 class EchoAgent: public Agent<T> {
 public:
-    EchoAgent(PackQueue<T>& queue): Agent<T>(queue, "echo") {}
+    EchoAgent(PackQueueHolder<T>& agency): Agent<T>(agency, "echo") {}
 
     bool handle(const string& sender, const T& item) override {
         sleep(2); // emulate some background work;
@@ -38,14 +38,14 @@ public:
 };
 
 
-
 int safe_main(int argc, char *argv[]) {
     // run_tests();
 
     try {
         // vector<Agent<string>*> agents;
 
-        Agency<string> agency;
+        PackQueue<string> queue;
+        Agency<string> agency(queue);
         agency.spawn<EchoAgent<string>>()->start();
         agency.spawn<UserAgent<string>>()->start();
         agency.run();
