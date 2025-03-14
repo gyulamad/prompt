@@ -11,14 +11,15 @@ namespace tools::cmd {
 
     class Commander {
     private:
-        CommandLine& command_line; // Still owns the CommandLine
+        CommandLine& command_line;
+        vector<Command*> commands;
         CompletionMatcher cmatcher;
         bool exiting = false;
-        vector<void*> commands;
 
     public:
-        // Updated constructor: Take CommandLine by value and move it
-        Commander(CommandLine& command_line) : command_line(command_line) {}
+        Commander(CommandLine& command_line, const vector<Command*>& commands = {}): command_line(command_line) {
+            set_commands(commands);
+        }
 
         virtual ~Commander() {}
 
@@ -34,12 +35,12 @@ namespace tools::cmd {
             return exiting || command_line.is_exited();
         }
         
-        void set_commands(const vector<void*>& commands) {
+        void set_commands(const vector<Command*>& commands) {
             this->commands = commands;
             
             // also update command patterns:
             cmatcher.command_patterns = {};
-            for (const void* command : commands)
+            for (const Command* command : commands)
                 cmatcher.command_patterns = array_merge(
                     cmatcher.command_patterns, 
                     ((Command*)command)->get_patterns()
@@ -47,11 +48,11 @@ namespace tools::cmd {
             command_line.set_completion_matcher(cmatcher);
         }
 
-        vector<void*> get_commands_ref() {
+        vector<Command*>& get_commands_ref() {
             return commands;
         }
 
-        const CompletionMatcher& get_cmatcher_ref() const {
+        const CompletionMatcher& get_cmatcher_cref() const {
             return cmatcher;
         }
 
@@ -76,7 +77,7 @@ namespace tools::cmd {
                         command_found = true;
                         if (input_parts.size() == command_pattern_parts.size()) {
                             command_arguments_matches = true;
-                            cout << command.run(user_context, input_parts) << endl;
+                            command.run(user_context, input_parts);
                             break;
                         }
                     }
@@ -143,7 +144,7 @@ void test_Commander_set_commands_updates_patterns() {
     Commander commander(cl);
     MockCommand command;
     command.patterns = {"test cmd", "test {param}"};
-    vector<void*> commands = { &command };
+    vector<Command*> commands = { &command };
     commander.set_commands(commands);
     const CompletionMatcher& cm = commander.get_cmatcher_ref();
     vector<string> actual = cm.command_patterns;
@@ -167,7 +168,7 @@ void test_Commander_run_command_unknown_command() {
         Commander commander(cl);
         MockCommand command;
         command.patterns = {"known"};
-        vector<void*> commands = { &command };
+        vector<Command*> commands = { &command };
         commander.set_commands(commands);
         bool actual = commander.run_command(nullptr, "unknown");
         assert(actual == false && "run_command should return false for unknown command");
@@ -182,7 +183,7 @@ void test_Commander_run_command_invalid_arguments() {
         Commander commander(cl);
         MockCommand command;
         command.patterns = {"test arg1"};
-        vector<void*> commands = { &command };
+        vector<Command*> commands = { &command };
         commander.set_commands(commands);
         bool actual = commander.run_command(nullptr, "test");
         assert(actual == false && "run_command should return false for invalid argument count");
@@ -191,22 +192,18 @@ void test_Commander_run_command_invalid_arguments() {
 }
 
 void test_Commander_run_command_successful_execution() {
-    string outp = capture_cout([&]() {
-        MockLineEditor editor;
-        MockCommandLine cl(editor);
-        Commander commander(cl);
-        MockCommand command;
-        command.patterns = {"test arg"};
-        command.run_result = "Command executed";
-        vector<void*> commands = { &command };
-        commander.set_commands(commands);
-        bool actual = commander.run_command(nullptr, "test value");
-        assert(actual == true && "run_command should return true for valid command");
-        assert(command.last_args.size() == 2 && "run_command should pass correct number of args");
-        assert(command.last_args[0] == "test" && "run_command should pass command name");
-        assert(command.last_args[1] == "value" && "run_command should pass argument");
-    });
-    assert(str_contains(outp, "Command executed") && "Should show the correct output");
+    MockLineEditor editor;
+    MockCommandLine cl(editor);
+    Commander commander(cl);
+    MockCommand command;
+    command.patterns = {"test arg"};
+    vector<Command*> commands = { &command };
+    commander.set_commands(commands);
+    bool actual = commander.run_command(nullptr, "test value");
+    assert(actual == true && "run_command should return true for valid command");
+    assert(command.last_args.size() == 2 && "run_command should pass correct number of args");
+    assert(command.last_args[0] == "test" && "run_command should pass command name");
+    assert(command.last_args[1] == "value" && "run_command should pass argument");
 }
 
 

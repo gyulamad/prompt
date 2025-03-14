@@ -104,9 +104,10 @@ namespace tools::cmd {
         
                     // Number of meaningful input parts (exclude trailing empty part if present)
                     int input_parts_count = has_trailing_space ? current_parts.size() - 1 : current_parts.size();
+                    int parts_size = (int)pattern.parts.size();
         
                     // If input exceeds pattern length, skip
-                    if (input_parts_count > pattern.parts.size()) {
+                    if (input_parts_count > parts_size) {
                         continue;
                     }
         
@@ -115,7 +116,7 @@ namespace tools::cmd {
                     string partial = has_trailing_space ? "" : current_parts.back();
         
                     // If there's a next part to complete
-                    if (next_index >= 0 && next_index < pattern.parts.size()) {
+                    if (next_index >= 0 && next_index < parts_size) {
                         const PatternPart& next_part = pattern.parts[next_index];
                         if (next_part.is_parameter) {
                             // Handle parameter (e.g., switch) completion

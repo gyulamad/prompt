@@ -15,15 +15,13 @@ using namespace tools::cmd;
 class MockCommand : public Command {
 public:
     vector<string> patterns;
-    string run_result;
     vector<string> last_args;
 
     vector<string> get_patterns() const override {
         return patterns;
     }
 
-    string run(void*, const vector<string>& args) override {
+    void run(void*, const vector<string>& args) override {
         last_args = args;
-        return run_result;
     }
 };

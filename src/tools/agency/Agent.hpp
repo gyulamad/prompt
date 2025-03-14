@@ -43,6 +43,10 @@ namespace tools::agency {
 
         virtual void tick() {}
 
+        void exit() {
+            this->send("agency", "exit");
+        }
+
         const string name;
     protected:
         

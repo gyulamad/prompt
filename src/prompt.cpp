@@ -3,20 +3,17 @@
 #include "tools/utils/ERROR.hpp"
 
 // #include "tools/utils/utils.hpp"
-// #include "tools/cmd/cmd.hpp"
+#include "tools/cmd/cmd.hpp"
 // #include "tools/voice/voice.hpp"
 #include "tools/agency/agency.hpp"
 
 using namespace std;
 // using namespace tools::utils;
-// using namespace tools::cmd;
+using namespace tools::cmd;
 using namespace tools::agency;
 using namespace tools::agency::agents;
+using namespace tools::agency::agents::commands;
 // using namespace tools::voice;
-
-
-
-// #include "../libs/K-Adam/SafeQueue/SafeQueue.hpp"
 
 
 int safe_main(int , char *[]) {
@@ -25,11 +22,31 @@ int safe_main(int , char *[]) {
     });
 
     try {
+        const string prompt = "> ";
+        const string history_path = "";
+        const bool multi_line = true;
+        const size_t history_max_length = 0;
+        const vector<string> commands = { "exit", "list" };
+
+        CommandFactory cfactory;
+
+        if (in_array("exit", commands)) cfactory.withCommand<ExitCommand<string>>();
+        if (in_array("list", commands)) cfactory.withCommand<ListCommand<string>>();
+
+        LinenoiseAdapter editor(prompt);
+        CommandLine cline(
+            editor,
+            prompt,
+            history_path,
+            multi_line,
+            history_max_length
+        );
+        Commander commander(cline, cfactory.getCommands());
 
         PackQueue<string> queue;
         Agency<string> agency(queue);
         agency.spawn<EchoAgent<string>>().async();
-        agency.spawn<UserAgent<string>>().async();
+        agency.spawn<UserAgent<string>>(&commander, &agency).async();
         agency.sync();
 
 

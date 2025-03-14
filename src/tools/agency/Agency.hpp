@@ -7,6 +7,7 @@ namespace tools::agency {
     template<typename T>
     class Agency: public Agent<T> {
     public:
+
         Agency(PackQueue<T>& queue): Agent<T>(queue, "agency") {}
 
         ~Agency() {
@@ -69,6 +70,14 @@ namespace tools::agency {
                 }
             }
         }
+
+        Agent<T>& getAgentRef(const string& name) {
+            for (Agent<T>* agent: agents)
+                if (agent->name == name) return *agent;
+            throw ERROR("Requested agent '" + name + "' is not found.");
+        }
+
+        const vector<Agent<T>*>& getAgentsCRef() const { return agents; }
 
     private:
 

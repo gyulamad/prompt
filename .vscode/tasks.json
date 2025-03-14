@@ -15,6 +15,7 @@
                 "-g", "-O0", "-fsanitize=address", "-DTEST", //"-DTEST_FAILURE_DIES",
                 // "-Ofast",
 
+                "-pedantic-errors",
                 "-Werror", // Treats all warnings as errors, forcing the compiler to flag suspicious code.
                 "-Wall", "-Wextra", // Enables extra warnings, including unused or suspicious constructs.
                 "-Wunused", // Warns if a function or variable is unused, which might hint at optimization skipping drop.
@@ -24,7 +25,7 @@
 
                 "-I${workspaceFolder}/libs/ggerganov/whisper.cpp/include",
                 "-I${workspaceFolder}/libs/ggerganov/whisper.cpp/ggml/include",
-                "${workspaceFolder}/libs/ggerganov/whisper.cpp/build/src/libwhisper.so.1.7.4", 
+                // "${workspaceFolder}/libs/ggerganov/whisper.cpp/build/src/libwhisper.so.1.7.4", 
                 "-Wl,-rpath,${workspaceFolder}/libs/ggerganov/whisper.cpp/build/src",  // <-- Add this
                 "-lrt", "-lm", "-lasound", //"-ljack", 
                 "-lportaudio", //"-lwhisper",

@@ -21,9 +21,8 @@ namespace tools::cmd {
          * 
          * @param user 
          * @param args 
-         * @return string
          */
-        virtual string run(void*, const vector<string>&) UNIMP_THROWS
+        virtual void run(void*, const vector<string>&) UNIMP_THROWS
     };    
 
 }
