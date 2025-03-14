@@ -25,7 +25,6 @@ using namespace std;
 
 #include "ANSI_FMT.hpp"
 #include "ERROR.hpp"
-#include "system.hpp"
 
 using namespace tools::utils;
 
@@ -63,31 +62,9 @@ vector<Test> tests;
     } test_registrar_instance_##t; \
     /* void t() */
 
-// Helper function to capture both cout and cerr output
-string test_capture_cout_cerr(function<void()> func) {
-    streambuf* original_cout_buffer = cout.rdbuf(); // Store original buffers
-    streambuf* original_cerr_buffer = cerr.rdbuf();
-    stringstream buffer;
-    cout.rdbuf(buffer.rdbuf()); // Redirect cout to buffer
-    cerr.rdbuf(cout.rdbuf()); // Redirect cerr to cout's redirected buffer
-    try {
-        func(); // Call the function
-    } catch (TestSkipException &e) {
-        string what(e.what());
-        cout << ANSI_FMT(ANSI_FMT_WARNING, "Warning: Test skipped" + (what.empty() ? "" : ": " + what)) << endl;
-    } catch (exception &e) {
-        cout.rdbuf(original_cout_buffer); // Restore original cout
-        cerr.rdbuf(original_cerr_buffer); // Restore original cerr
-        throw ERROR("Error in test stdout and stderr capture: " + string(e.what()));
-    }
-    cout.rdbuf(original_cout_buffer); // Restore original cout
-    cerr.rdbuf(original_cerr_buffer); // Restore original cerr
-    cout.clear(); // Clear any error flags on cout
-    cerr.clear(); // Clear any error flags on cerr
-    return buffer.str();
-}
 
 
+#include "system.hpp"
 #include "strings.hpp"
 
 #define TEST_SIGN_NONE ANSI_FMT_RESET "[ " ANSI_FMT_RESET "]"
@@ -148,7 +125,7 @@ void run_tests(const vector<string>& filters = {}) {
         auto start = chrono::high_resolution_clock::now(); // Start timing
         try {
 
-            string test_output = test_capture_cout_cerr([&test]() {
+            string test_output = capture_cout_cerr([&test]() {
                 test.run();
             });
             if (!test_output.empty()) 

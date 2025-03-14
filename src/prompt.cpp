@@ -17,10 +17,6 @@ using namespace tools::agency::agents::commands;
 
 
 int safe_main(int , char *[]) {
-    run_tests({
-        
-    });
-
     try {
         const string prompt = "> ";
         const string history_path = "";
@@ -59,5 +55,9 @@ int safe_main(int , char *[]) {
 }
 
 int main(int argc, char *argv[]) {
+    run_tests({
+        
+    });
+    
     return safe_main(argc, argv);
 }

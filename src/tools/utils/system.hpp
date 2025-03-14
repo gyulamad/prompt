@@ -17,6 +17,9 @@
 #include <dirent.h>
 #include <sys/types.h>
 
+#include "ERROR.hpp"
+#include "io.hpp"
+
 using namespace std;
 namespace fs = filesystem;
 
@@ -37,21 +40,6 @@ namespace tools::utils {
         }
         return "";  
     }
-
-    // // Function to get the current time in milliseconds
-    // long long get_time_ms() {
-    //     // Get the current time point
-    //     auto now = chrono::system_clock::now();
-
-    //     // Convert to milliseconds since the Unix epoch
-    //     auto millis = chrono::duration_cast<chrono::milliseconds>(
-    //         now.time_since_epoch()
-    //     );
-
-    //     // Return the numeric value
-    //     return millis.count();
-    // }
-
 
     bool is_process_running(const string& processName, long& pid) {
         DIR *dir;
@@ -97,15 +85,13 @@ namespace tools::utils {
     
     static string execute(const char* cmd) {
         string result = "";
-
         char buffer[128];
-        shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
-        if (!pipe) throw runtime_error("popen() failed!");
-        while (!feof(pipe.get())) {
-            if (fgets(buffer, 128, pipe.get()) != nullptr)
-                result += buffer;
-        }
-    
+        FILE* pipe = popen(cmd, "r");
+        if (!pipe) throw ERROR("popen() failed!");
+        while (!feof(pipe))
+            if (fgets(buffer, 128, pipe) != nullptr) result += buffer;
+        int status = pclose(pipe);
+        if (status == -1) throw ERROR("pclose() failed!");
         return result;
     }
 
@@ -123,3 +109,32 @@ namespace tools::utils {
         return 0;
     }
 }
+
+#ifdef TEST
+
+#include "../utils/Test.hpp"
+
+using namespace tools::utils;
+
+void test_execute_successful_output() {
+    string result = execute("echo Hello");
+    // On some systems, echo appends a newline
+    assert((result == "Hello\n" || result == "Hello") && "execute should capture echo output");
+}
+
+void test_execute_empty_output() {
+    string result = execute("true"); // POSIX command that does nothing
+    assert(result.empty() && "execute should return empty string for no output");
+}
+
+void test_execute_multiline_output() {
+    // Use a portable command; 'ls -d .' on Unix, 'dir' on Windows might need adjustment
+    string result = execute("printf 'Line1\nLine2\n'");
+    assert(result == "Line1\nLine2\n" && "execute should concatenate multi-line output");
+}
+
+// Register tests
+TEST(test_execute_successful_output);
+TEST(test_execute_empty_output);
+TEST(test_execute_multiline_output);
+#endif
