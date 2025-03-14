@@ -239,6 +239,15 @@ namespace tools::utils {
         if (ss >> num) return num;
         throw ERROR("Invalid input string (not a number): " + (str.empty() ? "<empty>" : str_cut_end(str)));
     }
+    // Specialization for bool
+    template <>
+    bool parse<bool>(const string& str) {
+        string lower = str;
+        transform(lower.begin(), lower.end(), lower.begin(), ::tolower);        
+        if (in_array(lower, vector<string>({ "true", "on", "1", "yes"}))) return true;
+        if (in_array(lower, vector<string>({ "false", "off", "0", "no"}))) return false;
+        throw ERROR("Invalid input string (not a boolean): " + (str.empty() ? "<empty>" : str_cut_end(str)));
+    }
 
     vector<string> split(const string& s) {
         vector<string> parts;

@@ -22,12 +22,14 @@ int safe_main(int , char *[]) {
         const string history_path = "";
         const bool multi_line = true;
         const size_t history_max_length = 0;
-        const vector<string> commands = { "exit", "list" };
+        const vector<string> commands = { "exit", "list", "spawn", "kill" };
 
         CommandFactory cfactory;
 
         if (in_array("exit", commands)) cfactory.withCommand<ExitCommand<string>>();
         if (in_array("list", commands)) cfactory.withCommand<ListCommand<string>>();
+        if (in_array("spawn", commands)) cfactory.withCommand<SpawnCommand<string>>();
+        if (in_array("kill", commands)) cfactory.withCommand<KillCommand<string>>();
 
         LinenoiseAdapter editor(prompt);
         CommandLine cline(
@@ -41,8 +43,8 @@ int safe_main(int , char *[]) {
 
         PackQueue<string> queue;
         Agency<string> agency(queue);
-        agency.spawn<EchoAgent<string>>().async();
-        agency.spawn<UserAgent<string>>(&commander, &agency).async();
+        agency.spawn<EchoAgent<string>>(agency).async();
+        agency.spawn<UserAgent<string>>(agency, &commander).async();
         agency.sync();
 
 

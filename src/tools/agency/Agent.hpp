@@ -29,13 +29,13 @@ namespace tools::agency {
         }
 
         void sync(long ms = 10) {
-            try {
-                while (!closing) {
-                    tick();
+            while (!closing) {
+                try {
                     if (ms) sleep_ms(ms);
+                    tick();
+                } catch (exception &e) {
+                    hoops("Agent '" + name + "' error: " + string(e.what()));
                 }
-            } catch (exception &e) {
-                hoops("Agent '" + name + "' error: " + string(e.what()));
             }
         }
 

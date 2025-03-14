@@ -7,5 +7,4 @@ public:
     using Agency<T>::Agency;
 
     bool isClosing() const { return this->closing; }
-
 };

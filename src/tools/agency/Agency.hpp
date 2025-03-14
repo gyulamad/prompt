@@ -49,15 +49,20 @@ namespace tools::agency {
             return *agent;
         }
 
-        void kill(const std::string& name) {        
-            lock_guard<mutex> lock(agents_mtx);   
+        [[nodiscard]]
+        bool kill(const std::string& name) {        
+            lock_guard<mutex> lock(agents_mtx);
+            bool found = false;   
             for (size_t i = 0; i < agents.size(); i++)
-                if (agents[i]->name == name) {            
-                    delete agents[i];
+                if (agents[i]->name == name) {
+                    found = true;
+                    agents[i]->close();
+                    // delete agents[i];
                     agents.erase(agents.begin() + i);
                     i--;  // Back up to recheck the shifted element
                 }
             this->queue.drop(name);
+            return found;
         }
         
         void tick() {
@@ -108,7 +113,7 @@ void test_Agency_constructor_basic() {
 void test_Agency_handle_exit() {
     PackQueue<string> queue;
     TestAgency<string> agency(queue);
-    auto& test_agent = agency.spawn<TestAgent<string>>("test_agent");
+    TestAgent<string>& test_agent = agency.spawn<TestAgent<string>>("test_agent");
     auto actual_output = capture_cout([&]() { agency.handle("user", "exit"); });
     auto actual_closed = agency.isClosing();
     auto actual_agent_closed = test_agent.isClosing();
@@ -159,7 +164,7 @@ void test_Agency_kill_basic() {
     Agency<string> agency(queue);
     agency.spawn<TestAgent<string>>("test_agent");
     queue.Produce(Pack<string>("user", "test_agent", "hello"));
-    agency.kill("test_agent");
+    assert(agency.kill("test_agent") && "Agent should be found");
     auto actual_output = capture_cout([&]() { agency.handle("user", "list"); });
     auto actual_queue = queue_to_vector(queue);
     assert(!str_contains(actual_output, "test_agent") && "Killed agent should not appear in list");

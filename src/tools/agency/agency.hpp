@@ -8,4 +8,6 @@
 #include "agents/EchoAgent.hpp"
 #include "agents/UserAgent.hpp"
 #include "agents/commands/ExitCommand.hpp"
+#include "agents/commands/KillCommand.hpp"
 #include "agents/commands/ListCommand.hpp"
+#include "agents/commands/SpawnCommand.hpp"

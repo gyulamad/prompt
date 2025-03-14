@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../UserAgent.hpp"
+#include "../../Agency.hpp"
 
-using namespace tools::agency::agents;
+using namespace tools::agency;
 
 namespace tools::agency::agents::commands {
 

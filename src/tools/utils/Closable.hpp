@@ -8,9 +8,8 @@ namespace tools::utils {
 
     class Closable {
     public:
-        void close() {
-            closing = true;
-        }
+        void close() { closing = true; }
+
     protected:
         atomic<bool> closing = false;
     };
