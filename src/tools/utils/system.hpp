@@ -52,14 +52,15 @@ namespace tools::utils {
     //     return millis.count();
     // }
 
-    bool is_process_running(const string& processName) {
+
+    bool is_process_running(const string& processName, long& pid) {
         DIR *dir;
         struct dirent *ent;
         if ((dir = opendir("/proc")) != NULL) {
             while ((ent = readdir(dir)) != NULL) {
                 if (ent->d_type == DT_DIR) {
                     char* endptr;
-                    long pid = strtol(ent->d_name, &endptr, 10);
+                    pid = strtol(ent->d_name, &endptr, 10);
                     if (*endptr == '\0') {
                         ifstream cmdline_file("/proc/" + string(ent->d_name) + "/cmdline");
                         if (cmdline_file.is_open()) {
@@ -84,6 +85,10 @@ namespace tools::utils {
             return false;
         }
         return false;
+    }
+    bool is_process_running(const string& processName) {
+        long pids;
+        return is_process_running(processName, pids);
     }
 
     void sleep_ms(long ms) {

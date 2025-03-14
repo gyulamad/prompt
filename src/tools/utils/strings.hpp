@@ -226,8 +226,8 @@ namespace tools::utils {
         return str_replace(replacements, template_str);
     }
     // Overload for single replacement
-    string tpl_replace(const string& from, const string& to, const string& subject, const string& placeholder_ptrn = "\\{\\{([^}]+)\\}\\}") {
-        return tpl_replace({{from, to}}, subject);
+    string tpl_replace(const string& from, const string& to, const string& subject, const string& placeholder_ptrn = "\\{\\{[^}]+\\}\\}") {
+        return tpl_replace({{from, to}}, subject, placeholder_ptrn);
     }
 
 

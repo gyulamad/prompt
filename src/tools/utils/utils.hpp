@@ -4,6 +4,7 @@
 
 #include "ANSI_FMT.hpp"
 #include "Arguments.hpp"
+#include "Closable.hpp"
 #include "Curl.hpp"
 #include "datetime.hpp"
 #include "ERROR.hpp"
@@ -16,6 +17,7 @@
 #include "RingBuffer.hpp"
 #include "Rotary.hpp"
 #include "SharedPtrFactory.hpp"
+#include "Streamable.hpp"
 #include "strings.hpp"
 #include "system.hpp"
 #include "Tasks.hpp"

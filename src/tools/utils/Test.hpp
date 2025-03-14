@@ -251,5 +251,5 @@ void run_tests(const vector<string>& filters = {}) {
 }
 
 #else
-inline void run_tests(const string& = "") {};
+inline void run_tests(const vector<string>& = {}) {};
 #endif
