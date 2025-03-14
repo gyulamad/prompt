@@ -24,11 +24,16 @@ int safe_main(int , char *[]) {
         const size_t history_max_length = 0;
         const vector<string> commands = { "exit", "list", "spawn", "kill" };
 
+        // Map of role strings to factory functions
+        map<string, function<Agent<string>&(Agency<string>&)>> roles = {
+            { "echo", [](Agency<string>& agency) -> Agent<string>& { return agency.template spawn<EchoAgent<string>>(agency); } },
+        };
+
         CommandFactory cfactory;
 
         if (in_array("exit", commands)) cfactory.withCommand<ExitCommand<string>>();
         if (in_array("list", commands)) cfactory.withCommand<ListCommand<string>>();
-        if (in_array("spawn", commands)) cfactory.withCommand<SpawnCommand<string>>();
+        if (in_array("spawn", commands)) cfactory.withCommand<SpawnCommand<string>>(roles);
         if (in_array("kill", commands)) cfactory.withCommand<KillCommand<string>>();
 
         LinenoiseAdapter editor(prompt);

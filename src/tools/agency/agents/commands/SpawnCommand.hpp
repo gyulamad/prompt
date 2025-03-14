@@ -9,6 +9,8 @@ namespace tools::agency::agents::commands {
     template<typename T>
     class SpawnCommand: public Command {
     public:
+
+        SpawnCommand(map<string, function<Agent<T>&(Agency<T>&)>>& roles): Command(), roles(roles) {}
     
         vector<string> get_patterns() const override {
             return { 
@@ -22,10 +24,6 @@ namespace tools::agency::agents::commands {
 
             string role = args[1];
 
-            // Map of role strings to factory functions
-            map<string, function<Agent<T>&(Agency<T>&)>> roles = {
-                { "echo", [](Agency<T>& agency) -> Agent<T>& { return agency.template spawn<EchoAgent<T>>(agency); } },
-            };
             if (!in_array(role, array_keys(roles))) 
                 throw ERROR("Invalid agent role: " + role + " - available roles are [" + implode(", ", array_keys(roles)) + "]");
 
@@ -33,6 +31,9 @@ namespace tools::agency::agents::commands {
             Agent<T>& agent = roles[role](agency);
             cout << "Agent '" + agent.name + "' created as " + role << endl;
         }
+        
+    private:
+        map<string, function<Agent<T>&(Agency<T>&)>>& roles;
     };
     
 }
