@@ -23,7 +23,7 @@ int safe_main(int , char *[]) {
         const string history_path = "";
         const bool multi_line = true;
         const size_t history_max_length = 0;
-        const vector<string> commands = { "exit", "list", "spawn", "kill", "voice" };
+        const vector<string> commands = { "help", "exit", "list", "spawn", "kill", "voice" };
 
         // Map of role strings to factory functions
         map<string, function<Agent<PackT>&(Agency<PackT>&)>> roles = {
@@ -32,6 +32,7 @@ int safe_main(int , char *[]) {
 
         CommandFactory cfactory;
 
+        if (in_array("help", commands)) cfactory.withCommand<HelpCommand<PackT, TranscriberT>>();
         if (in_array("exit", commands)) cfactory.withCommand<ExitCommand<PackT>>();
         if (in_array("list", commands)) cfactory.withCommand<ListCommand<PackT>>();
         if (in_array("spawn", commands)) cfactory.withCommand<SpawnCommand<PackT>>(roles);
