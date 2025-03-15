@@ -51,7 +51,7 @@ namespace tools::voice {
             workerThread = thread(&VoiceRecorder::stream_thread, this);
         }
 
-        ~VoiceRecorder() {
+        virtual ~VoiceRecorder() {
             running = false;
             //if (workerThread.joinable()) 
                 workerThread.join();
@@ -87,15 +87,15 @@ namespace tools::voice {
         PaStream* paStream = nullptr;
 
     private:
-        RingBuffer<float> ringBuffer;
         double sampleRate;
         unsigned long framesPerBuffer;
+        RingBuffer<float> ringBuffer;
         atomic<bool> running{true};
         thread workerThread;
 
         static int pa_callback(
             const void* input, 
-            void* output,
+            void* /*output*/,
             unsigned long frameCount,
             const PaStreamCallbackTimeInfo*,
             PaStreamCallbackFlags,

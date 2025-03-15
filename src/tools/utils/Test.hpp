@@ -13,6 +13,7 @@
 // g++ your_program.cpp -DTEST -o your_program
 
 #include <string>
+#include <vector>
 using namespace std;
 
 #ifdef TEST
@@ -20,7 +21,6 @@ using namespace std;
 
 #include <iostream>
 #include <functional>
-#include <vector>
 #include <chrono>
 
 #include "ANSI_FMT.hpp"

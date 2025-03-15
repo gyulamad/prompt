@@ -22,7 +22,7 @@ public:
         }
     }
 
-    bool start(void* listener, NoiseCallback cb, long pollIntervalMs, bool throws = false) override {
+    bool start(void* /*listener*/, NoiseCallback cb, long /*pollIntervalMs*/, bool /*throws*/ = false) override {
         lock_guard<mutex> lock(monitorMutex); // Use inherited mutex
         callback = cb; // Store callback for simulation
         running = true;

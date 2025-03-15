@@ -16,6 +16,10 @@ namespace tools::agency {
             agents.clear();
         }
 
+        void setVoiceOutput(bool state) { voice = state; }
+
+        bool isVoiceOutput() const { return voice; }
+
         void handle(const string& sender, const T& item) override {
 
             if (item == "exit") {
@@ -85,7 +89,7 @@ namespace tools::agency {
         const vector<Agent<T>*>& getAgentsCRef() const { return agents; }
 
     private:
-
+        bool voice = false;
         vector<Agent<T>*> agents; // TODO: Replace vector<Agent<T>*> with unordered_map<string, Agent<T>*>, O(1) lookup vs. O(n), huge win with many agents.
         mutex agents_mtx;
         Pack<T> pack;

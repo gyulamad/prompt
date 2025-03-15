@@ -113,9 +113,9 @@ namespace tools::voice {
         }
 
     protected:
-        SpeechListener::RMSCallback rms_cb = [](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {};
-        SpeechListener::SpeechCallback speech_cb = [](vector<float>& record) {};
-        SpeechRecogniser::TranscribeCallback transcribe_cb = [](const vector<float>& record, const string& text) {};
+        SpeechListener::RMSCallback rms_cb = [](float /*vol_pc*/, float /*threshold_pc*/, float /*rmax*/, float /*rms*/, bool /*loud*/, bool /*muted*/) {};
+        SpeechListener::SpeechCallback speech_cb = [](vector<float>& /*record*/) {};
+        SpeechRecogniser::TranscribeCallback transcribe_cb = [](const vector<float>& /*record*/, const string& /*text*/) {};
         
     };
 
@@ -157,7 +157,7 @@ void test_SpeechRecogniser_start_basic() {
         MockTranscriber transcriber;
         SpeechRecogniser recogniser(recorder, monitor, listener, transcriber, 10);
         
-        recogniser.set_rms_cb([&](float vol_pc, float, float, float, bool, bool) { rms_called = true; });
+        recogniser.set_rms_cb([&](float /*vol_pc*/, float, float, float, bool, bool) { rms_called = true; });
         recogniser.set_speech_cb([&](vector<float>&) { speech_called = true; });
         recogniser.set_transcribe_cb([&](const vector<float>&, const string&) { transcribe_called = true; });
         

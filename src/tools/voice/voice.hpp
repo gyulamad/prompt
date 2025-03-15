@@ -7,4 +7,4 @@
 #include "Transcriber.hpp"
 #include "TTS.hpp"
 #include "VoiceRecorder.hpp"
-#include "WhisperSTT.hpp"
+#include "WhisperAdapter.hpp"

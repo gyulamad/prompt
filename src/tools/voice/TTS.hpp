@@ -13,14 +13,14 @@ namespace tools::voice {
     class TTS {
     private:
         // atomic<bool> paused{true};
-        Process* proc;
-        bool owns_proc; // Track ownership for cleanup
         string lang;
         int speed;
         int gap;
         string beep_cmd;
         string think_cmd;
         map<string, string> speak_replacements;
+        Process* proc = nullptr;
+        bool owns_proc; // Track ownership for cleanup
     public:
         TTS(
             const string& lang,

@@ -39,7 +39,7 @@ namespace tools::voice {
             window(window) 
         {}
 
-        ~NoiseMonitor() {
+        virtual ~NoiseMonitor() {
             stop(); // Ensure cleanup in destructor
         }
 
@@ -113,12 +113,14 @@ namespace tools::voice {
             return sqrt(sum / buffer.size());
         }
 
+    private:
+        VoiceRecorder& recorder;
+
     protected:
         float threshold_pc;
         atomic<bool> running{false};
 
     private:
-        VoiceRecorder& recorder;
         float rmax_decay_pc;
         size_t window;
         // atomic<bool> paused{true};
@@ -234,7 +236,7 @@ void test_NoiseMonitor_start_callback_behavior() {
         recorder.set_available(1024);
         recorder.set_audio_data(audio_data);
         
-        monitor.start(nullptr, [&](void*, float vol_pc, float threshold_pc, float rmax, float rms, bool is_noisy, vector<float>& buffer, bool muted) {
+        monitor.start(nullptr, [&](void*, float vol_pc, float /*threshold_pc*/, float /*rmax*/, float rms, bool /*is_noisy*/, vector<float>& buffer, bool /*muted*/) {
             last_vol_pc = vol_pc;
             callback_called = true;
             assert(buffer.size() == 1024 && "Buffer size should match window");
@@ -301,7 +303,6 @@ void test_NoiseMonitor_start_throws_when_running() {
         // Start the monitor
         monitor.start(nullptr, [](void*, float, float, float, float, bool, vector<float>&, bool) {}, 10);
         
-        bool thrown = false;
         // Try to start again with throws = true
         monitor.start(nullptr, [](void*, float, float, float, float, bool, vector<float>&, bool) {}, 10, true);
         monitor.stop();

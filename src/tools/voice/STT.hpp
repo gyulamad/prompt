@@ -51,8 +51,8 @@ namespace tools::voice {
             const float stt_noise_monitor_threshold_pc,
             const float stt_noise_monitor_rmax_decay_pc,
             const size_t stt_noise_monitor_window,
-            const string& stt_transcriber_model,
-            const string& stt_transcriber_lang,
+            // const string& stt_transcriber_model,
+            // const string& stt_transcriber_lang,
             const long stt_poll_interval_ms
         ) {
             recorder = new VoiceRecorder(
@@ -73,8 +73,8 @@ namespace tools::voice {
             );
             
             transcriber = new TranscriberT(
-                stt_transcriber_model,
-                stt_transcriber_lang.c_str()
+                // stt_transcriber_model,
+                // stt_transcriber_lang.c_str()
             );
             
             recogniser = new SpeechRecogniser(
@@ -175,8 +175,8 @@ void test_STT_constructor_valid() {
             0.1f,     // noise_monitor_threshold_pc
             0.01f,    // noise_monitor_rmax_decay_pc
             1024,     // noise_monitor_window
-            "mock_model", // transcriber_model
-            "en",     // transcriber_lang
+            // "mock_model", // transcriber_model
+            // "en",     // transcriber_lang
             10        // poll_interval_ms
         );
     } catch (...) {
@@ -196,11 +196,11 @@ void test_STT_start_basic() {
         MockSpeechRecogniser* recogniser = new MockSpeechRecogniser(recorder, monitor, listener, transcriber);
 
         STT<MockTranscriber> stt(
-            16000.0, 512, 5, 0.1f, 0.01f, 1024, "mock_model", "en", 10
+            16000.0, 512, 5, 0.1f, 0.01f, 1024, /*"mock_model", "en",*/ 10
         );
         stt.replace_recogniser(recogniser);
         
-        stt.setRMSHandler([&](float vol_pc, float, float, float, bool, bool) { rms_called = true; });
+        stt.setRMSHandler([&](float /*vol_pc*/, float, float, float, bool, bool) { rms_called = true; });
         stt.setTranscribeHandler([&](const vector<float>&, const string&) { transcribe_called = true; });
         
         stt.start();
@@ -228,7 +228,7 @@ void test_STT_empty_record() {
         MockSpeechRecogniser* recogniser = new MockSpeechRecogniser(recorder, monitor, listener, transcriber);
 
         STT<MockTranscriber> stt(
-            16000.0, 512, 5, 0.1f, 0.01f, 1024, "mock_model", "en", 10
+            16000.0, 512, 5, 0.1f, 0.01f, 1024, /*"mock_model", "en",*/ 10
         );
         stt.replace_recogniser(recogniser);
 
@@ -272,7 +272,7 @@ void test_STT_callback_comprehensive() {
         MockSpeechRecogniser* recogniser = new MockSpeechRecogniser(recorder, monitor, listener, transcriber);
 
         STT<MockTranscriber> stt(
-            16000.0, 512, 5, 0.1f, 0.01f, 1024, "mock_model", "en", 10
+            16000.0, 512, 5, 0.1f, 0.01f, 1024, /*"mock_model", "en",*/ 10
         );
         stt.replace_recogniser(recogniser);
 
@@ -322,7 +322,7 @@ void test_STT_muted_state() {
         MockSpeechRecogniser* recogniser = new MockSpeechRecogniser(recorder, monitor, listener, transcriber);
         
         STT<MockTranscriber> stt(
-            16000.0, 512, 5, 0.1f, 0.01f, 1024, "mock_model", "en", 10
+            16000.0, 512, 5, 0.1f, 0.01f, 1024, /*"mock_model", "en",*/ 10
         );
         stt.replace_recogniser(recogniser);
         
@@ -349,7 +349,7 @@ void test_STT_stop_without_speech() {
         MockSpeechRecogniser* recogniser = new MockSpeechRecogniser(recorder, monitor, listener, transcriber);
         
         STT<MockTranscriber> stt(
-            16000.0, 512, 5, 0.1f, 0.01f, 1024, "mock_model", "en", 10
+            16000.0, 512, 5, 0.1f, 0.01f, 1024, /*"mock_model", "en",*/ 10
         );
         stt.replace_recogniser(recogniser);
         

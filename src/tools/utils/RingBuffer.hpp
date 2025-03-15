@@ -627,6 +627,7 @@ void test_RingBuffer_try_write_all_rotate_policy() {
     
     int readData[3] = {0};
     size_t bytesRead = rb.read(readData, 3);
+    assert(bytesRead == 3 && "Buffer should be fully read");
     
     // With Rotate policy, the buffer should have discarded the oldest items
     int expected[] = {30, 40, 50}; // The first item (10) should be discarded
@@ -652,6 +653,7 @@ void test_RingBuffer_try_write_all_reset_policy() {
     
     int readData[3] = {0};
     size_t bytesRead = rb.read(readData, 3);
+    assert(bytesRead == 3 && "Buffer should be fully read");
     
     int expected[] = {30, 40, 50};
     for (int i = 0; i < 3; i++) {
@@ -774,6 +776,7 @@ void test_RingBuffer_drop_callback() {
     // Verify buffer content
     int readData[3] = {0};
     size_t bytesRead = rb.read(readData, 3);
+    assert(bytesRead == 3 && "Buffer should be fully read");
     
     int expected[] = {3, 4, 5};
     for (int i = 0; i < 3; i++) {

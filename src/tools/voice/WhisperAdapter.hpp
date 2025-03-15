@@ -4,14 +4,13 @@
 
 namespace tools::voice {
 
-    class WhisperTranscriber: public Transcriber {
+    class WhisperAdapter: public Transcriber {
     private:
         whisper_full_params params;
         whisper_context* ctx;
 
     public:
-        WhisperTranscriber(const string& model_path, const char* lang = nullptr): 
-            Transcriber(model_path, lang) 
+        WhisperAdapter(const string& model_path, const char* lang = nullptr): Transcriber() 
         {
             // whisper_sampling_strategy strategy(WHISPER_SAMPLING_BEAM_SEARCH);
             whisper_sampling_strategy strategy(WHISPER_SAMPLING_BEAM_SEARCH);
@@ -58,12 +57,12 @@ namespace tools::voice {
             return transcription;
         }
 
-        ~WhisperTranscriber() {
+        ~WhisperAdapter() {
             if (ctx) whisper_free(ctx);
         }
     };
 
-    class WhisperSTT: public STT<WhisperTranscriber> {
+    class WhisperSTT: public STT<WhisperAdapter> {
     public:
         using STT::STT;
     };

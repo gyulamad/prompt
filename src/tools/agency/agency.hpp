@@ -11,3 +11,4 @@
 #include "agents/commands/KillCommand.hpp"
 #include "agents/commands/ListCommand.hpp"
 #include "agents/commands/SpawnCommand.hpp"
+#include "agents/commands/VoiceCommand.hpp"

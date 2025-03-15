@@ -125,7 +125,6 @@ void test_SpeechListener_noise_cb_speech_detection() {
         SpeechListener listener(monitor);
     
         vector<float> record;
-        bool speech_detected = false;
         
         // Simulate noise callback directly
         vector<float> buffer(1024, 1.0f); // Non-zero values to simulate noise

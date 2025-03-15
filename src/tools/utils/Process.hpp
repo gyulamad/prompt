@@ -143,17 +143,29 @@ namespace tools::utils {
             write(input + "\n");
         }
 
+        // virtual string read_chunk(int fd) {
+        //     if (buffsize > 65535) throw ERROR("Too large buffer size");
+        //     char buffer[buffsize];
+        //     ssize_t n = ::read(fd, buffer, sizeof(buffer) - 1);
+        //     if (n == -1) {
+        //         if (errno == EAGAIN || errno == EWOULDBLOCK)
+        //             return ""; // No data available
+        //         throw ERROR("Failed to read from child: " + string(strerror(errno)) + " - program: " + program);
+        //     }
+        //     buffer[n] = '\0';
+        //     return string(buffer);
+        // }
         virtual string read_chunk(int fd) {
             if (buffsize > 65535) throw ERROR("Too large buffer size");
-            char buffer[buffsize];
-            ssize_t n = ::read(fd, buffer, sizeof(buffer) - 1);
+            vector<char> buffer(buffsize);
+            ssize_t n = ::read(fd, buffer.data(), buffer.size() - 1);
             if (n == -1) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK)
                     return ""; // No data available
                 throw ERROR("Failed to read from child: " + string(strerror(errno)) + " - program: " + program);
             }
             buffer[n] = '\0';
-            return string(buffer);
+            return string(buffer.data());
         }
 
         // string read() {

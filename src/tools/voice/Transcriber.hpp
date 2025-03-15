@@ -24,7 +24,7 @@ namespace tools::voice {
         }
 
     public:
-        Transcriber(const string& conf, const char* lang = nullptr) {}
+        Transcriber() {}
 
         virtual ~Transcriber() {}
 
@@ -32,7 +32,7 @@ namespace tools::voice {
             return inProgress;
         }    
 
-        virtual string transcribe(const vector<float>& audio_data) UNIMP_THROWS
+        virtual string transcribe(const vector<float>& /*audio_data*/) UNIMP_THROWS
     };
 
 }

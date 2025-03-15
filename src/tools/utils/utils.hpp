@@ -8,6 +8,7 @@
 #include "Curl.hpp"
 #include "datetime.hpp"
 #include "ERROR.hpp"
+#include "execute.hpp"
 #include "files.hpp"
 #include "io.hpp"
 #include "JSON.hpp"

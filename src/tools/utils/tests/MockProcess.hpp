@@ -24,7 +24,7 @@ public:
         last_command = input + "\n"; // Match TTS usage
     }
 
-    string read(int timeout_ms = 0) override { // Match Process signature
+    string read(int /*timeout_ms*/ = 0) override { // Match Process signature
         return mock_output;
     }
 
