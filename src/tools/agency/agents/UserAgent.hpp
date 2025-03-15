@@ -34,8 +34,12 @@ namespace tools::agency::agents {
                 T input;
                 if (commander) {
                     CommandLine& cline = commander->get_command_line_ref();
+                    if (cline.is_exited()) return;
                     input = cline.readln();
-                    if (cline.is_exited()) this->exit();
+                    if (cline.is_exited()) {
+                        this->exit();
+                        return;
+                    }
                 } else cin >> input;
                 if (trim(input).empty()) return;
                 else if (str_starts_with(input, "/")) commander->run_command(&agency, input); // TODO: add is_command(input) as a command matcher (regex or callback fn) instead just test for "/" 

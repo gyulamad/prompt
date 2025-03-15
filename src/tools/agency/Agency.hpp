@@ -22,6 +22,7 @@ namespace tools::agency {
 
         void handle(const string& sender, const T& item) override {
 
+            // TODO: these are deprecated: (commands and agents has/can have access to the agency so they can do it by themself)
             if (item == "exit") {
                 cout << "Exit indicated by agent '" + sender + "'..." << endl;
 

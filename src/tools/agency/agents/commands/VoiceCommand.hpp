@@ -12,8 +12,8 @@ namespace tools::agency::agents::commands {
     
         vector<string> get_patterns() const override {
             return { 
-                "/voice tts {switch}",
-                "/voice stt {switch}",
+                "/voice out {switch}",
+                "/voice in {switch}",
             };
         }
     
@@ -23,12 +23,12 @@ namespace tools::agency::agents::commands {
 
             string thru = args[1];
             bool state = parse<bool>(args[2]);
-            if (thru == "tts") {
+            if (thru == "out") {
                 agency.setVoiceOutput(state);
                 cout << "Text to speach voice mode output is " + string(state ? "ON" : "OFF") << endl;
                 return;
             }
-            if (thru == "stt") {
+            if (thru == "in") {
                 // get user agent
                 Agent<T>& agent = agency.getAgentRef("user");
                 if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
