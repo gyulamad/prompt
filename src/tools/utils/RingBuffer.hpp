@@ -359,8 +359,6 @@ void test_RingBuffer_different_types() {
     assert(readData[1] == "world");
 }
 
-// ---!@#
-
 void test_RingBuffer_write_overwrite() {
     RingBuffer<int> rb(5, RingBuffer<int>::WritePolicy::Rotate); // Enable overwrite mode
     int data1[] = {1, 2, 3, 4, 5};

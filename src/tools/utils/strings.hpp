@@ -1552,8 +1552,8 @@ void test_strtolower_empty_string() {
 }
 
 void test_strtolower_with_numbers_and_symbols() {
-    string input = "123 ABC!@#";
-    string expected = "123 abc!@#";
+    string input = "123 ABC^!%&#$@";
+    string expected = "123 abc^!%&#$@";
     string actual = strtolower(input);
     assert(actual == expected && "test_strtolower_with_numbers_and_symbols failed");
 }
@@ -1587,8 +1587,8 @@ void test_strtoupper_empty_string() {
 }
 
 void test_strtoupper_with_numbers_and_symbols() {
-    string input = "123 abc!@#";
-    string expected = "123 ABC!@#";
+    string input = "123 abc^!%&#$@";
+    string expected = "123 ABC^!%&#$@";
     string actual = strtoupper(input);
     assert(actual == expected && "test_strtoupper_with_numbers_and_symbols failed");
 }

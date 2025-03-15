@@ -33,8 +33,11 @@ namespace tools::agency::agents {
                 // text input mode
                 T input;
                 if (commander) {
+                    if (agency.isClosing()) {
+                        sleep_ms(100);
+                        return;
+                    }
                     CommandLine& cline = commander->get_command_line_ref();
-                    if (cline.is_exited()) return;
                     input = cline.readln();
                     if (cline.is_exited()) {
                         this->exit();
