@@ -226,137 +226,137 @@ namespace tools::utils {
 
     // TODO: foreach needs tests!!
 
-    // Trait to determine key type and iteration behavior
-    template<typename T, typename = void>
-    struct ContainerTraits {
-        using KeyType = size_t;
-        using ItemType = T&;
+// Trait to determine key type and iteration behavior
+template<typename T, typename = void>
+struct ContainerTraits {
+    using KeyType = size_t;
+    using ItemType = typename T::value_type&;
 
-        // Void callback, no key/index
-        static void iterate(T& data, std::function<void(ItemType)> callback) {
-            for (auto& item : data) {
-                callback(item);
-            }
+    static void iterate(T& data, std::function<void(ItemType)> callback) {
+        for (auto& item : data) {
+            callback(item);
         }
-
-        // Void callback with key/index
-        static void iterate(T& data, std::function<void(ItemType, KeyType)> callback) {
-            size_t index = 0;
-            for (auto& item : data) {
-                callback(item, index++);
-            }
-        }
-
-        // Bool callback, no key/index (with break)
-        static void iterate(T& data, std::function<bool(ItemType)> callback) {
-            for (auto& item : data) {
-                if (!callback(item)) {
-                    break;
-                }
-            }
-        }
-
-        // Bool callback with key/index (with break)
-        static void iterate(T& data, std::function<bool(ItemType, KeyType)> callback) {
-            size_t index = 0;
-            for (auto& item : data) {
-                if (!callback(item, index++)) {
-                    break;
-                }
-            }
-        }
-    };
-
-    // Specialization for map
-    template<typename K, typename V>
-    struct ContainerTraits<std::map<K, V>> {
-        using KeyType = K;
-        using ItemType = V&;
-
-        static void iterate(std::map<K, V>& data, std::function<void(ItemType)> callback) {
-            for (auto& pair : data) {
-                callback(pair.second);
-            }
-        }
-
-        static void iterate(std::map<K, V>& data, std::function<void(ItemType, KeyType)> callback) {
-            for (auto& pair : data) {
-                callback(pair.second, pair.first);
-            }
-        }
-
-        static void iterate(std::map<K, V>& data, std::function<bool(ItemType)> callback) {
-            for (auto& pair : data) {
-                if (!callback(pair.second)) {
-                    break;
-                }
-            }
-        }
-
-        static void iterate(std::map<K, V>& data, std::function<bool(ItemType, KeyType)> callback) {
-            for (auto& pair : data) {
-                if (!callback(pair.second, pair.first)) {
-                    break;
-                }
-            }
-        }
-    };
-
-    // Specialization for unordered_map
-    template<typename K, typename V>
-    struct ContainerTraits<std::unordered_map<K, V>> {
-        using KeyType = K;
-        using ItemType = V&;
-
-        static void iterate(std::unordered_map<K, V>& data, std::function<void(ItemType)> callback) {
-            for (auto& pair : data) {
-                callback(pair.second);
-            }
-        }
-
-        static void iterate(std::unordered_map<K, V>& data, std::function<void(ItemType, KeyType)> callback) {
-            for (auto& pair : data) {
-                callback(pair.second, pair.first);
-            }
-        }
-
-        static void iterate(std::unordered_map<K, V>& data, std::function<bool(ItemType)> callback) {
-            for (auto& pair : data) {
-                if (!callback(pair.second)) {
-                    break;
-                }
-            }
-        }
-
-        static void iterate(std::unordered_map<K, V>& data, std::function<bool(ItemType, KeyType)> callback) {
-            for (auto& pair : data) {
-                if (!callback(pair.second, pair.first)) {
-                    break;
-                }
-            }
-        }
-    };
-
-    // Foreach overloads
-    template<typename T>
-    void foreach(T& data, std::function<void(typename ContainerTraits<T>::ItemType)> callback) {
-        ContainerTraits<T>::iterate(data, callback);
     }
 
-    template<typename T>
-    void foreach(T& data, std::function<void(typename ContainerTraits<T>::ItemType, typename ContainerTraits<T>::KeyType)> callback) {
-        ContainerTraits<T>::iterate(data, callback);
+    static void iterate(T& data, std::function<void(ItemType, KeyType)> callback) {
+        size_t index = 0;
+        for (auto& item : data) {
+            callback(item, index++);
+        }
     }
 
-    template<typename T>
-    void foreach(T& data, std::function<bool(typename ContainerTraits<T>::ItemType)> callback) {
-        ContainerTraits<T>::iterate(data, callback);
+    static void iterate(T& data, std::function<bool(ItemType)> callback) {
+        for (auto& item : data) {
+            if (!callback(item)) {
+                break;
+            }
+        }
     }
 
-    template<typename T>
-    void foreach(T& data, std::function<bool(typename ContainerTraits<T>::ItemType, typename ContainerTraits<T>::KeyType)> callback) {
-        ContainerTraits<T>::iterate(data, callback);
+    static void iterate(T& data, std::function<bool(ItemType, KeyType)> callback) {
+        size_t index = 0;
+        for (auto& item : data) {
+            if (!callback(item, index++)) {
+                break;
+            }
+        }
     }
+};
+
+// Specialization for map
+template<typename K, typename V>
+struct ContainerTraits<std::map<K, V>> {
+    using KeyType = K;
+    using ItemType = V&;
+
+    static void iterate(std::map<K, V>& data, std::function<void(ItemType)> callback) {
+        for (auto& pair : data) {
+            callback(pair.second);
+        }
+    }
+
+    static void iterate(std::map<K, V>& data, std::function<void(ItemType, KeyType)> callback) {
+        for (auto& pair : data) {
+            callback(pair.second, pair.first);
+        }
+    }
+
+    static void iterate(std::map<K, V>& data, std::function<bool(ItemType)> callback) {
+        for (auto& pair : data) {
+            if (!callback(pair.second)) {
+                break;
+            }
+        }
+    }
+
+    static void iterate(std::map<K, V>& data, std::function<bool(ItemType, KeyType)> callback) {
+        for (auto& pair : data) {
+            if (!callback(pair.second, pair.first)) {
+                break;
+            }
+        }
+    }
+};
+
+// Specialization for unordered_map
+template<typename K, typename V>
+struct ContainerTraits<std::unordered_map<K, V>> {
+    using KeyType = K;
+    using ItemType = V&;
+
+    static void iterate(std::unordered_map<K, V>& data, std::function<void(ItemType)> callback) {
+        for (auto& pair : data) {
+            callback(pair.second);
+        }
+    }
+
+    static void iterate(std::unordered_map<K, V>& data, std::function<void(ItemType, KeyType)> callback) {
+        for (auto& pair : data) {
+            callback(pair.second, pair.first);
+        }
+    }
+
+    static void iterate(std::unordered_map<K, V>& data, std::function<bool(ItemType)> callback) {
+        for (auto& pair : data) {
+            if (!callback(pair.second)) {
+                break;
+            }
+        }
+    }
+
+    static void iterate(std::unordered_map<K, V>& data, std::function<bool(ItemType, KeyType)> callback) {
+        for (auto& pair : data) {
+            if (!callback(pair.second, pair.first)) {
+                break;
+            }
+        }
+    }
+};
+
+// Helper to detect if a functor returns bool
+template<typename F, typename... Args>
+using returns_bool = std::is_same<std::invoke_result_t<F, Args...>, bool>;
+
+// Foreach overloads with SFINAE
+template<typename T, typename F, std::enable_if_t<!returns_bool<F, typename ContainerTraits<T>::ItemType>::value, int> = 0>
+void foreach(T& data, F callback) {
+    ContainerTraits<T>::iterate(data, std::function<void(typename ContainerTraits<T>::ItemType)>(callback));
+}
+
+template<typename T, typename F, std::enable_if_t<!returns_bool<F, typename ContainerTraits<T>::ItemType, typename ContainerTraits<T>::KeyType>::value, int> = 0>
+void foreach(T& data, F callback) {
+    ContainerTraits<T>::iterate(data, std::function<void(typename ContainerTraits<T>::ItemType, typename ContainerTraits<T>::KeyType)>(callback));
+}
+
+template<typename T, typename F, std::enable_if_t<returns_bool<F, typename ContainerTraits<T>::ItemType>::value, int> = 0>
+void foreach(T& data, F callback) {
+    ContainerTraits<T>::iterate(data, std::function<bool(typename ContainerTraits<T>::ItemType)>(callback));
+}
+
+template<typename T, typename F, std::enable_if_t<returns_bool<F, typename ContainerTraits<T>::ItemType, typename ContainerTraits<T>::KeyType>::value, int> = 0>
+void foreach(T& data, F callback) {
+    ContainerTraits<T>::iterate(data, std::function<bool(typename ContainerTraits<T>::ItemType, typename ContainerTraits<T>::KeyType)>(callback));
+}
 
     // ===============================================================
     // ===============================================================
@@ -1021,7 +1021,6 @@ void test_vector_equal_large_not_equal() {
     assert(!vector_equal(vec1, vec2) && "Large vectors should not be equal");
 }
 
-// Tests for vector
 void test_ContainerTraits_vector_iterate_no_index_no_break() {
     vector<int> vec = {1, 2, 3};
     vector<int> result;
@@ -1048,7 +1047,7 @@ void test_ContainerTraits_vector_iterate_no_index_with_break() {
         result.push_back(item);
         return item != 2;  // Break after 2
     });
-    vector<int> expected = {1, 2};
+    vector<int> expected = {1, 2};  // Fixed: Correct initializer list
     assert(vector_equal(result, expected) && "Should break after item 2 without index");
 }
 
@@ -1063,14 +1062,13 @@ void test_ContainerTraits_vector_iterate_with_index_with_break() {
     assert(vector_equal(result, expected) && "Should break after item 3 with index");
 }
 
-// Tests for unordered_map
 void test_ContainerTraits_unordered_map_iterate_no_key_no_break() {
     unordered_map<string, int> umap = {{"a", 1}, {"b", 2}, {"c", 3}};
     vector<int> result;
     foreach(umap, [&result](int& value) {
         result.push_back(value);
     });
-    vector<int> expected = {1, 2, 3};  // Order may vary, just checking presence
+    vector<int> expected = {1, 2, 3};
     sort(result.begin(), result.end());
     sort(expected.begin(), expected.end());
     assert(vector_equal(result, expected) && "Should iterate all values without key or break");
