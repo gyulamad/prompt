@@ -17,7 +17,7 @@ namespace tools::cmd {
     private:
         ILineEditor& line_editor;
         bool exited = false;
-        string prompt;
+        string prompt_suffix;
         string history_path;
         bool multi_line;
         size_t history_max_length;
@@ -25,12 +25,12 @@ namespace tools::cmd {
     public:
         CommandLine(
             ILineEditor& editor,
-            const string& prompt = "> ",
+            const string& prompt_suffix = "> ",
             const string& history_path = "",
             bool multi_line = true,
             size_t history_max_length = 0
         ): line_editor(editor),
-            prompt(prompt),
+            prompt_suffix(prompt_suffix),
             history_path(history_path),
             multi_line(multi_line),
             history_max_length(history_max_length)
@@ -44,7 +44,7 @@ namespace tools::cmd {
         CommandLine(CommandLine&& other) noexcept
             : line_editor(other.line_editor),
             exited(other.exited),
-            prompt(move(other.prompt)),
+            prompt_suffix(move(other.prompt_suffix)),
             history_path(move(other.history_path)),
             multi_line(other.multi_line),
             history_max_length(other.history_max_length) {
@@ -56,7 +56,7 @@ namespace tools::cmd {
             if (this != &other) {
                 line_editor = move(other.line_editor);
                 exited = other.exited;
-                prompt = move(other.prompt);
+                prompt_suffix = move(other.prompt_suffix);
                 history_path = move(other.history_path);
                 multi_line = other.multi_line;
                 history_max_length = other.history_max_length;
@@ -78,12 +78,20 @@ namespace tools::cmd {
         }
 
         void set_prompt(const string& prompt) {
-            this->prompt = prompt;
+            line_editor.SetPrompt(string(prompt + prompt_suffix).c_str());
         }
 
-        string get_prompt() const {
-            return this->prompt;
+        void set_prompt_suffix(const string& prompt_suffix) {
+            this->prompt_suffix = prompt_suffix;
         }
+
+        string get_prompt_suffix() const {
+            return this->prompt_suffix;
+        }
+
+        // void set_keypress_callback(ILineEditor::KeypressCallback cb) {
+        //     line_editor.SetKeypressCallback(cb);
+        // }
 
         void set_completion_matcher(CompletionMatcher& completion_matcher) {
             line_editor.SetCompletionCallback([&](const char* input, vector<string>& completions) {
@@ -102,17 +110,19 @@ namespace tools::cmd {
                     }
                     return;
                 }
-                cout << endl;
+                line_editor.WipeLine();
+                // cout << endl;
                 for (const string& elem : all_completions) {
                     cout << elem << endl;
                 }
-                show(input);
+                line_editor.RefreshLine();
+                // show(input);
             });
         }
 
-        void show(const string& input = "") {
-            cout << prompt << input << flush;
-        }
+        // void show(const string& input = "") {
+        //     cout << prompt_suffix << input << flush;
+        // }
 
         string readln() {
             line_editor.SetMultiLine(multi_line);
@@ -160,20 +170,20 @@ void test_CommandLine_is_exited_after_readline_exit() {
     // Fixed: Added mock_ptr to set mock state before move
 }
 
-void test_CommandLine_set_prompt_changes_prompt() {
+void test_CommandLine_set_prompt_suffix_changes_prompt_suffix() {
     MockLineEditor mock;
     CommandLine cl(mock, "> ", "test_history.txt", true, 10);
-    cl.set_prompt("new> ");
-    string actual = cl.get_prompt();
-    assert(actual == "new> " && "set_prompt should update the prompt string");
+    cl.set_prompt_suffix("new> ");
+    string actual = cl.get_prompt_suffix();
+    assert(actual == "new> " && "set_prompt_suffix should update the prompt_suffix string");
     // No fix needed: no direct mock access
 }
 
-void test_CommandLine_get_prompt_returns_initial_prompt() {
+void test_CommandLine_get_prompt_suffix_returns_initial_prompt_suffix() {
     MockLineEditor mock;
     CommandLine cl(mock, "> ", "test_history.txt", true, 10);
-    string actual = cl.get_prompt();
-    assert(actual == "> " && "get_prompt should return the initial prompt");
+    string actual = cl.get_prompt_suffix();
+    assert(actual == "> " && "get_prompt_suffix should return the initial prompt_suffix");
     // No fix needed: no direct mock access
 }
 
@@ -237,8 +247,8 @@ void test_CommandLine_readln_saves_history() {
 
 TEST(test_CommandLine_is_exited_initial_state);
 TEST(test_CommandLine_is_exited_after_readline_exit);
-TEST(test_CommandLine_set_prompt_changes_prompt);
-TEST(test_CommandLine_get_prompt_returns_initial_prompt);
+TEST(test_CommandLine_set_prompt_suffix_changes_prompt_suffix);
+TEST(test_CommandLine_get_prompt_suffix_returns_initial_prompt_suffix);
 TEST(test_CommandLine_readln_reads_input);
 TEST(test_CommandLine_readln_sets_multi_line);
 TEST(test_CommandLine_readln_sets_history_max_length);

@@ -85,6 +85,28 @@ namespace tools::utils {
         return false;
     }
 
+    // Check for a specific keypress (e.g., ESC) non-blocking
+    bool kbhit_chk(int key = 27) {
+        lock_guard<mutex> lock(io_kbhit_mtx);
+
+        struct termios oldt, newt;
+        tcgetattr(STDIN_FILENO, &oldt);
+        newt = oldt;
+        newt.c_lflag &= ~(ICANON | ECHO);
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    
+        int oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+        fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+    
+        int ch = getchar();
+        cout << ch << endl;
+    
+        fcntl(STDIN_FILENO, F_SETFL, oldf);
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    
+        return (ch == key);
+    }
+
 
     bool confirm(const string& message, char def = 'y') {
         lock_guard<mutex> lock(io_confirm_mtx); // Lock the mutex

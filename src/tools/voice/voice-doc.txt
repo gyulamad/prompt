@@ -17,7 +17,7 @@ VoiceRecorder
 
 Transcriber
 - Purpose: Abstract base class for converting audio data (float samples) into text.
-- Features: Subclasses (e.g., WhisperTranscriber) implement specific transcription engines.
+- Features: Subclasses (e.g., WhisperAdapter) implement specific transcription engines.
 - Usage: Used by SpeechRecogniser to process recorded speech.
 
 TTS (Text-to-Speech)
@@ -51,7 +51,7 @@ complete STT system.
 - Usage: High-level interface for speech recognition applications.
 
 WhisperSTT
-- Purpose: Specialized STT implementation using the WhisperTranscriber (based on the Whisper.cpp library).
+- Purpose: Specialized STT implementation using the WhisperAdapter (based on the Whisper.cpp library).
 - Features: Leverages Whisper’s advanced speech recognition capabilities.
 - Usage: Ready-to-use STT solution with Whisper as the transcription engine.
 
@@ -92,7 +92,7 @@ Example:
         using namespace std;
         using namespace tools::voice;
         int main() {
-            STT<WhisperTranscriber> stt(16000.0, 512, 5, 0.1f, 0.01f, 1024, "model.ggml", "en", 10);
+            STT<WhisperAdapter> stt(16000.0, 512, 5, 0.1f, 0.01f, 1024, "model.ggml", "en", 10);
             stt.setRMSHandler([](float vol_pc, float, float, float, bool, bool) {
                 cout << "Volume: " << vol_pc * 100 << "%" << endl;
             });

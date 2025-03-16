@@ -121,7 +121,7 @@ namespace tools::utils {
 
         void clear(const string& done_text = "\r\033[2K") {
             lock_guard<::mutex> lock(mutex);
-            cout << "\r\033[2K" << flush;
+            cout << done_text << flush;
             longest_output_length = 0; // TODO: longest output may not needed anymore...
         }
 

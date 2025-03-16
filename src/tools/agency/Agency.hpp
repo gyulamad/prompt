@@ -10,7 +10,7 @@ namespace tools::agency {
 
         Agency(PackQueue<T>& queue): Agent<T>(queue, "agency") {}
 
-        ~Agency() {
+        virtual ~Agency() {
             lock_guard<mutex> lock(agents_mtx);
             for (Agent<T>* agent : agents) delete agent;
             agents.clear();

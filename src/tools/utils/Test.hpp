@@ -17,7 +17,7 @@
 using namespace std;
 
 #ifdef TEST
-#define JSON_ASSERT // because json lib overrides assert otherwise
+#define JSON_ASSERT(x) { if (!(x)) cerr << ERROR("JSON ASSERT FAILURE: "#x).what() << endl; exit(1); } // because json lib overrides assert otherwise
 
 #include <iostream>
 #include <functional>
@@ -68,12 +68,12 @@ vector<Test> tests;
 #include "strings.hpp"
 
 #define TEST_SIGN_NONE ANSI_FMT_RESET "[ " ANSI_FMT_RESET "]"
-#define TEST_SIGN_PASS ANSI_FMT_RESET "[" ANSI_FMT_SUCCESS "✓" ANSI_FMT_RESET "]"
+#define TEST_SIGN_PASS ANSI_FMT_RESET "[" ANSI_FMT_SUCCESS "✔" ANSI_FMT_RESET "]"
 #define TEST_SIGN_WARN ANSI_FMT_RESET "[" ANSI_FMT_WARNING "!" ANSI_FMT_RESET "]"
-#define TEST_SIGN_FAIL ANSI_FMT_RESET "[" ANSI_FMT_ERROR "x" ANSI_FMT_RESET "]"
+#define TEST_SIGN_FAIL ANSI_FMT_RESET "[" ANSI_FMT_ERROR "✖" ANSI_FMT_RESET "]"
 
 // Test runner
-void run_tests(const vector<string>& filters = {}) {
+void run_tests(const vector<string>& filters = {}, bool failure_throws = false, bool failure_exits = false) {
     struct failure_s {
         Test test;
         string errmsg;
@@ -204,6 +204,8 @@ void run_tests(const vector<string>& filters = {}) {
             // ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, failure.test.name) + "() at " + failure.test.file + ":" + to_string(failure.test.line) 
             + "\n" + failure.errmsg + "\n";
         cout << errmsg << flush;
+        if (failure_throws) throw ERROR(errmsg);
+        if (failure_exits) exit(1);
 #ifdef TEST_FAILURE_THROWS
             throw ERROR(errmsg);
 #endif

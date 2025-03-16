@@ -21,13 +21,13 @@ namespace tools::utils {
         atomic<bool> paused{false};
         atomic<bool> finished{false};
         thread worker;
+        Logger& logger; // Reference to a Logger instance
+        condition_variable cv;
         function<void()> callback;
         int tickms;
         bool immediate_start; // Flag for immediate execution
         int run_n_times; // Number of times to run the task (0 for infinite)
         mutex mtx;
-        condition_variable cv;
-        Logger& logger; // Reference to a Logger instance
 
         void run() {
             unique_lock<mutex> lock(mtx);
@@ -286,7 +286,7 @@ void test_Tasks_cleanup() {
     Tasks tasks(logger);
     bool executed = false;
 
-    Task& task = tasks.start(100, false, 0, [&]() {
+    tasks.start(100, false, 0, [&]() {
         executed = true;
     });
 
@@ -320,7 +320,7 @@ void test_Tasks_callback_exactly_5_times() {
     Tasks tasks(logger);
 
     int counter = 0;
-    Task& task = tasks.start(100, true, 5, [&]() {
+    tasks.start(100, true, 5, [&]() {
         counter++;
     });
     this_thread::sleep_for(chrono::milliseconds(1000));
@@ -333,7 +333,7 @@ void test_Tasks_callback_throws_stop_at_3th() {
     Tasks tasks(logger);
 
     int counter = 0;
-    Task& task = tasks.start(100, true, 5, [&]() {
+    tasks.start(100, true, 5, [&]() {
         counter++;
         if (counter == 3) throw TaskStop();
     });

@@ -55,6 +55,7 @@ namespace tools::voice {
         virtual ~SpeechRecogniser() {}
 
         virtual void start() {
+
             listener.start(
                 [&](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {
                     rms_cb(vol_pc, threshold_pc, rmax, rms, loud, muted);
@@ -73,15 +74,18 @@ namespace tools::voice {
                 pollIntervalMs
             );
 
+            running = true;
+
             // cout << "[DEBUG] SpeachRecogniser transcriber thread start..." << endl;
             transcriberThread = thread([&]{
-                while(running) {
-                    sleep_ms(300);
+                while (running) {
+                    sleep_ms(30);
                     // if (paused) continue;
                     if (!records.empty()) {
                         // shift out the first record:
                         if (records_lock) continue;
                         vector<float> record = move(records.front());
+                        // while (record.size() < 16384) record.push_back(0);
                         records.erase(records.begin());
                         string transcript = transcriber.transcribe(record);
 
@@ -96,7 +100,7 @@ namespace tools::voice {
         virtual void stop() {
             running = false;
             //while (!transcriberThread.joinable());
-            transcriberThread.join();
+            if (transcriberThread.joinable()) transcriberThread.join();
             listener.stop();
         }
 

@@ -131,10 +131,10 @@ void test_Commander_get_command_line_ref_returns_reference() {
     Commander commander(cl);
     CommandLine& actual = commander.get_command_line_ref();
     // Modify the CommandLine via the reference
-    actual.set_prompt("modified> ");
+    actual.set_prompt_suffix("modified> ");
     // Check if the modification is reflected in Commander's CommandLine
-    string prompt_from_commander = commander.get_command_line_ref().get_prompt();
-    assert(prompt_from_commander == "modified> " && 
+    string prompt_suffix_from_commander = commander.get_command_line_ref().get_prompt_suffix();
+    assert(prompt_suffix_from_commander == "modified> " && 
            "get_command_line_ref should return a reference that modifies the internal CommandLine");
 }
 

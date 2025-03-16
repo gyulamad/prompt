@@ -81,18 +81,19 @@ namespace tools::utils {
         // }
 
     protected:
-        LogFormatter formatter;
         string name;
-
-    private:
         ofstream logFile;
         Level minLogLevel = Level::INFO;
-        mutex logMutex;
         queue<string> logQueue;
+        thread logThread;
+        bool stopLogging = false;
+        LogFormatter formatter;
+
+    private:
+        mutex logMutex;
         mutex queueMutex;
         condition_variable queueCondition;
-        thread logThread;
-        bool stopLogging = false;atomic<bool> writingToOutput{false};
+        atomic<bool> writingToOutput{false};
 
         // Default log formatter
         string defaultFormatter(Level level, const string& name, const string& message) {
@@ -379,7 +380,7 @@ void test_Logger_setMinLogLevel_filter_logs() {
 
 void test_Logger_custom_formatter() {
     string output;
-    auto customFormatter = [](Logger::Level level, const string& name, const string& message) -> string {
+    auto customFormatter = [](Logger::Level /*level*/, const string& name, const string& message) -> string {
         return "[" + name + "] Custom: " + message;
     };
     Logger logger("TestLogger", "", customFormatter);

@@ -15,7 +15,12 @@
             ], // Add program arguments if necessary
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
+            "environment": [
+                // {
+                //     "name": "LSAN_OPTIONS",
+                //     "value": "verbosity=1:log_threads=1"
+                // }
+            ],
             "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "/usr/bin/gdb", // Path to GDB
@@ -40,7 +45,12 @@
             ], // Add program arguments if necessary
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
+            "environment": [
+                // {
+                //     "name": "LSAN_OPTIONS",
+                //     "value": "verbosity=1:log_threads=1"
+                // }
+            ],
             "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "/usr/bin/gdb", // Path to GDB

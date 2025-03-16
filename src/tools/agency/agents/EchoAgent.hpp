@@ -10,7 +10,7 @@ namespace tools::agency::agents {
         EchoAgent(PackQueue<T>& queue, Agency<T>& agency, TTS* tts = nullptr): Agent<T>(queue, "echo"), agency(agency), tts(tts) {}
 
         void handle(const string& sender, const T& item) override {
-            sleep(2); // emulate some background work;
+            // sleep(2); // emulate some background work;
 
             // get user agent
             Agent<T>& agent = agency.getAgentRef("user");
@@ -24,7 +24,7 @@ namespace tools::agency::agents {
             // get command line
             CommandLine& cline = commander->get_command_line_ref();
 
-            string output = "Echo: '" + sender + "' -> " + string(item);
+            string output = "echo " + sender + "> " + string(item);
             if (agency.isVoiceOutput()) {
                 if (tts) tts->speak(output);
                 else throw ERROR("Text to speech is missing");

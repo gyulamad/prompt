@@ -1,24 +1,26 @@
 #pragma once
 
+#include "../../../libs/yhirose/cpp-linenoise/linenoise.hpp"
+
 #include "ILineEditor.hpp"
-#include "../../../libs/gyulamad/cpp-linenoise/linenoise.hpp"
 
 using namespace std;
+using namespace linenoise;
 
 namespace tools::cmd {
 
     class LinenoiseAdapter : public ILineEditor {
-    protected:
-        linenoise::linenoiseState l;
     public:
-        LinenoiseAdapter(const string& prompt): l(prompt.c_str()) {}
+        LinenoiseAdapter(const string& prompt, int stdin_fd = STDIN_FILENO, int stdout_fd = STDOUT_FILENO): 
+            l(prompt.empty() ? NULL : prompt.c_str(), stdin_fd, stdout_fd) {}
 
         void SetCompletionCallback(CompletionCallback callback) override {
             l.SetCompletionCallback(callback);
         }
 
         void SetMultiLine(bool enable) override {
-            l.EnableMultiLine(enable);
+            if (enable) l.EnableMultiLine();
+            else l.DisableMultiLine();
         }
 
         void SetHistoryMaxLen(size_t max_len) override {
@@ -48,6 +50,29 @@ namespace tools::cmd {
         void WipeLine() override {
             l.WipeLine();
         }
+
+        void SetPrompt(const char* prompt) override {
+            WipeLine();
+            l.SetPrompt(prompt);
+            RefreshLine();
+        }
+
+        void SetPrompt(string& prompt) override {
+            WipeLine();
+            l.SetPrompt(prompt);
+            RefreshLine();
+        }
+
+        // string GetPrompt() override {
+        //     return l.prompt;
+        // }
+
+        // void SetKeypressCallback(KeypressCallback cb) override {
+        //     l.SetKeypressCallback(cb);
+        // }
+
+    protected:
+        linenoiseState l;
     };
 
 } // namespace tools::cmd

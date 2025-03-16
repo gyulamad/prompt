@@ -10,8 +10,9 @@
 #include "ERROR.hpp"
 #include "execute.hpp"
 #include "files.hpp"
+#include "InputPipeInterceptor.hpp"
 #include "io.hpp"
-#include "JSON.hpp"
+// #include "JSON.hpp" TODO: tests are leaking!!
 #include "Logger.hpp"
 #include "Process.hpp"
 #include "regx.hpp"
