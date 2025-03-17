@@ -17,7 +17,6 @@
 using namespace std;
 
 #ifdef TEST
-#define JSON_ASSERT(x) { if (!(x)) cerr << ERROR("JSON ASSERT FAILURE: "#x).what() << endl; exit(1); } // because json lib overrides assert otherwise
 
 #include <iostream>
 #include <functional>
@@ -28,18 +27,18 @@ using namespace std;
 
 using namespace tools::utils;
 
-class TestSkipException: public runtime_error {
-public:
-    using runtime_error::runtime_error;
-};
-
-#define TEST_SKIP(msg) { throw TestSkipException(ANSI_FMT_CALL(__FUNC__, __FILE__, __LINE__)); }
-
-
+#define TEST_SKIP(...) { \
+    const char* msg = #__VA_ARGS__; \
+    if (msg[0] == '\0') msg = "skip reason not specified"; \
+    cerr << "Test skipped '" + string(msg) + "': " << ANSI_FMT_CALL(__FUNC__, __FILE__, __LINE__) << endl; return; \
+}
 
 #ifdef TEST_CASSERT
 #include <cassert>
 #else
+#ifdef assert
+#undef assert
+#endif
 #define assert(expr) if (!(expr)) throw ERROR("Assert failed: "#expr);
 #endif
 
@@ -54,26 +53,33 @@ vector<Test> tests;
 
 #undef TEST
 #define TEST(t) \
-    /* void t(); */\
     struct test_registrar_##t { \
         test_registrar_##t() { \
             tests.push_back({#t, t, __FILE__, __LINE__}); \
         } \
     } test_registrar_instance_##t; \
-    /* void t() */
 
 
-
-#include "system.hpp"
-#include "strings.hpp"
-
-#define TEST_SIGN_NONE ANSI_FMT_RESET "[ " ANSI_FMT_RESET "]"
+#define TEST_SIGN_NONE ANSI_FMT_RESET "[ ]"
 #define TEST_SIGN_PASS ANSI_FMT_RESET "[" ANSI_FMT_SUCCESS "✔" ANSI_FMT_RESET "]"
 #define TEST_SIGN_WARN ANSI_FMT_RESET "[" ANSI_FMT_WARNING "!" ANSI_FMT_RESET "]"
 #define TEST_SIGN_FAIL ANSI_FMT_RESET "[" ANSI_FMT_ERROR "✖" ANSI_FMT_RESET "]"
 
+
+// because json, ggml (and maybe other) lib(S) overrides assert otherwise
+#define TEST_ASSERT_OVERRIDE(x) { if (!(x)) cerr << ERROR("TEST_ASSERT_OVERRIDE FAILED: "#x).what() << endl; exit(1); }
+// #define TEST_ASSERT_OVERRIDE(x) { if (!(x)) cerr << "TEST_ASSERT_OVERRIDE FAILED: "#x << endl; exit(1); }
+// #define TEST_ASSERT_OVERRIDE(x) assert(x)
+// #define GGML_ASSERT(x) TEST_ASSERT_OVERRIDE(x)
+// #define JSON_ASSERT(x) TEST_ASSERT_OVERRIDE(x)
+
+#include "system.hpp"
+#include "strings.hpp"
+
+using namespace tools::utils;
+
 // Test runner
-void run_tests(const vector<string>& filters = {}, bool failure_throws = false, bool failure_exits = false) {
+int run_tests(const vector<string>& filters = {}, bool failure_throws = false, bool failure_exits = false) {
     struct failure_s {
         Test test;
         string errmsg;
@@ -106,20 +112,10 @@ void run_tests(const vector<string>& filters = {}, bool failure_throws = false, 
         }
         if (skip) continue;
         
-        
-        // if (!filter.empty() &&
-        //     !(
-        //         test.file.find(filter) != string::npos ||
-        //         test.name.find(filter) != string::npos
-        //     )
-        // ) continue;
-        
         cout 
             << TEST_SIGN_NONE " [.............] Testing: " 
             << to_string(tests.size()) << "/" << ++n << " " 
             << ANSI_FMT_CALL(test.name, test.file, test.line) << flush;
-            // << ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, test.name) << "() at " 
-            // << test.file << ":" << test.line << flush;
             
         string tick_or_warn = TEST_SIGN_PASS;
         auto start = chrono::high_resolution_clock::now(); // Start timing
@@ -131,9 +127,7 @@ void run_tests(const vector<string>& filters = {}, bool failure_throws = false, 
             if (!test_output.empty()) 
                 test_outputs += 
                     TEST_SIGN_WARN " Test " + 
-                    //ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, test.name) + "() at " + 
                     ANSI_FMT_CALL(test.name, test.file, test.line)
-                    // test.file + ":" + to_string(test.line) 
                     + "\noutput:\n" + test_output + "\n";
             
             auto end = chrono::high_resolution_clock::now(); // End timing
@@ -201,7 +195,6 @@ void run_tests(const vector<string>& filters = {}, bool failure_throws = false, 
         errmsg += ANSI_FMT(ANSI_FMT_ERROR, to_string(failures.size()) + "/" + to_string(tests.size()) + " test(s) failed:") + "\n";
         for (const failure_s& failure: failures)
             errmsg += ANSI_FMT_CALL(failure.test.name, failure.test.file, failure.test.line)
-            // ANSI_FMT(ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE, failure.test.name) + "() at " + failure.test.file + ":" + to_string(failure.test.line) 
             + "\n" + failure.errmsg + "\n";
         cout << errmsg << flush;
         if (failure_throws) throw ERROR(errmsg);
@@ -222,13 +215,21 @@ void run_tests(const vector<string>& filters = {}, bool failure_throws = false, 
             cout << ANSI_FMT(ANSI_FMT_SUCCESS, to_string(tests.size()) + "/" + to_string(passed) + " tests passed") << endl;
     }
     if (failures.size() + passed != tests.size())
-        cout << ANSI_FMT(ANSI_FMT_WARNING, to_string(tests.size()) + "/" + to_string(tests.size() - passed) + " tests are skipped, filtered by keyword(s): '" + implode("', '", filters) + "'") << endl;
+        cout << ANSI_FMT(ANSI_FMT_WARNING, 
+                to_string(tests.size()) + "/" + to_string(tests.size() - passed) 
+                + " tests are skipped, filtered by keyword(s): '" 
+                + implode("', '", filters) + "'"
+            ) 
+            << endl;
 
+    int result = tests.size() - passed;
 #ifdef TEST_ONLY
-    exit(passed != tests.size());
+    exit(result);
+#else
+    return result;
 #endif
 }
 
 #else
-inline void run_tests(const vector<string>& = {}) {};
+inline int run_tests(const vector<string>& = {}, bool = false, bool = false) { return 0; };
 #endif

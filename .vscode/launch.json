@@ -31,7 +31,7 @@
                     "ignoreFailures": false //true
                 }
             ],
-            "preLaunchTask": "build-prompt", // Matches a task defined in tasks.json
+            "preLaunchTask": "build-debug-prompt", // Matches a task defined in tasks.json
             // "internalConsoleOptions": "openOnSessionStart"
         },
         {
@@ -61,7 +61,37 @@
                     "ignoreFailures": false //true
                 }
             ],
-            "preLaunchTask": "build-prompt-with-tests", // Matches a task defined in tasks.json
+            "preLaunchTask": "build-debug-prompt-with-tests", // Matches a task defined in tasks.json
+            // "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "FAST+TEST:prompt.cpp",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/builds/prompt.fast", // Update this path if needed
+            "args": [
+                //"--voice", 
+                //"--model", "test7"
+            ], // Add program arguments if necessary
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                // {
+                //     "name": "LSAN_OPTIONS",
+                //     "value": "verbosity=1:log_threads=1"
+                // }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb", // Path to GDB
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false //true
+                }
+            ],
+            "preLaunchTask": "build-fast-prompt-with-tests", // Matches a task defined in tasks.json
             // "internalConsoleOptions": "openOnSessionStart"
         }
     ]

@@ -1,5 +1,9 @@
 #pragma once
 
+
+// NOTE: Do not compiles with -Ofast + -fsanitize=address
+//       or use: __attribute__((optimize("O0")))
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105562#c27
 #include <regex>
 
 #include "ERROR.hpp"

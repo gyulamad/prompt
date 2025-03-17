@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <stack>
 #include <regex>
 
 // Include the nlohmann JSON library: 
@@ -597,35 +598,30 @@ void test_json_fix_malformed_json() {
 
 
 void test_json_selector_empty() {
-    TEST_SKIP("leaks");
     json::json_pointer actual = _json_selector("");
     json::json_pointer expected("/");
     assert(actual == expected && "Empty selector should return '/'");
 }
 
 void test_json_selector_simple_key() {
-    TEST_SKIP("leaks");
     json::json_pointer actual = _json_selector(".key");
     json::json_pointer expected("/key");
     assert(actual == expected && "Simple key selector should work");
 }
 
 void test_json_selector_nested_keys() {
-    TEST_SKIP("leaks");
     json::json_pointer actual = _json_selector(".key1.key2.key3");
     json::json_pointer expected("/key1/key2/key3");
     assert(actual == expected && "Nested keys selector should work");
 }
 
 void test_json_selector_array_indexing() {
-    TEST_SKIP("leaks");
     json::json_pointer actual = _json_selector(".array[0]");
     json::json_pointer expected("/array/0");
     assert(actual == expected && "Array indexing should be converted to '/N'");
 }
 
 void test_json_selector_mixed_keys_and_indices() {
-    TEST_SKIP("leaks");
     json::json_pointer actual = _json_selector(".key1.key2[3].key3[5]");
     json::json_pointer expected("/key1/key2/3/key3/5");
     assert(actual == expected && "Mixed keys and indices should work");
@@ -645,7 +641,6 @@ void test_json_selector_invalid_empty_part() {
 }
 
 void test_json_selector_missing_dot_prefix() {
-    TEST_SKIP("leaks");
     json::json_pointer actual = _json_selector("key");
     json::json_pointer expected("/key");
     assert(actual == expected && "Missing dot prefix should be handled");
@@ -678,56 +673,48 @@ void test_json_selector_invalid_bracket_syntax2() {
 }
 
 void test_is_valid_json_empty_string() {
-    TEST_SKIP("leaks");
     bool actual = is_valid_json("");
     assert(!actual && "Empty string should be invalid JSON");
     assert(str_contains(json_last_error, "parse error") && "Error message should match");
 }
 
 void test_is_valid_json_valid_object() {
-    TEST_SKIP("leaks");
     bool actual = is_valid_json("{\"key\": \"value\"}");
     assert(actual && "Valid JSON object should pass");
     assert(json_last_error.empty() && "No error message should be set");
 }
 
 void test_is_valid_json_valid_array() {
-    TEST_SKIP("leaks");
     bool actual = is_valid_json("[1, 2, 3]");
     assert(actual && "Valid JSON array should pass");
     assert(json_last_error.empty() && "No error message should be set");
 }
 
 void test_is_valid_json_invalid_syntax() {
-    TEST_SKIP("leaks");
     bool actual = is_valid_json("{");
     assert(!actual && "Incomplete JSON should fail");
     assert(str_contains(json_last_error, "parse error") && "Error message should match");
 }
 
 void test_is_valid_json_mismatched_brackets() {
-    TEST_SKIP("leaks");
     bool actual = is_valid_json("[}");
     assert(!actual && "Mismatched brackets should fail");
     assert(str_contains(json_last_error, "parse error") && "Error message should match");
 }
 
 void test_is_valid_json_empty_object() {
-    TEST_SKIP("leaks");
     bool actual = is_valid_json("{}");
     assert(actual && "Empty JSON object should pass");
     assert(json_last_error.empty() && "No error message should be set");
 }
 
 void test_is_valid_json_empty_array() {
-    TEST_SKIP("leaks");
     bool actual = is_valid_json("[]");
     assert(actual && "Empty JSON array should pass");
     assert(json_last_error.empty() && "No error message should be set");
 }
 
 void test_is_valid_json_malformed_json() {
-    TEST_SKIP("leaks");
     bool actual = is_valid_json("not a json");
     assert(!actual && "Malformed JSON should fail");
     assert(str_contains(json_last_error, "parse error") && "Error message should match");
@@ -735,133 +722,111 @@ void test_is_valid_json_malformed_json() {
 
 
 void test_get_json_error_valid_object() {
-    TEST_SKIP("leaks");
     string actual = get_json_error("{\"key\": \"value\"}");
     assert(actual.empty() && "Valid JSON object should return no error");
 }
 
 void test_get_json_error_valid_array() {
-    TEST_SKIP("leaks");
     string actual = get_json_error("[1, 2, 3]");
     assert(actual.empty() && "Valid JSON array should return no error");
 }
 
 void test_get_json_error_empty_string() {
-    TEST_SKIP("leaks");
     string actual = get_json_error("");
     assert(str_contains(actual, "parse error") && "Empty string should return an error message");
 }
 
 void test_get_json_error_invalid_syntax() {
-    TEST_SKIP("leaks");
     string actual = get_json_error("{");
     assert(str_contains(actual, "parse error") && "Incomplete JSON should return an error message");
 }
 
 void test_get_json_error_mismatched_brackets() {
-    TEST_SKIP("leaks");
     string actual = get_json_error("[}");
     assert(str_contains(actual, "parse error") && "Mismatched brackets should return an error message");
 }
 
 void test_get_json_error_empty_object() {
-    TEST_SKIP("leaks");
     string actual = get_json_error("{}");
     assert(actual.empty() && "Empty JSON object should return no error");
 }
 
 void test_get_json_error_empty_array() {
-    TEST_SKIP("leaks");
     string actual = get_json_error("[]");
     assert(actual.empty() && "Empty JSON array should return no error");
 }
 
 void test_get_json_error_malformed_json() {
-    TEST_SKIP("leaks");
     string actual = get_json_error("not a json");
     assert(str_contains(actual, "parse error") && "Malformed JSON should return an error message");
 }
 
 void test_get_json_value_type_null() {
-    TEST_SKIP("leaks");
     json_type actual = get_json_value_type("{\"key\": null}", ".key");
     assert(actual == JSON_TYPE_NULL && "Null value should return JSON_TYPE_NULL");
 }
 
 void test_get_json_value_type_string() {
-    TEST_SKIP("leaks");
     json_type actual = get_json_value_type("{\"key\": \"value\"}", ".key");
     assert(actual == JSON_TYPE_STRING && "String value should return JSON_TYPE_STRING");
 }
 
 void test_get_json_value_type_boolean() {
-    TEST_SKIP("leaks");
     json_type actual = get_json_value_type("{\"key\": true}", ".key");
     assert(actual == JSON_TYPE_BOOLEAN && "Boolean value should return JSON_TYPE_BOOLEAN");
 }
 
 void test_get_json_value_type_integer() {
-    TEST_SKIP("leaks");
     json_type actual = get_json_value_type("{\"key\": 42}", ".key");
     assert(actual == JSON_TYPE_INTEGER && "Integer value should return JSON_TYPE_INTEGER");
 }
 
 void test_get_json_value_type_real() {
-    TEST_SKIP("leaks");
     json_type actual = get_json_value_type("{\"key\": 3.14}", ".key");
     assert(actual == JSON_TYPE_REAL && "Real value should return JSON_TYPE_REAL");
 }
 
 void test_get_json_value_type_array() {
-    TEST_SKIP("leaks");
     json_type actual = get_json_value_type("{\"key\": []}", ".key");
     assert(actual == JSON_TYPE_ARRAY && "Array value should return JSON_TYPE_ARRAY");
 }
 
 void test_get_json_value_type_object() {
-    TEST_SKIP("leaks");
     json_type actual = get_json_value_type("{\"key\": {}}", ".key");
     assert(actual == JSON_TYPE_OBJECT && "Object value should return JSON_TYPE_OBJECT");
 }
 
 void test_get_json_value_type_undefined_key() {
-    TEST_SKIP("leaks");
     json_type actual = get_json_value_type("{\"key\": \"value\"}", ".missing");
     assert(actual == JSON_TYPE_UNDEFINED && "Undefined key should return JSON_TYPE_UNDEFINED");
 }
 
 void test_get_json_value_type_invalid_json() {
-    TEST_SKIP("leaks");
     json_type actual = get_json_value_type("invalid json", ".key");
     assert(actual == JSON_TYPE_UNDEFINED && "Invalid JSON should return JSON_TYPE_UNDEFINED");
 }
 
 void test_get_json_value_type_empty_json() {
-    TEST_SKIP("leaks");
     json_type actual = get_json_value_type("", ".key");
     assert(actual == JSON_TYPE_UNDEFINED && "Empty JSON should return JSON_TYPE_UNDEFINED");
 }
 
 void test_json_type_to_string_undefined() {
-    TEST_SKIP("leaks");
     string actual = json_type_to_string(JSON_TYPE_UNDEFINED);
     assert(actual == "undefined" && "JSON_TYPE_UNDEFINED should return 'undefined'");
 }
 
 void test_json_type_to_string_null() {
-    TEST_SKIP("leaks");
     string actual = json_type_to_string(JSON_TYPE_NULL);
     assert(actual == "null" && "JSON_TYPE_NULL should return 'null'");
 }
 
 void test_json_type_to_string_string() {
-    TEST_SKIP("leaks");
     string actual = json_type_to_string(JSON_TYPE_STRING);
     assert(actual == "string" && "JSON_TYPE_STRING should return 'string'");
 }
 
 void test_json_type_to_string_integer() {
-    TEST_SKIP("leaks");
     string actual = json_type_to_string(JSON_TYPE_INTEGER);
     assert(actual == "integer" && "JSON_TYPE_INTEGER should return 'integer'");
 }
@@ -900,13 +865,11 @@ void test_json_type_to_string_invalid_type() {
 }
 
 void test_json_get_string_valid() {
-    TEST_SKIP("leaks");
     string actual = json_get_string("{\"key\": \"value\"}", ".key");
     assert(actual == "value" && "Valid string should be retrieved");
 }
 
 void test_json_get_string_invalid_type() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_string("{\"key\": 42}", ".key");
@@ -920,7 +883,6 @@ void test_json_get_string_invalid_type() {
 }
 
 void test_json_get_string_undefined_key() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_string("{\"key\": \"value\"}", ".missing");
@@ -934,7 +896,6 @@ void test_json_get_string_undefined_key() {
 }
 
 void test_json_get_string_invalid_json() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_string("invalid json", ".key");
@@ -948,7 +909,6 @@ void test_json_get_string_invalid_json() {
 }
 
 void test_json_get_string_empty_json() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_string("", ".key");
@@ -962,13 +922,11 @@ void test_json_get_string_empty_json() {
 }
 
 void test_json_get_int_valid() {
-    TEST_SKIP("leaks");
     int actual = json_get_int("{\"key\": 42}", ".key");
     assert(actual == 42 && "Valid integer should be retrieved");
 }
 
 void test_json_get_int_invalid_type() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_int("{\"key\": \"value\"}", ".key");
@@ -982,7 +940,6 @@ void test_json_get_int_invalid_type() {
 }
 
 void test_json_get_int_undefined_key() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_int("{\"key\": 42}", ".missing");
@@ -996,7 +953,6 @@ void test_json_get_int_undefined_key() {
 }
 
 void test_json_get_int_invalid_json() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_int("invalid json", ".key");
@@ -1010,7 +966,6 @@ void test_json_get_int_invalid_json() {
 }
 
 void test_json_get_int_empty_json() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_int("", ".key");
@@ -1024,13 +979,11 @@ void test_json_get_int_empty_json() {
 }
 
 void test_json_get_double_valid() {
-    TEST_SKIP("leaks");
     double actual = json_get_double("{\"key\": 3.14}", ".key");
     assert(actual == 3.14 && "Valid double should be retrieved");
 }
 
 void test_json_get_double_invalid_type() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_double("{\"key\": \"value\"}", ".key");
@@ -1044,7 +997,6 @@ void test_json_get_double_invalid_type() {
 }
 
 void test_json_get_double_undefined_key() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_double("{\"key\": 3.14}", ".missing");
@@ -1058,7 +1010,6 @@ void test_json_get_double_undefined_key() {
 }
 
 void test_json_get_double_invalid_json() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_double("invalid json", ".key");
@@ -1072,7 +1023,6 @@ void test_json_get_double_invalid_json() {
 }
 
 void test_json_get_double_empty_json() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_double("", ".key");
@@ -1086,19 +1036,16 @@ void test_json_get_double_empty_json() {
 }
 
 void test_json_get_bool_true() {
-    TEST_SKIP("leaks");
     bool actual = json_get_bool("{\"key\": true}", ".key");
     assert(actual && "Valid boolean 'true' should be retrieved");
 }
 
 void test_json_get_bool_false() {
-    TEST_SKIP("leaks");
     bool actual = json_get_bool("{\"key\": false}", ".key");
     assert(!actual && "Valid boolean 'false' should be retrieved");
 }
 
 void test_json_get_bool_invalid_type() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_bool("{\"key\": \"value\"}", ".key");
@@ -1112,7 +1059,6 @@ void test_json_get_bool_invalid_type() {
 }
 
 void test_json_get_bool_undefined_key() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_bool("{\"key\": true}", ".missing");
@@ -1126,7 +1072,6 @@ void test_json_get_bool_undefined_key() {
 }
 
 void test_json_get_bool_invalid_json() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_bool("invalid json", ".key");
@@ -1140,7 +1085,6 @@ void test_json_get_bool_invalid_json() {
 }
 
 void test_json_get_bool_empty_json() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_bool("", ".key");
@@ -1154,13 +1098,11 @@ void test_json_get_bool_empty_json() {
 }
 
 void test_json_get_array_valid() {
-    TEST_SKIP("leaks");
     string actual = json_get_array("{\"key\": [1, 2, 3]}", ".key");
     assert(actual == "[1,2,3]" && "Valid array should be retrieved");
 }
 
 void test_json_get_array_invalid_type() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_array("{\"key\": \"value\"}", ".key");
@@ -1174,7 +1116,6 @@ void test_json_get_array_invalid_type() {
 }
 
 void test_json_get_array_undefined_key() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_array("{\"key\": [1, 2, 3]}", ".missing");
@@ -1188,7 +1129,6 @@ void test_json_get_array_undefined_key() {
 }
 
 void test_json_get_array_invalid_json() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_array("invalid json", ".key");
@@ -1202,7 +1142,6 @@ void test_json_get_array_invalid_json() {
 }
 
 void test_json_get_array_empty_json() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_array("", ".key");
@@ -1216,13 +1155,11 @@ void test_json_get_array_empty_json() {
 }
 
 void test_json_get_object_valid() {
-    TEST_SKIP("leaks");
     string actual = json_get_object("{\"key\": {\"nested\": \"value\"}}", ".key");
     assert(actual == "{\"nested\":\"value\"}" && "Valid object should be retrieved");
 }
 
 void test_json_get_object_invalid_type() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_object("{\"key\": \"value\"}", ".key");
@@ -1236,7 +1173,6 @@ void test_json_get_object_invalid_type() {
 }
 
 void test_json_get_object_undefined_key() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_object("{\"key\": {\"nested\": \"value\"}}", ".missing");
@@ -1250,7 +1186,6 @@ void test_json_get_object_undefined_key() {
 }
 
 void test_json_get_object_invalid_json() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_object("invalid json", ".key");
@@ -1264,7 +1199,6 @@ void test_json_get_object_invalid_json() {
 }
 
 void test_json_get_object_empty_json() {
-    TEST_SKIP("leaks");
     bool thrown = false;
     try {
         json_get_object("", ".key");
@@ -1278,26 +1212,22 @@ void test_json_get_object_empty_json() {
 }
 
 void test_JSON_constructor_valid() {
-    TEST_SKIP("leaks");
     JSON json("{\"key\": \"value\"}");
     assert(json.isValid() && "Valid JSON should be parsed without errors");
 }
 
 void test_JSON_constructor_invalid() {
-    TEST_SKIP("leaks");
     JSON json("{invalid json}");
     assert(!json.isValid() && "Invalid JSON should set an error");
 }
 
 void test_JSON_dump() {
-    TEST_SKIP("leaks");
     JSON json("{\"key\": \"value\"}");
     string actual = json.dump();
     assert(actual == "{\"key\":\"value\"}" && "Dump should return simulated JSON string");
 }
 
 void test_JSON_isDefined_true() {
-    TEST_SKIP("leaks");
     JSON json("{\"key\": \"value\"}");
     bool actual = json.isDefined(".key");
     assert(actual && "Defined key should return true");

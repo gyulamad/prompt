@@ -43,14 +43,14 @@
 #define ANSI_FMT_FUNC ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE
 #define ANSI_FMT_HIGHLIGHT ANSI_FMT_T_BOLD ANSI_FMT_C_WHITE
 
-#define ANSI_FMT(fmt, text) (string(ANSI_FMT_RESET) + fmt + text + ANSI_FMT_RESET)
-#define ANSI_FMT_FILE_LINE(file, line) ANSI_FMT(ANSI_FMT_FILE, file + ":" + to_string(line))
-#define ANSI_FMT_CALL(func, file, line) ANSI_FMT(ANSI_FMT_FUNC, func + "()" + ANSI_FMT_RESET + " at " + ANSI_FMT_FILE_LINE(file, line))
+#define ANSI_FMT(fmt, txt) (string(ANSI_FMT_RESET) + (fmt) + (txt) + ANSI_FMT_RESET)
+#define ANSI_FMT_FILE_LINE(file, line) ANSI_FMT(ANSI_FMT_FILE, (file) + ":" + to_string(line))
+#define ANSI_FMT_CALL(func, file, line) ANSI_FMT(ANSI_FMT_FUNC, (func) + "()" + ANSI_FMT_RESET + " at " + ANSI_FMT_FILE_LINE((file), (line)))
 
-using namespace std;
+// using namespace std;
 
-namespace tools::utils {
-    // string ansi_fmt(const string& fmt, const string& text) {
-    //     return fmt + text + ANSI_FMT_RESET;
-    // }
-}
+// namespace tools::utils {
+//     // string ansi_fmt(const string& fmt, const string& text) {
+//     //     return fmt + text + ANSI_FMT_RESET;
+//     // }
+// }

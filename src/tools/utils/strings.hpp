@@ -10,7 +10,7 @@
 #include <type_traits>
 
 #include "ERROR.hpp"
-#include "regx.hpp"
+#include "regx.hpp" // not compiles with -Ofast + -fsanitize=address
 #include "vectors.hpp"
 
 using namespace std;
