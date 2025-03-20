@@ -36,7 +36,7 @@ namespace tools::cmd {
             history_max_length(history_max_length)
         {
             // if (!line_editor) {
-            //     throw runtime_error("ILineEditor implementation must be provided");
+            //     throw ERROR("ILineEditor implementation must be provided");
             // }
         }
 

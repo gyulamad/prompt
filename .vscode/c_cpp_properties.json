@@ -6,10 +6,11 @@
                 "${workspaceFolder}/**", // Includes headers in your project folder and subfolders
                 "/usr/include/**",
                 "/usr/include",         // Common include directory (Linux)
-                "/usr/include/c++/11",  // Example for C++ standard library (adjust version if needed)
-                "/usr/include/c++/11/**",
+                "/usr/include/c++/13",  // Example for C++ standard library (adjust version if needed)
+                "/usr/include/c++/13/**",
                 "/usr/include/x86_64-linux-gnu", // Example for architecture-specific includes
-                "/usr/include/x86_64-linux-gnu/c++/11/**",
+                "/usr/include/x86_64-linux-gnu/c++/13/**",
+                "/usr/local/include",
                 "/usr/local/include/**",
                 // Example for Windows paths (like yours)
                 "${workspaceFolder}/libs/ggerganov/whisper.cpp/include",
@@ -20,8 +21,8 @@
                 // "USE_CANDLES_AS_DOUBLE", 
             ],
             "compilerPath": "/usr/bin/g++",
-            "cStandard": "c23",
-            "cppStandard": "c++23",
+            "cStandard": "c11",
+            "cppStandard": "c++20",
             "intelliSenseMode": "linux-gcc-x64"
         }
     ],

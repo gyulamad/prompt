@@ -220,147 +220,67 @@ namespace tools::utils {
         return true;
     }
 
-    // ===============================================================
-    // =========================== foreach ===========================
-    // ===============================================================
 
-    // TODO: foreach needs tests!!
+    // Concept to check if a type is a map-like container
+    template<typename T, typename = void>
+    struct is_map_like : false_type {};
 
-// Trait to determine key type and iteration behavior
-template<typename T, typename = void>
-struct ContainerTraits {
-    using KeyType = size_t;
-    using ItemType = typename T::value_type&;
+    template<typename K, typename V>
+    struct is_map_like<map<K, V>> : true_type {};
 
-    static void iterate(T& data, std::function<void(ItemType)> callback) {
-        for (auto& item : data) {
-            callback(item);
-        }
+    template<typename K, typename V>
+    struct is_map_like<unordered_map<K, V>> : true_type {};
+
+    // Template function with SFINAE constraint
+    template<typename Container, typename Key>
+    typename enable_if<is_map_like<Container>::value, bool>::type
+    array_key_exists(const Key& key, const Container& container) {
+        return container.find(key) != container.end();
     }
 
-    static void iterate(T& data, std::function<void(ItemType, KeyType)> callback) {
-        size_t index = 0;
-        for (auto& item : data) {
-            callback(item, index++);
-        }
-    }
 
-    static void iterate(T& data, std::function<bool(ItemType)> callback) {
-        for (auto& item : data) {
-            if (!callback(item)) {
-                break;
+    // Trait to determine how to convert TData* to T
+    template<typename T, typename TData>
+    struct ToVectorTraits {
+        static T convert(TData* ptr) {
+            return static_cast<T>(*ptr); // Dereference for value types (e.g., int*, double*)
+        }
+    };
+
+    // Specialization for converting const char* to string
+    template<>
+    struct ToVectorTraits<string, const char> {
+        static string convert(const char* ptr) {
+            return ptr ? string(ptr) : string(); // Construct string from pointer
+        }
+    };
+
+    // Convert an array of pointers to a vector of values with explicit size
+    template<typename T, typename TData>
+    vector<T> to_vector(TData* data[], size_t size) {
+        vector<T> vec;
+        vec.reserve(size); // Pre-allocate to avoid reallocations
+        for (size_t i = 0; i < size; ++i) {
+            if (data[i]) {
+                vec.push_back(ToVectorTraits<T, TData>::convert(data[i]));
+            } else {
+                vec.push_back(T{}); // Default value for nullptr
             }
         }
+        return vec;
     }
 
-    static void iterate(T& data, std::function<bool(ItemType, KeyType)> callback) {
-        size_t index = 0;
-        for (auto& item : data) {
-            if (!callback(item, index++)) {
-                break;
-            }
+    // Overload for null-terminated arrays (like char* argv[])
+    template<typename T, typename TData>
+    vector<T> to_vector(TData* data[]) {
+        vector<T> vec;
+        size_t i = 0;
+        while (data[i] != nullptr) {
+            vec.push_back(ToVectorTraits<T, TData>::convert(data[i]));
+            ++i;
         }
+        return vec;
     }
-};
-
-// Specialization for map
-template<typename K, typename V>
-struct ContainerTraits<std::map<K, V>> {
-    using KeyType = K;
-    using ItemType = V&;
-
-    static void iterate(std::map<K, V>& data, std::function<void(ItemType)> callback) {
-        for (auto& pair : data) {
-            callback(pair.second);
-        }
-    }
-
-    static void iterate(std::map<K, V>& data, std::function<void(ItemType, KeyType)> callback) {
-        for (auto& pair : data) {
-            callback(pair.second, pair.first);
-        }
-    }
-
-    static void iterate(std::map<K, V>& data, std::function<bool(ItemType)> callback) {
-        for (auto& pair : data) {
-            if (!callback(pair.second)) {
-                break;
-            }
-        }
-    }
-
-    static void iterate(std::map<K, V>& data, std::function<bool(ItemType, KeyType)> callback) {
-        for (auto& pair : data) {
-            if (!callback(pair.second, pair.first)) {
-                break;
-            }
-        }
-    }
-};
-
-// Specialization for unordered_map
-template<typename K, typename V>
-struct ContainerTraits<std::unordered_map<K, V>> {
-    using KeyType = K;
-    using ItemType = V&;
-
-    static void iterate(std::unordered_map<K, V>& data, std::function<void(ItemType)> callback) {
-        for (auto& pair : data) {
-            callback(pair.second);
-        }
-    }
-
-    static void iterate(std::unordered_map<K, V>& data, std::function<void(ItemType, KeyType)> callback) {
-        for (auto& pair : data) {
-            callback(pair.second, pair.first);
-        }
-    }
-
-    static void iterate(std::unordered_map<K, V>& data, std::function<bool(ItemType)> callback) {
-        for (auto& pair : data) {
-            if (!callback(pair.second)) {
-                break;
-            }
-        }
-    }
-
-    static void iterate(std::unordered_map<K, V>& data, std::function<bool(ItemType, KeyType)> callback) {
-        for (auto& pair : data) {
-            if (!callback(pair.second, pair.first)) {
-                break;
-            }
-        }
-    }
-};
-
-// Helper to detect if a functor returns bool
-template<typename F, typename... Args>
-using returns_bool = std::is_same<std::invoke_result_t<F, Args...>, bool>;
-
-// Foreach overloads with SFINAE
-template<typename T, typename F, std::enable_if_t<!returns_bool<F, typename ContainerTraits<T>::ItemType>::value, int> = 0>
-void foreach(T& data, F callback) {
-    ContainerTraits<T>::iterate(data, std::function<void(typename ContainerTraits<T>::ItemType)>(callback));
-}
-
-template<typename T, typename F, std::enable_if_t<!returns_bool<F, typename ContainerTraits<T>::ItemType, typename ContainerTraits<T>::KeyType>::value, int> = 0>
-void foreach(T& data, F callback) {
-    ContainerTraits<T>::iterate(data, std::function<void(typename ContainerTraits<T>::ItemType, typename ContainerTraits<T>::KeyType)>(callback));
-}
-
-template<typename T, typename F, std::enable_if_t<returns_bool<F, typename ContainerTraits<T>::ItemType>::value, int> = 0>
-void foreach(T& data, F callback) {
-    ContainerTraits<T>::iterate(data, std::function<bool(typename ContainerTraits<T>::ItemType)>(callback));
-}
-
-template<typename T, typename F, std::enable_if_t<returns_bool<F, typename ContainerTraits<T>::ItemType, typename ContainerTraits<T>::KeyType>::value, int> = 0>
-void foreach(T& data, F callback) {
-    ContainerTraits<T>::iterate(data, std::function<bool(typename ContainerTraits<T>::ItemType, typename ContainerTraits<T>::KeyType)>(callback));
-}
-
-    // ===============================================================
-    // ===============================================================
-    // ===============================================================
 
 };
 
@@ -1021,100 +941,45 @@ void test_vector_equal_large_not_equal() {
     assert(!vector_equal(vec1, vec2) && "Large vectors should not be equal");
 }
 
-void test_ContainerTraits_vector_iterate_no_index_no_break() {
-    vector<int> vec = {1, 2, 3};
-    vector<int> result;
-    foreach(vec, [&result](int& item) {
-        result.push_back(item);
-    });
-    assert(vector_equal(result, vec) && "Should iterate all items without index or break");
+// Test converting a null-terminated char* array (like argv) to vector<string>
+void test_to_vector_null_terminated_char_to_string() {
+    const char* input[] = {"program", "--flag", "value", nullptr};
+    auto result = to_vector<string>(input);
+    vector<string> expected = {"program", "--flag", "value"};
+    assert(vector_equal(result, expected) && "Null-terminated char* array to vector<string> failed");
 }
 
-void test_ContainerTraits_vector_iterate_with_index_no_break() {
-    vector<int> vec = {1, 2, 3};
-    vector<pair<int, size_t>> result;
-    foreach(vec, [&result](int& item, size_t index) {
-        result.emplace_back(item, index);
-    });
-    vector<pair<int, size_t>> expected = {{1, 0}, {2, 1}, {3, 2}};
-    assert(vector_equal(result, expected) && "Should iterate with correct indices, no break");
+// Test converting an empty null-terminated char* array
+void test_to_vector_empty_null_terminated() {
+    const char* input[] = {nullptr};
+    auto result = to_vector<string>(input);
+    vector<string> expected = {};
+    assert(vector_equal(result, expected) && "Empty null-terminated array should yield empty vector");
 }
 
-void test_ContainerTraits_vector_iterate_no_index_with_break() {
-    vector<int> vec = {1, 2, 3, 4};
-    vector<int> result;
-    foreach(vec, [&result](int& item) {
-        result.push_back(item);
-        return item != 2;  // Break after 2
-    });
-    vector<int> expected = {1, 2};  // Fixed: Correct initializer list
-    assert(vector_equal(result, expected) && "Should break after item 2 without index");
+// Test converting a sized char* array to vector<string>
+void test_to_vector_sized_char_to_string() {
+    const char* input[] = {"one", "two", "three"};
+    auto result = to_vector<string>(input, 3);
+    vector<string> expected = {"one", "two", "three"};
+    assert(vector_equal(result, expected) && "Sized char* array to vector<string> failed");
 }
 
-void test_ContainerTraits_vector_iterate_with_index_with_break() {
-    vector<int> vec = {1, 2, 3, 4};
-    vector<pair<int, size_t>> result;
-    foreach(vec, [&result](int& item, size_t index) {
-        result.emplace_back(item, index);
-        return item != 3;  // Break after 3
-    });
-    vector<pair<int, size_t>> expected = {{1, 0}, {2, 1}, {3, 2}};
-    assert(vector_equal(result, expected) && "Should break after item 3 with index");
+// Test handling nullptr in a sized array
+void test_to_vector_sized_with_nullptr() {
+    const char* input[] = {"first", nullptr, "third"};
+    auto result = to_vector<string>(input, 3);
+    vector<string> expected = {"first", "", "third"}; // nullptr becomes empty string
+    assert(vector_equal(result, expected) && "Sized array with nullptr to vector<string> failed");
 }
 
-void test_ContainerTraits_unordered_map_iterate_no_key_no_break() {
-    unordered_map<string, int> umap = {{"a", 1}, {"b", 2}, {"c", 3}};
-    vector<int> result;
-    foreach(umap, [&result](int& value) {
-        result.push_back(value);
-    });
+// Test converting a sized int* array to vector<int>
+void test_to_vector_sized_int_to_int() {
+    int values[] = {1, 2, 3};
+    int* input[] = {&values[0], &values[1], &values[2]};
+    auto result = to_vector<int>(input, 3);
     vector<int> expected = {1, 2, 3};
-    sort(result.begin(), result.end());
-    sort(expected.begin(), expected.end());
-    assert(vector_equal(result, expected) && "Should iterate all values without key or break");
-}
-
-void test_ContainerTraits_unordered_map_iterate_with_key_no_break() {
-    unordered_map<string, int> umap = {{"a", 1}, {"b", 2}, {"c", 3}};
-    vector<pair<string, int>> result;
-    foreach(umap, [&result](int& value, const string& key) {
-        result.emplace_back(key, value);
-    });
-    vector<pair<string, int>> expected = {{"a", 1}, {"b", 2}, {"c", 3}};
-    sort(result.begin(), result.end());
-    sort(expected.begin(), expected.end());
-    assert(vector_equal(result, expected) && "Should iterate with correct keys, no break");
-}
-
-void test_ContainerTraits_unordered_map_iterate_no_key_with_break() {
-    unordered_map<string, int> umap = {{"a", 1}, {"b", 2}, {"c", 3}};
-    vector<int> result;
-    int count = 0;
-    foreach(umap, [&result, &count](int& value) {
-        result.push_back(value);
-        count++;
-        return count < 2;  // Break after 2 iterations
-    });
-    auto actual_size = result.size();
-    assert(actual_size == 2 && "Should break after 2 items without key");
-}
-
-void test_ContainerTraits_unordered_map_iterate_with_key_with_break() {
-    unordered_map<string, int> umap = {{"a", 1}, {"b", 2}, {"c", 3}};
-    vector<pair<string, int>> result;
-    foreach(umap, [&result](int& value, const string& key) {
-        result.emplace_back(key, value);
-        return value != 2;  // Break when value is 2
-    });
-    auto actual_size = result.size();
-    bool contains_break_value = false;
-    for (const auto& p : result) {
-        if (p.second == 2) {
-            contains_break_value = true;
-            break;
-        }
-    }
-    assert(actual_size <= 3 && contains_break_value && "Should break at value 2 with key");
+    assert(vector_equal(result, expected) && "Sized int* array to vector<int> failed");
 }
 
 // Register tests
@@ -1191,13 +1056,10 @@ TEST(test_vector_equal_custom_objects_equal);
 TEST(test_vector_equal_custom_objects_not_equal);
 TEST(test_vector_equal_large_equal);
 TEST(test_vector_equal_large_not_equal);
-TEST(test_ContainerTraits_vector_iterate_no_index_no_break);
-TEST(test_ContainerTraits_vector_iterate_with_index_no_break);
-TEST(test_ContainerTraits_vector_iterate_no_index_with_break);
-TEST(test_ContainerTraits_vector_iterate_with_index_with_break);
-TEST(test_ContainerTraits_unordered_map_iterate_no_key_no_break);
-TEST(test_ContainerTraits_unordered_map_iterate_with_key_no_break);
-TEST(test_ContainerTraits_unordered_map_iterate_no_key_with_break);
-TEST(test_ContainerTraits_unordered_map_iterate_with_key_with_break);
+TEST(test_to_vector_null_terminated_char_to_string);
+TEST(test_to_vector_empty_null_terminated);
+TEST(test_to_vector_sized_char_to_string);
+TEST(test_to_vector_sized_with_nullptr);
+TEST(test_to_vector_sized_int_to_int);
 
 #endif

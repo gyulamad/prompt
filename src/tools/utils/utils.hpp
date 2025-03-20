@@ -10,6 +10,8 @@
 #include "ERROR.hpp"
 #include "execute.hpp"
 #include "files.hpp"
+#include "fnames.hpp"
+#include "foreach.hpp"
 #include "InputPipeInterceptor.hpp"
 #include "io.hpp"
 #include "JSON.hpp" // TODO: tests are leaking!!
@@ -23,4 +25,5 @@
 #include "strings.hpp"
 #include "system.hpp"
 #include "Tasks.hpp"
+#include "time.hpp"
 #include "vectors.hpp"

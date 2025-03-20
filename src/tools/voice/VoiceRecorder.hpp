@@ -8,6 +8,7 @@
 #include <portaudio.h>
 
 #include "../utils/RingBuffer.hpp"
+#include "../utils/ERROR.hpp"
 
 using namespace std;
 using namespace tools::utils;
@@ -70,14 +71,14 @@ namespace tools::voice {
         static void save_as_pcm(const string& filename, const vector<float>& buffer) {
             ofstream file(filename, ios::binary);
             if (!file) {
-                throw runtime_error("Failed to open file: " + filename);
+                throw ERROR("Failed to open file: " + filename);
             }
 
             // Write the raw PCM data (float samples)
             file.write(reinterpret_cast<const char*>(buffer.data()), buffer.size() * sizeof(float));
 
             if (!file) {
-                throw runtime_error("Failed to write PCM data to file: " + filename);
+                throw ERROR("Failed to write PCM data to file: " + filename);
             }
 
             // cout << "PCM data saved to " << filename << " (" << buffer.size() << " samples)" << endl;

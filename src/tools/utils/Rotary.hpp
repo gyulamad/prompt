@@ -33,6 +33,8 @@ int main() {
 #include <mutex>
 #include <stdexcept>
 
+#include "ERROR.hpp"
+
 using namespace std;
 
 namespace tools::utils {
@@ -42,10 +44,10 @@ namespace tools::utils {
         RotaryFrames(const vector<string>& frames, size_t speed_divider)
             : frames(frames), speed_divider(speed_divider), index(0) {
             if (frames.empty()) {
-                throw invalid_argument("Frames cannot be empty.");
+                throw ERROR("Frames cannot be empty.");
             }
             if (speed_divider == 0) {
-                throw invalid_argument("Speed divider cannot be zero.");
+                throw ERROR("Speed divider cannot be zero.");
             }
         }
 

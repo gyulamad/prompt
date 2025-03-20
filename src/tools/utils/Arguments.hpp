@@ -21,21 +21,57 @@ namespace tools::utils {
                 args.push_back(string(argv[i]));
         }
 
+        const vector<string>& getArgsCRef() const {
+            return args;
+        }
+
         // Check if an argument exists
-        bool has(const string& arg) const {
-            return find(args.begin(), args.end(), "--" + arg) != args.end();
+        bool has(const string& key) const {
+            string prefixed_key = "--" + key;
+            for (const auto& arg : args) 
+                if (arg == prefixed_key || str_starts_with(arg, prefixed_key + "=")) 
+                    return true;
+            return false;
+        }
+
+        // Check if an argument exists
+        bool has(size_t at) const {
+            return at > args.size();
         }
 
         // Get the index of a specific argument
         long int indexOf(const string& arg) const {
-            auto it = find(args.begin(), args.end(), "--" + arg);
-            return it != args.end() ? distance(args.begin(), it) : -1;
+            string prefixed_key = "--" + arg;
+            for (size_t i = 0; i < args.size(); ++i)
+                if (args[i] == prefixed_key || str_starts_with(args[i], prefixed_key + "=")) 
+                    return (long int)(i);
+            return -1;
         }
+
+        //  =================================== Bool (deprecated) ===================================
 
         // Get a boolean value based on the presence of a flag
         bool getBool(const string& key) const {
             return has(key);
         }
+
+        // Get a boolean value based on the presence of a flag (with default value)
+        bool getBool(const string& key, bool defval) const {
+            return has(key) ? true : defval;
+        }
+
+        // Get a boolean value at position
+        bool getBool(size_t at) const {
+            if (has(at)) throw ERROR("Missing argument at: " + to_string(at));
+            return parse<bool>(args[at]);
+        }
+
+        // Get a boolean value at position (with default value)
+        bool getBool(size_t at, bool defval) const {
+            return has(at) ? defval : parse<bool>(args[at]);
+        }
+
+        //  =================================== String (deprecated) ===================================
 
         // Get a string value associated with a flag
         const string getString(const string& key) const {
@@ -45,22 +81,130 @@ namespace tools::utils {
             return args[(unsigned)(idx + 1)];
         }
 
+        // Get a string value associated with a flag (with default value)
+        const string getString(const string& key, const string& defval) const {
+            return has(key) ? getString(key) : defval;
+        }
+
         // Get a string value at position
         const string getString(size_t at) const {
-            if (at >= args.size()) 
-                throw ERROR("Missing argument at: " + to_string(at));
+            if (has(at)) throw ERROR("Missing argument at: " + to_string(at));
             return args[at];
         }
+
+        // Get a string value at position (with default value)
+        const string getString(size_t at, const string& defval) const {
+            return has(at) ? defval : args[at];
+        }
+
+        //  =================================== Int (deprecated) ===================================
 
         // Get an integer value associated with a flag
         int getInt(const string& key) const {
             try {
-                return stoi(getString(key));
+                return parse<int>(getString(key));
             } catch (const exception &e) {
                 throw ERROR("Invalid integer value at key: " + key + ", reason: " + e.what());
             }
         }
+
+        // Get an integer value associated with a flag (with default value)
+        int getInt(const string& key, int defval) const {
+            return has(key) ? getInt(key) : defval;
+        }
+
+        // Get a integer value at position
+        int getInt(size_t at) const {
+            if (has(at)) throw ERROR("Missing argument at: " + to_string(at));
+            return parse<int>(args[at]);
+        }
+
+        // Get a integer value at position (with default value)
+        int getInt(size_t at, int defval) const {
+            return has(at) ? defval : parse<int>(args[at]);
+        }
+
+        //  =================================== Double (deprecated) ===================================
+
+        // Get an double value associated with a flag
+        double getDouble(const string& key) const {
+            try {
+                return parse<double>(getString(key));
+            } catch (const exception &e) {
+                throw ERROR("Invalid integer value at key: " + key + ", reason: " + e.what());
+            }
+        }
+
+        // Get an double value associated with a flag (with default value)
+        double getDouble(const string& key, double defval) const {
+            return has(key) ? getInt(key) : defval;
+        }
+
+        // Get a double value at position
+        double getDouble(size_t at) const {
+            if (has(at)) throw ERROR("Missing argument at: " + to_string(at));
+            return parse<double>(args[at]);
+        }
+
+        // Get a string value at position (with default value)
+        double getDouble(size_t at, double defval) const {
+            return has(at) ? defval : parse<double>(args[at]);
+        }
+
+        //  =================================== Templated getters ===================================
+
+        // Templated getter for key-based lookup
+        template<typename T>
+        T get(const string& key) const {
+            long int idx = indexOf(key);
+            if (idx == -1) throw ERROR("Missing argument: " + key);
+
+            string arg = args[idx];
+            string prefixed_key = "--" + key + "=";
+            if (str_starts_with(arg, prefixed_key)) {
+                // Extract value after "="
+                string value = arg.substr(prefixed_key.length());
+                if (value.empty()) 
+                    throw ERROR("Missing value for argument: " + key);
+                return parse<T>(value);
+            } else if (idx + 1 < (long int)(args.size()))
+                // Value is in the next argument
+                return parse<T>(args[idx + 1]);
+            else
+                throw ERROR("Missing value for argument: " + key);
+        }
+
+        // Templated getter with default value for key-based lookup
+        template<typename T>
+        T get(const string& key, const T& defval) const {
+            return has(key) ? get<T>(key) : defval;
+        }
+
+        // Templated getter for positional lookup
+        template<typename T>
+        T get(size_t at) const {
+            if (has(at)) throw ERROR("Missing argument at: " + to_string(at));
+            return parse<T>(args[at]);
+        }
+
+        // Templated getter with default value for positional lookup
+        template<typename T>
+        T get(size_t at, const T& defval) const {
+            return has(at) ? defval : parse<T>(args[at]);
+        }
     };
+    
+    // Specialization for bool with key (flag presence)
+    template<>
+    inline bool Arguments::get<bool>(const string& key) const {
+        return has(key);
+    }
+
+    // Specialization for bool with key and default value
+    template<>
+    inline bool Arguments::get<bool>(const string& key, const bool& defval) const {
+        return has(key) ? true : defval;
+    }
     
 }
 
@@ -229,7 +373,7 @@ void test_Arguments_getInt_invalid() {
     } catch (const exception& e) {
         thrown = true;
         string actual = e.what();
-        string expected = "Invalid integer value at key: key, reason: stoi";
+        string expected = "Invalid integer value at key: key, reason: ";
         assert(actual.find(expected) != string::npos && "Exception message should contain the expected substring");
     }
     assert(thrown && "getInt should throw an exception for invalid integer");

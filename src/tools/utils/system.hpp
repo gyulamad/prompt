@@ -19,17 +19,12 @@
 
 #include "ERROR.hpp"
 #include "io.hpp"
+#include "fnames.hpp"
 
 using namespace std;
 namespace fs = filesystem;
 
 namespace tools::utils {
-
-    // Function to extract the directory path using filesystem
-    string get_path(const string& filepath) {
-        fs::path path(filepath);
-        return path.parent_path().string(); // Get the directory portion
-    }
 
     string get_exec_path() {
         char path[PATH_MAX];

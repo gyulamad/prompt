@@ -93,6 +93,93 @@
             ],
             "preLaunchTask": "build-fast-prompt-with-tests", // Matches a task defined in tasks.json
             // "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "DBG:compile.cpp",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/builds/compile.gdb", // Update this path if needed
+            "args": [
+                "src/prompt.cpp"
+            ], // Add program arguments if necessary
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                // {
+                //     "name": "LSAN_OPTIONS",
+                //     "value": "verbosity=1:log_threads=1"
+                // }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb", // Path to GDB
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false //true
+                }
+            ],
+            "preLaunchTask": "build-debug-compiler", // Matches a task defined in tasks.json
+            // "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "DBG+TEST:compile.cpp",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/builds/compile.gdb", // Update this path if needed
+            "args": [
+                "src/prompt.cpp"
+            ], // Add program arguments if necessary
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                // {
+                //     "name": "LSAN_OPTIONS",
+                //     "value": "verbosity=1:log_threads=1"
+                // }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb", // Path to GDB
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false //true
+                }
+            ],
+            "preLaunchTask": "build-debug-compiler-with-tests", // Matches a task defined in tasks.json
+            // "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "FAST:compile.cpp",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/builds/compile", // Update this path if needed
+            "args": [
+                "src/prompt.cpp"
+            ], // Add program arguments if necessary
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                // {
+                //     "name": "LSAN_OPTIONS",
+                //     "value": "verbosity=1:log_threads=1"
+                // }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb", // Path to GDB
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false //true
+                }
+            ],
+            "preLaunchTask": "build-fast-compiler", // Matches a task defined in tasks.json
+            // "internalConsoleOptions": "openOnSessionStart"
         }
     ]
 }

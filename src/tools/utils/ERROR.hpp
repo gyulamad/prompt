@@ -10,8 +10,10 @@ using namespace std;
 
 namespace tools::utils {
 
-    #define FILE_LINE_ERROR_MSG (ANSI_FMT_FILE_LINE(file, line) + " - " + ANSI_FMT_ERROR + msg + ANSI_FMT_RESET)
-    #define FILE_LINE_DEBUG_MSG (ANSI_FMT_FILE_LINE(file, line) + " - " + ANSI_FMT_DEBUG + msg + ANSI_FMT_RESET)
+    // #define FILE_LINE_ERROR_MSG (ANSI_FMT_FILE_LINE(file, line) + " - " + ANSI_FMT_ERROR + msg + ANSI_FMT_RESET)
+    // #define FILE_LINE_DEBUG_MSG (ANSI_FMT_FILE_LINE(file, line) + " - " + ANSI_FMT_DEBUG + msg + ANSI_FMT_RESET)
+    #define FILE_LINE_ERROR_MSG (ANSI_FMT_ERROR + msg + ANSI_FMT_RESET + "\nat " + ANSI_FMT_FILE_LINE(file, line) + ANSI_FMT_RESET)
+    #define FILE_LINE_DEBUG_MSG (ANSI_FMT_DEBUG + msg + ANSI_FMT_RESET + "\nat " + ANSI_FMT_FILE_LINE(file, line) + ANSI_FMT_RESET)
 
     inline runtime_error error(const string& msg, const string& file, int line) {
         return runtime_error(FILE_LINE_ERROR_MSG.c_str());

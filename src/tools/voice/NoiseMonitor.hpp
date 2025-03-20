@@ -46,7 +46,7 @@ namespace tools::voice {
         virtual bool start(void* listener, NoiseCallback cb, long pollIntervalMs, bool throws = false) {
             lock_guard<mutex> lock(monitorMutex);
             if (monitorThread.joinable()) {
-                if (throws) throw runtime_error("Monitor is already running");
+                if (throws) throw ERROR("Monitor is already running");
                 return false;
             }
             running = true;

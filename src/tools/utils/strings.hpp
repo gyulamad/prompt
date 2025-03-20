@@ -134,7 +134,7 @@ namespace tools::utils {
     pair<string, string> str_cut_ratio(const string& str, double ratio = 0.5) {
         // Ensure the ratio is between 0 and 1
         if (ratio < 0.0 || ratio > 1.0)
-            throw invalid_argument("Ratio must be between 0.0 and 1.0");
+            throw ERROR("Ratio must be between 0.0 and 1.0");
 
         size_t splitPoint = static_cast<size_t>(str.length() * ratio);
 
@@ -176,6 +176,7 @@ namespace tools::utils {
         string result = s;
         // Iterate through each key-value pair in the map
         for (const auto& pair : v) {
+            if (pair.first == pair.second) continue;
             // Check if the key is empty
             if (pair.first.empty()) throw ERROR("Cannot replace from an empty string");
     
@@ -192,7 +193,7 @@ namespace tools::utils {
     }
     
     string str_replace(const string& from, const string& to, const string& subject) {
-        if (from.empty()) throw ERROR("Cannot replace from an empty string");
+        // if (from.empty()) throw ERROR("Cannot replace from an empty string");
         return str_replace({{from, to}}, subject);
     }
     
@@ -232,12 +233,16 @@ namespace tools::utils {
 
 
     template <typename T>
-    T parse(const string& str) {
-        static_assert(is_arithmetic<T>::value, "T must be an arithmetic type");
-        stringstream ss(str);
-        T num;
-        if (ss >> num) return num;
-        throw ERROR("Invalid input string (not a number): " + (str.empty() ? "<empty>" : str_cut_end(str)));
+    T parse(const std::string& str) {
+        if constexpr (std::is_same_v<T, std::string>) {
+            return str; // Return the string directly
+        } else {
+            static_assert(std::is_arithmetic<T>::value, "T must be an arithmetic type");
+            std::stringstream ss(str);
+            T num;
+            if (ss >> num) return num;
+            throw ERROR("Invalid input string (not a number): " + (str.empty() ? "<empty>" : str_cut_end(str)));
+        }
     }
     // Specialization for bool
     template <>
@@ -440,6 +445,9 @@ namespace tools::utils {
         return diffs;
     }
 
+    string get_hash(const string& str) {
+        return to_string(hash<string>{}(str));
+    }
 }
 
 #ifdef TEST
@@ -873,7 +881,7 @@ void test_str_cut_ratio_when_ratio_is_invalid() {
     bool thrown = false;
     try {
         str_cut_ratio("abcdefgh", 1.5);
-    } catch (const invalid_argument& e) {
+    } catch (const exception& e) {
         thrown = true;
     }
     assert(thrown && "test_str_cut_ratio_when_ratio_is_invalid failed");

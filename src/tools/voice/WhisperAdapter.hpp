@@ -18,7 +18,7 @@ namespace tools::voice {
             if (lang) params.language = lang;
             ctx = whisper_init_from_file_with_params(model_path.c_str(), whisper_context_default_params());
             if (!ctx) {
-                throw runtime_error("Failed to load Whisper model");
+                throw ERROR("Failed to load Whisper model");
             }
 
             // if (!whisper_is_multilingual(ctx)) {
@@ -42,7 +42,7 @@ namespace tools::voice {
             preTranscribe();
 
             if (whisper_full(ctx, params, audio_data.data(), audio_data.size()) != 0) {
-                throw runtime_error("Whisper transcription failed");
+                throw ERROR("Whisper transcription failed");
             }
 
             string transcription;

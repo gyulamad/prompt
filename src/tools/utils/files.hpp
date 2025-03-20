@@ -6,6 +6,7 @@
 #include <fstream>
 #include <filesystem> // Requires C++17 or later
 #include <stdexcept>
+#include <chrono>
 #include <unistd.h>
 #include <pwd.h>
 #include <grp.h>
@@ -15,6 +16,7 @@
 
 #include "strings.hpp"
 #include "ERROR.hpp"
+#include "time.hpp"
 
 using namespace std;
 
@@ -37,7 +39,7 @@ namespace tools::utils {
         // Open the file in binary mode and position the cursor at the end
         ifstream file(filename, ios::in | ios::binary);
         if (!file.is_open()) {
-            throw ios_base::failure("Failed to open file: " + filename);
+            throw ERROR("Failed to open file: " + filename);
         }
 
         // Seek to the end to determine file size
@@ -48,7 +50,7 @@ namespace tools::utils {
         // Read file content into a string
         string content(size, '\0');
         if (!file.read(&content[0], size)) {
-            throw ios_base::failure("Failed to read file: " + filename);
+            throw ERROR("Failed to read file: " + filename);
         }
 
         return content;
@@ -63,7 +65,7 @@ namespace tools::utils {
 
         ofstream file(filename, mode);
         if (!file.is_open()) {
-            if (throws) throw ios_base::failure("Failed to open file: " + filename);
+            if (throws) throw ERROR("Failed to open file: " + filename);
             else return false;
         }
 
@@ -73,7 +75,7 @@ namespace tools::utils {
         // Check if the write operation failed
         if (file.fail()) {
             file.close(); // Close the file before throwing the exception
-            if (throws) throw ios_base::failure("Failed to write to file: " + filename);
+            if (throws) throw ERROR("Failed to write to file: " + filename);
             else return false;
         }
 
@@ -125,6 +127,9 @@ namespace tools::utils {
             // Error
             return false;
         }
+    }
+    bool mkdir(const string& dir, bool recursive, int permission = 0777) {
+        return mkdir(dir, permission, recursive);
     }
 
     bool remove(const string& path, bool throws = true) {
@@ -178,5 +183,41 @@ namespace tools::utils {
         // 3. Set the file permissions.
         if (::chmod(filename.c_str(), mode) == -1)
             throw ERROR("Error  changing permissions of " + filename + ": " + to_string(strerror(errno)));
+    }
+
+    chrono::system_clock::duration filemtime_duration(const string& filename) {
+        if (filename.empty()) ERROR("Filename can not be empty");
+        // Convert the filename to a path object
+        fs::path file_path(filename);
+    
+        // Check if the file exists
+        if (!fs::exists(file_path)) {
+            throw ERROR("File does not exist: " + filename);
+        }
+    
+        // Get the last modification time as file_time_type
+        fs::file_time_type file_time = fs::last_write_time(file_path);
+    
+        // Convert the file_time to a system clock time point
+        chrono::system_clock::time_point system_time = chrono::clock_cast<chrono::system_clock>(file_time);
+    
+        // Convert the system_time to milliseconds since the epoch
+        return system_time.time_since_epoch();
+    }
+
+    ms_t filemtime_ms(const string& filename) {
+        return chrono::duration_cast<chrono::milliseconds>(filemtime_duration(filename)).count();
+    }
+
+    sec_t filemtime_sec(const string& filename) {
+        return chrono::duration_cast<chrono::seconds>(filemtime_duration(filename)).count();
+    }
+
+    time_t filemtime(const string& filename) {
+        return filemtime_sec(filename);
+    }
+
+    bool unlink(const string& filename) {
+        return ::unlink(filename.c_str());
     }
 }

@@ -104,7 +104,7 @@ void test_UserTextInputAgent_run_logsException() {
             bool Readline(string& line) override {
                 if (shouldThrow) {
                     shouldThrow = false; // Throw only once
-                    throw runtime_error("Test exception");
+                    throw ERROR("Test exception");
                 }
                 line = "/exit"; // After throwing, provide exit command
                 return false;

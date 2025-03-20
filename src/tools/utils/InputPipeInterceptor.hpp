@@ -1,5 +1,4 @@
-#pragma once 
-
+#pragma once
 
 #include <unistd.h>
 #include <termios.h>
@@ -13,6 +12,7 @@
 #include "Closable.hpp"
 #include "ERROR.hpp"
 #include "vectors.hpp"
+#include "foreach.hpp"
 
 using namespace std;
 

@@ -2558,7 +2558,7 @@ Test Execution
     - Executes each test and logs the result (pass/fail) with timing information.
     - Handles exceptions thrown by tests and logs them as failures.
     - Supports options for fast failure (`TEST_FAILURE_DIES_FAST`), exit on failure (`TEST_FAILURE_EXITS`), 
-      and throw on failure (`TEST_FAILURE_THROWS`).
+      and throws on failure (`TEST_FAILURE_THROWS`).
 
 Assertions
 - `assert(expr)`: Macro to assert a condition. If the condition is false, the test fails.
