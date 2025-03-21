@@ -1,0 +1,1229 @@
+#pragma once
+
+#include <map>
+#include <string>
+#include <thread>
+
+#include "../utils/fnames.hpp"
+#include "../utils/files.hpp"
+#include "../utils/execute.hpp"
+
+using namespace std;
+using namespace tools::utils;
+
+namespace tools::build {
+
+    typedef map<string, map<string, string>> depmap_t;
+
+    string find_impfile(const string& incfile, const vector<string>& srcdirs, const string& impext) {
+        string base = remove_path(incfile); // e.g., "a.h"
+        string impfile = replace_extension(base, impext); // e.g., "a.cpp"
+        string incpath = get_path(incfile); // e.g., "include/"
+        vector<string> tries;
+    
+        // First, try the directory of the header (next to incfile)
+        string local_candidate = get_absolute_path(incpath + "/" + impfile); // e.g., "include/a.cpp"
+        tries.push_back(local_candidate);
+        if (file_exists(local_candidate)) return local_candidate; // Found next to header
+    
+        // Then try srcdirs
+        for (const string& srcdir : srcdirs) {
+            string candidate = get_absolute_path(srcdir + "/" + impfile); // e.g., "src/a.cpp"
+            tries.push_back(candidate);
+            if (file_exists(candidate)) return candidate;
+        }
+    
+        // Not found
+        return "";
+    }
+    
+    // float roll = 0, spd = 0.01;
+    void scan_includes(
+        mutex& mtx,
+        const string& srcfile, 
+        depmap_t& depmap, 
+        const vector<string>& idirs, 
+        const vector<string>& sdirs, 
+        // ms_t& lstmtime, 
+        // map<string, string>& impmap, 
+        const string& impext,
+        vector<string>& visited,
+        bool verbose
+    ) {
+        // Check if already visited
+        {
+            lock_guard<mutex> lock(mtx);
+            if (in_array(srcfile, visited)) return;
+            visited.emplace_back(srcfile);
+        }
+    
+        if (verbose) cout << "scan: " + srcfile << endl;
+        // cout << "\r\033[K[ ] scan: " << srcfile << flush;
+        // ms_t _lstmtime = filemtime_ms(srcfile);
+        // if (_lstmtime > lstmtime) lstmtime = _lstmtime;
+    
+        string srccode = file_get_contents(srcfile);
+        vector<string> srclines = explode("\n", srccode);
+        vector<string> matches;
+        string srcpath = get_path(srcfile);
+        vector<string> lookup;
+        foreach(srclines, [&](const string& srcline) {
+            // cout << "\r[" << "/-\\|"[(long)(roll += spd)%4] << "\r" << flush;
+            if (srcline.empty() || !regx_match(R"(^\s*#)", srcline) || !regx_match(R"(^\s*#\s*include\s*\"\s*([^\"]+)\s*\")", srcline, &matches)) return;
+            string incfile = get_absolute_path(srcpath + "/" + matches[1]);
+            vector<string> tries = { incfile };
+            if (!file_exists(incfile)) foreach (idirs, [&](const string& idir) {
+                incfile = get_absolute_path(idir + "/" + remove_path(incfile));
+                tries.push_back(incfile);
+                if (file_exists(incfile)) return FE_BREAK;
+                return FE_CONTINUE;
+            });
+            if (!file_exists(incfile))
+                throw ERROR("Dependency include file not found, following are tried:\n\t" + implode("\n\t", tries) + "\nIncluded in " + srcfile);
+            //cout << "found: " << incfile << " (in " << srcfile << ")" << endl;
+            string impfile = find_impfile(incfile, sdirs, impext);
+            {
+                lock_guard<mutex> lock(mtx);
+                depmap[srcfile][incfile] = file_exists(impfile) ? impfile : "";
+                if (!array_key_exists(incfile, depmap)) {
+                    depmap[incfile] = {};
+                    lookup.push_back(incfile);
+                }
+            }
+        });
+        // cout << "\r[✔]" << flush;
+        vector<string> errors;
+        vector<thread> threads;
+        foreach(lookup, [&](const string& incfile) {
+            threads.emplace_back([&]() {
+                try {
+                    scan_includes(mtx, incfile, depmap, idirs,/* lstmtime,*/ sdirs, impext, visited, verbose);
+                } catch (exception &e) {
+                    lock_guard<mutex> lock(mtx);
+                    errors.push_back(e.what());
+                }
+            });
+        });
+        for (thread& t: threads) { if (t.joinable()) t.join(); }
+        if (!errors.empty()) throw ERROR("Include error(s) detected:\n" + implode("\n", errors));
+    }
+    void scan_includes(
+        mutex& mtx,
+        const string& incfile, 
+        depmap_t& depmap, 
+        const vector<string>& idirs, 
+        const vector<string>& sdirs, 
+        const string& impext,
+        bool verbose
+    ) {
+        vector<string> visited;
+        scan_includes(mtx, incfile, depmap, idirs, sdirs, impext, visited, verbose);
+    }
+    
+    void save_depcache(const string& filename, const depmap_t& depmap) {
+        ostringstream oss;
+        foreach (depmap, [&](const map<string, string>& deps, const string& srcf) {
+            oss << srcf << "\n";
+            foreach(deps, [&](const string& depimpf, const string& depincf) {
+                oss << "- " << depincf << ":" << depimpf << "\n";
+            });
+        });
+        file_put_contents(filename, oss.str(), false, true);
+    }
+    
+    depmap_t load_depcache(const string& filename) {
+        depmap_t depmap;
+        string content = file_get_contents(filename);
+        vector<string> lines = explode("\n", content);
+    
+        string current_srcf;
+        int lno = 0;
+        foreach(lines, [&](const string& line) {
+            ++lno;
+            if (line.empty()) return; // Skip empty lines
+            if (line.substr(0, 2) == "- ") { // Dependency line
+                if (current_srcf.empty()) return; // No source file yet, skip
+                string dep = line.substr(2); // Remove "- "
+                vector<string> splits = explode(":", dep);
+                if (splits.size() != 2) throw ERROR("Invalid line in dependency cache: " + filename + ":" + to_string(lno));
+                depmap[current_srcf][splits[0]] = splits[1];
+            } else { // Source file line
+                current_srcf = line; // Set new source file
+                depmap[current_srcf]; // Initialize empty vector if not already present
+            }
+        });
+    
+        return depmap;
+    }
+    
+    vector<string> get_all_files(const depmap_t& depmap) {
+        vector<string> files;
+        foreach (depmap, [&](const map<string, string>& deps, const string& file) {
+            if (!in_array(file, files)) files.push_back(file);
+            foreach (deps, [&](const string& impf, const string& incf) {
+                if (!in_array(incf, files)) files.push_back(incf);
+                if (!impf.empty() && !in_array(impf, files)) files.push_back(impf);
+            });
+        });
+        return files;
+    }
+    
+    ms_t get_lstmtime(const vector<string> filenames) {
+        ms_t lstmtime = 0;
+        foreach (filenames, [&](const string& filename) {
+            ms_t _lstmtime = filemtime_ms(filename);
+            if (_lstmtime > lstmtime) lstmtime = _lstmtime;
+        });
+        return lstmtime;
+    }
+    
+    ms_t get_lstmtime(const depmap_t& depmap) {
+        return get_lstmtime(get_all_files(depmap));
+    }
+    
+    void compile_objfile(const vector<string>& flags, const string& srcfile, const string& outfile, const vector<string>& idirs, bool verbose) {
+        string outpath = get_path(outfile);
+        if (!mkdir(outpath, true)) throw ERROR("Unable to create folder: " + outpath);
+        string cmd = "g++" 
+            + (!flags.empty() ? " " + implode(" ", flags) : "") 
+            + " -c " + srcfile 
+            + " -o " + outfile 
+            + (!idirs.empty() ? " -I" + implode(" -I", idirs) : "");
+        string output = execute(cmd + " 2>&1", verbose);
+        if (!output.empty()) throw ERROR("Compile error at " + srcfile + "\n" + cmd + "\n" + output);
+    } 
+    
+    void link_outfile(const vector<string>& flags, const string& outfile, const vector<string>& objfiles, const vector<string>& libs, bool verbose) {
+        string outpath = get_path(outfile);
+        if (!mkdir(outpath, true)) throw ERROR("Unable to create folder: " + outpath);
+        string cmd = "g++" 
+            + (!flags.empty() ? " " + implode(" ", flags) : "") 
+            + (!objfiles.empty() ? " " + implode(" ", objfiles) : "")
+            + " -o " + outfile
+            + (!libs.empty() ? " " + implode(" ", libs) : "");
+        string output = execute(cmd + " 2>&1", verbose);
+        if (!output.empty()) throw ERROR("Link error: " + cmd + "\n" + output);
+    }
+    
+    
+    vector<string> get_alldeps(const string& filename, const depmap_t& depmap, vector<string>& visited) {
+        vector<string> deps = { filename };
+    
+        if (in_array(filename, visited)) return deps;
+        visited.push_back(filename);
+    
+        foreach (depmap, [&](const map<string, string>& depfiles, const string& fname) {
+            if (fname == filename) {
+                foreach (depfiles, [&](const string& impf, const string& depf) {
+                    if (!depf.empty()) {
+                        deps.push_back(depf);
+                        deps = array_unique(array_merge(deps, get_alldeps(depf, depmap, visited)));
+                    }
+                    if (!impf.empty()) {
+                        deps.push_back(impf);
+                        deps = array_unique(array_merge(deps, get_alldeps(impf, depmap, visited)));
+                    }
+                });
+                return FE_BREAK;
+            }
+            return FE_CONTINUE;
+        });
+    
+        return deps;
+    }
+    vector<string> get_alldeps(const string& filename, const depmap_t& depmap) {
+        vector<string> visited; // Track visited files to handle circular dependencies
+        return get_alldeps(filename, depmap, visited);
+    }
+    
+    ms_t get_alldepfmtime(const string& filename, const depmap_t& depmap) {
+        ms_t fmtime = filemtime_ms(filename);
+        vector<string> alldeps = get_alldeps(filename, depmap);
+        foreach (alldeps, [&](const string& depf) {
+            ms_t depfmtime = filemtime_ms(depf);
+            if (depfmtime > fmtime) fmtime = depfmtime;
+        });
+        return fmtime;
+    }
+    
+}
+
+#ifdef TEST
+
+#include "../utils/Test.hpp"
+#include "../utils/vectors.hpp"
+#include "tests/test_fs.hpp"
+
+using namespace tools::build;
+using namespace test_fs;
+
+// Test: File found next to header
+void test_build_find_impfile_found_next_to_header() {
+    test_fs::cleanup("/tmp/find_impfile_test/"); // Ensure clean slate
+    test_fs::setup_dirs({"/tmp/find_impfile_test/include"});
+    test_fs::create_file("/tmp/find_impfile_test/include/a.cpp");
+
+    string incfile = "/tmp/find_impfile_test/include/a.h";
+    vector<string> srcdirs = {"/tmp/find_impfile_test/src"};
+    string impext = ".cpp";
+    string result = find_impfile(incfile, srcdirs, impext);
+
+    test_fs::cleanup("/tmp/find_impfile_test/");
+
+    assert(result == "/tmp/find_impfile_test/include/a.cpp" && "Should find file next to header");
+}
+
+// Test: File found in source directory
+void test_build_find_impfile_found_in_srcdir() {
+    test_fs::cleanup("/tmp/find_impfile_test/");
+    test_fs::setup_dirs({"/tmp/find_impfile_test/include", "/tmp/find_impfile_test/src"});
+    test_fs::create_file("/tmp/find_impfile_test/src/a.cpp"); // Only in src, not include
+
+    // Debug: Check file existence before running
+    bool include_exists = file_exists("/tmp/find_impfile_test/include/a.cpp");
+    bool src_exists = file_exists("/tmp/find_impfile_test/src/a.cpp");
+
+    string incfile = "/tmp/find_impfile_test/include/a.h";
+    vector<string> srcdirs = {"/tmp/find_impfile_test/src"};
+    string impext = ".cpp";
+    string result = find_impfile(incfile, srcdirs, impext);
+
+    test_fs::cleanup("/tmp/find_impfile_test/");
+
+    assert(!include_exists && "include/a.cpp should not exist");
+    assert(src_exists && "src/a.cpp should exist");
+    assert(result == "/tmp/find_impfile_test/src/a.cpp" && "Should find file in source directory");
+}
+
+// Test: File not found
+void test_build_find_impfile_not_found() {
+    test_fs::cleanup("/tmp/find_impfile_test/");
+    test_fs::setup_dirs({"/tmp/find_impfile_test/include", "/tmp/find_impfile_test/src"});
+    // No a.cpp created anywhere
+
+    string incfile = "/tmp/find_impfile_test/include/a.h";
+    vector<string> srcdirs = {"/tmp/find_impfile_test/src"};
+    string impext = ".cpp";
+    string result = find_impfile(incfile, srcdirs, impext);
+
+    test_fs::cleanup("/tmp/find_impfile_test/");
+
+    assert(result.empty() && "Should return empty string when file not found");
+}
+
+// Test: Multiple source directories, prioritizes first match
+void test_build_find_impfile_multiple_srcdirs() {
+    test_fs::cleanup("/tmp/find_impfile_test/");
+    test_fs::setup_dirs({"/tmp/find_impfile_test/include", "/tmp/find_impfile_test/src1", "/tmp/find_impfile_test/src2"});
+    test_fs::create_file("/tmp/find_impfile_test/src1/a.cpp");
+    test_fs::create_file("/tmp/find_impfile_test/src2/a.cpp");
+
+    string incfile = "/tmp/find_impfile_test/include/a.h";
+    vector<string> srcdirs = {"/tmp/find_impfile_test/src1", "/tmp/find_impfile_test/src2"};
+    string impext = ".cpp";
+    string result = find_impfile(incfile, srcdirs, impext);
+
+    test_fs::cleanup("/tmp/find_impfile_test/");
+
+    assert(result == "/tmp/find_impfile_test/src1/a.cpp" && "Should find file in first matching source directory");
+}
+
+// Test: Basic include detection
+void test_build_scan_includes_basic() {
+    test_fs::cleanup("/tmp/scan_includes_test/");
+    test_fs::setup_dirs({"/tmp/scan_includes_test/src", "/tmp/scan_includes_test/include"});
+    test_fs::create_file("/tmp/scan_includes_test/src/main.cpp", "#include \"a.h\"\n");
+    test_fs::create_file("/tmp/scan_includes_test/include/a.h");
+
+    mutex mtx;
+    depmap_t depmap;
+    vector<string> idirs = {"/tmp/scan_includes_test/include"};
+    vector<string> sdirs = {"/tmp/scan_includes_test/src"};
+    string impext = ".cpp";
+    vector<string> visited;
+    scan_includes(mtx, "/tmp/scan_includes_test/src/main.cpp", depmap, idirs, sdirs, impext, visited, false);
+
+    test_fs::cleanup("/tmp/scan_includes_test/");
+
+    assert(depmap.size() == 2 && "Should have main.cpp and a.h in depmap");
+    assert(depmap["/tmp/scan_includes_test/src/main.cpp"].size() == 1 && "main.cpp should include a.h");
+    assert(depmap["/tmp/scan_includes_test/src/main.cpp"]["/tmp/scan_includes_test/include/a.h"] == "" && "a.h has no .cpp");
+}
+
+// Test: Include with implementation
+void test_build_scan_includes_with_implementation() {
+    test_fs::cleanup("/tmp/scan_includes_test/");
+    test_fs::setup_dirs({"/tmp/scan_includes_test/src", "/tmp/scan_includes_test/include"});
+    test_fs::create_file("/tmp/scan_includes_test/src/main.cpp", "#include \"a.h\"\n");
+    test_fs::create_file("/tmp/scan_includes_test/include/a.h");
+    test_fs::create_file("/tmp/scan_includes_test/src/a.cpp");
+
+    mutex mtx;
+    depmap_t depmap;
+    vector<string> idirs = {"/tmp/scan_includes_test/include"};
+    vector<string> sdirs = {"/tmp/scan_includes_test/src"};
+    string impext = ".cpp";
+    vector<string> visited;
+    scan_includes(mtx, "/tmp/scan_includes_test/src/main.cpp", depmap, idirs, sdirs, impext, visited, false);
+
+    test_fs::cleanup("/tmp/scan_includes_test/");
+
+    assert(depmap.size() == 2 && "Should have main.cpp and a.h in depmap");
+    assert(
+        depmap["/tmp/scan_includes_test/src/main.cpp"]["/tmp/scan_includes_test/include/a.h"] == "/tmp/scan_includes_test/src/a.cpp" 
+        && "a.h should link to a.cpp");
+}
+
+// Test: Nested includes
+void test_build_scan_includes_nested() {
+    test_fs::cleanup("/tmp/scan_includes_test/");
+    test_fs::setup_dirs({"/tmp/scan_includes_test/src", "/tmp/scan_includes_test/include"});
+    test_fs::create_file("/tmp/scan_includes_test/src/main.cpp", "#include \"a.h\"\n");
+    test_fs::create_file("/tmp/scan_includes_test/include/a.h", "#include \"b.h\"\n");
+    test_fs::create_file("/tmp/scan_includes_test/include/b.h");
+
+    mutex mtx;
+    depmap_t depmap;
+    vector<string> idirs = {"/tmp/scan_includes_test/include"};
+    vector<string> sdirs = {"/tmp/scan_includes_test/src"};
+    string impext = ".cpp";
+    vector<string> visited;
+    scan_includes(mtx, "/tmp/scan_includes_test/src/main.cpp", depmap, idirs, sdirs, impext, visited, false);
+
+    test_fs::cleanup("/tmp/scan_includes_test/");
+
+    assert(depmap.size() == 3 && "Should have main.cpp, a.h, and b.h in depmap");
+    assert(depmap["/tmp/scan_includes_test/src/main.cpp"]["/tmp/scan_includes_test/include/a.h"] == "" && "main.cpp includes a.h");
+    assert(depmap["/tmp/scan_includes_test/include/a.h"]["/tmp/scan_includes_test/include/b.h"] == "" && "a.h includes b.h");
+}
+
+// Test: Missing include file (exception)
+void test_build_scan_includes_missing_include() {
+    test_fs::cleanup("/tmp/scan_includes_test/");
+    test_fs::setup_dirs({"/tmp/scan_includes_test/src", "/tmp/scan_includes_test/include"});
+    test_fs::create_file("/tmp/scan_includes_test/src/main.cpp", "#include \"a.h\"\n"); // a.h doesn’t exist
+
+    mutex mtx;
+    depmap_t depmap;
+    vector<string> idirs = {"/tmp/scan_includes_test/include"};
+    vector<string> sdirs = {"/tmp/scan_includes_test/src"};
+    string impext = ".cpp";
+    vector<string> visited;
+
+    bool thrown = false;
+    try {
+        scan_includes(mtx, "/tmp/scan_includes_test/src/main.cpp", depmap, idirs, sdirs, impext, visited, false);
+    } catch (exception &e) {
+        thrown = true;
+        string what = e.what();
+        assert(str_contains(what, "Dependency include file not found") && "Exception should report missing include");
+    }
+
+    test_fs::cleanup("/tmp/scan_includes_test/");
+
+    assert(thrown && "Should throw when include file is missing");
+}
+
+// Test: Circular includes
+void test_build_scan_includes_circular() {
+    test_fs::cleanup("/tmp/scan_includes_test/");
+    test_fs::setup_dirs({"/tmp/scan_includes_test/include"});
+    test_fs::create_file("/tmp/scan_includes_test/include/a.h", "#include \"b.h\"\n");
+    test_fs::create_file("/tmp/scan_includes_test/include/b.h", "#include \"a.h\"\n");
+
+    mutex mtx;
+    depmap_t depmap;
+    vector<string> idirs = {"/tmp/scan_includes_test/include"};
+    vector<string> sdirs = {"/tmp/scan_includes_test/src"};
+    string impext = ".cpp";
+    vector<string> visited;
+    scan_includes(mtx, "/tmp/scan_includes_test/include/a.h", depmap, idirs, sdirs, impext, visited, false);
+
+    test_fs::cleanup("/tmp/scan_includes_test/");
+
+    assert(depmap.size() == 2 && "Should have a.h and b.h in depmap");
+    assert(depmap["/tmp/scan_includes_test/include/a.h"]["/tmp/scan_includes_test/include/b.h"] == "" && "a.h includes b.h");
+    assert(depmap["/tmp/scan_includes_test/include/b.h"]["/tmp/scan_includes_test/include/a.h"] == "" && "b.h includes a.h");
+    assert(visited.size() == 2 && "Should visit each file once despite circularity");
+}
+
+// Test: Empty depmap
+void test_build_save_depcache_empty() {
+    test_fs::cleanup("/tmp/save_depcache_test/");
+    test_fs::setup_dirs({"/tmp/save_depcache_test"});
+    string filename = "/tmp/save_depcache_test/cache.txt";
+    depmap_t depmap;
+
+    save_depcache(filename, depmap);
+    string content = file_get_contents(filename);
+
+    test_fs::cleanup("/tmp/save_depcache_test/");
+
+    assert(content.empty() && "Empty depmap should write an empty file");
+}
+
+// Test: Single file, no dependencies
+void test_build_save_depcache_single_no_deps() {
+    test_fs::cleanup("/tmp/save_depcache_test/");
+    test_fs::setup_dirs({"/tmp/save_depcache_test"});
+    string filename = "/tmp/save_depcache_test/cache.txt";
+    depmap_t depmap = { {"/src/main.cpp", {}} };
+
+    save_depcache(filename, depmap);
+    string content = file_get_contents(filename);
+
+    test_fs::cleanup("/tmp/save_depcache_test/");
+
+    string expected = "/src/main.cpp\n";
+    assert(content == expected && "Single file with no deps should write just the filename");
+}
+
+// Test: Single file with dependencies
+void test_build_save_depcache_single_with_deps() {
+    test_fs::cleanup("/tmp/save_depcache_test/");
+    test_fs::setup_dirs({"/tmp/save_depcache_test"});
+    string filename = "/tmp/save_depcache_test/cache.txt";
+    depmap_t depmap = { 
+        {"/src/main.cpp", {{"/include/a.h", "/src/a.cpp"}}}
+    };
+
+    save_depcache(filename, depmap);
+    string content = file_get_contents(filename);
+
+    test_fs::cleanup("/tmp/save_depcache_test/");
+
+    string expected = "/src/main.cpp\n- /include/a.h:/src/a.cpp\n";
+    assert(content == expected && "Single file with deps should write filename and dependency");
+}
+
+// Test: Multiple files with dependencies
+void test_build_save_depcache_multiple_files() {
+    test_fs::cleanup("/tmp/save_depcache_test/");
+    test_fs::setup_dirs({"/tmp/save_depcache_test"});
+    string filename = "/tmp/save_depcache_test/cache.txt";
+    depmap_t depmap = { 
+        {"/src/main.cpp", {{"/include/a.h", "/src/a.cpp"}}},
+        {"/include/a.h", {{"/include/b.h", ""}}}
+    };
+
+    save_depcache(filename, depmap);
+    string content = file_get_contents(filename);
+
+    test_fs::cleanup("/tmp/save_depcache_test/");
+
+    string expected = 
+        "/include/a.h\n"
+        "- /include/b.h:\n"
+        "/src/main.cpp\n"
+        "- /include/a.h:/src/a.cpp\n";
+    assert(content == expected && "Multiple files with deps should write all entries correctly in sorted order");
+}
+    
+// Test: Empty file
+void test_build_load_depcache_empty_file() {
+    test_fs::cleanup("/tmp/load_depcache_test/");
+    test_fs::setup_dirs({"/tmp/load_depcache_test"});
+    test_fs::create_file("/tmp/load_depcache_test/cache.txt", "");
+
+    depmap_t depmap = load_depcache("/tmp/load_depcache_test/cache.txt");
+
+    test_fs::cleanup("/tmp/load_depcache_test/");
+
+    assert(depmap.empty() && "Empty file should result in empty depmap");
+}
+
+// Test: Single file, no dependencies
+void test_build_load_depcache_single_file_no_deps() {
+    test_fs::cleanup("/tmp/load_depcache_test/");
+    test_fs::setup_dirs({"/tmp/load_depcache_test"});
+    test_fs::create_file("/tmp/load_depcache_test/cache.txt", "/src/main.cpp\n");
+
+    depmap_t depmap = load_depcache("/tmp/load_depcache_test/cache.txt");
+
+    test_fs::cleanup("/tmp/load_depcache_test/");
+
+    assert(depmap.size() == 1 && "Should have one entry");
+    assert(depmap["/src/main.cpp"].empty() && "main.cpp should have no dependencies");
+}
+
+// Test: Single file with header
+void test_build_load_depcache_single_file_with_header() {
+    test_fs::cleanup("/tmp/load_depcache_test/");
+    test_fs::setup_dirs({"/tmp/load_depcache_test"});
+    test_fs::create_file("/tmp/load_depcache_test/cache.txt", 
+        "/src/main.cpp\n"
+        "- /include/a.h:\n"
+    );
+
+    depmap_t depmap = load_depcache("/tmp/load_depcache_test/cache.txt");
+
+    test_fs::cleanup("/tmp/load_depcache_test/");
+
+    assert(depmap.size() == 1 && "Should have one entry");
+    assert(depmap["/src/main.cpp"].size() == 1 && "main.cpp should have one dependency");
+    assert(depmap["/src/main.cpp"]["/include/a.h"] == "" && "a.h should have no implementation");
+}
+
+// Test: Single file with header and implementation
+void test_build_load_depcache_single_file_with_impl() {
+    test_fs::cleanup("/tmp/load_depcache_test/");
+    test_fs::setup_dirs({"/tmp/load_depcache_test"});
+    test_fs::create_file("/tmp/load_depcache_test/cache.txt", 
+        "/src/main.cpp\n"
+        "- /include/a.h:/src/a.cpp\n"
+    );
+
+    depmap_t depmap = load_depcache("/tmp/load_depcache_test/cache.txt");
+
+    test_fs::cleanup("/tmp/load_depcache_test/");
+
+    assert(depmap.size() == 1 && "Should have one entry");
+    assert(depmap["/src/main.cpp"].size() == 1 && "main.cpp should have one dependency");
+    assert(depmap["/src/main.cpp"]["/include/a.h"] == "/src/a.cpp" && "a.h should link to a.cpp");
+}
+
+// Test: Multiple files with dependencies
+void test_build_load_depcache_multiple_files() {
+    test_fs::cleanup("/tmp/load_depcache_test/");
+    test_fs::setup_dirs({"/tmp/load_depcache_test"});
+    test_fs::create_file("/tmp/load_depcache_test/cache.txt", 
+        "/src/main.cpp\n"
+        "- /include/a.h:/src/a.cpp\n"
+        "/include/a.h\n"
+        "- /include/b.h:\n"
+    );
+
+    depmap_t depmap = load_depcache("/tmp/load_depcache_test/cache.txt");
+
+    test_fs::cleanup("/tmp/load_depcache_test/");
+
+    assert(depmap.size() == 2 && "Should have two entries");
+    assert(depmap["/src/main.cpp"].size() == 1 && "main.cpp should have one dependency");
+    assert(depmap["/src/main.cpp"]["/include/a.h"] == "/src/a.cpp" && "main.cpp links a.h to a.cpp");
+    assert(depmap["/include/a.h"].size() == 1 && "a.h should have one dependency");
+    assert(depmap["/include/a.h"]["/include/b.h"] == "" && "a.h links to b.h with no impl");
+}
+
+// Test: Invalid format (exception)
+void test_build_load_depcache_invalid_format() {
+    test_fs::cleanup("/tmp/load_depcache_test/");
+    test_fs::setup_dirs({"/tmp/load_depcache_test"});
+    test_fs::create_file("/tmp/load_depcache_test/cache.txt", 
+        "/src/main.cpp\n"
+        "- invalid_line\n" // Missing colon
+    );
+
+    bool thrown = false;
+    try {
+        depmap_t depmap = load_depcache("/tmp/load_depcache_test/cache.txt");
+    } catch (exception &e) {
+        thrown = true;
+        string what = e.what();
+        assert(str_contains(what, "Invalid line in dependency cache") && "Exception should report invalid format");
+    }
+
+    test_fs::cleanup("/tmp/load_depcache_test/");
+
+    assert(thrown && "Should throw for invalid format");
+}
+
+// Test: Empty depmap
+void test_build_get_all_files_empty() {
+    depmap_t depmap;
+    vector<string> result = get_all_files(depmap);
+
+    assert(result.empty() && "Empty depmap should return empty vector");
+}
+
+// Test: Single file, no dependencies
+void test_build_get_all_files_single_no_deps() {
+    depmap_t depmap = { {"/src/main.cpp", {}} };
+    vector<string> result = get_all_files(depmap);
+
+    vector<string> expected = {"/src/main.cpp"};
+    assert(result.size() == expected.size() && "Should return one file");
+    assert(result == expected && "Should contain only the source file");
+}
+
+// Test: Single file with header
+void test_build_get_all_files_single_with_header() {
+    depmap_t depmap = { {"/src/main.cpp", {{"/include/a.h", ""}}} };
+    vector<string> result = get_all_files(depmap);
+
+    vector<string> expected = {"/src/main.cpp", "/include/a.h"};
+    assert(result.size() == expected.size() && "Should return two files");
+    assert(result == expected && "Should contain source and header");
+}
+
+// Test: Single file with header and implementation
+void test_build_get_all_files_single_with_impl() {
+    depmap_t depmap = { {"/src/main.cpp", {{"/include/a.h", "/src/a.cpp"}}} };
+    vector<string> result = get_all_files(depmap);
+
+    vector<string> expected = {"/src/main.cpp", "/include/a.h", "/src/a.cpp"};
+    assert(result.size() == expected.size() && "Should return three files");
+    assert(result == expected && "Should contain source, header, and implementation");
+}
+
+// Test: Multiple files with dependencies
+void test_build_get_all_files_multiple_files() {
+    depmap_t depmap = {
+        {"/src/main.cpp", {{"/include/a.h", "/src/a.cpp"}}},
+        {"/include/a.h", {{"/include/b.h", ""}}},
+        {"/src/another.cpp", {{"/include/a.h", "/src/a.cpp"}}}
+    };
+    vector<string> result = get_all_files(depmap);
+
+    vector<string> expected = {"/src/main.cpp", "/include/a.h", "/src/a.cpp", "/include/b.h", "/src/another.cpp"};
+    assert(result.size() == expected.size() && "Should return five unique files");
+
+    // Sort both for order-independent comparison
+    sort(result.begin(), result.end());
+    sort(expected.begin(), expected.end());
+    assert(result == expected && "Should contain all unique files regardless of order");
+}
+
+// Test: Empty vector
+void test_build_get_lstmtime_empty_vector() {
+    vector<string> filenames;
+    ms_t result = get_lstmtime(filenames);
+
+    assert(result == 0 && "Empty vector should return 0");
+}
+
+// Test: Single file (vector)
+void test_build_get_lstmtime_single_file_vector() {
+    const string base_dir = "/tmp/get_lstmtime_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir});
+    test_fs::create_file(base_dir + "/main.cpp");
+    ms_t set_time = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 1000;
+    test_fs::set_file_time(base_dir + "/main.cpp", set_time);
+
+    vector<string> filenames = {base_dir + "/main.cpp"};
+    ms_t result = get_lstmtime(filenames);
+
+    test_fs::cleanup(base_dir);
+
+    ms_t diff = abs(result - set_time);
+    assert(diff < 100 && "Should return the single file's mtime within tolerance");
+}
+
+// Test: Multiple files (vector)
+void test_build_get_lstmtime_multiple_files_vector() {
+    const string base_dir = "/tmp/get_lstmtime_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir});
+    test_fs::create_file(base_dir + "/main.cpp");
+    test_fs::create_file(base_dir + "/a.cpp");
+
+    ms_t t1 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 2000;
+    ms_t t2 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 1000;
+    test_fs::set_file_time(base_dir + "/main.cpp", t1);
+    test_fs::set_file_time(base_dir + "/a.cpp", t2);
+
+    vector<string> filenames = {base_dir + "/main.cpp", base_dir + "/a.cpp"};
+    ms_t result = get_lstmtime(filenames);
+
+    test_fs::cleanup(base_dir);
+
+    ms_t diff = abs(result - t2);
+    assert(diff < 100 && "Should return the latest mtime within tolerance");
+    assert(result > t1 && "Result should be greater than the older time");
+}
+
+// Test: Missing file (vector)
+void test_build_get_lstmtime_missing_file_vector() {
+    const string base_dir = "/tmp/get_lstmtime_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir});
+    test_fs::create_file(base_dir + "/main.cpp");
+    ms_t set_time = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 1000;
+    test_fs::set_file_time(base_dir + "/main.cpp", set_time);
+
+    vector<string> filenames = {base_dir + "/main.cpp", "/nonexistent/a.cpp"};
+    bool thrown = false;
+    try {
+        get_lstmtime(filenames);
+    } catch (...) {
+        thrown = true;
+    }
+
+    test_fs::cleanup(base_dir);
+
+    assert(thrown && "Should throw when a file is missing");
+}
+
+// Test: Empty depmap
+void test_build_get_lstmtime_empty_depmap() {
+    depmap_t depmap;
+    ms_t result = get_lstmtime(depmap);
+
+    assert(result == 0 && "Empty depmap should return 0");
+}
+
+// Test: Multiple files (depmap) - All files exist
+void test_build_get_lstmtime_multiple_files_depmap() {
+    const string base_dir = "/tmp/get_lstmtime_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir + "/src", base_dir + "/include"});
+    test_fs::create_file(base_dir + "/src/main.cpp");
+    test_fs::create_file(base_dir + "/include/a.h");
+    test_fs::create_file(base_dir + "/src/a.cpp");
+    test_fs::create_file(base_dir + "/src/another.cpp"); // Ensure all source files exist
+
+    ms_t t1 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 2000;
+    ms_t t2 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 1000;
+    ms_t t3 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 500;
+    ms_t t4 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 1500;
+    test_fs::set_file_time(base_dir + "/src/main.cpp", t1);
+    test_fs::set_file_time(base_dir + "/include/a.h", t2);
+    test_fs::set_file_time(base_dir + "/src/a.cpp", t3);
+    test_fs::set_file_time(base_dir + "/src/another.cpp", t4);
+
+    depmap_t depmap = {
+        {base_dir + "/src/main.cpp", {{base_dir + "/include/a.h", base_dir + "/src/a.cpp"}}},
+        {base_dir + "/src/another.cpp", {{base_dir + "/include/a.h", ""}}} // All files exist
+    };
+    ms_t result = get_lstmtime(depmap);
+
+    test_fs::cleanup(base_dir);
+
+    ms_t diff = abs(result - t3);
+    assert(diff < 100 && "Should return the latest mtime from depmap files");
+    assert(result > t1 && result > t2 && result > t4 && "Result should be the most recent");
+}
+
+// Test: Multiple files (depmap) - Missing file throws
+void test_build_get_lstmtime_missing_file_depmap() {
+    const string base_dir = "/tmp/get_lstmtime_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir + "/src", base_dir + "/include"});
+    test_fs::create_file(base_dir + "/src/main.cpp");
+    test_fs::create_file(base_dir + "/include/a.h");
+    test_fs::create_file(base_dir + "/src/a.cpp");
+
+    ms_t t1 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 2000;
+    ms_t t2 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 1000;
+    ms_t t3 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 500;
+    test_fs::set_file_time(base_dir + "/src/main.cpp", t1);
+    test_fs::set_file_time(base_dir + "/include/a.h", t2);
+    test_fs::set_file_time(base_dir + "/src/a.cpp", t3);
+
+    depmap_t depmap = {
+        {base_dir + "/src/main.cpp", {{base_dir + "/include/a.h", base_dir + "/src/a.cpp"}}},
+        {base_dir + "/src/another.cpp", {{"/nonexistent/b.h", ""}}} // Missing file
+    };
+
+    bool thrown = false;
+    try {
+        get_lstmtime(depmap);
+    } catch (const exception& e) {
+        thrown = true;
+        string err = e.what();
+        assert(err.find("File does not exist") != string::npos && "Exception should indicate missing file");
+    }
+
+    test_fs::cleanup(base_dir);
+
+    assert(thrown && "Should throw when a file is missing in depmap");
+}
+
+// Test: Successful compilation
+void test_build_compile_objfile_success() {
+    const string base_dir = "/tmp/compile_objfile_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir + "/src", base_dir + "/obj"});
+    string srcfile = base_dir + "/src/main.cpp";
+    string outfile = base_dir + "/obj/main.o";
+    test_fs::create_file(srcfile, "int main() { return 0; }"); // Valid C++ code
+
+    compile_objfile({}, srcfile, outfile, {}, false);
+
+    assert(fs::exists(outfile) && "Object file should be created on successful compilation");
+
+    test_fs::cleanup(base_dir);
+}
+
+// Test: Compilation with flags and include dirs
+void test_build_compile_objfile_with_flags_and_idirs() {
+    const string base_dir = "/tmp/compile_objfile_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir + "/src", base_dir + "/obj", base_dir + "/include"});
+    string srcfile = base_dir + "/src/main.cpp";
+    string outfile = base_dir + "/obj/main.o";
+    test_fs::create_file(srcfile, "#include \"header.h\"\nint main() { return 0; }");
+    test_fs::create_file(base_dir + "/include/header.h", "int foo();");
+
+    vector<string> flags = {"-g", "-O0"};
+    vector<string> idirs = {base_dir + "/include"};
+    compile_objfile(flags, srcfile, outfile, idirs, false);
+
+    assert(fs::exists(outfile) && "Object file should be created with flags and include dirs");
+
+    test_fs::cleanup(base_dir);
+}
+
+// Test: Directory creation failure
+void test_build_compile_objfile_dir_creation_failure() {
+    const string base_dir = "/tmp/compile_objfile_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir + "/src"});
+    string srcfile = base_dir + "/src/main.cpp";
+    string outfile = "/nonexistent/dir/main.o"; // Invalid dir
+    test_fs::create_file(srcfile, "int main() { return 0; }");
+
+    bool thrown = false;
+    try {
+        compile_objfile({}, srcfile, outfile, {}, false);
+    } catch (const exception& e) {
+        thrown = true;
+        string err = e.what();
+        assert(err.find("Unable to create folder") != string::npos && "Exception should indicate dir creation failure");
+    }
+
+    test_fs::cleanup(base_dir);
+
+    assert(thrown && "Should throw when output directory cannot be created");
+}
+
+// Test: Compilation error
+void test_build_compile_objfile_compilation_error() {
+    const string base_dir = "/tmp/compile_objfile_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir + "/src", base_dir + "/obj"});
+    string srcfile = base_dir + "/src/main.cpp";
+    string outfile = base_dir + "/obj/main.o";
+    test_fs::create_file(srcfile, "int main() { return 0; // Syntax error"); // Invalid C++
+
+    bool thrown = false;
+    try {
+        compile_objfile({}, srcfile, outfile, {}, false);
+    } catch (const exception& e) {
+        thrown = true;
+        string err = e.what();
+        assert(err.find("Compile error") != string::npos && "Exception should indicate compilation failure");
+    }
+
+    test_fs::cleanup(base_dir);
+
+    assert(thrown && "Should throw when compilation fails");
+    assert(!fs::exists(outfile) && "Object file should not exist on compilation failure");
+}
+
+// Test: Successful linking
+void test_build_link_outfile_success() {
+    const string base_dir = "/tmp/link_outfile_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir + "/src", base_dir + "/obj", base_dir + "/bin"});
+    string srcfile = base_dir + "/src/main.cpp";
+    string objfile = base_dir + "/obj/main.o";
+    string outfile = base_dir + "/bin/main";
+    test_fs::create_file(srcfile, "int main() { return 0; }");
+    compile_objfile({}, srcfile, objfile, {}, false); // Create valid object file
+
+    link_outfile({}, outfile, {objfile}, {}, false);
+
+    assert(fs::exists(outfile) && "Executable should be created on successful linking");
+
+    test_fs::cleanup(base_dir);
+}
+
+// Test: Linking with flags and libraries
+void test_build_link_outfile_with_flags_and_libs() {
+    const string base_dir = "/tmp/link_outfile_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir + "/src", base_dir + "/obj", base_dir + "/bin"});
+    string srcfile = base_dir + "/src/main.cpp";
+    string objfile = base_dir + "/obj/main.o";
+    string outfile = base_dir + "/bin/main";
+    test_fs::create_file(srcfile, "#include <thread>\nvoid foo() { std::thread t([](){}); t.join(); }\nint main() { foo(); return 0; }");
+    compile_objfile({}, srcfile, objfile, {}, false);
+
+    vector<string> flags = {"-g"};
+    vector<string> libs = {"-pthread"};
+    link_outfile(flags, outfile, {objfile}, libs, false);
+
+    assert(fs::exists(outfile) && "Executable should be created with flags and libraries");
+
+    test_fs::cleanup(base_dir);
+}
+
+// Test: Directory creation failure
+void test_build_link_outfile_dir_creation_failure() {
+    const string base_dir = "/tmp/link_outfile_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir + "/src", base_dir + "/obj"});
+    string srcfile = base_dir + "/src/main.cpp";
+    string objfile = base_dir + "/obj/main.o";
+    string outfile = "/nonexistent/dir/main"; // Invalid dir
+    test_fs::create_file(srcfile, "int main() { return 0; }");
+    compile_objfile({}, srcfile, objfile, {}, false);
+
+    bool thrown = false;
+    try {
+        link_outfile({}, outfile, {objfile}, {}, false);
+    } catch (const exception& e) {
+        thrown = true;
+        string err = e.what();
+        assert(err.find("Unable to create folder") != string::npos && "Exception should indicate dir creation failure");
+    }
+
+    test_fs::cleanup(base_dir);
+
+    assert(thrown && "Should throw when output directory cannot be created");
+}
+
+// Test: Linking error
+void test_build_link_outfile_linking_error() {
+    const string base_dir = "/tmp/link_outfile_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir + "/bin"});
+    string outfile = base_dir + "/bin/main";
+    string objfile = base_dir + "/obj/nonexistent.o"; // Missing object file
+
+    bool thrown = false;
+    try {
+        link_outfile({}, outfile, {objfile}, {}, false);
+    } catch (const exception& e) {
+        thrown = true;
+        string err = e.what();
+        assert(err.find("Link error") != string::npos && "Exception should indicate linking failure");
+    }
+
+    test_fs::cleanup(base_dir);
+
+    assert(thrown && "Should throw when linking fails");
+    assert(!fs::exists(outfile) && "Executable should not exist on linking failure");
+}
+
+// Test: Simple dependencies
+void test_build_get_alldeps_simple() {
+    depmap_t depmap = {
+        {"main.cpp", {{"a.cpp", "a.h"}}}
+    };
+    vector<string> result = get_alldeps("main.cpp", depmap);
+
+    vector<string> expected = {"main.cpp", "a.cpp", "a.h"};
+    assert(vector_equal(result, expected) && "Should return direct dependencies");
+}
+
+// Test: Transitive dependencies
+void test_build_get_alldeps_transitive() {
+    depmap_t depmap = {
+        {"main.cpp", {{"a.cpp", "a.h"}}},
+        {"a.cpp", {{"b.cpp", "b.h"}}},
+        {"b.cpp", {{ "", "c.h"}}}
+    };
+    vector<string> result = get_alldeps("main.cpp", depmap);
+
+    vector<string> expected = {"main.cpp", "a.cpp", "a.h", "b.cpp", "b.h", "c.h"};
+    sort(result);
+    sort(expected);
+    assert(vector_equal(result, expected) && "Should return transitive dependencies");
+}
+
+// Test: Circular dependencies
+void test_build_get_alldeps_circular() {
+    depmap_t depmap = {
+        {"main.cpp", {{"a.cpp", "a.h"}}},
+        {"a.cpp", {{"main.cpp", "b.h"}}}
+    };
+    vector<string> result = get_alldeps("main.cpp", depmap);
+
+    vector<string> expected = {"main.cpp", "a.cpp", "a.h", "b.h"};
+    sort(result);
+    sort(expected);
+    assert(vector_equal(result, expected) && "Should handle circular dependencies without infinite loop");
+}
+
+// Test: No dependencies
+void test_build_get_alldeps_no_deps() {
+    depmap_t depmap = {
+        {"a.cpp", {{"b.cpp", "b.h"}}}
+    };
+    vector<string> result = get_alldeps("main.cpp", depmap);
+
+    vector<string> expected = {"main.cpp"};
+    assert(vector_equal(result, expected) && "Should return only the file if no dependencies exist");
+}
+
+// Test: Empty depmap
+void test_build_get_alldeps_empty_depmap() {
+    depmap_t depmap;
+    vector<string> result = get_alldeps("main.cpp", depmap);
+
+    vector<string> expected = {"main.cpp"};
+    assert(vector_equal(result, expected) && "Should return only the file for empty depmap");
+}
+
+// Test: File with no dependencies
+void test_build_get_alldepfmtime_no_deps() {
+    const string base_dir = "/tmp/get_alldepfmtime_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir});
+    string filename = base_dir + "/main.cpp";
+    test_fs::create_file(filename);
+    ms_t set_time = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 1000;
+    test_fs::set_file_time(filename, set_time);
+
+    depmap_t depmap;
+    ms_t result = get_alldepfmtime(filename, depmap);
+
+    test_fs::cleanup(base_dir);
+
+    assert(abs(result - set_time) < 100 && "Should return the file's own mtime when no dependencies");
+}
+
+// Test: File with direct dependencies
+void test_build_get_alldepfmtime_direct_deps() {
+    const string base_dir = "/tmp/get_alldepfmtime_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir});
+    string filename = base_dir + "/main.cpp";
+    string dep1 = base_dir + "/a.cpp";
+    string dep2 = base_dir + "/a.h";
+    test_fs::create_file(filename);
+    test_fs::create_file(dep1);
+    test_fs::create_file(dep2);
+
+    ms_t t1 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 2000;
+    ms_t t2 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 1000;
+    ms_t t3 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 500;
+    test_fs::set_file_time(filename, t1);
+    test_fs::set_file_time(dep1, t2);
+    test_fs::set_file_time(dep2, t3);
+
+    depmap_t depmap = {
+        {filename, {{dep1, dep2}}}
+    };
+    ms_t result = get_alldepfmtime(filename, depmap);
+
+    test_fs::cleanup(base_dir);
+
+    assert(abs(result - t3) < 100 && "Should return the latest mtime of direct dependencies");
+    assert(result > t1 && result > t2 && "Result should be the most recent");
+}
+
+// Test: File with transitive dependencies
+void test_build_get_alldepfmtime_transitive_deps() {
+    const string base_dir = "/tmp/get_alldepfmtime_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir});
+    string filename = base_dir + "/main.cpp";
+    string dep1 = base_dir + "/a.cpp";
+    string dep2 = base_dir + "/a.h";
+    string dep3 = base_dir + "/b.cpp";
+    test_fs::create_file(filename);
+    test_fs::create_file(dep1);
+    test_fs::create_file(dep2);
+    test_fs::create_file(dep3);
+
+    ms_t t1 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 3000;
+    ms_t t2 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 2000;
+    ms_t t3 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 1000;
+    ms_t t4 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 500;
+    test_fs::set_file_time(filename, t1);
+    test_fs::set_file_time(dep1, t2);
+    test_fs::set_file_time(dep2, t3);
+    test_fs::set_file_time(dep3, t4);
+
+    depmap_t depmap = {
+        {filename, {{dep1, dep2}}},
+        {dep1, {{dep3, ""}}}
+    };
+    ms_t result = get_alldepfmtime(filename, depmap);
+
+    test_fs::cleanup(base_dir);
+
+    assert(abs(result - t4) < 100 && "Should return the latest mtime of transitive dependencies");
+    assert(result > t1 && result > t2 && result > t3 && "Result should be the most recent");
+}
+
+// Test: Missing dependency
+void test_build_get_alldepfmtime_missing_dep() {
+    const string base_dir = "/tmp/get_alldepfmtime_test";
+    test_fs::cleanup(base_dir);
+    test_fs::setup_dirs({base_dir});
+    string filename = base_dir + "/main.cpp";
+    string dep1 = base_dir + "/a.cpp";
+    string dep2 = base_dir + "/nonexistent.h"; // Missing file
+    test_fs::create_file(filename);
+    test_fs::create_file(dep1);
+
+    ms_t t1 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 2000;
+    ms_t t2 = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() - 1000;
+    test_fs::set_file_time(filename, t1);
+    test_fs::set_file_time(dep1, t2);
+
+    depmap_t depmap = {
+        {filename, {{dep1, dep2}}}
+    };
+
+    bool thrown = false;
+    try {
+        get_alldepfmtime(filename, depmap);
+    } catch (const exception& e) {
+        thrown = true;
+        string err = e.what();
+        assert(err.find("File does not exist") != string::npos && "Exception should indicate missing file");
+    }
+
+    test_fs::cleanup(base_dir);
+
+    assert(thrown && "Should throw when a dependency file is missing");
+}
+    
+
+    // TODO: then add coverage report
+
+// Register tests
+TEST(test_build_find_impfile_found_next_to_header);
+TEST(test_build_find_impfile_found_in_srcdir);
+TEST(test_build_find_impfile_not_found);
+TEST(test_build_find_impfile_multiple_srcdirs);
+TEST(test_build_scan_includes_basic);
+TEST(test_build_scan_includes_with_implementation);
+TEST(test_build_scan_includes_nested);
+TEST(test_build_scan_includes_missing_include);
+TEST(test_build_scan_includes_circular);
+TEST(test_build_save_depcache_empty);
+TEST(test_build_save_depcache_single_no_deps);
+TEST(test_build_save_depcache_single_with_deps);
+TEST(test_build_save_depcache_multiple_files);
+TEST(test_build_load_depcache_empty_file);
+TEST(test_build_load_depcache_single_file_no_deps);
+TEST(test_build_load_depcache_single_file_with_header);
+TEST(test_build_load_depcache_single_file_with_impl);
+TEST(test_build_load_depcache_multiple_files);
+TEST(test_build_load_depcache_invalid_format);
+TEST(test_build_get_all_files_empty);
+TEST(test_build_get_all_files_single_no_deps);
+TEST(test_build_get_all_files_single_with_header);
+TEST(test_build_get_all_files_single_with_impl);
+TEST(test_build_get_all_files_multiple_files);
+TEST(test_build_get_lstmtime_empty_vector);
+TEST(test_build_get_lstmtime_single_file_vector);
+TEST(test_build_get_lstmtime_multiple_files_vector);
+TEST(test_build_get_lstmtime_missing_file_vector);
+TEST(test_build_get_lstmtime_empty_depmap);
+TEST(test_build_get_lstmtime_multiple_files_depmap);
+TEST(test_build_get_lstmtime_missing_file_depmap);
+TEST(test_build_compile_objfile_success);
+TEST(test_build_compile_objfile_with_flags_and_idirs);
+TEST(test_build_compile_objfile_dir_creation_failure);
+TEST(test_build_compile_objfile_compilation_error);
+TEST(test_build_link_outfile_success);
+TEST(test_build_link_outfile_with_flags_and_libs);
+TEST(test_build_link_outfile_dir_creation_failure);
+TEST(test_build_link_outfile_linking_error);
+TEST(test_build_get_alldeps_simple);
+TEST(test_build_get_alldeps_transitive);
+TEST(test_build_get_alldeps_circular);
+TEST(test_build_get_alldeps_no_deps);
+TEST(test_build_get_alldeps_empty_depmap);
+TEST(test_build_get_alldepfmtime_no_deps);
+TEST(test_build_get_alldepfmtime_direct_deps);
+TEST(test_build_get_alldepfmtime_transitive_deps);
+TEST(test_build_get_alldepfmtime_missing_dep);
+#endif
