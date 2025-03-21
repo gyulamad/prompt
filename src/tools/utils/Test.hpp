@@ -120,7 +120,6 @@ int run_tests(const vector<string>& filters = {}, bool failure_throws = false, b
         string tick_or_warn = TEST_SIGN_PASS;
         auto start = chrono::high_resolution_clock::now(); // Start timing
         try {
-
             string test_output = capture_cout_cerr([&test]() {
                 test.run();
             });

@@ -1,3 +1,6 @@
+// to get coverage: 
+// Executing task: g++ -std=c++20 /mnt/windows/llm/prompt/src/tools/build/compile.cpp -o /mnt/windows/llm/prompt/builds/compile -g -O0 -fsanitize=address -DTEST --coverage -fprofile-arcs -ftest-coverage -pedantic-errors -Werror -Wall -Wextra -Wunused -fno-elide-constructors 
+// then: $ ./src/tools/build/gencov.sh ./src/tools/build/compile.cpp ./builds/compile
 
 #include <mutex>
 
@@ -6,7 +9,7 @@
 #include "../utils/fnames.hpp"
 #include "../utils/foreach.hpp"
 
-#include "./build.hpp"
+#include "inc/build.hpp"
 
 using namespace std;
 using namespace tools::utils;
@@ -24,8 +27,7 @@ int safe_main(int argc, char* argv[]) {
         if (!file_exists(outpath)) if (!mkdir(outpath)) throw ERROR("Unable to create folder: " + outpath);
         string outext = config.get<string>(mode + ".output-extension", "");
         string objext = config.get<string>(mode + ".object-extension", ".o");
-        // map<string, string> impmap = config.get<map<string, string>>(mode + ".implementation-map", {}); // TODO: ?? impmap vs. idir!!!
-        string impext = config.get<string>(mode + ".source-extension", ".cpp"); // ".cpp"; // TODO: make it array (".c", ".cpp") to config
+        vector<string> impexts = config.get<vector<string>>(mode + ".source-extension", {".cpp", ".c"}); // ".cpp"; // TODO: make it array (".c", ".cpp") to config
         string outfname = remove_extension(remove_path(infile)) + outext;
         string outfile = get_absolute_path(outpath + "/" + outfname);
         string hash = config.hash();
@@ -54,7 +56,7 @@ int safe_main(int argc, char* argv[]) {
         ms_t lstmtime = filemtime_ms(infile);
         if (!file_exists(depcachepath)) {
             if (verbose) cout << "Building dependency map: " << infile << endl;
-            scan_includes(mtx, infile, depmap, idirs,/* lstmtime,*/ sdirs, impext, verbose);
+            scan_includes(mtx, infile, depmap, idirs,/* lstmtime,*/ sdirs, impexts, verbose);
             save_depcache(depcachepath, depmap);
         } else {
             depmap = load_depcache(depcachepath);

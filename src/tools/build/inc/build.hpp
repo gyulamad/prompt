@@ -4,9 +4,9 @@
 #include <string>
 #include <thread>
 
-#include "../utils/fnames.hpp"
-#include "../utils/files.hpp"
-#include "../utils/execute.hpp"
+#include "../../utils/fnames.hpp"
+#include "../../utils/files.hpp"
+#include "../../utils/execute.hpp"
 
 using namespace std;
 using namespace tools::utils;
@@ -32,9 +32,19 @@ namespace tools::build {
             tries.push_back(candidate);
             if (file_exists(candidate)) return candidate;
         }
-    
+
         // Not found
         return "";
+    }
+
+    string find_impfile(const string& incfile, const vector<string>& srcdirs, const vector<string>& impexts) {
+        string impfile = "";
+        foreach (impexts, [&](const string& impext) {
+            impfile = find_impfile(incfile, srcdirs, impext);
+            if (!impfile.empty()) return FE_BREAK;
+            return FE_CONTINUE;
+        });
+        return impfile;
     }
     
     // float roll = 0, spd = 0.01;
@@ -46,7 +56,7 @@ namespace tools::build {
         const vector<string>& sdirs, 
         // ms_t& lstmtime, 
         // map<string, string>& impmap, 
-        const string& impext,
+        const vector<string>& impexts,
         vector<string>& visited,
         bool verbose
     ) {
@@ -81,7 +91,7 @@ namespace tools::build {
             if (!file_exists(incfile))
                 throw ERROR("Dependency include file not found, following are tried:\n\t" + implode("\n\t", tries) + "\nIncluded in " + srcfile);
             //cout << "found: " << incfile << " (in " << srcfile << ")" << endl;
-            string impfile = find_impfile(incfile, sdirs, impext);
+            string impfile = find_impfile(incfile, sdirs, impexts);
             {
                 lock_guard<mutex> lock(mtx);
                 depmap[srcfile][incfile] = file_exists(impfile) ? impfile : "";
@@ -97,7 +107,7 @@ namespace tools::build {
         foreach(lookup, [&](const string& incfile) {
             threads.emplace_back([&]() {
                 try {
-                    scan_includes(mtx, incfile, depmap, idirs,/* lstmtime,*/ sdirs, impext, visited, verbose);
+                    scan_includes(mtx, incfile, depmap, idirs,/* lstmtime,*/ sdirs, impexts, visited, verbose);
                 } catch (exception &e) {
                     lock_guard<mutex> lock(mtx);
                     errors.push_back(e.what());
@@ -113,11 +123,11 @@ namespace tools::build {
         depmap_t& depmap, 
         const vector<string>& idirs, 
         const vector<string>& sdirs, 
-        const string& impext,
+        const vector<string>& impexts,
         bool verbose
     ) {
         vector<string> visited;
-        scan_includes(mtx, incfile, depmap, idirs, sdirs, impext, visited, verbose);
+        scan_includes(mtx, incfile, depmap, idirs, sdirs, impexts, visited, verbose);
     }
     
     void save_depcache(const string& filename, const depmap_t& depmap) {
@@ -250,9 +260,9 @@ namespace tools::build {
 
 #ifdef TEST
 
-#include "../utils/Test.hpp"
-#include "../utils/vectors.hpp"
-#include "tests/test_fs.hpp"
+#include "../../utils/Test.hpp"
+#include "../../utils/vectors.hpp"
+#include "../tests/test_fs.hpp"
 
 using namespace tools::build;
 using namespace test_fs;
@@ -339,9 +349,9 @@ void test_build_scan_includes_basic() {
     depmap_t depmap;
     vector<string> idirs = {"/tmp/scan_includes_test/include"};
     vector<string> sdirs = {"/tmp/scan_includes_test/src"};
-    string impext = ".cpp";
+    vector<string> impexts = {".cpp"};
     vector<string> visited;
-    scan_includes(mtx, "/tmp/scan_includes_test/src/main.cpp", depmap, idirs, sdirs, impext, visited, false);
+    scan_includes(mtx, "/tmp/scan_includes_test/src/main.cpp", depmap, idirs, sdirs, impexts, visited, false);
 
     test_fs::cleanup("/tmp/scan_includes_test/");
 
@@ -362,9 +372,9 @@ void test_build_scan_includes_with_implementation() {
     depmap_t depmap;
     vector<string> idirs = {"/tmp/scan_includes_test/include"};
     vector<string> sdirs = {"/tmp/scan_includes_test/src"};
-    string impext = ".cpp";
+    vector<string> impexts = {".cpp"};
     vector<string> visited;
-    scan_includes(mtx, "/tmp/scan_includes_test/src/main.cpp", depmap, idirs, sdirs, impext, visited, false);
+    scan_includes(mtx, "/tmp/scan_includes_test/src/main.cpp", depmap, idirs, sdirs, impexts, visited, false);
 
     test_fs::cleanup("/tmp/scan_includes_test/");
 
@@ -386,9 +396,9 @@ void test_build_scan_includes_nested() {
     depmap_t depmap;
     vector<string> idirs = {"/tmp/scan_includes_test/include"};
     vector<string> sdirs = {"/tmp/scan_includes_test/src"};
-    string impext = ".cpp";
+    vector<string> impexts = {".cpp"};
     vector<string> visited;
-    scan_includes(mtx, "/tmp/scan_includes_test/src/main.cpp", depmap, idirs, sdirs, impext, visited, false);
+    scan_includes(mtx, "/tmp/scan_includes_test/src/main.cpp", depmap, idirs, sdirs, impexts, visited, false);
 
     test_fs::cleanup("/tmp/scan_includes_test/");
 
@@ -407,12 +417,12 @@ void test_build_scan_includes_missing_include() {
     depmap_t depmap;
     vector<string> idirs = {"/tmp/scan_includes_test/include"};
     vector<string> sdirs = {"/tmp/scan_includes_test/src"};
-    string impext = ".cpp";
+    vector<string> impexts = {".cpp"};
     vector<string> visited;
 
     bool thrown = false;
     try {
-        scan_includes(mtx, "/tmp/scan_includes_test/src/main.cpp", depmap, idirs, sdirs, impext, visited, false);
+        scan_includes(mtx, "/tmp/scan_includes_test/src/main.cpp", depmap, idirs, sdirs, impexts, visited, false);
     } catch (exception &e) {
         thrown = true;
         string what = e.what();
@@ -435,9 +445,9 @@ void test_build_scan_includes_circular() {
     depmap_t depmap;
     vector<string> idirs = {"/tmp/scan_includes_test/include"};
     vector<string> sdirs = {"/tmp/scan_includes_test/src"};
-    string impext = ".cpp";
+    vector<string> impexts = {".cpp"};
     vector<string> visited;
-    scan_includes(mtx, "/tmp/scan_includes_test/include/a.h", depmap, idirs, sdirs, impext, visited, false);
+    scan_includes(mtx, "/tmp/scan_includes_test/include/a.h", depmap, idirs, sdirs, impexts, visited, false);
 
     test_fs::cleanup("/tmp/scan_includes_test/");
 

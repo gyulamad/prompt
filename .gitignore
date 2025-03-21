@@ -5,3 +5,4 @@ config*.json
 .fuse_hidden*
 rec_*.wav
 ctags.json
+coverage/
