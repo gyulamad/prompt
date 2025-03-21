@@ -1,12 +1,12 @@
 
 #include <mutex>
 
-#include "utils/Test.hpp"
-#include "utils/Config.hpp"
-#include "utils/fnames.hpp"
-#include "utils/foreach.hpp"
+#include "../utils/Test.hpp"
+#include "../utils/Config.hpp"
+#include "../utils/fnames.hpp"
+#include "../utils/foreach.hpp"
 
-#include "build/build.hpp"
+#include "./build.hpp"
 
 using namespace std;
 using namespace tools::utils;
@@ -41,6 +41,7 @@ int safe_main(int argc, char* argv[]) {
         bool verbose = config.get<bool>(mode + ".verbose", false);
 
         if (verbose) {
+            cout << "======= COMPILE =======" << endl;
             cout << "Mode ..........: " << mode << endl;
             cout << "Input file ....: " << infile << endl;
             cout << "Output file ...: " << outfile << endl;
