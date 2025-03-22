@@ -13,6 +13,120 @@ using namespace tools::utils;
 
 namespace tools::build {
 
+    struct build_config {
+        bool verbose = true;
+        string build_folder = "";
+        string output_extension = "";
+        string object_extension = ".o";
+        vector<string> source_extensions = {".cpp", ".c"};
+        vector<string> flags = {};
+        vector<string> libs = {};
+        vector<string> include_path = {};
+        vector<string> source_path = {};
+
+        string input_file;
+        string input_path;
+        string output_file;
+        string hash;
+
+        build_config(Arguments& args, const string& fsuffix = "compile.json") {
+            if (verbose) cout << "Setup configuration..." << endl;
+
+            if (!args.has(1)) throw ERROR("Input file argument is missing.");
+            input_file = get_absolute_path(args.get<string>(1));
+            if (!file_exists(input_file)) throw ERROR("Input file not found: " + input_file);
+            if (verbose) cout << "Input file found: " << input_file << endl;
+
+            input_path = get_absolute_path(get_path(input_file));
+
+            string exename = get_absolute_path(args.get<string>(0));
+            apply_cfg(args, exename + "/" + fsuffix);
+
+            apply_cfg(args, input_path + "/" + fsuffix);
+            apply_cfg(args, replace_extension(input_file, "." + fsuffix));
+            if (args.has("config")) {
+                string cfgfile = args.get<string>("config");
+                apply_cfg(args, cfgfile);
+                apply_cfg(args, replace_extension(input_file, "." + cfgfile + "." + fsuffix));
+            }
+
+            string outfname = replace_extension(remove_path(input_file), output_extension);
+            output_file = get_absolute_path(build_folder + "/" + outfname);
+
+            hash = get_hash(hash);
+        }
+
+    private:
+        void apply_cfg(Arguments& args, const string& cfgfile) {
+            if (verbose) cout << "Looking for configuration at file: " + cfgfile + " ..." << flush;
+            if (!file_exists(cfgfile)) {
+                if (verbose) cout << " [not found]" << endl;
+                return;
+            }
+            
+            if (verbose) cout << " [found] loading into..." << flush;
+            
+            JSON cfg(tpl_replace("{{input-path}}", input_path, file_get_contents(cfgfile)));
+            Settings settings(args, cfg);
+            verbose = settings.get<bool>("verbose", verbose);
+
+            #define SHOWCFG_STRING(var, label) if (verbose) cout << "\n\t" << label << ": " << var << flush;
+
+            #define SHOWCFG_VECTOR(var, label) \
+            if (verbose) { \
+                cout << "\n\t" << label << ":" << flush; \
+                for (const string& s: var) cout << "\n\t\t" << s << flush; \
+            }
+
+            #define LOADCFG_STRING(var, name, label) \
+                var = settings.get<string>(name, var); \
+
+
+            #define LOADCFG_STRING_PATH(var, name, label) \
+                LOADCFG_STRING(var, name, label) \
+                var = str_starts_with("/", var) ? var : get_absolute_path(input_path + "/" + var);
+
+            #define LOADCFG_VECTOR(var, name, label) \
+                var = array_merge(var, settings.get<vector<string>>(name, var)); \
+                // SHOWCFG_VECTOR(var, label)
+
+            #define LOADCFG_VECTOR_PATH(var, name, label) \
+                LOADCFG_VECTOR(var, name, label) \
+                foreach (var, [&](string& path) { path = str_starts_with("/", path) ? path : get_absolute_path(input_path + "/" + path); });
+
+
+            #define LOADSHOWCFG_STRING(var, name, label) \
+                LOADCFG_STRING(var, name, label) \
+                SHOWCFG_STRING(var, label)
+
+            #define LOADSHOWCFG_STRING_PATH(var, name, label) \
+                LOADCFG_STRING_PATH(var, name, label) \
+                SHOWCFG_STRING(var, label)
+
+
+            #define LOADSHOWCFG_VECTOR(var, name, label) \
+                LOADCFG_VECTOR(var, name, label) \
+                SHOWCFG_VECTOR(var, label)
+
+            #define LOADSHOWCFG_VECTOR_PATH(var, name, label) \
+                LOADCFG_VECTOR_PATH(var, name, label) \
+                SHOWCFG_VECTOR(var, label)
+
+            LOADSHOWCFG_STRING_PATH(build_folder, "build-folder", "Build folder")
+            LOADSHOWCFG_STRING(output_extension, "output-extension", "Output extension")
+            LOADSHOWCFG_STRING(object_extension, "object-extension", "Object extension")
+            LOADSHOWCFG_VECTOR(source_extensions, "source-extensions", "Source extensions")
+            LOADSHOWCFG_VECTOR(flags, "flags", "flags")
+            LOADSHOWCFG_VECTOR(libs, "libs", "libs")
+            LOADSHOWCFG_VECTOR_PATH(include_path, "include-path", "Include path")
+            LOADSHOWCFG_VECTOR_PATH(source_path, "source-path", "Source path")
+
+            hash += settings.hash();
+
+            if (verbose) cout << endl << cfgfile << " [applied]" << endl;
+        }
+    };
+
     typedef map<string, map<string, string>> depmap_t;
 
     string find_impfile(const string& incfile, const vector<string>& srcdirs, const string& impext) {
