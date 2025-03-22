@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <map>
 #include <functional>
+#include <set>
 
 #include "ERROR.hpp"
 
@@ -48,17 +49,18 @@ namespace tools::utils {
     // Function to merge two vectors
     template <typename T>
     vector<T> array_merge(const vector<T>& vec1, const vector<T>& vec2) {
-        vector<T> result;
-
-        // Reserve space to avoid repeated reallocations
-        result.reserve(vec1.size() + vec2.size());
-
-        // Add elements from the first vector
-        result.insert(result.end(), vec1.begin(), vec1.end());
-
-        // Add elements from the second vector
-        result.insert(result.end(), vec2.begin(), vec2.end());
-
+        // Use a set to ensure uniqueness
+        set<T> unique_elements;
+    
+        // Insert elements from vec1
+        unique_elements.insert(vec1.begin(), vec1.end());
+    
+        // Insert elements from vec2 (duplicates are automatically ignored)
+        unique_elements.insert(vec2.begin(), vec2.end());
+    
+        // Convert set back to vector
+        vector<T> result(unique_elements.begin(), unique_elements.end());
+    
         return result;
     }
 
@@ -437,6 +439,60 @@ void test_array_merge_custom_objects() {
     vector<Point> result = array_merge(vec1, vec2);
     vector<Point> expected = {{1, 2}, {3, 4}, {5, 6}};
     assert(result == expected && "Merge custom objects");
+}
+
+// Test merging two empty vectors
+void test_array_merge_empty_vectors() {
+    vector<string> vec1 = {};
+    vector<string> vec2 = {};
+    vector<string> actual = array_merge(vec1, vec2);
+    vector<string> expected = {};
+    assert(vector_equal(actual, expected) && "Merging two empty vectors should result in an empty vector");
+}
+
+// Test merging one empty and one non-empty vector
+void test_array_merge_empty_and_nonempty() {
+    vector<string> vec1 = {};
+    vector<string> vec2 = {"a", "b"};
+    vector<string> actual = array_merge(vec1, vec2);
+    vector<string> expected = {"a", "b"};
+    assert(vector_equal(actual, expected) && "Merging empty with non-empty should return non-empty vector without duplicates");
+}
+
+// Test merging two vectors with no duplicates
+void test_array_merge_no_duplicates() {
+    vector<string> vec1 = {"a", "b"};
+    vector<string> vec2 = {"c", "d"};
+    vector<string> actual = array_merge(vec1, vec2);
+    vector<string> expected = {"a", "b", "c", "d"};
+    assert(vector_equal(actual, expected) && "Merging vectors with no duplicates should combine all elements");
+}
+
+// Test merging vectors with some duplicates
+void test_array_merge_with_duplicates() {
+    vector<string> vec1 = {"a", "b", "c"};
+    vector<string> vec2 = {"b", "c", "d"};
+    vector<string> actual = array_merge(vec1, vec2);
+    vector<string> expected = {"a", "b", "c", "d"};
+    assert(vector_equal(actual, expected) && "Merging vectors with duplicates should result in unique elements only");
+}
+
+// Test merging vectors where all elements are duplicates
+void test_array_merge_all_duplicates() {
+    vector<string> vec1 = {"a", "b"};
+    vector<string> vec2 = {"a", "b"};
+    vector<string> actual = array_merge(vec1, vec2);
+    vector<string> expected = {"a", "b"};
+    assert(vector_equal(actual, expected) && "Merging vectors with all duplicates should result in unique elements only");
+}
+
+// Test merging with numeric type to ensure template works
+void test_array_merge_numeric_type() {
+    vector<int> vec1 = {1, 2, 3};
+    vector<int> vec2 = {2, 3, 4};
+    vector<int> actual = array_merge(vec1, vec2);
+    vector<int> expected = {1, 2, 3, 4};
+    assert(vector_equal(actual, expected) && "Merging numeric vectors with duplicates should result in unique elements only");
 }
 
 void test_array_dump_basic() {
@@ -1000,6 +1056,13 @@ TEST(test_array_merge_empty_second_vector);
 TEST(test_array_merge_both_empty_vectors);
 TEST(test_array_merge_strings);
 TEST(test_array_merge_large_vectors);
+TEST(test_array_merge_custom_objects);
+TEST(test_array_merge_empty_vectors);
+TEST(test_array_merge_empty_and_nonempty);
+TEST(test_array_merge_no_duplicates);
+TEST(test_array_merge_with_duplicates);
+TEST(test_array_merge_all_duplicates);
+TEST(test_array_merge_numeric_type);
 TEST(test_sort_basic);
 TEST(test_sort_empty_vector);
 TEST(test_sort_single_element);

@@ -1,0 +1,18 @@
+{
+    "build-folder": "../builds",
+    "include-path": [
+        "../libs/ggerganov/whisper.cpp/include",
+        "../libs/ggerganov/whisper.cpp/ggml/include"
+    ],
+    "flags": [
+        "-std=c++20"
+    ],
+    "libs": [
+        "{{input-path}}/../libs/ggerganov/whisper.cpp/build/src/libwhisper.so.1.7.4", 
+        "-Wl,-rpath,{{input-path}}/../libs/ggerganov/whisper.cpp/build/src",  // <-- Add this
+        "-lrt", "-lm", "-lasound", //"-ljack", 
+        "-lportaudio", //"-lwhisper",
+        "-lcurl",
+        "-pthread"
+    ]
+}

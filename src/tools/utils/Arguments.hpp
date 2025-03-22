@@ -15,6 +15,8 @@ namespace tools::utils {
         vector<string> args;
 
     public:
+        using Key = pair<string, string>;
+
         // Constructor that initializes from command-line arguments
         Arguments(int argc, char* argv[]) {
             for (int i = 0; i < argc; i++) 
@@ -26,26 +28,36 @@ namespace tools::utils {
         }
 
         // Check if an argument exists
-        bool has(const string& key) const {
-            string prefixed_key = "--" + key;
+        bool has(const string& key, const string& prefix = "--") const {
+            string prefixed_key = prefix + key;
             for (const auto& arg : args) 
                 if (arg == prefixed_key || str_starts_with(arg, prefixed_key + "=")) 
                     return true;
             return false;
         }
 
+        bool has(const Key& keys, const string& prefix = "--", const string& prefix_short = "-") const {
+            return has(keys.first, prefix) || has(keys.second, prefix_short);
+        }
+
         // Check if an argument exists
         bool has(size_t at) const {
-            return at > args.size();
+            return at < args.size();
         }
 
         // Get the index of a specific argument
-        long int indexOf(const string& arg) const {
-            string prefixed_key = "--" + arg;
+        long int indexOf(const string& arg, const string& prefix = "--") const {
+            string prefixed_key = prefix + arg;
             for (size_t i = 0; i < args.size(); ++i)
                 if (args[i] == prefixed_key || str_starts_with(args[i], prefixed_key + "=")) 
                     return (long int)(i);
             return -1;
+        }
+        
+        long int indexOf(const Key& keys, const string& prefix = "--", const string& prefix_short = "-") const {
+            long int longIdx = indexOf(keys.first, prefix);
+            if (longIdx != -1) return longIdx;
+            return indexOf(keys.second, prefix_short);
         }
 
         //  =================================== Bool (deprecated) ===================================
@@ -88,7 +100,7 @@ namespace tools::utils {
 
         // Get a string value at position
         const string getString(size_t at) const {
-            if (has(at)) throw ERROR("Missing argument at: " + to_string(at));
+            if (!has(at)) throw ERROR("Missing argument at: " + to_string(at));
             return args[at];
         }
 
@@ -155,12 +167,12 @@ namespace tools::utils {
 
         // Templated getter for key-based lookup
         template<typename T>
-        T get(const string& key) const {
-            long int idx = indexOf(key);
+        T get(const string& key, const string& prefix = "--") const {
+            long int idx = indexOf(key, prefix);
             if (idx == -1) throw ERROR("Missing argument: " + key);
 
             string arg = args[idx];
-            string prefixed_key = "--" + key + "=";
+            string prefixed_key = prefix + key + "=";
             if (str_starts_with(arg, prefixed_key)) {
                 // Extract value after "="
                 string value = arg.substr(prefixed_key.length());
@@ -173,37 +185,57 @@ namespace tools::utils {
             else
                 throw ERROR("Missing value for argument: " + key);
         }
+        
+        template<typename T>
+        T get(const Key& keys, const string& prefix = "--", const string& prefix_short = "-") const {
+            if (has(keys.first, prefix)) return get<T>(keys.first, prefix);
+            else if (has(keys.second, prefix_short)) return get<T>(keys.second, prefix_short);
+            else throw ERROR("Missing argument: " + prefix + keys.first + " (or " + prefix_short + keys.second + ")");
+        }
 
         // Templated getter with default value for key-based lookup
         template<typename T>
-        T get(const string& key, const T& defval) const {
-            return has(key) ? get<T>(key) : defval;
+        T get(const string& key, const T& defval, const string& prefix = "--") const {
+            return has(key, prefix) ? get<T>(key, prefix) : defval;
+        }
+
+        template<typename T>
+        T get(const Key& keys, const T& defval, const string& prefix = "--", const string& prefix_short = "-") const {
+            return has(keys, prefix, prefix_short) ? get<T>(keys, prefix, prefix_short) : defval;
         }
 
         // Templated getter for positional lookup
         template<typename T>
         T get(size_t at) const {
-            if (has(at)) throw ERROR("Missing argument at: " + to_string(at));
+            if (!has(at)) throw ERROR("Missing argument at: " + to_string(at));
             return parse<T>(args[at]);
         }
 
         // Templated getter with default value for positional lookup
         template<typename T>
         T get(size_t at, const T& defval) const {
-            return has(at) ? defval : parse<T>(args[at]);
+            return !has(at) ? defval : parse<T>(args[at]);
         }
     };
     
-    // Specialization for bool with key (flag presence)
     template<>
-    inline bool Arguments::get<bool>(const string& key) const {
-        return has(key);
+    inline bool Arguments::get<bool>(const string& key, const string& prefix) const {
+        return has(key, prefix);
     }
 
-    // Specialization for bool with key and default value
     template<>
-    inline bool Arguments::get<bool>(const string& key, const bool& defval) const {
-        return has(key) ? true : defval;
+    inline bool Arguments::get<bool>(const string& key, const bool& defval, const string& prefix) const {
+        return has(key, prefix) ? true : defval;
+    }
+    
+    template<>
+    inline bool Arguments::get<bool>(const Key& keys, const string& prefix, const string& prefix_short) const {
+        return has(keys, prefix, prefix_short);
+    }
+
+    template<>
+    inline bool Arguments::get<bool>(const Key& keys, const bool& defval, const string& prefix, const string& prefix_short) const {
+        return has(keys, prefix, prefix_short) ? true : defval;
     }
     
 }
@@ -379,6 +411,85 @@ void test_Arguments_getInt_invalid() {
     assert(thrown && "getInt should throw an exception for invalid integer");
 }
 
+// ----- Tests for short flags -----
+
+// Helper to create Arguments from a vector of strings
+Arguments createArgs(const vector<string>& input) {
+    vector<char*> argv;
+    for (auto& s : input) argv.push_back(const_cast<char*>(s.c_str()));
+    return Arguments(static_cast<int>(argv.size()), argv.data());
+}
+
+// Test has() with short flag
+void test_Arguments_has_short_flag() {
+    Arguments args = createArgs({"program", "-v"});
+    bool actual = args.has(pair("verbose", "v"));
+    assert(actual == true && "Short flag -v should be detected");
+}
+
+// Test has() with missing short flag
+void test_Arguments_has_short_flag_missing() {
+    Arguments args = createArgs({"program"});
+    bool actual = args.has(pair("verbose", "v"));
+    assert(actual == false && "Missing short flag -v should return false");
+}
+
+// Test get<bool> with short flag
+void test_Arguments_get_bool_short_flag() {
+    Arguments args = createArgs({"program", "-v"});
+    bool actual = args.get<bool>(pair("verbose", "v"));
+    assert(actual == true && "Short flag -v should return true for bool");
+}
+
+// Test get<bool> with short flag and default value
+void test_Arguments_get_bool_short_flag_default() {
+    Arguments args = createArgs({"program"});
+    bool actual = args.get<bool>(pair("verbose", "v"), false);
+    assert(actual == false && "Missing short flag -v should return default false");
+}
+
+// Test get<int> with short flag and value
+void test_Arguments_get_int_short_flag_value() {
+    Arguments args = createArgs({"program", "-c", "42"});
+    int actual = args.get<int>(pair("count", "c"));
+    assert(actual == 42 && "Short flag -c with value 42 should return 42");
+}
+
+// Test get<int> with short flag missing value
+void test_Arguments_get_int_short_flag_missing_value() {
+    Arguments args = createArgs({"program", "-c"});
+    bool thrown = false;
+    string what;
+    try {
+        args.get<int>(pair("count", "c"));
+    } catch (exception& e) {
+        thrown = true;
+        what = e.what();
+        assert(str_contains(what, "Missing value for argument: c") && "Exception message should indicate missing value for -c");
+    }
+    assert(thrown && "Short flag -c without value should throw");
+}
+
+// Test get<string> with short flag and value
+void test_Arguments_get_string_short_flag_value() {
+    Arguments args = createArgs({"program", "-f", "data.txt"});
+    string actual = args.get<string>(pair("file", "f"));
+    assert(actual == "data.txt" && "Short flag -f with value data.txt should return data.txt");
+}
+
+// Test get<int> with short flag and default value
+void test_Arguments_get_int_short_flag_default() {
+    Arguments args = createArgs({"program"});
+    int actual = args.get<int>(pair("count", "c"), 10);
+    assert(actual == 10 && "Missing short flag -c should return default 10");
+}
+
+// Test get<int> with both long and short flags present (long takes precedence)
+void test_Arguments_get_int_short_and_long_flags() {
+    Arguments args = createArgs({"program", "--count", "100", "-c", "42"});
+    int actual = args.get<int>(pair("count", "c"));
+    assert(actual == 100 && "Long flag --count should take precedence over -c");
+}
 
 TEST(test_Arguments_has_found);
 TEST(test_Arguments_has_not_found);
@@ -392,5 +503,14 @@ TEST(test_Arguments_getString_at_valid);
 TEST(test_Arguments_getString_at_out_of_bounds);
 TEST(test_Arguments_getInt_valid);
 TEST(test_Arguments_getInt_invalid);
+TEST(test_Arguments_has_short_flag);
+TEST(test_Arguments_has_short_flag_missing);
+TEST(test_Arguments_get_bool_short_flag);
+TEST(test_Arguments_get_bool_short_flag_default);
+TEST(test_Arguments_get_int_short_flag_value);
+TEST(test_Arguments_get_int_short_flag_missing_value);
+TEST(test_Arguments_get_string_short_flag_value);
+TEST(test_Arguments_get_int_short_flag_default);
+TEST(test_Arguments_get_int_short_and_long_flags);
 
 #endif

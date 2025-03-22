@@ -1,5 +1,5 @@
 {
-    "mode": "fast",
+    // "mode": "fast",
     "debug": {
         "verbose": true,
         "build-folder": "../builds",

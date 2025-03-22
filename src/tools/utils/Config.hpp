@@ -7,27 +7,21 @@
 
 using namespace std;
 
-#define DEFCEXT ".complile.json"
-
 namespace tools::utils {
+
+    // TODO: !!! DEPRECATED !!! - use Settings instead!
     class Config {
     public:
 
-        Config(int argc, char* argv[], const string* cfile = nullptr, const string& cext = DEFCEXT): 
+        Config(int argc, char* argv[], const string& cfile = ""): 
             args(argc, argv), 
-            json(!cfile ? "{}" : (
-                cfile->empty() 
-                    ? file_get_contents(args.getString(0) + cext)
-                    : (file_exists(*cfile) ? file_get_contents(*cfile) : *cfile)  
-            ))
+            json(cfile.empty() ? "{}" : (file_exists(cfile) ? file_get_contents(cfile) : cfile))
         {}
 
-        Config(int argc, char* argv[], const string& cfile, const string& cext = DEFCEXT): Config(argc, argv, &cfile, cext) {}
-        
         virtual ~Config() {}
 
-        void load(const string& cfile, const string& cext = DEFCEXT) {
-            json = JSON(file_get_contents(cfile + cext));
+        void load(const string& cfile) {
+            json = JSON(file_exists(cfile) ? file_get_contents(cfile) : cfile);
         }
     
         string hash() const { return get_hash(json.dump() + implode(" ", args.getArgsCRef())); }
