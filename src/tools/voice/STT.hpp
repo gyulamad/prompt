@@ -25,10 +25,6 @@ using namespace tools;
 
 namespace tools::voice {
 
-
-
-
-    template<typename TranscriberT>
     class STT {
     public:
         // SpeechListener::RMSCallback rms_cb = [](float rms, float threshold_pc, bool loud) {};
@@ -74,11 +70,6 @@ namespace tools::voice {
             listener = new SpeechListener(
                 *monitor
             );
-            
-            // transcriber = new TranscriberT(
-            //     // stt_transcriber_model,
-            //     // stt_transcriber_lang.c_str()
-            // );
             
             recogniser = new SpeechRecogniser(
                 *recorder,

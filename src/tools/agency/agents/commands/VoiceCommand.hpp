@@ -14,7 +14,7 @@ using namespace tools::agency::agents;
 
 namespace tools::agency::agents::commands {
 
-    template<typename T, typename TranscriberT>
+    template<typename T>
     class VoiceCommand: public Command {
     public:
     
@@ -51,10 +51,10 @@ namespace tools::agency::agents::commands {
                 // get user agent
                 Agent<T>& agent = agency.getAgentRef("user");
                 if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
-                UserAgent<T, TranscriberT>& user = (UserAgent<T, TranscriberT>&)agent;
+                UserAgent<T>& user = (UserAgent<T>&)agent;
 
                 if (args[2] == "mute") {
-                    STT<TranscriberT>* stt = user.getSttPtr();
+                    STT* stt = user.getSttPtr();
                     if (!stt) return;
                     NoiseMonitor* monitor = stt->getMonitorPtr();
                     if (!monitor) return;
@@ -62,7 +62,7 @@ namespace tools::agency::agents::commands {
                     return;
                 }
                 if (args[2] == "unmute") {
-                    STT<TranscriberT>* stt = user.getSttPtr();
+                    STT* stt = user.getSttPtr();
                     if (!stt) return;
                     NoiseMonitor* monitor = stt->getMonitorPtr();
                     if (!monitor) return;

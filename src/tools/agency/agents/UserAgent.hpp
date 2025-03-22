@@ -12,7 +12,7 @@ using namespace tools::agency;
 
 namespace tools::agency::agents {
     
-    template<typename T, typename TranscriberT>
+    template<typename T>
     class UserAgent: public Agent<T> {
     public:
 
@@ -31,7 +31,7 @@ namespace tools::agency::agents {
             PackQueue<T>& queue, 
             Agency<T>& agency, 
             Commander* commander = nullptr, 
-            STT<TranscriberT>* stt = nullptr,
+            STT* stt = nullptr,
             InputPipeInterceptor* interceptor = nullptr
         ): 
             Agent<T>(queue, "user"), 
@@ -52,7 +52,7 @@ namespace tools::agency::agents {
             // if (mute_thread.joinable()) mute_thread.join();
         }
 
-        STT<TranscriberT>* getSttPtr() { return stt; }
+        STT* getSttPtr() { return stt; }
 
         void clearln() {
             cout << "\33[2K\r" << flush;
@@ -255,7 +255,7 @@ namespace tools::agency::agents {
 
         Agency<T>& agency;
         Commander* commander = nullptr;
-        STT<TranscriberT>* stt = nullptr;
+        STT* stt = nullptr;
         InputPipeInterceptor* interceptor = nullptr;
 
         mutex stt_voice_input_mutex;

@@ -46,17 +46,17 @@ int safe_main(int , char *[]) {
 
         // Map of role strings to factory functions
         map<string, function<Agent<PackT>&(Agency<PackT>&)>> roles = {
-            { "echo", [](Agency<PackT>& agency) -> Agent<string>& { return agency.template spawn<EchoAgent<PackT, WhisperAdapter>>(agency); } },
+            { "echo", [](Agency<PackT>& agency) -> Agent<string>& { return agency.template spawn<EchoAgent<PackT>>(agency); } },
         };
 
         CommandFactory cfactory;
 
-        if (in_array("help", command_factory_commands)) cfactory.withCommand<HelpCommand<PackT, WhisperAdapter>>();
+        if (in_array("help", command_factory_commands)) cfactory.withCommand<HelpCommand<PackT>>();
         if (in_array("exit", command_factory_commands)) cfactory.withCommand<ExitCommand<PackT>>();
         if (in_array("list", command_factory_commands)) cfactory.withCommand<ListCommand<PackT>>();
         if (in_array("spawn", command_factory_commands)) cfactory.withCommand<SpawnCommand<PackT>>(roles);
         if (in_array("kill", command_factory_commands)) cfactory.withCommand<KillCommand<PackT>>();
-        if (in_array("voice", command_factory_commands)) cfactory.withCommand<VoiceCommand<PackT, WhisperAdapter>>();
+        if (in_array("voice", command_factory_commands)) cfactory.withCommand<VoiceCommand<PackT>>();
 
         InputPipeInterceptor interceptor;
 
@@ -71,7 +71,7 @@ int safe_main(int , char *[]) {
         Commander commander(cline, cfactory.getCommands());
 
         WhisperAdapter whisper(whisper_model_path, whisper_lang.c_str());
-        STT<WhisperAdapter> stt(
+        STT stt(
             whisper,
             stt_voice_recorder_sample_rate,
             stt_voice_recorder_frames_per_buffer,
@@ -82,10 +82,12 @@ int safe_main(int , char *[]) {
             stt_poll_interval_ms
         );
 
+
         PackQueue<PackT> queue;
         Agency<PackT> agency(queue);
-        agency.template spawn<EchoAgent<PackT, WhisperAdapter>>(agency).async();
-        agency.template spawn<UserAgent<PackT, WhisperAdapter>>(agency, &commander, &stt, &interceptor).async();
+        agency.template spawn<EchoAgent<PackT>>(agency).async();
+        agency.template spawn<UserAgent<PackT>>(agency, &commander, &stt, &interceptor).async();
+        //cout << "Agency started" << endl;
         agency.sync();
 
     } catch (exception &e) {

@@ -62,9 +62,4 @@ namespace tools::voice {
         }
     };
 
-    class WhisperSTT: public STT<WhisperAdapter> {
-    public:
-        using STT::STT;
-    };
-
 }

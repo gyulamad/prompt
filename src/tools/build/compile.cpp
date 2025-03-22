@@ -20,12 +20,14 @@ int safe_main(int argc, char* argv[]) {
     try {
 
         mutex mtx;
+        
         Arguments args(argc, argv);
+        if (args.get<bool>("verbose")) cout << "===================== COMPILE =====================" << endl;
+
         build_config config(args);
 
 
         if (config.verbose) {
-            cout << "===================== COMPILE =====================" << endl;
             cout << "Input file ....: " << config.input_file << endl;
             cout << "Output file ...: " << config.output_file << endl;
             cout << "Hash ..........: " << config.hash << endl;

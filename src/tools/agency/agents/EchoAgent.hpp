@@ -9,7 +9,7 @@ using namespace tools::agency;
 
 namespace tools::agency::agents {
     
-    template<typename T, typename TranscriberT>
+    template<typename T>
     class EchoAgent: public Agent<T> {
     public:
         EchoAgent(PackQueue<T>& queue, Agency<T>& agency, TTS* tts = nullptr): Agent<T>(queue, "echo"), agency(agency), tts(tts) {}
@@ -20,7 +20,7 @@ namespace tools::agency::agents {
             // get user agent
             Agent<T>& agent = agency.getAgentRef("user");
             if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
-            UserAgent<T, TranscriberT>& user = (UserAgent<T, TranscriberT>&)agent;
+            UserAgent<T>& user = (UserAgent<T>&)agent;
 
             // get commander
             Commander* commander = user.getCommanderPtr();
