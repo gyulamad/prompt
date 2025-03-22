@@ -1,6 +1,11 @@
 #pragma once
 
+#include "../../voice/TTS.hpp"
+#include "../Agent.hpp"
 #include "UserAgent.hpp"
+
+using namespace tools::voice;
+using namespace tools::agency;
 
 namespace tools::agency::agents {
     

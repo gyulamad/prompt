@@ -47,7 +47,7 @@ case "$BUILD_MODE" in
         FLAGS="$STD -Ofast -march=native -funroll-loops"
         ;;
     "test")
-        FLAGS+=" -g -O0 -DTEST -DTEST_ONLY"
+        FLAGS+=" -g -O0 -DTEST -DTEST_ONLY -fprofile-arcs -ftest-coverage"
         ;;
     *)
         echo "Error: Unknown build mode '$BUILD_MODE'. Supported modes: debug, fast, test"
@@ -69,6 +69,13 @@ if [ $? -eq 0 ]; then
     if [ "$BUILD_MODE" = "test" ]; then
         echo "Executing $BUILD_PATH/compile as test..."
         "$BUILD_PATH/compile"
+        # Check if the previous command succeeded (exit status 0)
+        if [ $? -eq 0 ]; then
+            echo "Generating coverage report..."
+            eval "$SCRIPT_DIR/gencov.sh $SCRIPT_DIR/compile.cpp $BUILD_PATH/compile"
+        else
+            echo "Skipping coverage report due to test failure."
+        fi
     fi
 else
     echo "Build failed (mode: $BUILD_MODE)"

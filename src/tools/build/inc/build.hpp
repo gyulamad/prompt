@@ -14,7 +14,9 @@ using namespace tools::utils;
 namespace tools::build {
 
     struct build_config {
-        bool verbose = true;
+        bool verbose = false;
+        // bool make_temp_source = true;
+        // string temp_source_extension = ".cpp";
         string build_folder = "";
         string output_extension = "";
         string object_extension = ".o";
@@ -29,7 +31,7 @@ namespace tools::build {
         string output_file;
         string hash;
 
-        build_config(Arguments& args, const string& fsuffix = "compile.json") {
+        build_config(Arguments& args, const string& fsuffix = "compile.json"): verbose(args.get<bool>("verbose")) {
             if (verbose) cout << "Setup configuration..." << endl;
 
             if (!args.has(1)) throw ERROR("Input file argument is missing.");
@@ -38,6 +40,7 @@ namespace tools::build {
             if (verbose) cout << "Input file found: " << input_file << endl;
 
             input_path = get_absolute_path(get_path(input_file));
+            build_folder = input_path;
 
             string exename = get_absolute_path(args.get<string>(0));
             apply_cfg(args, exename + "/" + fsuffix);
@@ -66,9 +69,11 @@ namespace tools::build {
             
             if (verbose) cout << " [found] loading into..." << flush;
             
-            JSON cfg(tpl_replace("{{input-path}}", input_path, file_get_contents(cfgfile)));
+            JSON cfg(str_replace("{{input-path}}", input_path, file_get_contents(cfgfile)));
             Settings settings(args, cfg);
             verbose = settings.get<bool>("verbose", verbose);
+
+            #define SHOWCFG_BOOL(var, label) if (verbose) cout << "\n\t" << label << ": " << (var ? "ON" : "OFF") << flush;
 
             #define SHOWCFG_STRING(var, label) if (verbose) cout << "\n\t" << label << ": " << var << flush;
 
@@ -78,12 +83,21 @@ namespace tools::build {
                 for (const string& s: var) cout << "\n\t\t" << s << flush; \
             }
 
+            #define LOADCFG_BOOL_BUT_KEEPS_TRUE(var, name, label) \
+                if (settings.get<bool>(name, var)) var = true;
+
+            #define LOADCFG_BOOL(var, name, label) \
+                var = settings.get<bool>(name, var);
+
             #define LOADCFG_STRING(var, name, label) \
                 var = settings.get<string>(name, var); \
 
+            #define LOADCFG_STRING_BUT_KEEPS_NONEMPTY(var, name, label) \
+                if (settings.has(name) && !settings.get<string>(name, var).empty()) var = settings.get<string>(name, var); \
 
-            #define LOADCFG_STRING_PATH(var, name, label) \
-                LOADCFG_STRING(var, name, label) \
+
+            #define LOADCFG_STRING_PATH_BUT_KEEPS_NONEMPTY(var, name, label) \
+                LOADCFG_STRING_BUT_KEEPS_NONEMPTY(var, name, label) \
                 var = str_starts_with("/", var) ? var : get_absolute_path(input_path + "/" + var);
 
             #define LOADCFG_VECTOR(var, name, label) \
@@ -95,12 +109,21 @@ namespace tools::build {
                 foreach (var, [&](string& path) { path = str_starts_with("/", path) ? path : get_absolute_path(input_path + "/" + path); });
 
 
-            #define LOADSHOWCFG_STRING(var, name, label) \
-                LOADCFG_STRING(var, name, label) \
+            #define LOADSHOWCFG_BOOL_BUT_KEEPS_TRUE(var, name, label) \
+                LOADCFG_BOOL_BUT_KEEPS_TRUE(var, name, label) \
+                SHOWCFG_BOOL(var, label)
+
+            #define LOADSHOWCFG_BOOL(var, name, label) \
+                LOADCFG_BOOL(var, name, label) \
+                SHOWCFG_BOOL(var, label)
+
+
+            #define LOADSHOWCFG_STRING_PATH_BUT_KEEPS_NONEMPTY(var, name, label) \
+                LOADCFG_STRING_PATH_BUT_KEEPS_NONEMPTY(var, name, label) \
                 SHOWCFG_STRING(var, label)
 
-            #define LOADSHOWCFG_STRING_PATH(var, name, label) \
-                LOADCFG_STRING_PATH(var, name, label) \
+            #define LOADSHOWCFG_STRING(var, name, label) \
+                LOADCFG_STRING(var, name, label) \
                 SHOWCFG_STRING(var, label)
 
 
@@ -112,7 +135,11 @@ namespace tools::build {
                 LOADCFG_VECTOR_PATH(var, name, label) \
                 SHOWCFG_VECTOR(var, label)
 
-            LOADSHOWCFG_STRING_PATH(build_folder, "build-folder", "Build folder")
+
+            LOADSHOWCFG_BOOL_BUT_KEEPS_TRUE(verbose, "verbose", "Verbose")
+            // LOADSHOWCFG_BOOL(make_temp_source, "make-temp-source", "Make temp source")
+            // LOADSHOWCFG_STRING(temp_source_extension, "temp-source-extension", "Temp source extension")
+            LOADSHOWCFG_STRING_PATH_BUT_KEEPS_NONEMPTY(build_folder, "build-folder", "Build folder")
             LOADSHOWCFG_STRING(output_extension, "output-extension", "Output extension")
             LOADSHOWCFG_STRING(object_extension, "object-extension", "Object extension")
             LOADSHOWCFG_VECTOR(source_extensions, "source-extensions", "Source extensions")
@@ -1298,8 +1325,178 @@ void test_build_get_alldepfmtime_missing_dep() {
     assert(thrown && "Should throw when a dependency file is missing");
 }
     
+// Test constructor with missing input file argument
+void test_build_config_constructor_missing_input() {
+    char* argv[] = {(char*)"program"};
+    Arguments args(1, argv);
+    bool thrown = false;
+    string what;
 
-    // TODO: then add coverage report
+    try {
+        build_config config(args);
+    } catch (exception& e) {
+        thrown = true;
+        what = e.what();
+        assert(str_contains(what, "Input file argument is missing") && "Exception message should indicate missing input");
+    }
+
+    assert(thrown && "Constructor should throw when input argument is missing");
+}
+
+// Test constructor with non-existent input file
+void test_build_config_constructor_input_not_found() {
+    char* argv[] = {(char*)"program", (char*)"nonexistent.cpp"};
+    Arguments args(2, argv);
+    bool thrown = false;
+    string what;
+
+    try {
+        build_config config(args);
+    } catch (exception& e) {
+        thrown = true;
+        what = e.what();
+        assert(str_contains(what, "Input file not found: ") && "Exception message should indicate file not found");
+    }
+
+    assert(thrown && "Constructor should throw when input file doesn’t exist");
+}
+
+// Test constructor with valid input, no config files
+void test_build_config_constructor_valid_input_no_config() {
+    // Create a temporary input file
+    string input_file = "test_input.cpp";
+    ofstream ofs(input_file);
+    ofs << "// Dummy file" << endl;
+    ofs.close();
+
+    char* argv[] = {(char*)"program", (char*)input_file.c_str()};
+    Arguments args(2, argv);
+    build_config config(args);
+
+    string expected_input_file = get_absolute_path(input_file);
+    string expected_input_path = get_path(expected_input_file);
+    string expected_output = get_absolute_path(config.build_folder + "/" + replace_extension(remove_path(input_file), config.output_extension));
+    vector<string> expected_source_extensions = {".cpp", ".c"};
+
+    assert(config.input_file == expected_input_file && "Input file should be absolute path");
+    assert(config.input_path == expected_input_path && "Input path should be absolute directory of input file");
+    assert(config.output_file == expected_output && "Output file should be absolute path with default extension");
+    assert(config.verbose == false && "Verbose should remain false (default) without config");
+    assert(config.source_extensions == expected_source_extensions && "Source extensions should remain default without config");
+
+    // Clean up
+    fs::remove(input_file);
+}
+
+// Test constructor with config file that exists
+void test_build_config_constructor_with_config() {
+    string input_file = "test_input.cpp";
+    ofstream ofs(input_file);
+    ofs << "// Dummy file" << endl;
+    ofs.close();
+
+    string config_file = "test_input.compile.json";
+    ofstream cfg(config_file);
+    cfg << R"({
+        "verbose": false,
+        "build-folder": "build",
+        "output-extension": ".out",
+        "source-extensions": [".cxx"]
+    })" << endl;
+    cfg.close();
+
+    char* argv[] = {(char*)"program", (char*)input_file.c_str(), (char*)"--verbose"};
+    Arguments args(3, argv); // Fixed: 3 arguments to include --verbose
+    build_config* config = nullptr;
+    capture_cout([&](){
+        config = new build_config(args);
+    });    
+    assert(config);
+
+    string expected_input_file = get_absolute_path(input_file);
+    string expected_input_path = get_path(expected_input_file);
+    string expected_build_folder = get_absolute_path(expected_input_path + "/build");
+    string expected_output = get_absolute_path(expected_build_folder + "/" + replace_extension(remove_path(input_file), ".out"));
+    vector<string> expected_source_extensions = {".cpp", ".c", ".cxx"};
+
+    assert(config->input_file == expected_input_file && "Input file should be absolute path");
+    assert(config->verbose == true && "Verbose should stay true if set to true already, especially by argument --verbose, ignoring config false");
+    assert(config->build_folder == expected_build_folder && "Build folder should be set from config as absolute path");
+    assert(config->output_extension == ".out" && "Output extension should be set from config");
+    assert(vector_equal(config->source_extensions, expected_source_extensions) && "Source extensions should merge with config values");
+    assert(config->output_file == expected_output && "Output file should reflect config settings");
+
+    delete config;
+
+    fs::remove(input_file);
+    fs::remove(config_file);
+}
+
+// Test constructor with named config argument
+void test_build_config_constructor_with_named_config() {
+    // Create a temporary input file
+    string input_file = "test_input.cpp";
+    ofstream ofs(input_file);
+    ofs << "// Dummy file" << endl;
+    ofs.close();
+
+    // Create a temporary config file
+    string config_file = "custom_config.json";
+    ofstream cfg(config_file);
+    cfg << R"({
+        "verbose": false,
+        "flags": ["-O2"]
+    })" << endl;
+    cfg.close();
+
+    char* argv[] = {(char*)"program", (char*)input_file.c_str(), (char*)"--config=custom_config.json"};
+    Arguments args(3, argv);
+    build_config config(args);
+
+    string expected_input = get_absolute_path(input_file);
+    string expected_output = get_absolute_path(config.build_folder + "/" + replace_extension(remove_path(input_file), config.output_extension));
+
+    assert(config.input_file == expected_input && "Input file should be absolute path");
+    assert(config.verbose == false && "Verbose should be overridden by named config");
+    assert(vector_equal(config.flags, vector<string>{"-O2"}) && "Flags should be set from named config");
+    assert(config.output_file == expected_output && "Output file should use default extension with empty build_folder");
+
+    // Clean up
+    fs::remove(input_file);
+    fs::remove(config_file);
+}
+
+// Test hash uniqueness with different configs
+void test_build_config_constructor_hash_uniqueness() {
+    string input_file = "test_input.cpp";
+    ofstream ofs(input_file);
+    ofs << "// Dummy file" << endl;
+    ofs.close();
+
+    // First instance with default config
+    char* argv1[] = {(char*)"program", (char*)input_file.c_str()};
+    Arguments args1(2, argv1);
+    build_config config1(args1);
+    string hash1 = config1.hash;
+
+    // Second instance with a config file
+    string config_file = "test_input.compile.json"; // Fixed: Match input_file name
+    ofstream cfg(config_file);
+    cfg << R"({
+        "flags": ["-O2"]
+    })" << endl;
+    cfg.close();
+
+    char* argv2[] = {(char*)"program", (char*)input_file.c_str()};
+    Arguments args2(2, argv2);
+    build_config config2(args2);
+    string hash2 = config2.hash;
+
+    assert(hash1 != hash2 && "Hash should differ with different config settings");
+
+    fs::remove(input_file);
+    fs::remove(config_file);
+}
 
 // Register tests
 TEST(test_build_find_impfile_found_next_to_header);
@@ -1350,4 +1547,10 @@ TEST(test_build_get_alldepfmtime_no_deps);
 TEST(test_build_get_alldepfmtime_direct_deps);
 TEST(test_build_get_alldepfmtime_transitive_deps);
 TEST(test_build_get_alldepfmtime_missing_dep);
+TEST(test_build_config_constructor_missing_input);
+TEST(test_build_config_constructor_input_not_found);
+TEST(test_build_config_constructor_valid_input_no_config);
+TEST(test_build_config_constructor_with_config);
+TEST(test_build_config_constructor_with_named_config);
+TEST(test_build_config_constructor_hash_uniqueness);
 #endif

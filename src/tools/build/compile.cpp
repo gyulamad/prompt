@@ -18,11 +18,18 @@ using namespace tools::build;
 
 int safe_main(int argc, char* argv[]) {
     try {
-        cout << "======= COMPILE =======" << endl;
 
         mutex mtx;
         Arguments args(argc, argv);
         build_config config(args);
+
+        
+        if (config.verbose) {
+            cout << "======= COMPILE =======" << endl;
+            cout << "Input file ....: " << config.input_file << endl;
+            cout << "Output file ...: " << config.output_file << endl;
+            cout << "Hash ..........: " << config.hash << endl;
+        }
 
         
         if (!file_exists(config.build_folder)) if (!mkdir(config.build_folder)) throw ERROR("Unable to create folder: " + config.build_folder);
@@ -32,11 +39,7 @@ int safe_main(int argc, char* argv[]) {
         if (!file_exists(outpath_hash)) if (!mkdir(outpath_hash)) throw ERROR("Unable to create folder: " + outpath_hash);
         string depcachepath = outpath_hash + "/.depcache"; // TODO: to config
 
-        if (config.verbose) {
-            cout << "Input file ....: " << config.input_file << endl;
-            cout << "Output file ...: " << config.output_file << endl;
-            cout << "Hash ..........: " << config.hash << endl;
-        }
+        
 
         depmap_t depmap;
         ms_t lstmtime = filemtime_ms(config.input_file);
@@ -54,25 +57,42 @@ int safe_main(int argc, char* argv[]) {
                 string objfile = replace_extension(str_replace(config.input_path, outpath_hash, ifile), config.object_extension); \
                 if (!in_array(objfile, objfiles)) { \
                     objfiles.emplace_back(objfile); \
-                    if (!file_exists(objfile) /*|| filemtime_ms(objfile) < filemtime_ms(ifile)*/ || filemtime_ms(objfile) < get_alldepfmtime(ifile, depmap)) \
+                    if (!file_exists(objfile) || filemtime_ms(objfile) < filemtime_ms(ifile) || filemtime_ms(objfile) < get_alldepfmtime(ifile, depmap)) \
                         compile_objfile(config.flags, ifile, objfile, config.include_path, config.verbose); \
                 } \
             }
 
-            vector<string> errors;
-            vector<thread> threads;
+            vector<string> to_objfiles;
+            
             foreach (depmap, [&](map<string, string>& depfiles, const string& /*incfile*/) {
-                foreach (depfiles, [&](const string& impfile, const string& /*depfile*/) {  
-                    if (impfile.empty()) return FE_CONTINUE;
-                    threads.emplace_back([&]() {
-                        try {                  
-                            COMPILE_OBJFILE(impfile);
-                        } catch (exception& e) {
-                            lock_guard<mutex> lock(mtx);
-                            errors.push_back(e.what());
-                        }
-                    });
+                foreach (depfiles, [&](const string& impfile, const string& /*depfile*/) { 
+                    string ifile = impfile;                  
+                    if (ifile.empty()) {
+                        return FE_CONTINUE;
+                        // if (!config.make_temp_source) return FE_CONTINUE;
+                        // if (!str_starts_with(depfile, config.input_path)) return FE_CONTINUE;
+                        // ifile = replace_extension(str_replace(config.input_path, outpath_hash, depfile), config.temp_source_extension);
+                        // if (config.verbose) cout << "Using temp source file: " << ifile << endl;
+                        // if (!file_exists(ifile)) {
+                        //     if (!mkdir(get_path(ifile), true)) throw ERROR("Unable to create path: " + get_path(ifile));
+                        //     file_put_contents(ifile, "#include \"" + depfile + "\"", false, true);
+                        // }
+                    }
+                    to_objfiles.push_back(ifile);
                     return FE_CONTINUE;
+                });
+            });
+
+            vector<string> errors;
+            vector<thread> threads;               
+            foreach (to_objfiles, [&](const string& ifile) {
+                threads.emplace_back([&]() {
+                    try {                  
+                        COMPILE_OBJFILE(ifile);
+                    } catch (exception& e) {
+                        lock_guard<mutex> lock(mtx);
+                        errors.push_back(e.what());
+                    }
                 });
             });
             for (thread& t: threads) { if (t.joinable()) t.join(); }

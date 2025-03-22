@@ -1,7 +1,9 @@
 #pragma once
 
+#include "../../../cmd/Command.hpp"
 #include "../../Agency.hpp"
 
+using namespace tools::cmd;
 using namespace tools::agency;
 
 namespace tools::agency::agents::commands {

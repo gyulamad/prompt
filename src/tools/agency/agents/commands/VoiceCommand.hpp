@@ -1,10 +1,16 @@
 #pragma once
 
 #include "../../../voice/STT.hpp"
+#include "../../../utils/vectors.hpp"
+#include "../../../cmd/Command.hpp"
 #include "../../Agency.hpp"
+#include "../../agents/UserAgent.hpp"
 
 using namespace tools::voice;
+using namespace tools::utils;
+using namespace tools::cmd;
 using namespace tools::agency;
+using namespace tools::agency::agents;
 
 namespace tools::agency::agents::commands {
 

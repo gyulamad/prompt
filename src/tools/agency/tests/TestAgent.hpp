@@ -1,5 +1,9 @@
 #pragma once
 
+#include "../Agent.hpp"
+
+using namespace tools::agency;
+
 template<typename T>
 class TestAgent: public Agent<T> {
 public:

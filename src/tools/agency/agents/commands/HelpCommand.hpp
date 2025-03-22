@@ -1,10 +1,15 @@
 #pragma once
 
 #include "../../../utils/vectors.hpp"
+#include "../../../cmd/Command.hpp"
+#include "../../../cmd/Commander.hpp"
 #include "../../Agency.hpp"
+#include "../../agents/UserAgent.hpp"
 
 using namespace tools::utils;
+using namespace tools::cmd;
 using namespace tools::agency;
+using namespace tools::agency::agents;
 
 namespace tools::agency::agents::commands {
 

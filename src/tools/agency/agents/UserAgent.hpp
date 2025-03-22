@@ -3,10 +3,12 @@
 #include "../../cmd/Commander.hpp"
 #include "../../voice/STT.hpp"
 #include "../../utils/InputPipeInterceptor.hpp"
+#include "../Agent.hpp"
 
 using namespace tools::cmd;
 using namespace tools::voice;
 using namespace tools::utils;
+using namespace tools::agency;
 
 namespace tools::agency::agents {
     

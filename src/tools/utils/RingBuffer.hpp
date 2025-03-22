@@ -9,6 +9,8 @@
 #include <chrono>
 #include <thread>
 
+#include "ERROR.hpp"
+
 using namespace std;
 
 namespace tools::utils {

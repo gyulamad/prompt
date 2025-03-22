@@ -9,6 +9,7 @@
 #include <set>
 
 #include "ERROR.hpp"
+#include "foreach.hpp"
 
 namespace tools::utils {
 
