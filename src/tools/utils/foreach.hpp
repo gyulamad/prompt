@@ -265,6 +265,8 @@ namespace tools::utils {
 
 #include "Test.hpp"
 
+using namespace tools::utils;
+
 void test_ContainerTraits_vector_iterate_no_index_no_break() {
     vector<int> vec = {1, 2, 3};
     vector<int> result;

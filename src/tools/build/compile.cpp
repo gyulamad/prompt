@@ -4,10 +4,10 @@
 
 #include <mutex>
 
-#include "../utils/Test.hpp"
+#include "../utils/foreach.hpp"
 #include "../utils/Settings.hpp"
 #include "../utils/fnames.hpp"
-#include "../utils/foreach.hpp"
+#include "../utils/Test.hpp"
 
 #include "inc/build.hpp"
 
@@ -23,9 +23,9 @@ int safe_main(int argc, char* argv[]) {
         Arguments args(argc, argv);
         build_config config(args);
 
-        
+
         if (config.verbose) {
-            cout << "======= COMPILE =======" << endl;
+            cout << "===================== COMPILE =====================" << endl;
             cout << "Input file ....: " << config.input_file << endl;
             cout << "Output file ...: " << config.output_file << endl;
             cout << "Hash ..........: " << config.hash << endl;
