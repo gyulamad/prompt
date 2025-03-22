@@ -4,7 +4,7 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Default values
-DEFAULT_BUILD_PATH="$SCRIPT_DIR/../../../builds"
+DEFAULT_BUILD_PATH="$SCRIPT_DIR/bin"
 DEFAULT_BUILD_MODE="fast"
 
 # Initialize variables
