@@ -45,24 +45,6 @@ namespace tools::utils {
 
         return result;
     }
-    
-    // Function to merge two vectors
-    template <typename T>
-    vector<T> array_merge(const vector<T>& vec1, const vector<T>& vec2) {
-        // Use a set to ensure uniqueness
-        set<T> unique_elements;
-    
-        // Insert elements from vec1
-        unique_elements.insert(vec1.begin(), vec1.end());
-    
-        // Insert elements from vec2 (duplicates are automatically ignored)
-        unique_elements.insert(vec2.begin(), vec2.end());
-    
-        // Convert set back to vector
-        vector<T> result(unique_elements.begin(), unique_elements.end());
-    
-        return result;
-    }
 
     template<typename T>
     void array_dump(vector<T> vec, bool dbg = true) {
@@ -282,6 +264,14 @@ namespace tools::utils {
             ++i;
         }
         return vec;
+    }
+    
+    // Function to merge two vectors
+    template <typename T>
+    vector<T> array_merge(const vector<T>& vec1, const vector<T>& vec2) {
+        vector<T> results = vec1;
+        foreach (vec2, [&](const T& item) { if (!in_array(item, results)) results.push_back(item); });
+        return results;
     }
 
 };
