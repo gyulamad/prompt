@@ -5,7 +5,6 @@
 #include <algorithm>
 
 #include "ERROR.hpp"
-#include "strings.hpp"
 
 using namespace std;
 

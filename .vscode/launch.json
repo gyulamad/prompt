@@ -100,7 +100,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/builds/compile", // Update this path if needed
             "args": [
-                "src/prompt.cpp"
+                "src/prompt.cpp",
+                "--config=test"
             ], // Add program arguments if necessary
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

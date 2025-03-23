@@ -14,18 +14,14 @@
 
 #include <string>
 #include <vector>
-using namespace std;
-
-#ifdef TEST
-
 #include <iostream>
 #include <functional>
 #include <chrono>
 
-#include "ANSI_FMT.hpp"
-#include "ERROR.hpp"
+using namespace std;
 
-using namespace tools::utils;
+
+#ifdef TEST
 
 #define TEST_SKIP(...) { \
     const char* msg = #__VA_ARGS__; \
@@ -39,6 +35,7 @@ using namespace tools::utils;
 #ifdef assert
 #undef assert
 #endif
+// void assert(bool expr) { if (!(expr)) throw ERROR("Assert failed"; }
 #define assert(expr) if (!(expr)) throw ERROR("Assert failed: "#expr);
 #endif
 
@@ -73,13 +70,26 @@ vector<Test> tests;
 // #define GGML_ASSERT(x) TEST_ASSERT_OVERRIDE(x)
 // #define JSON_ASSERT(x) TEST_ASSERT_OVERRIDE(x)
 
+
+
+#include "ANSI_FMT.hpp"
+#include "ERROR.hpp"
 #include "system.hpp"
-#include "strings.hpp"
 
 using namespace tools::utils;
 
+
+string for_test_implode(const string& delimiter, const vector<string>& elements) {
+    ostringstream oss;
+    for (size_t i = 0; i < elements.size(); ++i) {
+        if (i != 0) oss << delimiter;
+        oss << elements[i];
+    }
+    return oss.str();
+}
+
 // Test runner
-int run_tests(const vector<string>& filters = {}, bool failure_throws = false, bool failure_exits = false) {
+inline int run_tests(const vector<string>& filters = {}, bool failure_throws = false, bool failure_exits = false) {
     struct failure_s {
         Test test;
         string errmsg;
@@ -214,10 +224,10 @@ int run_tests(const vector<string>& filters = {}, bool failure_throws = false, b
             cout << ANSI_FMT(ANSI_FMT_SUCCESS, to_string(tests.size()) + "/" + to_string(passed) + " tests passed") << endl;
     }
     if (failures.size() + passed != tests.size())
-        cout << ANSI_FMT(ANSI_FMT_WARNING, 
+        cout << ansi_fmt(ANSI_FMT_WARNING, 
                 to_string(tests.size()) + "/" + to_string(tests.size() - passed) 
                 + " tests are skipped, filtered by keyword(s): '" 
-                + implode("', '", filters) + "'"
+                + for_test_implode("', '", filters) + "'"
             ) 
             << endl;
 

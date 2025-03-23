@@ -6,7 +6,6 @@
 
 #include "../utils/foreach.hpp"
 #include "../utils/Settings.hpp"
-#include "../utils/fnames.hpp"
 #include "../utils/Test.hpp"
 
 #include "inc/build.hpp"
@@ -34,11 +33,11 @@ int safe_main(int argc, char* argv[]) {
         }
 
         
-        if (!file_exists(config.build_folder)) if (!mkdir(config.build_folder)) throw ERROR("Unable to create folder: " + config.build_folder);
+        if (!file_exists(config.build_folder)) if (!mkdir(config.build_folder, true)) throw ERROR("Unable to create folder: " + config.build_folder);
 
         string outpath_hash = config.build_folder + "/" + config.hash;
         string outfname_hash = outpath_hash + "/" + remove_path(config.output_file);
-        if (!file_exists(outpath_hash)) if (!mkdir(outpath_hash)) throw ERROR("Unable to create folder: " + outpath_hash);
+        if (!file_exists(outpath_hash)) if (!mkdir(outpath_hash, true)) throw ERROR("Unable to create folder: " + outpath_hash);
         string depcachepath = outpath_hash + "/.depcache"; // TODO: to config
 
         
@@ -53,14 +52,17 @@ int safe_main(int argc, char* argv[]) {
         lstmtime = get_lstmtime(depmap);
         
         if (!file_exists(outfname_hash) || filemtime_ms(outfname_hash) < lstmtime) {
+            vector<pair<string, string>> failures;
             vector<string> objfiles;
 
             #define COMPILE_OBJFILE(ifile) { \
                 string objfile = replace_extension(str_replace(config.input_path, outpath_hash, ifile), config.object_extension); \
                 if (!in_array(objfile, objfiles)) { \
                     objfiles.emplace_back(objfile); \
-                    if (!file_exists(objfile) || filemtime_ms(objfile) < filemtime_ms(ifile) || filemtime_ms(objfile) < get_alldepfmtime(ifile, depmap)) \
-                        compile_objfile(config.flags, ifile, objfile, config.include_path, config.verbose); \
+                    if (!file_exists(objfile) || filemtime_ms(objfile) < filemtime_ms(ifile) || filemtime_ms(objfile) < get_alldepfmtime(ifile, depmap)) { \
+                        pair<string, string> result = compile_objfile(config.flags, ifile, objfile, config.include_path, config.verbose); \
+                        if (!result.second.empty()) failures.push_back(result); \
+                    } \
                 } \
             }
 
@@ -103,7 +105,20 @@ int safe_main(int argc, char* argv[]) {
             COMPILE_OBJFILE(config.input_file);
 
             if (config.verbose) cout << "Rebuilding executable: " << config.output_file << endl;
-            link_outfile(config.flags, config.output_file, objfiles, config.libs, config.verbose);
+            pair<string, string> result = link_outfile(config.flags, config.output_file, objfiles, config.libs, config.verbose);
+            if (!result.second.empty()) failures.push_back(result);
+
+            if (!failures.empty()) {
+                foreach (failures, [](const pair<string, string>& fail) {
+                    cout << fail.first << endl;
+                    cerr << str_replace({
+                        { "error:", ANSI_FMT(ANSI_FMT_ERROR, "error:") },
+                        { "note:", ANSI_FMT(ANSI_FMT_NOTE, "note:") },
+                        { "warning:", ANSI_FMT(ANSI_FMT_WARNING, "warning:") },
+                    }, fail.second) << endl;
+                });
+                throw ERROR("Build failed, see more on standard error...");
+            }
         }
 
     } catch (exception& e) {

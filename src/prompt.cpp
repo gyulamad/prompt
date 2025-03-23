@@ -1,19 +1,38 @@
-#include "tools/utils/Test.hpp"
+#include <map>
+#include <string>
+#include <functional>
 
 #include "tools/utils/ERROR.hpp"
+#include "tools/utils/Test.hpp"
+#include "tools/containers/in_array.hpp"
 
-// #include "tools/utils/utils.hpp"
-#include "tools/cmd/cmd.hpp"
-#include "tools/voice/voice.hpp"
-#include "tools/agency/agency.hpp"
+#include "tools/agency/Agent.hpp"
+#include "tools/agency/Agency.hpp"
+#include "tools/agency/agents/EchoAgent.hpp"
+#include "tools/agency/agents/UserAgent.hpp"
+
+#include "tools/cmd/CommandFactory.hpp"
+#include "tools/cmd/LinenoiseAdapter.hpp"
+
+#include "tools/agency/agents/commands/HelpCommand.hpp"
+#include "tools/agency/agents/commands/ExitCommand.hpp"
+#include "tools/agency/agents/commands/ListCommand.hpp"
+#include "tools/agency/agents/commands/SpawnCommand.hpp"
+#include "tools/agency/agents/commands/KillCommand.hpp"
+#include "tools/agency/agents/commands/VoiceCommand.hpp"
+
+#include "tools/voice/WhisperTranscriberSTTSwitch.hpp"
 
 using namespace std;
 using namespace tools::utils;
+using namespace tools::containers;
 using namespace tools::cmd;
 using namespace tools::agency;
 using namespace tools::agency::agents;
 using namespace tools::agency::agents::commands;
-using namespace tools::voice;
+
+
+
 
 
 template<typename PackT>
@@ -70,9 +89,20 @@ int safe_main(int , char *[]) {
         );
         Commander commander(cline, cfactory.getCommands());
 
-        WhisperAdapter whisper(whisper_model_path, whisper_lang.c_str());
-        STT stt(
-            whisper,
+        // WhisperTranscriberAdapter transcriber(whisper_model_path, whisper_lang.c_str());
+        // STT stt(
+        //     transcriber,
+        //     stt_voice_recorder_sample_rate,
+        //     stt_voice_recorder_frames_per_buffer,
+        //     stt_voice_recorder_buffer_seconds,
+        //     stt_noise_monitor_threshold_pc,
+        //     stt_noise_monitor_rmax_decay_pc,
+        //     stt_noise_monitor_window,
+        //     stt_poll_interval_ms
+        // );
+        UserAgentWhisperTranscriberSTTSwitch<PackT> stt_switch(
+            whisper_model_path, 
+            whisper_lang,
             stt_voice_recorder_sample_rate,
             stt_voice_recorder_frames_per_buffer,
             stt_voice_recorder_buffer_seconds,
@@ -86,7 +116,7 @@ int safe_main(int , char *[]) {
         PackQueue<PackT> queue;
         Agency<PackT> agency(queue);
         agency.template spawn<EchoAgent<PackT>>(agency).async();
-        agency.template spawn<UserAgent<PackT>>(agency, &commander, &stt, &interceptor).async();
+        agency.template spawn<UserAgent<PackT>>(agency, stt_switch, &commander, &interceptor).async();
         //cout << "Agency started" << endl;
         agency.sync();
 

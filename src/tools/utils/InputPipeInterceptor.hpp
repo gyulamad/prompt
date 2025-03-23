@@ -11,7 +11,6 @@
 
 #include "Closable.hpp"
 #include "ERROR.hpp"
-#include "vectors.hpp"
 #include "foreach.hpp"
 
 using namespace std;

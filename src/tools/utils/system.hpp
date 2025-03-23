@@ -19,9 +19,12 @@
 
 #include "ERROR.hpp"
 #include "io.hpp"
-#include "fnames.hpp"
+
+#include "../str/get_path.hpp"
 
 using namespace std;
+using namespace tools::str;
+
 namespace fs = filesystem;
 
 namespace tools::utils {

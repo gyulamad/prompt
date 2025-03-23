@@ -5,11 +5,13 @@
 #include <memory>
 #include <iostream>
 
+#include "../str/implode.hpp"
+
 #include "ILineEditor.hpp"
 #include "CompletionMatcher.hpp"
 
 using namespace std;
-using namespace tools;
+using namespace tools::str;
 
 namespace tools::cmd {
 

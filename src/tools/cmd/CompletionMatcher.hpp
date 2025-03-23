@@ -1,16 +1,21 @@
 #pragma once
 
-#include <vector>
+#include <map>
 #include <string>
+#include <vector>
+#include <functional>
 #include <algorithm>
 #include <dirent.h>
 
-#include "../utils/strings.hpp"
-#include "../utils/vectors.hpp"
-
+#include "../str/str_starts_with.hpp"
+#include "../str/split.hpp"
+#include "../str/escape.hpp"
+#include "../containers/array_merge.hpp"
+#include "../containers/sort.hpp"
 
 using namespace std;
-using namespace tools::utils;
+using namespace tools::str;
+using namespace tools::containers;
 
 namespace tools::cmd {
 

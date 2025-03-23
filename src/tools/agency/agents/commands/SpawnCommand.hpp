@@ -1,8 +1,10 @@
 #pragma once
 
+#include "../../../containers/array_keys.hpp"
 #include "../../../cmd/Command.hpp"
 #include "../../Agency.hpp"
 
+using namespace tools::containers;
 using namespace tools::cmd;
 using namespace tools::agency;
 

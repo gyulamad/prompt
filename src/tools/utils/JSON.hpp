@@ -11,7 +11,7 @@
 #include "../../../libs/nlohmann/json/single_include/nlohmann/json.hpp"  
 
 #include "ERROR.hpp"
-#include "strings.hpp"
+#include "strings3.hpp"
 
 using namespace std;
 using namespace nlohmann;

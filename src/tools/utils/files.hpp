@@ -14,7 +14,6 @@
 #include <sys/stat.h> // For chmod (permissions)
 #include <sys/types.h>
 
-#include "strings.hpp"
 #include "ERROR.hpp"
 #include "time.hpp"
 
@@ -94,6 +93,7 @@ namespace tools::utils {
     }
 
     // Function to create a directory with PHP-like parameters
+    [[nodiscard]]
     bool mkdir(const string& directoryPath, int permissions = 0777, bool recursive = false) {
         try {
             bool created = false;
@@ -128,6 +128,7 @@ namespace tools::utils {
             return false;
         }
     }
+    [[nodiscard]]
     bool mkdir(const string& dir, bool recursive, int permission = 0777) {
         return mkdir(dir, permission, recursive);
     }

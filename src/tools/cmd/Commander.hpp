@@ -4,8 +4,12 @@
 #include "CommandLine.hpp"
 #include "CompletionMatcher.hpp"
 
+#include "../containers/array_filter.hpp"
+#include "../str/explode.hpp"
+
 using namespace std;
-using namespace tools;
+using namespace tools::containers;
+using namespace tools::str;
 
 namespace tools::cmd {
 

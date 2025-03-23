@@ -2,10 +2,13 @@
 
 #include <atomic>
 
-#include "../utils/strings.hpp"
+#include "../str/str_replace.hpp"
+#include "../str/escape.hpp"
+#include "../str/str_contains.hpp"
 #include "../utils/Process.hpp"
 
 using namespace std;
+using namespace tools::str;
 using namespace tools::utils;
 
 namespace tools::voice {
@@ -108,6 +111,7 @@ namespace tools::voice {
 #ifdef TEST
 
 #include "../utils/Test.hpp"
+#include "../utils/Suppressor.hpp"
 #include "../utils/tests/MockProcess.hpp"
 
 using namespace std;

@@ -70,12 +70,14 @@ namespace tools::agency {
 
 #ifdef TEST
 
+#include "../str/str_contains.hpp"
 #include "../utils/Test.hpp"
 #include "tests/helpers.hpp"
 #include "tests/TestAgent.hpp"
 #include "PackQueue.hpp" // Needed for queue operations
 
 using namespace tools::agency;
+using namespace tools::str;
 
 // Test constructor
 void test_Agent_constructor_basic() {

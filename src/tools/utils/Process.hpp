@@ -13,9 +13,11 @@
 
 #include "ERROR.hpp"
 #include "system.hpp"
-#include "datetime.hpp"
+
+#include "../datetime/get_time_ms.hpp"
 
 using namespace std;
+using namespace tools::datetime;
 
 namespace tools::utils {
     int __pcnt = 0;

@@ -85,6 +85,7 @@
         "*.ipp": "cpp",
         "future": "cpp",
         "coroutine": "cpp",
-        "*.inc": "cpp"
+        "*.inc": "cpp",
+        "filesystem": "cpp"
     }
 }

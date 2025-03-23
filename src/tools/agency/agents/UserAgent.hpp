@@ -1,16 +1,32 @@
 #pragma once
 
+#include "../../str/trim.hpp"
+#include "../../str/set_precision.hpp"
+#include "../../regx/regx_match.hpp"
 #include "../../cmd/Commander.hpp"
 #include "../../voice/STT.hpp"
+#include "../../voice/STTSwitch.hpp"
+#include "../../voice/WhisperTranscriberSTTSwitch.hpp"
 #include "../../utils/InputPipeInterceptor.hpp"
 #include "../Agent.hpp"
 
+using namespace tools::str;
+using namespace tools::regx;
 using namespace tools::cmd;
 using namespace tools::voice;
 using namespace tools::utils;
 using namespace tools::agency;
 
 namespace tools::agency::agents {
+
+    template<typename T>
+    class UserAgent;
+
+    template<typename T>
+    class UserAgentWhisperTranscriberSTTSwitch: public WhisperTranscriberSTTSwitch<UserAgent<T>> {
+    public:
+        using WhisperTranscriberSTTSwitch<UserAgent<T>>::WhisperTranscriberSTTSwitch;
+    };
     
     template<typename T>
     class UserAgent: public Agent<T> {
@@ -30,17 +46,20 @@ namespace tools::agency::agents {
         UserAgent(
             PackQueue<T>& queue, 
             Agency<T>& agency, 
+            UserAgentWhisperTranscriberSTTSwitch<T>& stt_switch,
             Commander* commander = nullptr, 
-            STT* stt = nullptr,
+            // STT* stt = nullptr,
             InputPipeInterceptor* interceptor = nullptr
         ): 
             Agent<T>(queue, "user"), 
             agency(agency), 
+            stt_switch(stt_switch),
             commander(commander), 
-            stt(stt),
+            // stt(stt),
             interceptor(interceptor)
         {
-            stt_setup();
+            // stt_switch.cb_on(stt_setup, this);
+            // stt_setup();
         }
 
         virtual ~UserAgent() {
@@ -48,11 +67,12 @@ namespace tools::agency::agents {
                 interceptor->unsubscribe(this);
                 interceptor->close();
             }
-            if (stt) stt->stop();
+            if (stt_switch.get_stt_ptr()) stt_switch.get_stt_ptr()->stop();
             // if (mute_thread.joinable()) mute_thread.join();
         }
 
-        STT* getSttPtr() { return stt; }
+        // STT* getSttPtr() { return stt_switch.get_stt_ptr(); }
+        UserAgentWhisperTranscriberSTTSwitch<T>& get_stt_switch_ref() { return stt_switch; }
 
         void clearln() {
             cout << "\33[2K\r" << flush;
@@ -72,25 +92,46 @@ namespace tools::agency::agents {
             }
         }
 
+        bool stt_initialized = false;
+
         void setVoiceInput(bool state) {
             lock_guard<mutex> lock(stt_voice_input_mutex);
             if (stt_voice_input == state) return;
             stt_voice_input = state;
-            if (!stt) return;
-            if (stt_voice_input) stt->start();
-            else if (!stt_voice_input) {
-                stt->stop();
-                if (commander) commander->get_command_line_ref().set_prompt("");
+            // if (!stt_switch.get_stt_ptr()) return;
+            if (stt_voice_input) {
+                // if (!stt_initialized) stt_switch.cb_on(stt_setup, this);
+                // stt_initialized = true;
+                stt_switch.on();
+                if (!stt_initialized) stt_setup();
+                stt_initialized = true;
+                // STT* stt = stt_switch.get_stt_ptr();
+                // if (stt) stt->start();
+            } else if (!stt_voice_input) {
+                stt_switch.off();
+                stt_initialized = false;
+                // STT* stt = stt_switch.get_stt_ptr();
+                // if (stt) stt->stop();
+
+                // TODO: I am not sure this one is needed anymore:
+                if (commander) {
+                    commander->get_command_line_ref().set_prompt("");
+                    commander->get_command_line_ref().getEditorRef().WipeLine();
+                }
             }
         }
 
         void tick() override { //if (stt_voice_input) return;
+            if (agency.isClosing()) {
+                sleep_ms(100);
+                return;
+            }
             T input;
             if (commander) {
-                if (agency.isClosing()) {
-                    sleep_ms(100);
-                    return;
-                }
+                // if (agency.isClosing()) {
+                //     sleep_ms(100);
+                //     return;
+                // }
                 CommandLine& cline = commander->get_command_line_ref();
                 input = cline.readln();
                 if (cline.is_exited()) {
@@ -110,21 +151,28 @@ namespace tools::agency::agents {
         // thread mute_thread;
 
         void stt_setup() {
+            STT* stt = stt_switch.get_stt_ptr();
             if (!stt) return;
 
             if (commander && interceptor) {
                 interceptor->subsrcibe(this, [&](vector<char> sequence) {
                     if (sequence.empty()) return;
-                    if (stt_voice_input && sequence[0] == 27) { // TODO: ESC key - to config
+                    if (stt_voice_input && sequence.size() == 1 &&  sequence[0] == 13) { // Enter
+                        this->commander->get_command_line_ref().getEditorRef().WipeLine();                         
+                        return;
+                    }
+                    if (stt_voice_input && sequence.size() == 1 &&  sequence[0] == 27) { // TODO: ESC key - to config
+                        STT* stt = stt_switch.get_stt_ptr();
                         if (!stt) return;
                         NoiseMonitor* monitor = stt->getMonitorPtr();
                         if (!monitor) return;
                         bool mute = !monitor->is_muted();
                         monitor->set_muted(mute);
                         println(mute 
-                            ? "🎤 " ANSI_FMT_C_RED "✖" ANSI_FMT_RESET " STT mute"
-                            : "🎤 " ANSI_FMT_C_GREEN "✔" ANSI_FMT_RESET " STT unmute", true);
+                            ? "🎤 " ANSI_FMT_C_RED "✖" ANSI_FMT_RESET " STT muted"
+                            : "🎤 " ANSI_FMT_C_GREEN "✔" ANSI_FMT_RESET " STT unmuted", true);
                         // cout << "STT mute: " << (currentMute ? "OFF" : "ON") << endl;
+                        return;
                     }
                 });
                 // TODO:
@@ -146,23 +194,24 @@ namespace tools::agency::agents {
             }
 
             stt->setSpeechHandler([this](vector<float>& /*record*/) {
-                try {
+                // try {
                     recs++;
                     // DEBUG("record:" + to_string(record.size()));
-                } catch (const exception& e) {
-                    cerr << "Error in speech callback: " << e.what() << endl;
+                // } catch (const exception& e) {
+                //     cerr << "Error in speech callback: " << e.what() << endl;
 
-                    if (!this->stt) {
-                        cerr << "Speach to text adapter is missing, switching to text mode.." << endl;
-                        setVoiceInput(false);
-                    }
-                }
+                //     if (!this->stt) {
+                //         cerr << "Speach to text adapter is missing, switching to text mode.." << endl;
+                //         setVoiceInput(false);
+                //     }
+                // }
             });
 
             stt->setTranscribeHandler([this](const vector<float>& /*record*/, const string& text) {
+                STT* stt = stt_switch.get_stt_ptr();
                 try {
                     recs--;
-                    NULLCHK(this->stt);
+                    NULLCHK(stt);
 
                     string input = trim(text);
                     for (const string& rgx: speech_ignores_rgxs)
@@ -173,14 +222,15 @@ namespace tools::agency::agents {
                 } catch (const exception& e) {
                     cerr << "Error in transcription callback: " << e.what() << endl;
 
-                    if (!this->stt) {
-                        cerr << "Speach to text adapter is missing, switching to text mode.." << endl;
-                        setVoiceInput(false);
+                    if (!stt) {
+                        cerr << "Speach to text adapter is missing, falling back to text mode.." << endl;
+                        //setVoiceInput(false);
                     }
                 }
             });
 
             stt->setRMSHandler([this](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {
+                STT* stt = stt_switch.get_stt_ptr();
                 try {
 
                     // DEBUG(
@@ -235,7 +285,7 @@ namespace tools::agency::agents {
                 } catch (const exception& e) {
                     cerr << "Error in RMS callback: " << e.what() << endl;
 
-                    if (!this->stt) {
+                    if (!stt) {
                         cerr << "Speach to text adapter is missing, switching to text mode.." << endl;
                         setVoiceInput(false);
                     }
@@ -255,7 +305,8 @@ namespace tools::agency::agents {
 
         Agency<T>& agency;
         Commander* commander = nullptr;
-        STT* stt = nullptr;
+        // STT* stt = nullptr;
+        UserAgentWhisperTranscriberSTTSwitch<T>& stt_switch;
         InputPipeInterceptor* interceptor = nullptr;
 
         mutex stt_voice_input_mutex;

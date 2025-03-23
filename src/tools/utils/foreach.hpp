@@ -273,7 +273,7 @@ void test_ContainerTraits_vector_iterate_no_index_no_break() {
     foreach(vec, [&result](int& item) {
         result.push_back(item);
     });
-    assert(vector_equal(result, vec) && "Should iterate all items without index or break");
+    assert(result == vec && "Should iterate all items without index or break");
 }
 
 void test_ContainerTraits_vector_iterate_with_index_no_break() {
@@ -283,7 +283,7 @@ void test_ContainerTraits_vector_iterate_with_index_no_break() {
         result.emplace_back(item, index);
     });
     vector<pair<int, size_t>> expected = {{1, 0}, {2, 1}, {3, 2}};
-    assert(vector_equal(result, expected) && "Should iterate with correct indices, no break");
+    assert(result == expected && "Should iterate with correct indices, no break");
 }
 
 void test_ContainerTraits_vector_iterate_no_index_with_break() {
@@ -294,7 +294,7 @@ void test_ContainerTraits_vector_iterate_no_index_with_break() {
         return item != 2;  // Break after 2
     });
     vector<int> expected = {1, 2};  // Fixed: Correct initializer list
-    assert(vector_equal(result, expected) && "Should break after item 2 without index");
+    assert(result == expected && "Should break after item 2 without index");
 }
 
 void test_ContainerTraits_vector_iterate_with_index_with_break() {
@@ -305,7 +305,7 @@ void test_ContainerTraits_vector_iterate_with_index_with_break() {
         return item != 3;  // Break after 3
     });
     vector<pair<int, size_t>> expected = {{1, 0}, {2, 1}, {3, 2}};
-    assert(vector_equal(result, expected) && "Should break after item 3 with index");
+    assert(result == expected && "Should break after item 3 with index");
 }
 
 void test_ContainerTraits_unordered_map_iterate_no_key_no_break() {
@@ -317,7 +317,7 @@ void test_ContainerTraits_unordered_map_iterate_no_key_no_break() {
     vector<int> expected = {1, 2, 3};
     sort(result.begin(), result.end());
     sort(expected.begin(), expected.end());
-    assert(vector_equal(result, expected) && "Should iterate all values without key or break");
+    assert(result == expected && "Should iterate all values without key or break");
 }
 
 void test_ContainerTraits_unordered_map_iterate_with_key_no_break() {
@@ -329,7 +329,7 @@ void test_ContainerTraits_unordered_map_iterate_with_key_no_break() {
     vector<pair<string, int>> expected = {{"a", 1}, {"b", 2}, {"c", 3}};
     sort(result.begin(), result.end());
     sort(expected.begin(), expected.end());
-    assert(vector_equal(result, expected) && "Should iterate with correct keys, no break");
+    assert(result == expected && "Should iterate with correct keys, no break");
 }
 
 void test_ContainerTraits_unordered_map_iterate_no_key_with_break() {

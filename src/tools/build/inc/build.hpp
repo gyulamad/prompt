@@ -4,9 +4,11 @@
 #include <string>
 #include <thread>
 
-#include "../../utils/fnames.hpp"
 #include "../../utils/files.hpp"
 #include "../../utils/execute.hpp"
+#include "../../utils/Arguments.hpp"
+#include "../../utils/JSON.hpp"
+#include "../../utils/Settings.hpp"
 
 using namespace std;
 using namespace tools::utils;
@@ -50,6 +52,7 @@ namespace tools::build {
             if (args.has("config")) {
                 string cfgfile = args.get<string>("config");
                 apply_cfg(args, cfgfile);
+                apply_cfg(args, cfgfile + "." + fsuffix);
                 apply_cfg(args, replace_extension(input_file, "." + cfgfile + "." + fsuffix));
             }
 
@@ -61,7 +64,7 @@ namespace tools::build {
 
     private:
         void apply_cfg(Arguments& args, const string& cfgfile) {
-            if (verbose) cout << "Looking for configuration at file: " + cfgfile + " ..." << flush;
+            if (verbose) cout << "Looking for configuration candidate at file: " + cfgfile + " ..." << flush;
             if (!file_exists(cfgfile)) {
                 if (verbose) cout << " [not found]" << endl;
                 return;
@@ -98,7 +101,7 @@ namespace tools::build {
 
             #define LOADCFG_STRING_PATH_BUT_KEEPS_NONEMPTY(var, name, label) \
                 LOADCFG_STRING_BUT_KEEPS_NONEMPTY(var, name, label) \
-                var = str_starts_with("/", var) ? var : get_absolute_path(input_path + "/" + var);
+                var = str_starts_with(var, "/") ? var : get_absolute_path(input_path + "/" + var);
 
             #define LOADCFG_VECTOR(var, name, label) \
                 var = array_merge(var, settings.get<vector<string>>(name, var)); \
@@ -106,7 +109,7 @@ namespace tools::build {
 
             #define LOADCFG_VECTOR_PATH(var, name, label) \
                 LOADCFG_VECTOR(var, name, label) \
-                foreach (var, [&](string& path) { path = str_starts_with("/", path) ? path : get_absolute_path(input_path + "/" + path); });
+                foreach (var, [&](string& path) { path = str_starts_with(path, "/") ? path : get_absolute_path(input_path + "/" + path); });
 
 
             #define LOADSHOWCFG_BOOL_BUT_KEEPS_TRUE(var, name, label) \
@@ -221,7 +224,9 @@ namespace tools::build {
         foreach(srclines, [&](const string& srcline) {
             // cout << "\r[" << "/-\\|"[(long)(roll += spd)%4] << "\r" << flush;
             if (srcline.empty() || !regx_match(R"(^\s*#)", srcline) || !regx_match(R"(^\s*#\s*include\s*\"\s*([^\"]+)\s*\")", srcline, &matches)) return;
-            string incfile = get_absolute_path(srcpath + "/" + matches[1]);
+            string incfile = str_starts_with(matches[1], "/") 
+                ? matches[1] 
+                : get_absolute_path(srcpath + "/" + matches[1]);
             vector<string> tries = { incfile };
             if (!file_exists(incfile)) foreach (idirs, [&](const string& idir) {
                 incfile = get_absolute_path(idir + "/" + remove_path(incfile));
@@ -332,7 +337,8 @@ namespace tools::build {
         return get_lstmtime(get_all_files(depmap));
     }
     
-    void compile_objfile(const vector<string>& flags, const string& srcfile, const string& outfile, const vector<string>& idirs, bool verbose) {
+    [[nodiscard]]
+    pair<string, string> compile_objfile(const vector<string>& flags, const string& srcfile, const string& outfile, const vector<string>& idirs, bool verbose) {
         string outpath = get_path(outfile);
         if (!mkdir(outpath, true)) throw ERROR("Unable to create folder: " + outpath);
         string cmd = "g++" 
@@ -340,11 +346,14 @@ namespace tools::build {
             + " -c " + srcfile 
             + " -o " + outfile 
             + (!idirs.empty() ? " -I" + implode(" -I", idirs) : "");
-        string output = execute(cmd + " 2>&1", verbose);
-        if (!output.empty()) throw ERROR("Compile error at " + srcfile + "\n" + cmd + "\n" + output);
+        if (verbose) cout << cmd << endl;
+        string output = execute(cmd + " 2>&1");
+        //if (!output.empty()) throw ERROR("Compile error at " + srcfile + "\n" + cmd + "\n" + output);
+        return pair(cmd, output);
     } 
     
-    void link_outfile(const vector<string>& flags, const string& outfile, const vector<string>& objfiles, const vector<string>& libs, bool verbose) {
+    [[nodiscard]]
+    pair<string, string> link_outfile(const vector<string>& flags, const string& outfile, const vector<string>& objfiles, const vector<string>& libs, bool verbose) {
         string outpath = get_path(outfile);
         if (!mkdir(outpath, true)) throw ERROR("Unable to create folder: " + outpath);
         string cmd = "g++" 
@@ -352,8 +361,10 @@ namespace tools::build {
             + (!objfiles.empty() ? " " + implode(" ", objfiles) : "")
             + " -o " + outfile
             + (!libs.empty() ? " " + implode(" ", libs) : "");
-        string output = execute(cmd + " 2>&1", verbose);
-        if (!output.empty()) throw ERROR("Link error: " + cmd + "\n" + output);
+        if (verbose) cout << cmd << endl;
+        string output = execute(cmd + " 2>&1");
+        //if (!output.empty()) throw ERROR("Link error: " + cmd + "\n" + output);
+        return pair(cmd, output);
     }
     
     
@@ -402,7 +413,6 @@ namespace tools::build {
 #ifdef TEST
 
 #include "../../utils/Test.hpp"
-#include "../../utils/vectors.hpp"
 #include "../tests/test_fs.hpp"
 
 using namespace tools::build;

@@ -27,19 +27,6 @@ namespace tools::voice {
 
     class STT {
     public:
-        // SpeechListener::RMSCallback rms_cb = [](float rms, float threshold_pc, bool loud) {};
-        // SpeechListener::SpeechCallback speech_cb = [](vector<float>& record) {};
-        // SpeechRecogniser::TranscribeCallback transcribe_cb = [](const vector<float>& record, const string& text) {};
-
-    private:
-        // atomic<bool> paused{true};
-        bool started = false;
-        Transcriber& transcriber;
-        VoiceRecorder* recorder;
-        NoiseMonitor* monitor;
-        SpeechListener* listener; 
-        SpeechRecogniser* recogniser;
-    public:
         STT(
             Transcriber& transcriber,
             const double stt_voice_recorder_sample_rate,
@@ -52,33 +39,18 @@ namespace tools::voice {
             // const string& stt_transcriber_lang,
             const long stt_poll_interval_ms
         ):
-            transcriber(transcriber)
-        {
-            recorder = new VoiceRecorder(
-                stt_voice_recorder_sample_rate,
-                stt_voice_recorder_frames_per_buffer,
-                stt_voice_recorder_buffer_seconds
-            );
-            
-            monitor = new NoiseMonitor(
-                *recorder,
-                stt_noise_monitor_threshold_pc,
-                stt_noise_monitor_rmax_decay_pc,
-                stt_noise_monitor_window
-            );
-            
-            listener = new SpeechListener(
-                *monitor
-            );
-            
-            recogniser = new SpeechRecogniser(
-                *recorder,
-                *monitor,
-                *listener,
-                transcriber,
-                stt_poll_interval_ms
-            );
-            
+            transcriber(transcriber),
+            stt_voice_recorder_sample_rate(stt_voice_recorder_sample_rate),
+            stt_voice_recorder_frames_per_buffer(stt_voice_recorder_frames_per_buffer),
+            stt_voice_recorder_buffer_seconds(stt_voice_recorder_buffer_seconds),
+            stt_noise_monitor_threshold_pc(stt_noise_monitor_threshold_pc),
+            stt_noise_monitor_rmax_decay_pc(stt_noise_monitor_rmax_decay_pc),
+            stt_noise_monitor_window(stt_noise_monitor_window),
+            stt_poll_interval_ms(stt_poll_interval_ms)
+        {}
+
+        virtual ~STT() {
+            stop();
         }
 
         NoiseMonitor* getMonitorPtr() {
@@ -102,12 +74,19 @@ namespace tools::voice {
         }
 
         void start() {
+            lock_guard<mutex> lock(start_stop_mutex);
+            if (started) return;
+            open();
             recogniser->start();
             started = true;
         }
 
         void stop() {
-            if (started) recogniser->stop();
+            lock_guard<mutex> lock(start_stop_mutex);
+            if (!started) return;
+            recogniser->stop();
+            close();
+            started = false;
         }
 
         // void pause() {
@@ -126,21 +105,77 @@ namespace tools::voice {
         //     // transcriber->resume();
         // }
 
-        virtual ~STT() {
-            if (recorder) delete recorder;
-            if (monitor) delete monitor;
-            if (listener) delete listener;
-            // if (transcriber) delete transcriber;
-            if (recogniser) delete recogniser;
-        }
-
         // Add this method to replace recogniser (for testing only)
         void replace_recogniser(SpeechRecogniser* new_recogniser) {
             if (started) throw ERROR("Cannot replace recogniser while STT is started");
             if (recogniser) delete recogniser; // Delete the old recogniser
             recogniser = new_recogniser; // Assign new recogniser, STT takes ownership
         }
+
+    private:
+
+        void open() {
+            if (!recorder) {
+                recorder = new VoiceRecorder(
+                    stt_voice_recorder_sample_rate,
+                    stt_voice_recorder_frames_per_buffer,
+                    stt_voice_recorder_buffer_seconds
+                );
+            }
+            
+            if (!monitor) {
+                monitor = new NoiseMonitor(
+                    *recorder,
+                    stt_noise_monitor_threshold_pc,
+                    stt_noise_monitor_rmax_decay_pc,
+                    stt_noise_monitor_window
+                );
+            }
+            
+            if (!listener) {
+                listener = new SpeechListener(
+                    *monitor
+                );
+            }
+            
+            if (!recogniser) {
+                recogniser = new SpeechRecogniser(
+                    *recorder,
+                    *monitor,
+                    *listener,
+                    transcriber,
+                    stt_poll_interval_ms
+                );
+            }
+        }
+
+        void close() {
+            if (recorder) delete recorder; recorder = nullptr;
+            if (monitor) delete monitor; monitor = nullptr;
+            if (listener) delete listener; listener = nullptr;
+            // if (transcriber) delete transcriber; transcriber = nullptr;
+            if (recogniser) delete recogniser; recogniser = nullptr;
+        }
+
+        static mutex start_stop_mutex;
+        atomic<bool> started = false;
+
+        Transcriber& transcriber;
+        const double stt_voice_recorder_sample_rate;
+        const unsigned long stt_voice_recorder_frames_per_buffer;
+        const size_t stt_voice_recorder_buffer_seconds;
+        const float stt_noise_monitor_threshold_pc;
+        const float stt_noise_monitor_rmax_decay_pc;
+        const size_t stt_noise_monitor_window;
+        const long stt_poll_interval_ms;
+
+        VoiceRecorder* recorder = nullptr;
+        NoiseMonitor* monitor = nullptr;
+        SpeechListener* listener = nullptr; 
+        SpeechRecogniser* recogniser = nullptr;
     };
+
+    mutex STT::start_stop_mutex;
 
 }
 
@@ -163,7 +198,7 @@ void test_STT_constructor_valid() {
     try {
         Suppressor supressor(stderr);
         MockTranscriber transcriber;
-        STT<MockTranscriber> stt(
+        STT stt(
             transcriber,
             16000.0,  // sample_rate
             512,      // frames_per_buffer
@@ -191,7 +226,7 @@ void test_STT_start_basic() {
         MockTranscriber transcriber;
         MockSpeechRecogniser* recogniser = new MockSpeechRecogniser(recorder, monitor, listener, transcriber);
 
-        STT<MockTranscriber> stt(
+        STT stt(
             transcriber, 16000.0, 512, 5, 0.1f, 0.01f, 1024, /*"mock_model", "en",*/ 10
         );
         stt.replace_recogniser(recogniser);
@@ -223,7 +258,7 @@ void test_STT_empty_record() {
         MockTranscriber transcriber;
         MockSpeechRecogniser* recogniser = new MockSpeechRecogniser(recorder, monitor, listener, transcriber);
 
-        STT<MockTranscriber> stt(
+        STT stt(
             transcriber, 16000.0, 512, 5, 0.1f, 0.01f, 1024, /*"mock_model", "en",*/ 10
         );
         stt.replace_recogniser(recogniser);
@@ -267,7 +302,7 @@ void test_STT_callback_comprehensive() {
         MockTranscriber transcriber;
         MockSpeechRecogniser* recogniser = new MockSpeechRecogniser(recorder, monitor, listener, transcriber);
 
-        STT<MockTranscriber> stt(
+        STT stt(
             transcriber, 16000.0, 512, 5, 0.1f, 0.01f, 1024, /*"mock_model", "en",*/ 10
         );
         stt.replace_recogniser(recogniser);
@@ -317,7 +352,7 @@ void test_STT_muted_state() {
         MockTranscriber transcriber;
         MockSpeechRecogniser* recogniser = new MockSpeechRecogniser(recorder, monitor, listener, transcriber);
         
-        STT<MockTranscriber> stt(
+        STT stt(
             transcriber, 16000.0, 512, 5, 0.1f, 0.01f, 1024, /*"mock_model", "en",*/ 10
         );
         stt.replace_recogniser(recogniser);
@@ -344,7 +379,7 @@ void test_STT_stop_without_speech() {
         MockTranscriber transcriber;
         MockSpeechRecogniser* recogniser = new MockSpeechRecogniser(recorder, monitor, listener, transcriber);
         
-        STT<MockTranscriber> stt(
+        STT stt(
             transcriber, 16000.0, 512, 5, 0.1f, 0.01f, 1024, /*"mock_model", "en",*/ 10
         );
         stt.replace_recogniser(recogniser);
