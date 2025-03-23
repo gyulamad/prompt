@@ -111,12 +111,19 @@ int safe_main(int , char *[]) {
             stt_noise_monitor_window,
             stt_poll_interval_ms
         );
+        MicView micView;
+        UserAgentWhisperCommanderInterface<PackT> interface(
+            stt_switch, 
+            micView,
+            &commander, 
+            &interceptor
+        );
 
 
         PackQueue<PackT> queue;
         Agency<PackT> agency(queue);
         agency.template spawn<EchoAgent<PackT>>(agency).async();
-        agency.template spawn<UserAgent<PackT>>(agency, stt_switch, &commander, &interceptor).async();
+        agency.template spawn<UserAgent<PackT>>(agency, interface).async();
         //cout << "Agency started" << endl;
         agency.sync();
 

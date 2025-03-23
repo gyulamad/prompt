@@ -50,13 +50,13 @@ namespace tools::agency::agents::commands {
                 
                 bool state = parse<bool>(args[2]);
                 agency.setVoiceOutput(state); //  TODO ...
-                user.println("Text to speach voice mode output is " + string(state ? "ON" : "OFF"));
-                // cout << "Text to speach voice mode output is " + string(state ? "ON" : "OFF") << endl;
+                user.getInterfaceRef().println("Text to speech voice mode output is " + string(state ? "ON" : "OFF"));
+                // cout << "Text to speech voice mode output is " + string(state ? "ON" : "OFF") << endl;
                 return;
             }
             if (thru == "input") {
                 if (args[2] == "mute") {
-                    STT* stt = user.get_stt_switch_ref().get_stt_ptr(); // getSttPtr();
+                    STT* stt = user.getInterfaceRef().get_stt_switch_ref().get_stt_ptr(); // getSttPtr();
                     if (!stt) return;
                     NoiseMonitor* monitor = stt->getMonitorPtr();
                     if (!monitor) return;
@@ -64,7 +64,7 @@ namespace tools::agency::agents::commands {
                     return;
                 }
                 if (args[2] == "unmute") {
-                    STT* stt = user.get_stt_switch_ref().get_stt_ptr(); // getSttPtr();
+                    STT* stt = user.getInterfaceRef().get_stt_switch_ref().get_stt_ptr(); // getSttPtr();
                     if (!stt) return;
                     NoiseMonitor* monitor = stt->getMonitorPtr();
                     if (!monitor) return;
@@ -74,9 +74,9 @@ namespace tools::agency::agents::commands {
 
                 bool state = parse<bool>(args[2]);
 
-                user.setVoiceInput(state);
-                user.println("Speach to text voice mode input is " + string(state ? "ON" : "OFF"));
-                // cout << "Speach to text voice mode input is " + string(state ? "ON" : "OFF") << endl;
+                user.getInterfaceRef().setVoiceInput(state);
+                user.getInterfaceRef().println("Speech to text voice mode input is " + string(state ? "ON" : "OFF"));
+                // cout << "Speech to text voice mode input is " + string(state ? "ON" : "OFF") << endl;
                 return;
             }
 

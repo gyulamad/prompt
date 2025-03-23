@@ -23,7 +23,7 @@ namespace tools::agency::agents {
             UserAgent<T>& user = (UserAgent<T>&)agent;
 
             // get commander
-            Commander* commander = user.getCommanderPtr();
+            Commander* commander = user.getInterfaceRef().getCommanderPtr();
             NULLCHK(commander);
 
             // get command line

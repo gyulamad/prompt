@@ -76,7 +76,7 @@ namespace tools::voice {
 
             running = true;
 
-            // cout << "[DEBUG] SpeachRecogniser transcriber thread start..." << endl;
+            // cout << "[DEBUG] SpeechRecogniser transcriber thread start..." << endl;
             transcriberThread = thread([&]{
                 while (running) {
                     sleep_ms(30);

@@ -30,7 +30,7 @@ namespace tools::agency::agents::commands {
             UserAgent<T>& user = (UserAgent<T>&)agent;
 
             // get commander
-            Commander* commander = user.getCommanderPtr();
+            Commander* commander = user.getInterfaceRef().getCommanderPtr();
             NULLCHK(commander);
 
             vector<Command*>& commands = commander->get_commands_ref();
