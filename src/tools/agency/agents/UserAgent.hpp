@@ -50,7 +50,9 @@ namespace tools::agency::agents {
             T input;
             if (interface.readln(input)) this->exit();
             if (trim(input).empty()) return;
-            else if (str_starts_with(input, "/")) interface.getCommanderPtr()->run_command(&agency, input); // TODO: add is_command(input) as a command matcher (regex or callback fn) instead just test for "/" 
+            else if (str_starts_with(input, "/")) {
+                interface.getCommanderRef().run_command(&agency, input); // TODO: add is_command(input) as a command matcher (regex or callback fn) instead just test for "/" 
+            }
             else if (text_input_echo) interface.println(input, true, false);
         }
 

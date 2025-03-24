@@ -35,9 +35,6 @@ using namespace tools::agency::agents;
 using namespace tools::agency::agents::commands;
 
 
-
-
-
 template<typename PackT>
 int safe_main(int , char *[]) {
     try {
@@ -107,8 +104,8 @@ int safe_main(int , char *[]) {
         UserAgentWhisperCommanderInterface<PackT> interface(
             stt_switch, 
             micView,
-            &commander, 
-            &interceptor
+            commander, 
+            interceptor
         );
 
 

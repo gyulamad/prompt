@@ -30,10 +30,9 @@ namespace tools::agency::agents::commands {
             UserAgent<T>& user = (UserAgent<T>&)agent;
 
             // get commander
-            Commander* commander = user.getInterfaceRef().getCommanderPtr();
-            NULLCHK(commander);
+            Commander& commander = user.getInterfaceRef().getCommanderRef();
 
-            vector<Command*>& commands = commander->get_commands_ref();
+            vector<Command*>& commands = commander.get_commands_ref();
             vector<string> all_patterns;
             for (const Command* command: commands) {
                 NULLCHK(command);

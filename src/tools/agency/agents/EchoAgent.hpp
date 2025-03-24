@@ -23,11 +23,10 @@ namespace tools::agency::agents {
             UserAgent<T>& user = (UserAgent<T>&)agent;
 
             // get commander
-            Commander* commander = user.getInterfaceRef().getCommanderPtr();
-            NULLCHK(commander);
+            Commander& commander = user.getInterfaceRef().getCommanderRef();
 
             // get command line
-            CommandLine& cline = commander->get_command_line_ref();
+            CommandLine& cline = commander.get_command_line_ref();
 
             string output = "echo " + sender + "> " + string(item);
             if (agency.isVoiceOutput()) {

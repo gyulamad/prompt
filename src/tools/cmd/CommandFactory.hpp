@@ -8,7 +8,7 @@ using namespace std;
 
 namespace tools::cmd {
 
-    class CommandFactory {
+    class   CommandFactory {
     public:
         virtual ~CommandFactory() { reset(); }
 

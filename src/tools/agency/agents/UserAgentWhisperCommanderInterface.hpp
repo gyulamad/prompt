@@ -29,8 +29,8 @@ namespace tools::agency::agents {
         UserAgentWhisperCommanderInterface(
             UserAgentWhisperTranscriberSTTSwitch<T>& stt_switch,
             MicView& micView,
-            Commander* commander = nullptr,
-            InputPipeInterceptor* interceptor = nullptr
+            Commander& commander,
+            InputPipeInterceptor& interceptor
         ):
             stt_switch(stt_switch),
             micView(micView),
@@ -39,15 +39,14 @@ namespace tools::agency::agents {
         {}
 
         virtual ~UserAgentWhisperCommanderInterface() {
-            if (interceptor) {
-                interceptor->unsubscribe(this);
-                interceptor->close();
-            }
+            interceptor.unsubscribe(this);
+            interceptor.close();
+                
             if (stt_switch.get_stt_ptr()) 
                 stt_switch.get_stt_ptr()->stop();
         }
 
-        Commander* getCommanderPtr() { return commander; }
+        Commander& getCommanderRef() { return commander; }
 
         UserAgentWhisperTranscriberSTTSwitch<T>& get_stt_switch_ref() { return stt_switch; }
 
@@ -65,20 +64,17 @@ namespace tools::agency::agents {
                 stt_initialized = false;
 
                 // TODO: I am not sure this one is needed anymore:
-                if (commander) {
-                    commander->get_command_line_ref().set_prompt("");
-                    commander->get_command_line_ref().getEditorRef().WipeLine();
-                }
+                // if (commander) {
+                //     commander->get_command_line_ref().set_prompt("");
+                //     commander->get_command_line_ref().getEditorRef().WipeLine();
+                // }
             }
         }
 
         bool readln(T& input) {
-            if (commander) {
-                CommandLine& cline = commander->get_command_line_ref();
-                input = cline.readln();
-                if (cline.is_exited()) return true;
-            } else cin >> input;
-            return false;
+            CommandLine& cline = commander.get_command_line_ref();
+            input = cline.readln();
+            return cline.is_exited();
         }
 
 
@@ -94,8 +90,8 @@ namespace tools::agency::agents {
         void println(const string& output, bool clear = false, bool refresh = false) {
             print(output + "\n", clear);
 
-            if (refresh && commander) {
-                CommandLine& cline = commander->get_command_line_ref();
+            if (refresh) {
+                CommandLine& cline = commander.get_command_line_ref();
                 cline.getEditorRef().RefreshLine();
             }
         }
@@ -106,27 +102,25 @@ namespace tools::agency::agents {
             STT* stt = stt_switch.get_stt_ptr();
             if (!stt) return;
 
-            if (commander && interceptor) {
-                interceptor->subsrcibe(this, [&](vector<char> sequence) {
-                    if (sequence.empty()) return;
-                    if (stt_voice_input && sequence.size() == 1 &&  sequence[0] == 13) { // Enter
-                        this->commander->get_command_line_ref().getEditorRef().WipeLine();                         
-                        return;
-                    }
-                    if (stt_voice_input && sequence.size() == 1 &&  sequence[0] == 27) { // TODO: ESC key - to config
-                        STT* stt = stt_switch.get_stt_ptr();
-                        if (!stt) return;
-                        NoiseMonitor* monitor = stt->getMonitorPtr();
-                        if (!monitor) return;
-                        bool mute = !monitor->is_muted();
-                        monitor->set_muted(mute);
-                        println(mute 
-                            ? "🎤 " ANSI_FMT_C_RED "✖" ANSI_FMT_RESET " STT muted"
-                            : "🎤 " ANSI_FMT_C_GREEN "✔" ANSI_FMT_RESET " STT unmuted", true);
-                        return;
-                    }
-                });
-            }
+            interceptor.subsrcibe(this, [&](vector<char> sequence) {
+                if (sequence.empty()) return;
+                if (stt_voice_input && sequence.size() == 1 &&  sequence[0] == 13) { // Enter
+                    commander.get_command_line_ref().getEditorRef().WipeLine();                         
+                    return;
+                }
+                if (stt_voice_input && sequence.size() == 1 &&  sequence[0] == 27) { // TODO: ESC key - to config
+                    STT* stt = stt_switch.get_stt_ptr();
+                    if (!stt) return;
+                    NoiseMonitor* monitor = stt->getMonitorPtr();
+                    if (!monitor) return;
+                    bool mute = !monitor->is_muted();
+                    monitor->set_muted(mute);
+                    println(mute 
+                        ? "🎤 " ANSI_FMT_C_RED "✖" ANSI_FMT_RESET " STT muted"
+                        : "🎤 " ANSI_FMT_C_GREEN "✔" ANSI_FMT_RESET " STT unmuted", true);
+                    return;
+                }
+            });
 
             stt->setSpeechHandler([this](vector<float>& /*record*/) {
                 // try {
@@ -173,20 +167,20 @@ namespace tools::agency::agents {
             stt->setRMSHandler([this](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {
                 STT* stt = stt_switch.get_stt_ptr();
                 try {
-                    if (!commander || !stt) return;
+                    if (!stt) return;
                     bool in_progress = stt->getTranscriberCRef().isInProgress();
                     string out = micView.getView(muted, loud, threshold_pc, vol_pc, rmax, rms, in_progress);
-                    commander->get_command_line_ref().set_prompt(out + " ");
+                    commander.get_command_line_ref().set_prompt(out + " ");
                 } catch (const exception& e) {
                     cerr << "Error in RMS callback: " << e.what() << endl;
                 }
             });
         }
 
-        Commander* commander = nullptr;
         UserAgentWhisperTranscriberSTTSwitch<T>& stt_switch;
         MicView& micView;
-        InputPipeInterceptor* interceptor = nullptr;
+        Commander& commander;
+        InputPipeInterceptor& interceptor;
 
         mutex stt_voice_input_mutex;
         atomic<bool> stt_voice_input = false;
