@@ -56,7 +56,7 @@ namespace tools::agency::agents::commands {
             }
             if (thru == "input") {
                 if (args[2] == "mute") {
-                    STT* stt = user.getInterfaceRef().get_stt_switch_ref().get_stt_ptr(); // getSttPtr();
+                    STT* stt = user.getInterfaceRef().get_stt_switch_ref().getSttPtr(); // getSttPtr();
                     if (!stt) return;
                     NoiseMonitor* monitor = stt->getMonitorPtr();
                     if (!monitor) return;
@@ -64,7 +64,7 @@ namespace tools::agency::agents::commands {
                     return;
                 }
                 if (args[2] == "unmute") {
-                    STT* stt = user.getInterfaceRef().get_stt_switch_ref().get_stt_ptr(); // getSttPtr();
+                    STT* stt = user.getInterfaceRef().get_stt_switch_ref().getSttPtr(); // getSttPtr();
                     if (!stt) return;
                     NoiseMonitor* monitor = stt->getMonitorPtr();
                     if (!monitor) return;

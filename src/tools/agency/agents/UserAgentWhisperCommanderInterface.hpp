@@ -42,8 +42,8 @@ namespace tools::agency::agents {
             interceptor.unsubscribe(this);
             interceptor.close();
                 
-            if (sttSwitch.get_stt_ptr()) 
-                sttSwitch.get_stt_ptr()->stop();
+            if (sttSwitch.getSttPtr()) 
+                sttSwitch.getSttPtr()->stop();
         }
 
         Commander& getCommanderRef() { return commander; }
@@ -99,7 +99,7 @@ namespace tools::agency::agents {
     private:
 
         void stt_setup() {
-            STT* stt = sttSwitch.get_stt_ptr();
+            STT* stt = sttSwitch.getSttPtr();
             if (!stt) return;
 
             interceptor.subsrcibe(this, [&](vector<char> sequence) {
@@ -109,7 +109,7 @@ namespace tools::agency::agents {
                     return;
                 }
                 if (stt_voice_input && sequence.size() == 1 &&  sequence[0] == 27) { // TODO: ESC key - to config
-                    STT* stt = sttSwitch.get_stt_ptr();
+                    STT* stt = sttSwitch.getSttPtr();
                     if (!stt) return;
                     NoiseMonitor* monitor = stt->getMonitorPtr();
                     if (!monitor) return;
@@ -142,7 +142,7 @@ namespace tools::agency::agents {
             });
 
             stt->setTranscribeHandler([this](const vector<float>& /*record*/, const string& text) {
-                STT* stt = sttSwitch.get_stt_ptr();
+                STT* stt = sttSwitch.getSttPtr();
                 try {
                     
                     // recs--;
@@ -165,7 +165,7 @@ namespace tools::agency::agents {
             });
 
             stt->setRMSHandler([this](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {
-                STT* stt = sttSwitch.get_stt_ptr();
+                STT* stt = sttSwitch.getSttPtr();
                 try {
                     if (!stt) return;
                     bool in_progress = stt->getTranscriberCRef().isInProgress();

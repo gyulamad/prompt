@@ -11,7 +11,7 @@ namespace tools::voice {
     class STTSwitch: public Switch<DataT> {
     public:
         using Switch<DataT>::Switch;
-        virtual STT* get_stt_ptr() { return Switch<DataT>::is_on() ? stt : nullptr; }
+        virtual STT* getSttPtr() { return Switch<DataT>::is_on() ? stt : nullptr; }
     protected:
         STT* stt = nullptr;
     };
