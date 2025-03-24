@@ -27,12 +27,12 @@ namespace tools::agency::agents {
         };
 
         UserAgentWhisperCommanderInterface(
-            UserAgentWhisperTranscriberSTTSwitch<T>& stt_switch,
+            UserAgentWhisperTranscriberSTTSwitch<T>& sttSwitch,
             MicView& micView,
             Commander& commander,
             InputPipeInterceptor& interceptor
         ):
-            stt_switch(stt_switch),
+            sttSwitch(sttSwitch),
             micView(micView),
             commander(commander),
             interceptor(interceptor)
@@ -42,13 +42,13 @@ namespace tools::agency::agents {
             interceptor.unsubscribe(this);
             interceptor.close();
                 
-            if (stt_switch.get_stt_ptr()) 
-                stt_switch.get_stt_ptr()->stop();
+            if (sttSwitch.get_stt_ptr()) 
+                sttSwitch.get_stt_ptr()->stop();
         }
 
         Commander& getCommanderRef() { return commander; }
 
-        UserAgentWhisperTranscriberSTTSwitch<T>& get_stt_switch_ref() { return stt_switch; }
+        UserAgentWhisperTranscriberSTTSwitch<T>& get_stt_switch_ref() { return sttSwitch; }
 
 
         void setVoiceInput(bool state) {
@@ -56,11 +56,11 @@ namespace tools::agency::agents {
             if (stt_voice_input == state) return;
             stt_voice_input = state;
             if (stt_voice_input) {
-                stt_switch.on();
+                sttSwitch.on();
                 if (!stt_initialized) stt_setup();
                 stt_initialized = true;
             } else {
-                stt_switch.off();
+                sttSwitch.off();
                 stt_initialized = false;
 
                 // TODO: I am not sure this one is needed anymore:
@@ -99,7 +99,7 @@ namespace tools::agency::agents {
     private:
 
         void stt_setup() {
-            STT* stt = stt_switch.get_stt_ptr();
+            STT* stt = sttSwitch.get_stt_ptr();
             if (!stt) return;
 
             interceptor.subsrcibe(this, [&](vector<char> sequence) {
@@ -109,7 +109,7 @@ namespace tools::agency::agents {
                     return;
                 }
                 if (stt_voice_input && sequence.size() == 1 &&  sequence[0] == 27) { // TODO: ESC key - to config
-                    STT* stt = stt_switch.get_stt_ptr();
+                    STT* stt = sttSwitch.get_stt_ptr();
                     if (!stt) return;
                     NoiseMonitor* monitor = stt->getMonitorPtr();
                     if (!monitor) return;
@@ -142,7 +142,7 @@ namespace tools::agency::agents {
             });
 
             stt->setTranscribeHandler([this](const vector<float>& /*record*/, const string& text) {
-                STT* stt = stt_switch.get_stt_ptr();
+                STT* stt = sttSwitch.get_stt_ptr();
                 try {
                     
                     // recs--;
@@ -165,7 +165,7 @@ namespace tools::agency::agents {
             });
 
             stt->setRMSHandler([this](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {
-                STT* stt = stt_switch.get_stt_ptr();
+                STT* stt = sttSwitch.get_stt_ptr();
                 try {
                     if (!stt) return;
                     bool in_progress = stt->getTranscriberCRef().isInProgress();
@@ -177,7 +177,7 @@ namespace tools::agency::agents {
             });
         }
 
-        UserAgentWhisperTranscriberSTTSwitch<T>& stt_switch;
+        UserAgentWhisperTranscriberSTTSwitch<T>& sttSwitch;
         MicView& micView;
         Commander& commander;
         InputPipeInterceptor& interceptor;

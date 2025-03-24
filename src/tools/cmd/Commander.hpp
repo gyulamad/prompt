@@ -64,7 +64,7 @@ namespace tools::cmd {
             exiting = true;
         }
 
-        virtual bool runCommand(void* userContext, const string& input) {
+        virtual bool runCommand(void* user_context, const string& input) {
             if (input.empty()) return false;
             
             bool trlspc;
@@ -72,16 +72,16 @@ namespace tools::cmd {
 
             bool commandFound = false;
             bool commandArgumentsMatches = false;
-            for (void* commandVoid : commands) {
-                NULLCHK(commandVoid);
-                Command& command = *(Command*)commandVoid;
+            for (void* command_void : commands) {
+                NULLCHK(command_void);
+                Command& command = *(Command*)command_void;
                 for (const string& commandPattern : command.getPatterns()) {
                     vector<string> commandPatternParts = array_filter(explode(" ", commandPattern));
                     if (inputParts[0] == commandPatternParts[0]) {
                         commandFound = true;
                         if (inputParts.size() == commandPatternParts.size()) {
                             commandArgumentsMatches = true;
-                            command.run(userContext, inputParts);
+                            command.run(user_context, inputParts);
                             break;
                         }
                     }
