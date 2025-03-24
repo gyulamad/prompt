@@ -33,9 +33,9 @@ namespace tools::agency::agents {
                 if (tts) tts->speak(output);
                 else throw ERROR("Text to speech is missing");
             } else {
-                cline.getEditorRef().WipeLine();
+                cline.getEditorRef().wipeLine();
                 cout << output << endl;
-                cline.getEditorRef().RefreshLine();
+                cline.getEditorRef().refreshLine();
             }
         }
 

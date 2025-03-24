@@ -2,74 +2,66 @@
 
 #include "../../../libs/yhirose/cpp-linenoise/linenoise.hpp"
 
-#include "ILineEditor.hpp"
+#include "LineEditor.hpp"
 
 using namespace std;
 using namespace linenoise;
 
 namespace tools::cmd {
 
-    class LinenoiseAdapter : public ILineEditor {
+    class LinenoiseAdapter : public LineEditor {
     public:
         LinenoiseAdapter(const string& prompt, int stdin_fd = STDIN_FILENO, int stdout_fd = STDOUT_FILENO): 
             l(prompt.empty() ? NULL : prompt.c_str(), stdin_fd, stdout_fd) {}
 
-        void SetCompletionCallback(CompletionCallback callback) override {
+        void setCompletionCallback(CompletionCallback callback) override {
             l.SetCompletionCallback(callback);
         }
 
-        void SetMultiLine(bool enable) override {
+        void setMultiLine(bool enable) override {
             if (enable) l.EnableMultiLine();
             else l.DisableMultiLine();
         }
 
-        void SetHistoryMaxLen(size_t max_len) override {
+        void setHistoryMaxLen(size_t max_len) override {
             l.SetHistoryMaxLen(max_len);
         }
 
-        void LoadHistory(const char* path) override {
+        void loadHistory(const char* path) override {
             l.LoadHistory(path);
         }
 
-        void SaveHistory(const char* path) override {
+        void saveHistory(const char* path) override {
             l.SaveHistory(path);
         }
 
-        void AddHistory(const char* line) override {
+        void addHistory(const char* line) override {
             l.AddHistory(line);
         }
 
-        bool Readline(string& line) override {
+        bool readLine(string& line) override {
             return l.Readline(line);
         }
 
-        void RefreshLine() override {
+        void refreshLine() override {
             l.RefreshLine();
         }
 
-        void WipeLine() override {
+        void wipeLine() override {
             l.WipeLine();
         }
 
-        void SetPrompt(const char* prompt) override {
-            WipeLine();
+        void setPrompt(const char* prompt) override {
+            wipeLine();
             l.SetPrompt(prompt);
-            RefreshLine();
+            refreshLine();
         }
 
-        void SetPrompt(string& prompt) override {
-            WipeLine();
+        void setPrompt(string& prompt) override {
+            wipeLine();
             l.SetPrompt(prompt);
-            RefreshLine();
+            refreshLine();
         }
-
-        // string GetPrompt() override {
-        //     return l.prompt;
-        // }
-
-        // void SetKeypressCallback(KeypressCallback cb) override {
-        //     l.SetKeypressCallback(cb);
-        // }
 
     protected:
         linenoiseState l;

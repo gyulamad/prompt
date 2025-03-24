@@ -4,14 +4,14 @@
 #include <vector>
 #include <queue>
 
-#include "../ILineEditor.hpp"
+#include "../LineEditor.hpp"
 #include "../CommandLine.hpp"
 
 using namespace std;
 using namespace tools::cmd;
 
 // MockLineEditor definition (simplified for testing)
-class MockLineEditor : public ILineEditor {
+class MockLineEditor : public LineEditor {
 public:
     string next_input;
     bool should_exit = false;
@@ -21,13 +21,13 @@ public:
     string loaded_history_path;
     string saved_history_path;
 
-    void SetCompletionCallback(CompletionCallback) override {}
-    void SetMultiLine(bool enable) override { multi_line_enabled = enable; }
-    void SetHistoryMaxLen(size_t len) override { max_history_len = len; }
-    void LoadHistory(const char* path) override { loaded_history_path = path; }
-    void SaveHistory(const char* path) override { saved_history_path = path; }
-    void AddHistory(const char* line) override { history.push_back(line); }
-    bool Readline(string& line) override {
+    void setCompletionCallback(CompletionCallback) override {}
+    void setMultiLine(bool enable) override { multi_line_enabled = enable; }
+    void setHistoryMaxLen(size_t len) override { max_history_len = len; }
+    void loadHistory(const char* path) override { loaded_history_path = path; }
+    void saveHistory(const char* path) override { saved_history_path = path; }
+    void addHistory(const char* line) override { history.push_back(line); }
+    bool readLine(string& line) override {
         line = "";
         if (useQueue) {
             if (inputs.empty()) return true;
@@ -38,8 +38,8 @@ public:
         line = next_input;
         return should_exit;
     }
-    void WipeLine() override { wiped = true; }
-    void RefreshLine() override { refreshed = true; }
+    void wipeLine() override { wiped = true; }
+    void refreshLine() override { refreshed = true; }
     
     void queueInput(const string& input) { useQueue = true; inputs.push(input); }
     bool wasWiped() const { return wiped; }

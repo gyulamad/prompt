@@ -92,7 +92,7 @@ namespace tools::agency::agents {
 
             if (refresh) {
                 CommandLine& cline = commander.getCommandLineRef();
-                cline.getEditorRef().RefreshLine();
+                cline.getEditorRef().refreshLine();
             }
         }
 
@@ -105,7 +105,7 @@ namespace tools::agency::agents {
             interceptor.subsrcibe(this, [&](vector<char> sequence) {
                 if (sequence.empty()) return;
                 if (stt_voice_input && sequence.size() == 1 &&  sequence[0] == 13) { // Enter
-                    commander.getCommandLineRef().getEditorRef().WipeLine();                         
+                    commander.getCommandLineRef().getEditorRef().wipeLine();                         
                     return;
                 }
                 if (stt_voice_input && sequence.size() == 1 &&  sequence[0] == 27) { // TODO: ESC key - to config

@@ -7,7 +7,7 @@
 
 #include "../str/implode.hpp"
 
-#include "ILineEditor.hpp"
+#include "LineEditor.hpp"
 #include "CompletionMatcher.hpp"
 
 using namespace std;
@@ -17,7 +17,7 @@ namespace tools::cmd {
 
     class CommandLine {
     private:
-        ILineEditor& line_editor;
+        LineEditor& line_editor;
         bool exited = false;
         string prompt_suffix;
         string history_path;
@@ -26,7 +26,7 @@ namespace tools::cmd {
 
     public:
         CommandLine(
-            ILineEditor& editor,
+            LineEditor& editor,
             const string& prompt_suffix = "> ",
             const string& history_path = "",
             bool multi_line = true,
@@ -36,11 +36,7 @@ namespace tools::cmd {
             history_path(history_path),
             multi_line(multi_line),
             history_max_length(history_max_length)
-        {
-            // if (!line_editor) {
-            //     throw ERROR("ILineEditor implementation must be provided");
-            // }
-        }
+        {}
 
         // Move constructor
         CommandLine(CommandLine&& other) noexcept
@@ -73,14 +69,14 @@ namespace tools::cmd {
 
         ~CommandLine() = default;
 
-        ILineEditor& getEditorRef() { return line_editor; }
+        LineEditor& getEditorRef() { return line_editor; }
 
         bool is_exited() const {
             return exited;
         }
 
         void set_prompt(const string& prompt) {
-            line_editor.SetPrompt(string(prompt + prompt_suffix).c_str());
+            line_editor.setPrompt(string(prompt + prompt_suffix).c_str());
         }
 
         void set_prompt_suffix(const string& prompt_suffix) {
@@ -91,12 +87,12 @@ namespace tools::cmd {
             return this->prompt_suffix;
         }
 
-        // void set_keypress_callback(ILineEditor::KeypressCallback cb) {
+        // void set_keypress_callback(LineEditor::KeypressCallback cb) {
         //     line_editor.SetKeypressCallback(cb);
         // }
 
         void setCompletionMatcher(CompletionMatcher& completion_matcher) {
-            line_editor.SetCompletionCallback([&](const char* input, vector<string>& completions) {
+            line_editor.setCompletionCallback([&](const char* input, vector<string>& completions) {
                 vector<string> all_completions = completion_matcher.get_completions(input);
                 if (all_completions.size() <= 1) {
                     string input_s(input ? input : "");
@@ -112,12 +108,12 @@ namespace tools::cmd {
                     }
                     return;
                 }
-                line_editor.WipeLine();
+                line_editor.wipeLine();
                 // cout << endl;
                 for (const string& elem : all_completions) {
                     cout << elem << endl;
                 }
-                line_editor.RefreshLine();
+                line_editor.refreshLine();
                 // show(input);
             });
         }
@@ -127,18 +123,18 @@ namespace tools::cmd {
         // }
 
         string readln() {
-            line_editor.SetMultiLine(multi_line);
+            line_editor.setMultiLine(multi_line);
             if (history_max_length) {
-                line_editor.SetHistoryMaxLen(history_max_length);
+                line_editor.setHistoryMaxLen(history_max_length);
             }
             if (!history_path.empty()) {
-                line_editor.LoadHistory(history_path.c_str());
+                line_editor.loadHistory(history_path.c_str());
             }
             string line;
-            exited = line_editor.Readline(line);
-            line_editor.AddHistory(line.c_str());
+            exited = line_editor.readLine(line);
+            line_editor.addHistory(line.c_str());
             if (!history_path.empty()) {
-                line_editor.SaveHistory(history_path.c_str());
+                line_editor.saveHistory(history_path.c_str());
             }
             return line;
         }
