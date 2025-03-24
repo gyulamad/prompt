@@ -23,7 +23,7 @@ public:
     }
 
     bool start(void* /*listener*/, NoiseCallback cb, long /*pollIntervalMs*/, bool /*throws*/ = false) override {
-        lock_guard<mutex> lock(monitorMutex); // Use inherited mutex
+        lock_guard<mutex> lock(monitor_mutex); // Use inherited mutex
         callback = cb; // Store callback for simulation
         running = true;
         // Don’t start a real thread; we’ll simulate manually
@@ -31,17 +31,17 @@ public:
     }
 
     void stop() override {
-        lock_guard<mutex> lock(monitorMutex);
+        lock_guard<mutex> lock(monitor_mutex);
         running = false;
         callback = nullptr;
     }
 
 private:
     NoiseCallback callback;
-    mutex monitorMutex; // Ensure thread-safety for callback access
+    mutex monitor_mutex; // Ensure thread-safety for callback access
 
     NoiseCallback get_callback() {
-        lock_guard<mutex> lock(monitorMutex);
+        lock_guard<mutex> lock(monitor_mutex);
         return callback;
     }
 };

@@ -113,8 +113,8 @@ namespace tools::agency::agents {
                     if (!stt) return;
                     NoiseMonitor* monitor = stt->getMonitorPtr();
                     if (!monitor) return;
-                    bool mute = !monitor->is_muted();
-                    monitor->set_muted(mute);
+                    bool mute = !monitor->isMuted();
+                    monitor->setMuted(mute);
                     println(mute 
                         ? "🎤 " ANSI_FMT_C_RED "✖" ANSI_FMT_RESET " STT muted"
                         : "🎤 " ANSI_FMT_C_GREEN "✔" ANSI_FMT_RESET " STT unmuted", true);

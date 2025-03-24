@@ -60,7 +60,7 @@ namespace tools::agency::agents::commands {
                     if (!stt) return;
                     NoiseMonitor* monitor = stt->getMonitorPtr();
                     if (!monitor) return;
-                    monitor->set_muted(true);
+                    monitor->setMuted(true);
                     return;
                 }
                 if (args[2] == "unmute") {
@@ -68,7 +68,7 @@ namespace tools::agency::agents::commands {
                     if (!stt) return;
                     NoiseMonitor* monitor = stt->getMonitorPtr();
                     if (!monitor) return;
-                    monitor->set_muted(false);
+                    monitor->setMuted(false);
                     return;
                 }
 

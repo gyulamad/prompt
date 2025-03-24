@@ -44,14 +44,14 @@ namespace tools::voice {
         }
 
         virtual bool start(void* listener, NoiseCallback cb, long pollIntervalMs, bool throws = false) {
-            lock_guard<mutex> lock(monitorMutex);
-            if (monitorThread.joinable()) {
+            lock_guard<mutex> lock(monitor_mutex);
+            if (monitor_thread.joinable()) {
                 if (throws) throw ERROR("Monitor is already running");
                 return false;
             }
             running = true;
             joined = false;
-            monitorThread = thread([=, this]{
+            monitor_thread = thread([=, this]{
                 vector<float> buffer(window);
                 while (running) {
                     Pa_Sleep(pollIntervalMs);
@@ -79,20 +79,20 @@ namespace tools::voice {
         //     muted = false;
         // }
 
-        inline void set_muted(bool muted) {
+        inline void setMuted(bool muted) {
             this->muted = muted;
         }
 
-        inline bool is_muted() const {
+        inline bool isMuted() const {
             return muted;
         }
 
         virtual void stop() {{
-            lock_guard<mutex> lock(monitorMutex);
+            lock_guard<mutex> lock(monitor_mutex);
                 running = false;
             }
-            if (monitorThread.joinable() && !joined.exchange(true)) {
-                monitorThread.join();
+            if (monitor_thread.joinable() && !joined.exchange(true)) {
+                monitor_thread.join();
             }
         }
 
@@ -125,8 +125,8 @@ namespace tools::voice {
         size_t window;
         // atomic<bool> paused{true};
         atomic<bool> joined{false};
-        mutex monitorMutex;
-        thread monitorThread;
+        mutex monitor_mutex;
+        thread monitor_thread;
         bool muted = false;
     };
 
@@ -182,8 +182,8 @@ void test_NoiseMonitor_calculate_rms_known_values() {
     assert(actual == expected && "RMS calculation incorrect for known values");
 }
 
-// Test set_muted and is_muted
-void test_NoiseMonitor_set_muted_state() {
+// Test setMuted and isMuted
+void test_NoiseMonitor_setMuted_state() {
     bool expected1 = true;
     bool actual1 = !expected1;
     bool expected2 = false;
@@ -193,14 +193,14 @@ void test_NoiseMonitor_set_muted_state() {
         MockVoiceRecorder recorder(16000.0, 512, 5);
         NoiseMonitor monitor(recorder, 0.1f, 0.01f, 1024);
 
-        monitor.set_muted(true);
-        actual1 = monitor.is_muted();
+        monitor.setMuted(true);
+        actual1 = monitor.isMuted();
         
-        monitor.set_muted(false);
-        actual2 = monitor.is_muted();
+        monitor.setMuted(false);
+        actual2 = monitor.isMuted();
     }
-    assert(actual1 == expected1 && "set_muted(true) should set muted state to true");
-    assert(actual2 == expected2 && "set_muted(false) should set muted state to false");
+    assert(actual1 == expected1 && "setMuted(true) should set muted state to true");
+    assert(actual2 == expected2 && "setMuted(false) should set muted state to false");
 }
 
 // Test start and stop (basic functionality)
@@ -359,7 +359,7 @@ void test_NoiseMonitor_start_empty_buffer() {
 TEST(test_NoiseMonitor_constructor_valid);
 TEST(test_NoiseMonitor_calculate_rms_zero_buffer);
 TEST(test_NoiseMonitor_calculate_rms_known_values);
-TEST(test_NoiseMonitor_set_muted_state);
+TEST(test_NoiseMonitor_setMuted_state);
 TEST(test_NoiseMonitor_start_stop);
 TEST(test_NoiseMonitor_start_callback_behavior);
 TEST(test_NoiseMonitor_thread_safety_start_stop);
