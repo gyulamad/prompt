@@ -4,6 +4,14 @@
 #include <string>
 #include <thread>
 
+#include "../../str/get_absolute_path.hpp"
+#include "../../str/get_path.hpp"
+#include "../../str/replace_extension.hpp"
+#include "../../str/remove_path.hpp"
+#include "../../regx/regx_match.hpp"
+#include "../../containers/array_merge.hpp"
+#include "../../containers/array_key_exists.hpp"
+#include "../../containers/array_unique.hpp"
 #include "../../utils/files.hpp"
 #include "../../utils/execute.hpp"
 #include "../../utils/Arguments.hpp"
@@ -11,6 +19,9 @@
 #include "../../utils/Settings.hpp"
 
 using namespace std;
+using namespace tools::str;
+using namespace tools::regx;
+using namespace tools::containers;
 using namespace tools::utils;
 
 namespace tools::build {
@@ -221,7 +232,7 @@ namespace tools::build {
         vector<string> matches;
         string srcpath = get_path(srcfile);
         vector<string> lookup;
-        foreach(srclines, [&](const string& srcline) {
+        foreach(srclines, [&](const string& srcline, size_t line) {
             // cout << "\r[" << "/-\\|"[(long)(roll += spd)%4] << "\r" << flush;
             if (srcline.empty() || !regx_match(R"(^\s*#)", srcline) || !regx_match(R"(^\s*#\s*include\s*\"\s*([^\"]+)\s*\")", srcline, &matches)) return;
             string incfile = str_starts_with(matches[1], "/") 
@@ -235,7 +246,7 @@ namespace tools::build {
                 return FE_CONTINUE;
             });
             if (!file_exists(incfile))
-                throw ERROR("Dependency include file not found, following are tried:\n\t" + implode("\n\t", tries) + "\nIncluded in " + srcfile);
+                throw ERROR("Dependency include file not found, following are tried:\n\t" + implode("\n\t", tries) + "\nIncluded in " + ANSI_FMT_FILE_LINE(srcfile, line + 1));
             //cout << "found: " << incfile << " (in " << srcfile << ")" << endl;
             string impfile = find_impfile(incfile, sdirs, impexts);
             {

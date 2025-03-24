@@ -1,7 +1,10 @@
 #pragma once
 
+#include "../str/get_hash.hpp"
 #include "JSON.hpp"
 #include "Arguments.hpp"
+
+using namespace tools::str;
 
 namespace tools::utils {
 

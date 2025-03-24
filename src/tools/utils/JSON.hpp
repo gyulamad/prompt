@@ -10,11 +10,13 @@
 // git clone https://github.com/nlohmann/json
 #include "../../../libs/nlohmann/json/single_include/nlohmann/json.hpp"  
 
+#include "../str/explode.hpp"
+#include "../str/implode.hpp"
 #include "ERROR.hpp"
-#include "strings3.hpp"
 
 using namespace std;
 using namespace nlohmann;
+using namespace tools::str;
 
 namespace tools::utils {
 

@@ -4,9 +4,12 @@
 #include <string>
 #include <algorithm>
 
+#include "../str/str_starts_with.hpp"
+#include "../str/parse.hpp"
 #include "ERROR.hpp"
 
 using namespace std;
+using namespace tools::str;
 
 namespace tools::utils {
 

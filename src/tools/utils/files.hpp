@@ -14,10 +14,13 @@
 #include <sys/stat.h> // For chmod (permissions)
 #include <sys/types.h>
 
+#include "../str/str_cut_begin.hpp"
+#include "../str/to_string.hpp"
 #include "ERROR.hpp"
 #include "time.hpp"
 
 using namespace std;
+using namespace tools::str;
 
 namespace fs = filesystem; // Alias for convenience
 

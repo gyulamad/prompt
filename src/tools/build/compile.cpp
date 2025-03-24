@@ -4,6 +4,7 @@
 
 #include <mutex>
 
+#include "../str/str_replace.hpp"
 #include "../utils/foreach.hpp"
 #include "../utils/Settings.hpp"
 #include "../utils/Test.hpp"
@@ -11,6 +12,7 @@
 #include "inc/build.hpp"
 
 using namespace std;
+using namespace tools::str;
 using namespace tools::utils;
 using namespace tools::build;
 
