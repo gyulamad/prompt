@@ -31,12 +31,16 @@ namespace tools::agency::agents {
         UserAgent(
             PackQueue<T>& queue, 
             Agency<T>& agency, 
-            UserAgentWhisperCommanderInterface<T>& interface
+            UserAgentWhisperCommanderInterface<T>& interface,
+            vector<string> recipients = { "echo" } // TODO: to config, and have to be able to change/see message package targets
         ): 
             Agent<T>(queue, "user"), 
             agency(agency),
-            interface(interface) 
-        {}
+            interface(interface),
+            recipients(recipients)
+        {
+            interface.setUser(this);
+        }
 
         virtual ~UserAgent() {}
 
@@ -50,15 +54,22 @@ namespace tools::agency::agents {
             T input;
             if (interface.readln(input)) this->exit();
             if (trim(input).empty()) return;
-            else if (str_starts_with(input, "/")) {
-                interface.getCommanderRef().runCommand(&agency, input); // TODO: add is_command(input) as a command matcher (regex or callback fn) instead just test for "/" 
+            else if (str_starts_with(input, "/")) { // TODO: add is_command(input) as a command matcher (regex or callback fn) instead just test for "/"
+                interface.getCommanderRef().runCommand(&agency, input); 
+            } else {
+                if (text_input_echo) interface.println(input, true, false);
+                onInput(input);
             }
-            else if (text_input_echo) interface.println(input, true, false);
+        }
+
+        void onInput(T input) {
+            this->send(recipients, input);
         }
 
     private:
         Agency<T>& agency;
         UserAgentWhisperCommanderInterface<T>& interface;
+        vector<string> recipients;
     };
     
 }

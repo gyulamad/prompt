@@ -65,7 +65,7 @@ int safe_main(int , char *[]) {
 
         // Map of role strings to factory functions
         map<string, function<Agent<PackT>&(Agency<PackT>&)>> roles = {
-            { "echo", [](Agency<PackT>& agency) -> Agent<string>& { return agency.template spawn<EchoAgent<PackT>>(agency); } },
+            { "echo", [](Agency<PackT>& agency) -> Agent<PackT>& { return agency.template spawn<EchoAgent<PackT>>(agency); } },
         };
 
         CommandFactory cfactory;
@@ -108,10 +108,26 @@ int safe_main(int , char *[]) {
             interceptor
         );
 
+        Process process;
+        TTS tts(
+            lang,
+            200, //int speed, 
+            0, //int gap,
+            "sox -v 0.03 beep.wav -t wav - | aplay -q -N", //const string& beep_cmd,
+            "find sounds/r2d2/ -name \"*.wav\" | shuf -n 1 | xargs -I {} bash -c 'sox -v 0.01 \"{}\" -t wav - | aplay -q -N'", //const string& think_cmd,
+            {
+                { "...", "\n.\n.\n.\n" },
+                { "***", "\n.\n.\n.\n" },
+                { "**", "\n.\n.\n" },
+                { "*", "\n.\n" },
+                { "'", "" },
+            }, //const map<string, string>& speak_replacements,
+            &process //Process* process = nullptr
+        );
 
         PackQueue<PackT> queue;
         Agency<PackT> agency(queue);
-        agency.template spawn<EchoAgent<PackT>>(agency).async();
+        agency.template spawn<EchoAgent<PackT>>(agency, &tts).async();
         agency.template spawn<UserAgent<PackT>>(agency, interface).async();
         //cout << "Agency started" << endl;
         agency.sync();

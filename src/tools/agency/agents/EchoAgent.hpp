@@ -22,20 +22,16 @@ namespace tools::agency::agents {
             if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
             UserAgent<T>& user = (UserAgent<T>&)agent;
 
-            // get commander
-            Commander& commander = user.getInterfaceRef().getCommanderRef();
-
-            // get command line
-            CommandLine& cline = commander.getCommandLineRef();
-
             string output = "echo " + sender + "> " + string(item);
+            user.getInterfaceRef()
+
+            interface = agency.
+            user.getInterfaceRef();
+
+            interface.println(output, true);
             if (agency.isVoiceOutput()) {
-                if (tts) tts->speak(output);
+                if (tts) tts->speak(item);
                 else throw ERROR("Text to speech is missing");
-            } else {
-                cline.getEditorRef().wipeLine();
-                cout << output << endl;
-                cline.getEditorRef().refreshLine();
             }
         }
 

@@ -86,6 +86,7 @@
         "future": "cpp",
         "coroutine": "cpp",
         "*.inc": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "queue": "cpp"
     }
 }

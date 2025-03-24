@@ -12,6 +12,30 @@ using namespace tools::voice;
 
 namespace tools::agency::agents {
 
+    class Locker {
+    public:
+        template<typename... Args>
+        Locker(function<void(Args...)> callback) {
+            lock_guard<mutex> lock(mtx);
+            callback(forward<Args>(args)...);
+        }
+    private:
+        mutex mtx;
+    };
+
+    class UserInterface {
+    public:
+        virtual bool readln(string& input) = 0;
+        virtual string readln() = 0;
+        virtual void clearln() = 0;
+        virtual void print(string& output) = 0;
+        virtual void println(string& output) = 0;
+        virtual void hide() { visible = false; }
+        virtual void show() { visible = true; }
+    protected:
+        atomic<bool> visible = true;
+    };
+
     template<typename T>
     class UserAgentWhisperCommanderInterface {
     public:
@@ -45,6 +69,8 @@ namespace tools::agency::agents {
             if (sttSwitch.getSttPtr()) 
                 sttSwitch.getSttPtr()->stop();
         }
+
+        void setUser(UserAgent<T>* user) { this->user = user; }
 
         Commander& getCommanderRef() { return commander; }
 
@@ -158,7 +184,8 @@ namespace tools::agency::agents {
                         if (regx_match(rgx, input)) return;
                     if (input.empty()) return;
                     if (voice_input_echo) println(input, true, true);
-
+                    NULLCHK(user);
+                    user->onInput(input);
                 } catch (const exception& e) {
                     cerr << "Error in transcription callback: " << e.what() << endl;
                 }
@@ -177,6 +204,7 @@ namespace tools::agency::agents {
             });
         }
 
+        UserAgent<T>* user = nullptr;
         UserAgentWhisperTranscriberSTTSwitch<T>& sttSwitch;
         MicView& micView;
         Commander& commander;
