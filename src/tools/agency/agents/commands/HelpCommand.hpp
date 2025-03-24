@@ -16,7 +16,7 @@ namespace tools::agency::agents::commands {
     class HelpCommand: public Command {
     public:
     
-        vector<string> get_patterns() const override {
+        vector<string> getPatterns() const override {
             return { "/help" };
         }
     
@@ -32,11 +32,11 @@ namespace tools::agency::agents::commands {
             // get commander
             Commander& commander = user.getInterfaceRef().getCommanderRef();
 
-            vector<Command*>& commands = commander.get_commands_ref();
+            vector<Command*>& commands = commander.getCommandsRef();
             vector<string> all_patterns;
             for (const Command* command: commands) {
                 NULLCHK(command);
-                all_patterns = array_merge(all_patterns, command->get_patterns());
+                all_patterns = array_merge(all_patterns, command->getPatterns());
             }
             sort(all_patterns);
             for (const string& pattern: all_patterns) cout << pattern << endl;

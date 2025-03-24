@@ -12,7 +12,7 @@ namespace tools::agency::agents::commands {
     class ExitCommand: public Command {
     public:
     
-        vector<string> get_patterns() const override {
+        vector<string> getPatterns() const override {
             return { "/exit" };
         }
     

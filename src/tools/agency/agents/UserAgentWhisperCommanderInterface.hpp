@@ -65,14 +65,14 @@ namespace tools::agency::agents {
 
                 // TODO: I am not sure this one is needed anymore:
                 // if (commander) {
-                //     commander->get_command_line_ref().set_prompt("");
-                //     commander->get_command_line_ref().getEditorRef().WipeLine();
+                //     commander->getCommandLineRef().set_prompt("");
+                //     commander->getCommandLineRef().getEditorRef().WipeLine();
                 // }
             }
         }
 
         bool readln(T& input) {
-            CommandLine& cline = commander.get_command_line_ref();
+            CommandLine& cline = commander.getCommandLineRef();
             input = cline.readln();
             return cline.is_exited();
         }
@@ -91,7 +91,7 @@ namespace tools::agency::agents {
             print(output + "\n", clear);
 
             if (refresh) {
-                CommandLine& cline = commander.get_command_line_ref();
+                CommandLine& cline = commander.getCommandLineRef();
                 cline.getEditorRef().RefreshLine();
             }
         }
@@ -105,7 +105,7 @@ namespace tools::agency::agents {
             interceptor.subsrcibe(this, [&](vector<char> sequence) {
                 if (sequence.empty()) return;
                 if (stt_voice_input && sequence.size() == 1 &&  sequence[0] == 13) { // Enter
-                    commander.get_command_line_ref().getEditorRef().WipeLine();                         
+                    commander.getCommandLineRef().getEditorRef().WipeLine();                         
                     return;
                 }
                 if (stt_voice_input && sequence.size() == 1 &&  sequence[0] == 27) { // TODO: ESC key - to config
@@ -170,7 +170,7 @@ namespace tools::agency::agents {
                     if (!stt) return;
                     bool in_progress = stt->getTranscriberCRef().isInProgress();
                     string out = micView.getView(muted, loud, threshold_pc, vol_pc, rmax, rms, in_progress);
-                    commander.get_command_line_ref().set_prompt(out + " ");
+                    commander.getCommandLineRef().set_prompt(out + " ");
                 } catch (const exception& e) {
                     cerr << "Error in RMS callback: " << e.what() << endl;
                 }

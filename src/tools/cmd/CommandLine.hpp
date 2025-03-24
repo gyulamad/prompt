@@ -95,7 +95,7 @@ namespace tools::cmd {
         //     line_editor.SetKeypressCallback(cb);
         // }
 
-        void set_completion_matcher(CompletionMatcher& completion_matcher) {
+        void setCompletionMatcher(CompletionMatcher& completion_matcher) {
             line_editor.SetCompletionCallback([&](const char* input, vector<string>& completions) {
                 vector<string> all_completions = completion_matcher.get_completions(input);
                 if (all_completions.size() <= 1) {

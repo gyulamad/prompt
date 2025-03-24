@@ -76,14 +76,14 @@ namespace tools::cmd {
             return {};
         }
 
-        vector<string> get_completions_internal(const string& input, const vector<string>& command_patterns) {
+        vector<string> get_completions_internal(const string& input, const vector<string>& commandPatterns) {
             // Parse input and detect trailing space
             bool has_trailing_space;
             vector<string> current_parts = parse_input(input, has_trailing_space);
         
             // Parse command patterns into structured form
             vector<CommandPattern> patterns;
-            for (const string& pattern_str: command_patterns) {
+            for (const string& pattern_str: commandPatterns) {
                 CommandPattern pattern;
                 pattern.parts = parse_pattern(pattern_str);
                 patterns.push_back(pattern);
@@ -174,7 +174,7 @@ namespace tools::cmd {
         };
 
         // Define a list of command patterns
-        vector<string> command_patterns = {};
+        vector<string> commandPatterns = {};
 
         vector<string> parse_input(const string& input, bool& has_trailing_space, bool quote_strings = true) {
             vector<string> parts;
@@ -231,12 +231,12 @@ namespace tools::cmd {
 
         vector<string> get_completions(const string& input) {
             if (input.empty() || input.back() == ' ') {
-                return get_completions_internal(input, command_patterns);
+                return get_completions_internal(input, commandPatterns);
             }
 
-            vector<string> completions = get_completions_internal(input, command_patterns);
+            vector<string> completions = get_completions_internal(input, commandPatterns);
             vector<string> completions_with_space;
-            if (completions.empty()) completions_with_space = get_completions_internal(input + " ", command_patterns);
+            if (completions.empty()) completions_with_space = get_completions_internal(input + " ", commandPatterns);
 
             vector<string> completion_all = array_merge(completions, completions_with_space);
             sort(completion_all);
@@ -285,7 +285,7 @@ void test_CompletionMatcher_parse_input_quoted_string() {
 
 void test_CompletionMatcher_get_completions_empty_input() {
     CompletionMatcher cm;
-    cm.command_patterns = {"test cmd", "other"};
+    cm.commandPatterns = {"test cmd", "other"};
     vector<string> actual = cm.get_completions("");
     assert(actual.size() == 2 && "get_completions should return all first words for empty input");
     assert(actual[0] == "other" && "get_completions should include first pattern's first word (sorted)");
@@ -294,7 +294,7 @@ void test_CompletionMatcher_get_completions_empty_input() {
 
 void test_CompletionMatcher_get_completions_partial_match() {
     CompletionMatcher cm;
-    cm.command_patterns = {"test cmd", "test param", "other"};
+    cm.commandPatterns = {"test cmd", "test param", "other"};
     vector<string> actual = cm.get_completions("test ");
     assert(actual.size() == 2 && "get_completions should return next words for matching patterns");
     assert(find(actual.begin(), actual.end(), "cmd") != actual.end() && "get_completions should include 'cmd'");
@@ -303,7 +303,7 @@ void test_CompletionMatcher_get_completions_partial_match() {
 
 void test_CompletionMatcher_get_completions_trailing_space() {
     CompletionMatcher cm;
-    cm.command_patterns = {"test cmd arg"};
+    cm.commandPatterns = {"test cmd arg"};
     vector<string> actual = cm.get_completions("test ");
     assert(actual.size() == 1 && "get_completions should suggest next part with trailing space");
     assert(actual[0] == "cmd" && "get_completions should suggest next word after space");
@@ -311,7 +311,7 @@ void test_CompletionMatcher_get_completions_trailing_space() {
 
 void test_CompletionMatcher_get_completions_switch_handler() {
     CompletionMatcher cm;
-    cm.command_patterns = {"set {switch}"};
+    cm.commandPatterns = {"set {switch}"};
     vector<string> actual = cm.get_completions("set ");
     assert(actual.size() == 2 && "get_completions should return switch options");
     assert(actual[0] == "off" && "get_completions should include 'off' from switch handler");
@@ -320,7 +320,7 @@ void test_CompletionMatcher_get_completions_switch_handler() {
 
 void test_CompletionMatcher_get_completions_partial_switch() {
     CompletionMatcher cm;
-    cm.command_patterns = {"set {switch}"};
+    cm.commandPatterns = {"set {switch}"};
     vector<string> actual = cm.get_completions("set of");
     assert(actual.size() == 1 && "get_completions should filter switch options");
     assert(actual[0] == "off" && "get_completions should match partial 'of' to 'off'");
@@ -328,7 +328,7 @@ void test_CompletionMatcher_get_completions_partial_switch() {
 
 void test_CompletionMatcher_get_completions_no_matches() {
     CompletionMatcher cm;
-    cm.command_patterns = {"test cmd"};
+    cm.commandPatterns = {"test cmd"};
     vector<string> actual = cm.get_completions("xyz");
     assert(actual.empty() && "get_completions should return empty vector for no matches");
 }

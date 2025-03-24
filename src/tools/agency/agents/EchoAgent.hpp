@@ -26,7 +26,7 @@ namespace tools::agency::agents {
             Commander& commander = user.getInterfaceRef().getCommanderRef();
 
             // get command line
-            CommandLine& cline = commander.get_command_line_ref();
+            CommandLine& cline = commander.getCommandLineRef();
 
             string output = "echo " + sender + "> " + string(item);
             if (agency.isVoiceOutput()) {

@@ -19,7 +19,7 @@ namespace tools::agency::agents::commands {
     class VoiceCommand: public Command {
     public:
     
-        vector<string> get_patterns() const override {
+        vector<string> getPatterns() const override {
             return { 
                 "/voice output {switch}",
                 "/voice input {switch}",

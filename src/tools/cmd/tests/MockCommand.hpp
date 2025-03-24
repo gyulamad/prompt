@@ -17,7 +17,7 @@ public:
     vector<string> patterns;
     vector<string> last_args;
 
-    vector<string> get_patterns() const override {
+    vector<string> getPatterns() const override {
         return patterns;
     }
 

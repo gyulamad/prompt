@@ -16,7 +16,7 @@ namespace tools::agency::agents::commands {
 
         SpawnCommand(map<string, function<Agent<T>&(Agency<T>&)>>& roles): Command(), roles(roles) {}
     
-        vector<string> get_patterns() const override {
+        vector<string> getPatterns() const override {
             return { 
                 "/spawn {string}"
             };

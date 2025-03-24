@@ -14,7 +14,7 @@ namespace tools::cmd {
     public:
         virtual ~Command() {}
 
-        virtual vector<string> get_patterns() const UNIMP_THROWS
+        virtual vector<string> getPatterns() const UNIMP_THROWS
         
         /**
          * @brief 
