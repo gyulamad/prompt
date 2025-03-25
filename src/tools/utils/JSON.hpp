@@ -457,6 +457,9 @@ namespace nlohmann {
 
 #include "Test.hpp"
 
+#include "../str/str_diffs_show.hpp"
+#include "../str/str_contains.hpp"
+
 using namespace tools::utils;
 
 

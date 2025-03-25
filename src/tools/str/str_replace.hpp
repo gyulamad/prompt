@@ -40,6 +40,8 @@ namespace tools::str {
 
 #ifdef TEST
 
+#include "../utils/Test.hpp"
+
 using namespace tools::str;
 
 // Test cases for str_replace

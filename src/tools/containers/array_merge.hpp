@@ -24,6 +24,8 @@ namespace tools::containers {
 
 using namespace tools::containers;
 
+#include "vector_equal.hpp"
+
 void test_array_merge_basic() {
     vector<int> vec1 = {1, 2, 3};
     vector<int> vec2 = {4, 5, 6};

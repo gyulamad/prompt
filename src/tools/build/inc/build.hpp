@@ -426,9 +426,11 @@ namespace tools::build {
 #ifdef TEST
 
 #include "../../utils/Test.hpp"
+#include "../../containers/sort.hpp"
 #include "../tests/test_fs.hpp"
 
 using namespace tools::build;
+using namespace tools::containers;
 using namespace test_fs;
 
 // Test: File found next to header
@@ -1012,7 +1014,7 @@ void test_build_compile_objfile_success() {
     string outfile = base_dir + "/obj/main.o";
     test_fs::create_file(srcfile, "int main() { return 0; }"); // Valid C++ code
 
-    compile_objfile({}, srcfile, outfile, {}, false);
+    pair<string, string> p = compile_objfile({}, srcfile, outfile, {}, false);
 
     assert(fs::exists(outfile) && "Object file should be created on successful compilation");
 
@@ -1031,7 +1033,7 @@ void test_build_compile_objfile_with_flags_and_idirs() {
 
     vector<string> flags = {"-g", "-O0"};
     vector<string> idirs = {base_dir + "/include"};
-    compile_objfile(flags, srcfile, outfile, idirs, false);
+    pair<string, string> p = compile_objfile(flags, srcfile, outfile, idirs, false);
 
     assert(fs::exists(outfile) && "Object file should be created with flags and include dirs");
 
@@ -1049,7 +1051,7 @@ void test_build_compile_objfile_dir_creation_failure() {
 
     bool thrown = false;
     try {
-        compile_objfile({}, srcfile, outfile, {}, false);
+        pair<string, string> p = compile_objfile({}, srcfile, outfile, {}, false);
     } catch (const exception& e) {
         thrown = true;
         string err = e.what();
@@ -1070,19 +1072,20 @@ void test_build_compile_objfile_compilation_error() {
     string outfile = base_dir + "/obj/main.o";
     test_fs::create_file(srcfile, "int main() { return 0; // Syntax error"); // Invalid C++
 
-    bool thrown = false;
-    try {
-        compile_objfile({}, srcfile, outfile, {}, false);
-    } catch (const exception& e) {
-        thrown = true;
-        string err = e.what();
-        assert(err.find("Compile error") != string::npos && "Exception should indicate compilation failure");
-    }
+    // bool thrown = false;
+    // try {
+        pair<string, string> p = compile_objfile({}, srcfile, outfile, {}, false);
+    // } catch (const exception& e) {
+    //     thrown = true;
+    //     string err = e.what();
+    //     assert(err.find("Compile error") != string::npos && "Exception should indicate compilation failure");
+    // }
 
-    test_fs::cleanup(base_dir);
-
-    assert(thrown && "Should throw when compilation fails");
     assert(!fs::exists(outfile) && "Object file should not exist on compilation failure");
+    test_fs::cleanup(base_dir);
+    assert(str_contains(p.second, "error:"));
+    // assert(thrown && "Should throw when compilation fails");
+    // assert(!fs::exists(outfile) && "Object file should not exist on compilation failure");
 }
 
 // Test: Successful linking
@@ -1094,9 +1097,9 @@ void test_build_link_outfile_success() {
     string objfile = base_dir + "/obj/main.o";
     string outfile = base_dir + "/bin/main";
     test_fs::create_file(srcfile, "int main() { return 0; }");
-    compile_objfile({}, srcfile, objfile, {}, false); // Create valid object file
+    pair<string, string> p = compile_objfile({}, srcfile, objfile, {}, false); // Create valid object file
 
-    link_outfile({}, outfile, {objfile}, {}, false);
+    p = link_outfile({}, outfile, {objfile}, {}, false);
 
     assert(fs::exists(outfile) && "Executable should be created on successful linking");
 
@@ -1112,11 +1115,11 @@ void test_build_link_outfile_with_flags_and_libs() {
     string objfile = base_dir + "/obj/main.o";
     string outfile = base_dir + "/bin/main";
     test_fs::create_file(srcfile, "#include <thread>\nvoid foo() { std::thread t([](){}); t.join(); }\nint main() { foo(); return 0; }");
-    compile_objfile({}, srcfile, objfile, {}, false);
+    pair<string, string> p = compile_objfile({}, srcfile, objfile, {}, false);
 
     vector<string> flags = {"-g"};
     vector<string> libs = {"-pthread"};
-    link_outfile(flags, outfile, {objfile}, libs, false);
+    p = link_outfile(flags, outfile, {objfile}, libs, false);
 
     assert(fs::exists(outfile) && "Executable should be created with flags and libraries");
 
@@ -1132,11 +1135,11 @@ void test_build_link_outfile_dir_creation_failure() {
     string objfile = base_dir + "/obj/main.o";
     string outfile = "/nonexistent/dir/main"; // Invalid dir
     test_fs::create_file(srcfile, "int main() { return 0; }");
-    compile_objfile({}, srcfile, objfile, {}, false);
+    pair<string, string> p = compile_objfile({}, srcfile, objfile, {}, false);
 
     bool thrown = false;
     try {
-        link_outfile({}, outfile, {objfile}, {}, false);
+        pair<string, string> p = link_outfile({}, outfile, {objfile}, {}, false);
     } catch (const exception& e) {
         thrown = true;
         string err = e.what();
@@ -1156,19 +1159,20 @@ void test_build_link_outfile_linking_error() {
     string outfile = base_dir + "/bin/main";
     string objfile = base_dir + "/obj/nonexistent.o"; // Missing object file
 
-    bool thrown = false;
-    try {
-        link_outfile({}, outfile, {objfile}, {}, false);
-    } catch (const exception& e) {
-        thrown = true;
-        string err = e.what();
-        assert(err.find("Link error") != string::npos && "Exception should indicate linking failure");
-    }
+    // bool thrown = false;
+    // try {
+        pair<string, string> p = link_outfile({}, outfile, {objfile}, {}, false);
+    // } catch (const exception& e) {
+    //     thrown = true;
+    //     string err = e.what();
+    //     assert(err.find("Link error") != string::npos && "Exception should indicate linking failure");
+    // }
 
-    test_fs::cleanup(base_dir);
 
-    assert(thrown && "Should throw when linking fails");
+    // assert(thrown && "Should throw when linking fails");
     assert(!fs::exists(outfile) && "Executable should not exist on linking failure");
+    test_fs::cleanup(base_dir);
+    assert(str_contains(p.second, "error:"));
 }
 
 // Test: Simple dependencies
