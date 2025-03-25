@@ -42,14 +42,12 @@ int safe_main(int argc, char* argv[]) {
         if (!file_exists(outpath_hash)) if (!mkdir(outpath_hash, true)) throw ERROR("Unable to create folder: " + outpath_hash);
         string depcachepath = outpath_hash + "/.depcache"; // TODO: to config
 
-        
-
         depmap_t depmap;
         ms_t lstmtime = filemtime_ms(config.input_file);
-        if (!file_exists(depcachepath)) {
-            if (config.verbose) cout << "Building dependency map for: " << config.input_file << endl;
+        if (!config.depcache || !file_exists(depcachepath)) {
+            if (config.verbose) cout << "Scanning dependency map for: " << config.input_file << endl;
             scan_includes(mtx, config.input_file, depmap, config.include_path, config.source_path, config.source_extensions, config.verbose);
-            save_depcache(depcachepath, depmap);
+            if (config.depcache) save_depcache(depcachepath, depmap);
         } else depmap = load_depcache(depcachepath);
         lstmtime = get_lstmtime(depmap);
         

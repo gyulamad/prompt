@@ -28,6 +28,7 @@ namespace tools::build {
 
     struct build_config {
         bool verbose = false;
+        bool depcache = false;
         // bool make_temp_source = true;
         // string temp_source_extension = ".cpp";
         string build_folder = "";
@@ -151,6 +152,7 @@ namespace tools::build {
 
 
             LOADSHOWCFG_BOOL_BUT_KEEPS_TRUE(verbose, "verbose", "Verbose")
+            LOADSHOWCFG_BOOL(depcache, "depcache", "Dependency cache")
             // LOADSHOWCFG_BOOL(make_temp_source, "make-temp-source", "Make temp source")
             // LOADSHOWCFG_STRING(temp_source_extension, "temp-source-extension", "Temp source extension")
             LOADSHOWCFG_STRING_PATH_BUT_KEEPS_NONEMPTY(build_folder, "build-folder", "Build folder")
@@ -222,7 +224,7 @@ namespace tools::build {
             visited.emplace_back(srcfile);
         }
     
-        if (verbose) cout << "scan: " + srcfile << endl;
+        // if (verbose) cout << "scan: " + srcfile << endl;
         // cout << "\r\033[K[ ] scan: " << srcfile << flush;
         // ms_t _lstmtime = filemtime_ms(srcfile);
         // if (_lstmtime > lstmtime) lstmtime = _lstmtime;

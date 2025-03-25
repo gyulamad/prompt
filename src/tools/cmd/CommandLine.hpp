@@ -138,6 +138,10 @@ namespace tools::cmd {
             }
             return line;
         }
+
+        void clearln() {
+            line_editor.wipeLine();
+        }
     };
 
 } // namespace tools::cmd

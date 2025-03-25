@@ -3,6 +3,7 @@
 #include "../../../containers/array_keys.hpp"
 #include "../../../cmd/Command.hpp"
 #include "../../Agency.hpp"
+#include "../../AgentRoleMap.hpp"
 
 using namespace tools::containers;
 using namespace tools::cmd;
@@ -14,11 +15,16 @@ namespace tools::agency::agents::commands {
     class SpawnCommand: public Command {
     public:
 
-        SpawnCommand(map<string, function<Agent<T>&(Agency<T>&)>>& roles): Command(), roles(roles) {}
+        SpawnCommand(
+            AgentRoleMap<T>& roles
+        ): 
+            Command(),
+            roles(roles)
+        {}
     
         vector<string> getPatterns() const override {
             return { 
-                "/spawn {string}"
+                "/spawn {string} {string} {string}"
             };
         }
         
@@ -26,18 +32,22 @@ namespace tools::agency::agents::commands {
             NULLCHK(agency_void);
             Agency<T>& agency = *(Agency<T>*)agency_void;
 
-            string role = args[1];
+            if (args.size() < 2) throw ERROR("Missing argument(s): use: /spawn <role> [<name> [<recipients>,...]]");
+            string role = trim(args[1]);
+            string name = args.size() >= 3 ? trim(args[2]) : role;
+            vector<string> recipients = args.size() >= 4 ? explode(",", args[3]) : vector<string>({});
+            foreach (recipients, [](string& recipient) { recipient = trim(recipient); });
 
             if (!in_array(role, array_keys(roles))) 
                 throw ERROR("Invalid agent role: " + role + " - available roles are [" + implode(", ", array_keys(roles)) + "]");
 
             // Spawn the agent
-            Agent<T>& agent = roles[role](agency);
+            Agent<T>& agent = roles[role](agency, name, recipients);
             cout << "Agent '" + agent.name + "' created as " + role << endl;
         }
         
     private:
-        map<string, function<Agent<T>&(Agency<T>&)>>& roles;
+        AgentRoleMap<T>& roles;
     };
     
 }

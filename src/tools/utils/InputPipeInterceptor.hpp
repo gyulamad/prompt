@@ -9,11 +9,12 @@
 #include <functional>
 #include <cstring>
 
-#include "Closable.hpp"
+#include "../abstracts/Closable.hpp"
 #include "ERROR.hpp"
 #include "foreach.hpp"
 
 using namespace std;
+using namespace tools::abstracts;
 
 namespace tools::utils {
 

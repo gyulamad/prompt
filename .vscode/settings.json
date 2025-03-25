@@ -88,5 +88,8 @@
         "*.inc": "cpp",
         "filesystem": "cpp",
         "queue": "cpp"
-    }
+    },
+    "editor.rulers": [
+        80
+    ]
 }

@@ -41,7 +41,9 @@ namespace tools::agency {
 
         virtual void handle(const string& /*sender*/, const T& /*item*/) UNIMP_THROWS
 
-        virtual void tick() {}
+        virtual void tick() {
+            if (app.isClosing()) sleep_ms(100);
+        }
 
         void exit() {
             this->send("agency", "exit");
@@ -51,6 +53,7 @@ namespace tools::agency {
     protected:
         
         void send(const string& recipient, const T& item) {
+            if (name == recipient) ERROR("Can not send for itself: " + name);
             Pack<T> pack(name, recipient, item);
             this->queue.Produce(move(pack));
         }

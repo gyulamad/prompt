@@ -4,7 +4,7 @@
 
 using namespace std;
 
-namespace tools::utils {
+namespace tools::abstracts {
 
     class Closable {
     public:

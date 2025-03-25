@@ -54,8 +54,7 @@ namespace tools::voice {
 
         virtual ~VoiceRecorder() {
             running = false;
-            //if (workerThread.joinable()) 
-                workerThread.join();
+            if (workerThread.joinable()) workerThread.join();
             Pa_Terminate();
         }         
 
