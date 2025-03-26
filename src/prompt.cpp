@@ -5,6 +5,7 @@
 #include "tools/utils/ERROR.hpp"
 #include "tools/utils/Test.hpp"
 #include "tools/voice/MicView.hpp"
+#include "tools/voice/ESpeakTTSAdapter.hpp"
 #include "tools/containers/in_array.hpp"
 
 #include "tools/agency/Agent.hpp"
@@ -63,53 +64,9 @@ int safe_main(int , char *[]) {
         const string whisper_lang = lang;
 
 
-        // Map of role strings to factory functions
-        map<string, function<Agent<PackT>&(Agency<PackT>&)>> roles = {
-            { "echo", [](Agency<PackT>& agency) -> Agent<PackT>& { return agency.template spawn<EchoAgent<PackT>>(agency); } },
-        };
-
-        CommandFactory cfactory;
-
-        if (in_array("help", command_factory_commands)) cfactory.withCommand<HelpCommand<PackT>>();
-        if (in_array("exit", command_factory_commands)) cfactory.withCommand<ExitCommand<PackT>>();
-        if (in_array("list", command_factory_commands)) cfactory.withCommand<ListCommand<PackT>>();
-        if (in_array("spawn", command_factory_commands)) cfactory.withCommand<SpawnCommand<PackT>>(roles);
-        if (in_array("kill", command_factory_commands)) cfactory.withCommand<KillCommand<PackT>>();
-        if (in_array("voice", command_factory_commands)) cfactory.withCommand<VoiceCommand<PackT>>();
-
-        InputPipeInterceptor interceptor;
-
-        LinenoiseAdapter editor(linenoise_prompt, interceptor.getPipeFileDescriptorAt(STDIN_FILENO));
-        CommandLine cline(
-            editor,
-            command_list_prompt,
-            command_list_history_path,
-            command_list_multi_line,
-            command_list_history_max_length
-        );
-        Commander commander(cline, cfactory.getCommands());
-
-        UserAgentWhisperTranscriberSTTSwitch<PackT> stt_switch(
-            whisper_model_path, 
-            whisper_lang,
-            stt_voice_recorder_sample_rate,
-            stt_voice_recorder_frames_per_buffer,
-            stt_voice_recorder_buffer_seconds,
-            stt_noise_monitor_threshold_pc,
-            stt_noise_monitor_rmax_decay_pc,
-            stt_noise_monitor_window,
-            stt_poll_interval_ms
-        );
-        MicView micView;
-        UserAgentWhisperCommanderInterface<PackT> interface(
-            stt_switch, 
-            micView,
-            commander, 
-            interceptor
-        );
 
         Process process;
-        TTS tts(
+        ESpeakTTSAdapter tts(
             lang,
             200, //int speed, 
             0, //int gap,
@@ -126,9 +83,66 @@ int safe_main(int , char *[]) {
         );
 
         PackQueue<PackT> queue;
-        Agency<PackT> agency(queue);
-        agency.template spawn<EchoAgent<PackT>>(agency, &tts).async();
-        agency.template spawn<UserAgent<PackT>>(agency, interface).async();
+        Agency<PackT> agency(queue, "agency");
+
+        CommandFactory cfactory;
+        InputPipeInterceptor interceptor;
+
+        LinenoiseAdapter editor(linenoise_prompt, interceptor.getPipeFileDescriptorAt(STDIN_FILENO));
+        CommandLine cline(
+            editor,
+            command_list_prompt,
+            command_list_history_path,
+            command_list_multi_line,
+            command_list_history_max_length
+        );
+
+
+        UserAgentWhisperTranscriberSTTSwitch<PackT> stt_switch(
+            whisper_model_path, 
+            whisper_lang,
+            stt_voice_recorder_sample_rate,
+            stt_voice_recorder_frames_per_buffer,
+            stt_voice_recorder_buffer_seconds,
+            stt_noise_monitor_threshold_pc,
+            stt_noise_monitor_rmax_decay_pc,
+            stt_noise_monitor_window,
+            stt_poll_interval_ms
+        );
+        MicView micView;
+        UserAgentWhisperCommanderInterface<PackT>* interface_ptr;
+        // Map of role strings to factory functions
+        AgentRoleMap<PackT> roles = {
+            {
+                "echo", 
+                [&](Agency<PackT>& agency, const string& name) -> Agent<PackT>& {
+                    return agency.template spawn<EchoAgent<PackT>>(name, *interface_ptr);
+                }
+            },
+        };
+        if (in_array("help", command_factory_commands)) cfactory.withCommand<HelpCommand<PackT>>();
+        if (in_array("exit", command_factory_commands)) cfactory.withCommand<ExitCommand<PackT>>();
+        if (in_array("list", command_factory_commands)) cfactory.withCommand<ListCommand<PackT>>();
+        if (in_array("spawn", command_factory_commands)) cfactory.withCommand<SpawnCommand<PackT>>(roles);
+        if (in_array("kill", command_factory_commands)) cfactory.withCommand<KillCommand<PackT>>();
+        if (in_array("voice", command_factory_commands)) cfactory.withCommand<VoiceCommand<PackT>>();
+        Commander commander(cline, cfactory.getCommands());
+        UserAgentWhisperCommanderInterface<PackT> interface(
+            tts,
+            stt_switch, 
+            micView,
+            commander, 
+            interceptor
+        );
+        interface_ptr = &interface;
+
+
+
+
+
+
+        agency.template spawn<EchoAgent<PackT>>("echo", interface).async();
+        agency.template spawn<UserAgent<PackT>>("user", agency, interface).async();
         //cout << "Agency started" << endl;
         agency.sync();
 

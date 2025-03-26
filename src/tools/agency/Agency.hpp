@@ -1,5 +1,6 @@
 #pragma once
 
+// #include "agents/UserAgent.hpp"
 #include "Agent.hpp"
 
 namespace tools::agency {
@@ -8,7 +9,7 @@ namespace tools::agency {
     class Agency: public Agent<T> {
     public:
 
-        Agency(PackQueue<T>& queue): Agent<T>(queue, "agency") {}
+        using Agent<T>::Agent;
 
         virtual ~Agency() {
             lock_guard<mutex> lock(agents_mtx);
@@ -16,9 +17,9 @@ namespace tools::agency {
             agents.clear();
         }
 
-        void setVoiceOutput(bool state) { voice = state; }
+        // void setVoiceOutput(bool state) { voice = state; }
 
-        bool isVoiceOutput() const { return voice; }
+        // bool isVoiceOutput() const { return voice; }
 
         void handle(const string& sender, const T& item) override {
 
@@ -41,9 +42,9 @@ namespace tools::agency {
         }
         
         template<typename AgentT, typename... Args>
-        AgentT& spawn(Args&&... args) {
+        AgentT& spawn(const string& name, Args&&... args) {
             lock_guard<mutex> lock(agents_mtx);
-            AgentT* agent = new AgentT(this->queue, forward<Args>(args)...);
+            AgentT* agent = new AgentT(this->queue, name, forward<Args>(args)...);
             for (const Agent<T>* a: agents)
                 if (agent->name == a->name) {
                     delete agent;
@@ -90,7 +91,7 @@ namespace tools::agency {
         const vector<Agent<T>*>& getAgentsCRef() const { return agents; }
 
     private:
-        bool voice = false;
+        // bool voice = false;
         vector<Agent<T>*> agents; // TODO: Replace vector<Agent<T>*> with unordered_map<string, Agent<T>*>, O(1) lookup vs. O(n), huge win with many agents.
         mutex agents_mtx;
         Pack<T> pack;
@@ -110,14 +111,14 @@ namespace tools::agency {
 // Agency tests
 void test_Agency_constructor_basic() {
     PackQueue<string> queue;
-    Agency<string> agency(queue);
+    Agency<string> agency(queue, "agency");
     auto actual_name = agency.name;
     assert(actual_name == "agency" && "Agency name should be 'agency'");
 }
 
 void test_Agency_handle_exit() {
     PackQueue<string> queue;
-    TestAgency<string> agency(queue);
+    TestAgency<string> agency(queue, "agency");
     TestAgent<string>& test_agent = agency.spawn<TestAgent<string>>("test_agent");
     auto actual_output = capture_cout([&]() { agency.handle("user", "exit"); });
     auto actual_closed = agency.isClosing();
@@ -131,7 +132,7 @@ void test_Agency_handle_exit() {
 
 void test_Agency_handle_list() {
     PackQueue<string> queue;
-    Agency<string> agency(queue);
+    Agency<string> agency(queue, "agency");
     agency.spawn<TestAgent<string>>("agent1");
     agency.spawn<TestAgent<string>>("agent2");
     auto actual_output = capture_cout([&]() { agency.handle("user", "list"); });
@@ -141,7 +142,7 @@ void test_Agency_handle_list() {
 
 void test_Agency_spawn_success() {
     PackQueue<string> queue;
-    Agency<string> agency(queue);
+    Agency<string> agency(queue, "agency");
     auto& agent = agency.spawn<TestAgent<string>>("test_agent");
     auto actual_name = agent.name;
     assert(actual_name == "test_agent" && "Spawned agent should have correct name");
@@ -151,7 +152,7 @@ void test_Agency_spawn_success() {
 
 void test_Agency_spawn_duplicate() {
     PackQueue<string> queue;
-    Agency<string> agency(queue);
+    Agency<string> agency(queue, "agency");
     agency.spawn<TestAgent<string>>("test_agent");
     bool thrown = false;
     try {
@@ -166,7 +167,7 @@ void test_Agency_spawn_duplicate() {
 
 void test_Agency_kill_basic() {
     PackQueue<string> queue;
-    Agency<string> agency(queue);
+    Agency<string> agency(queue, "agency");
     agency.spawn<TestAgent<string>>("test_agent");
     queue.Produce(Pack<string>("user", "test_agent", "hello"));
     assert(agency.kill("test_agent") && "Agent should be found");
@@ -178,7 +179,7 @@ void test_Agency_kill_basic() {
 
 void test_Agency_tick_dispatch() {
     PackQueue<string> queue;
-    Agency<string> agency(queue);
+    Agency<string> agency(queue, "agency");
     auto& test_agent = agency.spawn<TestAgent<string>>("test_agent");
     queue.Produce(Pack<string>("user", "agency", "list"));
     queue.Produce(Pack<string>("user", "test_agent", "hello"));

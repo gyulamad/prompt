@@ -9,9 +9,11 @@
 #include "../../str/replace_extension.hpp"
 #include "../../str/remove_path.hpp"
 #include "../../regx/regx_match.hpp"
+#include "../../containers/array_keys.hpp"
 #include "../../containers/array_merge.hpp"
 #include "../../containers/array_key_exists.hpp"
 #include "../../containers/array_unique.hpp"
+#include "../../utils/foreach.hpp"
 #include "../../utils/files.hpp"
 #include "../../utils/execute.hpp"
 #include "../../utils/Arguments.hpp"
@@ -171,6 +173,130 @@ namespace tools::build {
     };
 
     typedef map<string, map<string, string>> depmap_t;
+
+    // =========================================================================
+    // ========================== RECURSION DETECTION ==========================
+    // =========================================================================
+
+    // Get dependencies (headers and impls) for a file
+    vector<pair<string, string>> get_deps(const depmap_t& depmap, const string& file) {
+        vector<pair<string, string>> deps;
+        if (array_key_exists(file, depmap)) {
+            const auto& inner_map = depmap.at(file);
+            foreach(inner_map, [&deps](const string& impl, const string& header) {
+                deps.push_back({header, impl});
+            });
+        }
+        return deps;
+    }
+
+    // Check for cycle and extend path with a dependency
+    bool check_and_extend_path(const string& dep, const vector<string>& path, vector<string>& new_path, vector<string>& cycle) {
+        new_path = path;
+        if (in_array(dep, new_path)) {
+            new_path.push_back(dep);
+            cycle = new_path;
+            return false;
+        }
+        new_path.push_back(dep);
+        return true;
+    }
+    
+    bool process_single_dep(const pair<string, string>& dep, const vector<string>& path,
+                           vector<vector<string>>& new_paths, vector<string>& cycle, bool& extended) {
+        const string& header = dep.first;
+        const string& impl = dep.second;
+    
+        vector<string> header_path;
+        if (!check_and_extend_path(header, path, header_path, cycle)) {
+            new_paths.push_back(header_path);
+            return false;
+        }
+        new_paths.push_back(header_path);
+        extended = true;
+    
+        if (!impl.empty()) {
+            vector<string> impl_path;
+            if (!check_and_extend_path(impl, path, impl_path, cycle)) {
+                new_paths.push_back(impl_path);
+                return false;
+            }
+            new_paths.push_back(impl_path);
+            extended = true;
+        }
+    
+        return true;
+    }
+    
+    bool extend_paths_with_deps(const vector<pair<string, string>>& deps, const vector<string>& path, 
+                                vector<vector<string>>& new_paths, vector<string>& cycle) {
+        bool extended = false;
+        bool no_cycle = true;
+    
+        foreach(deps, [&](const pair<string, string>& dep) -> bool {
+            if (!process_single_dep(dep, path, new_paths, cycle, extended)) {
+                no_cycle = false;
+                return FE_BREAK;
+            }
+            return FE_CONTINUE;
+        });
+    
+        return extended && no_cycle;
+    }
+
+    // Extend all paths with their dependencies
+    bool add_dep_paths(const depmap_t& depmap, vector<vector<string>>& paths, vector<string>& cycle) {
+        bool extended = false;
+        vector<vector<string>> new_paths;
+
+        bool no_cycle = true;
+        foreach(paths, [&](const vector<string>& path) -> bool {
+            const string& last_file = path.back();
+            vector<pair<string, string>> deps = get_deps(depmap, last_file);
+
+            if (deps.empty()) {
+                new_paths.push_back(path);
+                return FE_CONTINUE;
+            }
+
+            if (extend_paths_with_deps(deps, path, new_paths, cycle)) {
+                extended = true;
+            } else {
+                no_cycle = false;
+                return FE_BREAK; // Stop on cycle
+            }
+            return FE_CONTINUE;
+        });
+
+        paths = move(new_paths);
+        return extended && no_cycle; // True if extended and no cycle
+    }
+
+    // Main function with optional throw on cycle detection
+    vector<string> find_circulation(const depmap_t& depmap, bool throw_on_cycle = false) {
+        if (depmap.empty()) return {};
+    
+        vector<vector<string>> paths;
+        vector<string> keys = array_keys(depmap);
+        foreach(keys, [&paths](const string& file) {
+            paths.push_back({file});
+        });
+    
+        vector<string> cycle;
+        while (add_dep_paths(depmap, paths, cycle)) {
+            // Continue until cycle found or no more extensions
+        }
+    
+        if (!cycle.empty() && throw_on_cycle) {
+            throw ERROR("circular dependency found:\n" + implode("\n=>", cycle));
+        }
+    
+        return cycle;
+    }
+
+    // =========================================================================
+    // =========================================================================
+    // =========================================================================
 
     string find_impfile(const string& incfile, const vector<string>& srcdirs, const string& impext) {
         string base = remove_path(incfile); // e.g., "a.h"
@@ -425,6 +551,7 @@ namespace tools::build {
 
 #ifdef TEST
 
+#include "../../str/str_contains.hpp"
 #include "../../utils/Test.hpp"
 #include "../../containers/sort.hpp"
 #include "../tests/test_fs.hpp"
@@ -1525,6 +1652,398 @@ void test_build_config_constructor_hash_uniqueness() {
     fs::remove(config_file);
 }
 
+void test_get_deps_multiple_dependencies() {
+    depmap_t depmap = {
+        {"file1.cpp", {{"header1.h", "header1.cpp"}, {"header2.h", "header2.cpp"}}}
+    };
+    auto actual = get_deps(depmap, "file1.cpp");
+    vector<pair<string, string>> expected = {{"header1.h", "header1.cpp"}, {"header2.h", "header2.cpp"}};
+    assert(actual == expected && "Should return all header-impl pairs for file with multiple dependencies");
+}
+
+void test_get_deps_no_implementations() {
+    depmap_t depmap = {
+        {"file1.cpp", {{"header1.h", ""}, {"header2.h", ""}}}
+    };
+    auto actual = get_deps(depmap, "file1.cpp");
+    vector<pair<string, string>> expected = {{"header1.h", ""}, {"header2.h", ""}};
+    assert(actual == expected && "Should return headers with empty impls for file with no implementations");
+}
+
+void test_get_deps_file_not_in_depmap() {
+    depmap_t depmap = {
+        {"file1.cpp", {{"header1.h", "header1.cpp"}}}
+    };
+    auto actual = get_deps(depmap, "file2.cpp");
+    vector<pair<string, string>> expected = {};
+    assert(actual == expected && "Should return empty vector for file not in depmap");
+}
+
+void test_get_deps_empty_depmap() {
+    depmap_t depmap = {};
+    auto actual = get_deps(depmap, "file1.cpp");
+    vector<pair<string, string>> expected = {};
+    assert(actual == expected && "Should return empty vector for empty depmap");
+}
+
+void test_get_deps_single_dependency() {
+    depmap_t depmap = {
+        {"file1.cpp", {{"header1.h", "header1.cpp"}}}
+    };
+    auto actual = get_deps(depmap, "file1.cpp");
+    vector<pair<string, string>> expected = {{"header1.h", "header1.cpp"}};
+    assert(actual == expected && "Should return single header-impl pair for file with one dependency");
+}
+
+void test_check_and_extend_path_no_cycle_empty_path() {
+    vector<string> path = {};
+    vector<string> new_path;
+    vector<string> cycle;
+    auto actual = check_and_extend_path("file1.cpp", path, new_path, cycle);
+    vector<string> expected_new_path = {"file1.cpp"};
+    vector<string> expected_cycle = {};
+    assert(actual == true && new_path == expected_new_path && cycle == expected_cycle && 
+           "Should extend empty path with no cycle");
+}
+
+void test_check_and_extend_path_no_cycle_non_empty_path() {
+    vector<string> path = {"file1.cpp", "header1.h"};
+    vector<string> new_path;
+    vector<string> cycle;
+    auto actual = check_and_extend_path("header2.h", path, new_path, cycle);
+    vector<string> expected_new_path = {"file1.cpp", "header1.h", "header2.h"};
+    vector<string> expected_cycle = {};
+    assert(actual == true && new_path == expected_new_path && cycle == expected_cycle && 
+           "Should extend non-empty path with no cycle");
+}
+
+void test_check_and_extend_path_cycle_detected() {
+    vector<string> path = {"file1.cpp", "header1.h", "header2.h"};
+    vector<string> new_path;
+    vector<string> cycle;
+    auto actual = check_and_extend_path("header1.h", path, new_path, cycle);
+    vector<string> expected_new_path = {"file1.cpp", "header1.h", "header2.h", "header1.h"};
+    vector<string> expected_cycle = {"file1.cpp", "header1.h", "header2.h", "header1.h"};
+    assert(actual == false && new_path == expected_new_path && cycle == expected_cycle && 
+           "Should detect cycle and set cycle when dependency is already in path");
+}
+
+void test_check_and_extend_path_cycle_at_start() {
+    vector<string> path = {"file1.cpp"};
+    vector<string> new_path;
+    vector<string> cycle;
+    auto actual = check_and_extend_path("file1.cpp", path, new_path, cycle);
+    vector<string> expected_new_path = {"file1.cpp", "file1.cpp"};
+    vector<string> expected_cycle = {"file1.cpp", "file1.cpp"};
+    assert(actual == false && new_path == expected_new_path && cycle == expected_cycle && 
+           "Should detect cycle when adding the starting element again");
+}
+
+void test_check_and_extend_path_single_element_no_cycle() {
+    vector<string> path = {"file1.cpp"};
+    vector<string> new_path;
+    vector<string> cycle;
+    auto actual = check_and_extend_path("header1.h", path, new_path, cycle);
+    vector<string> expected_new_path = {"file1.cpp", "header1.h"};
+    vector<string> expected_cycle = {};
+    assert(actual == true && new_path == expected_new_path && cycle == expected_cycle && 
+           "Should extend single-element path with no cycle");
+}
+
+void test_extend_paths_with_deps_no_dependencies() {
+    vector<pair<string, string>> deps = {};
+    vector<string> path = {"file1.cpp"};
+    vector<vector<string>> new_paths;
+    vector<string> cycle;
+    auto actual = extend_paths_with_deps(deps, path, new_paths, cycle);
+    vector<vector<string>> expected_new_paths = {};
+    vector<string> expected_cycle = {};
+    assert(actual == false && new_paths == expected_new_paths && cycle == expected_cycle && 
+           "Should not extend path with empty dependencies");
+}
+
+void test_extend_paths_with_deps_single_header_no_cycle() {
+    vector<pair<string, string>> deps = {{"header1.h", ""}};
+    vector<string> path = {"file1.cpp"};
+    vector<vector<string>> new_paths;
+    vector<string> cycle;
+    auto actual = extend_paths_with_deps(deps, path, new_paths, cycle);
+    vector<vector<string>> expected_new_paths = {{"file1.cpp", "header1.h"}};
+    vector<string> expected_cycle = {};
+    assert(actual == true && new_paths == expected_new_paths && cycle == expected_cycle && 
+           "Should extend path with single header, no cycle");
+}
+
+void test_extend_paths_with_deps_header_with_cycle() {
+    vector<pair<string, string>> deps = {{"file1.cpp", ""}};
+    vector<string> path = {"file1.cpp"};
+    vector<vector<string>> new_paths;
+    vector<string> cycle;
+    auto actual = extend_paths_with_deps(deps, path, new_paths, cycle);
+    vector<vector<string>> expected_new_paths = {{"file1.cpp", "file1.cpp"}};
+    vector<string> expected_cycle = {"file1.cpp", "file1.cpp"};
+    assert(actual == false && new_paths == expected_new_paths && cycle == expected_cycle && 
+           "Should detect cycle with header and stop");
+}
+
+void test_extend_paths_with_deps_header_and_impl_no_cycle() {
+    vector<pair<string, string>> deps = {{"header1.h", "impl1.cpp"}};
+    vector<string> path = {"file1.cpp"};
+    vector<vector<string>> new_paths;
+    vector<string> cycle;
+    auto actual = extend_paths_with_deps(deps, path, new_paths, cycle);
+    vector<vector<string>> expected_new_paths = {{"file1.cpp", "header1.h"}, {"file1.cpp", "impl1.cpp"}};
+    vector<string> expected_cycle = {};
+    assert(actual == true && new_paths == expected_new_paths && cycle == expected_cycle && 
+           "Should extend path with header and impl, no cycle");
+}
+
+void test_extend_paths_with_deps_impl_with_cycle() {
+    vector<pair<string, string>> deps = {{"header1.h", "file1.cpp"}};
+    vector<string> path = {"file1.cpp"};
+    vector<vector<string>> new_paths;
+    vector<string> cycle;
+    auto actual = extend_paths_with_deps(deps, path, new_paths, cycle);
+    vector<vector<string>> expected_new_paths = {{"file1.cpp", "header1.h"}, {"file1.cpp", "file1.cpp"}};
+    vector<string> expected_cycle = {"file1.cpp", "file1.cpp"};
+    assert(actual == false && new_paths == expected_new_paths && cycle == expected_cycle && 
+           "Should detect cycle with impl and stop");
+}
+
+void test_extend_paths_with_deps_self_loop_ignored() {
+    vector<pair<string, string>> deps = {{"header1.h", "file1.cpp"}};
+    vector<string> path = {"file1.cpp"};
+    vector<vector<string>> new_paths;
+    vector<string> cycle;
+    auto actual = extend_paths_with_deps(deps, path, new_paths, cycle);
+    vector<vector<string>> expected_new_paths = {{"file1.cpp", "header1.h"}, {"file1.cpp", "file1.cpp"}};
+    vector<string> expected_cycle = {"file1.cpp", "file1.cpp"};
+    assert(actual == false && new_paths == expected_new_paths && cycle == expected_cycle && 
+           "Should detect cycle with impl even if it's the last_file");
+}
+
+void test_extend_paths_with_deps_multiple_headers_no_cycle() {
+    vector<pair<string, string>> deps = {{"header1.h", ""}, {"header2.h", ""}};
+    vector<string> path = {"file1.cpp"};
+    vector<vector<string>> new_paths;
+    vector<string> cycle;
+    auto actual = extend_paths_with_deps(deps, path, new_paths, cycle);
+    vector<vector<string>> expected_new_paths = {{"file1.cpp", "header1.h"}, {"file1.cpp", "header2.h"}};
+    vector<string> expected_cycle = {};
+    assert(actual == true && new_paths == expected_new_paths && cycle == expected_cycle && 
+           "Should extend path with multiple headers, no cycle");
+}
+
+void test_process_single_dep_header_only_no_cycle() {
+    pair<string, string> dep = {"header1.h", ""};
+    vector<string> path = {"file1.cpp"};
+    vector<vector<string>> new_paths;
+    vector<string> cycle;
+    bool extended = false;
+    auto actual = process_single_dep(dep, path, new_paths, cycle, extended);
+    vector<vector<string>> expected_new_paths = {{"file1.cpp", "header1.h"}};
+    vector<string> expected_cycle = {};
+    assert(actual == true && new_paths == expected_new_paths && cycle == expected_cycle && extended == true &&
+           "Should extend with header only, no cycle");
+}
+
+void test_process_single_dep_header_with_cycle() {
+    pair<string, string> dep = {"file1.cpp", ""};
+    vector<string> path = {"file1.cpp"};
+    vector<vector<string>> new_paths;
+    vector<string> cycle;
+    bool extended = false;
+    auto actual = process_single_dep(dep, path, new_paths, cycle, extended);
+    vector<vector<string>> expected_new_paths = {{"file1.cpp", "file1.cpp"}};
+    vector<string> expected_cycle = {"file1.cpp", "file1.cpp"};
+    assert(actual == false && new_paths == expected_new_paths && cycle == expected_cycle && extended == false &&
+           "Should detect cycle with header and stop");
+}
+
+void test_process_single_dep_header_and_impl_no_cycle() {
+    pair<string, string> dep = {"header1.h", "impl1.cpp"};
+    vector<string> path = {"file1.cpp"};
+    vector<vector<string>> new_paths;
+    vector<string> cycle;
+    bool extended = false;
+    auto actual = process_single_dep(dep, path, new_paths, cycle, extended);
+    vector<vector<string>> expected_new_paths = {{"file1.cpp", "header1.h"}, {"file1.cpp", "impl1.cpp"}};
+    vector<string> expected_cycle = {};
+    assert(actual == true && new_paths == expected_new_paths && cycle == expected_cycle && extended == true &&
+           "Should extend with header and impl, no cycle");
+}
+
+void test_process_single_dep_impl_with_cycle() {
+    pair<string, string> dep = {"header1.h", "file1.cpp"};
+    vector<string> path = {"file1.cpp"};
+    vector<vector<string>> new_paths;
+    vector<string> cycle;
+    bool extended = false;
+    auto actual = process_single_dep(dep, path, new_paths, cycle, extended);
+    vector<vector<string>> expected_new_paths = {{"file1.cpp", "header1.h"}, {"file1.cpp", "file1.cpp"}};
+    vector<string> expected_cycle = {"file1.cpp", "file1.cpp"};
+    assert(actual == false && new_paths == expected_new_paths && cycle == expected_cycle && extended == true &&
+           "Should detect cycle with impl and stop");
+}
+
+void test_process_single_dep_self_loop_ignored() {
+    pair<string, string> dep = {"header1.h", "file1.cpp"};
+    vector<string> path = {"file1.cpp"};
+    vector<vector<string>> new_paths;
+    vector<string> cycle;
+    bool extended = false;
+    auto actual = process_single_dep(dep, path, new_paths, cycle, extended);
+    vector<vector<string>> expected_new_paths = {{"file1.cpp", "header1.h"}, {"file1.cpp", "file1.cpp"}};
+    vector<string> expected_cycle = {"file1.cpp", "file1.cpp"};
+    assert(actual == false && new_paths == expected_new_paths && cycle == expected_cycle && extended == true &&
+           "Should detect cycle with impl even if it matches last_file");
+}
+
+void test_process_single_dep_empty_impl_no_cycle() {
+    pair<string, string> dep = {"header1.h", ""};
+    vector<string> path = {"file1.cpp"};
+    vector<vector<string>> new_paths;
+    vector<string> cycle;
+    bool extended = false;
+    auto actual = process_single_dep(dep, path, new_paths, cycle, extended);
+    vector<vector<string>> expected_new_paths = {{"file1.cpp", "header1.h"}};
+    vector<string> expected_cycle = {};
+    assert(actual == true && new_paths == expected_new_paths && cycle == expected_cycle && extended == true &&
+           "Should extend with header, empty impl does nothing");
+}
+
+void test_add_dep_paths_empty_paths() {
+    depmap_t depmap = {{"file1.cpp", {{"header1.h", ""}}}};
+    vector<vector<string>> paths = {};
+    vector<string> cycle;
+    auto actual = add_dep_paths(depmap, paths, cycle);
+    vector<vector<string>> expected_paths = {};
+    vector<string> expected_cycle = {};
+    assert(actual == false && paths == expected_paths && cycle == expected_cycle &&
+           "Should return false with empty paths, no extension");
+}
+
+void test_add_dep_paths_no_dependencies() {
+    depmap_t depmap = {{"file2.cpp", {{"header2.h", ""}}}};
+    vector<vector<string>> paths = {{"file1.cpp"}};
+    vector<string> cycle;
+    auto actual = add_dep_paths(depmap, paths, cycle);
+    vector<vector<string>> expected_paths = {{"file1.cpp"}};
+    vector<string> expected_cycle = {};
+    assert(actual == false && paths == expected_paths && cycle == expected_cycle &&
+           "Should keep path unchanged with no dependencies");
+}
+
+void test_add_dep_paths_single_path_extend_no_cycle() {
+    depmap_t depmap = {{"file1.cpp", {{"header1.h", "impl1.cpp"}}}};
+    vector<vector<string>> paths = {{"file1.cpp"}};
+    vector<string> cycle;
+    auto actual = add_dep_paths(depmap, paths, cycle);
+    vector<vector<string>> expected_paths = {{"file1.cpp", "header1.h"}, {"file1.cpp", "impl1.cpp"}};
+    vector<string> expected_cycle = {};
+    assert(actual == true && paths == expected_paths && cycle == expected_cycle &&
+           "Should extend single path with dependencies, no cycle");
+}
+
+void test_add_dep_paths_single_path_with_cycle() {
+    depmap_t depmap = {{"file1.cpp", {{"header1.h", "file1.cpp"}}}};
+    vector<vector<string>> paths = {{"file1.cpp"}};
+    vector<string> cycle;
+    auto actual = add_dep_paths(depmap, paths, cycle);
+    vector<vector<string>> expected_paths = {{"file1.cpp", "header1.h"}, {"file1.cpp", "file1.cpp"}};
+    vector<string> expected_cycle = {"file1.cpp", "file1.cpp"};
+    assert(actual == false && paths == expected_paths && cycle == expected_cycle &&
+           "Should detect cycle in single path and stop");
+}
+
+void test_add_dep_paths_multiple_paths_all_extend() {
+    depmap_t depmap = {
+        {"file1.cpp", {{"header1.h", "impl1.cpp"}}},
+        {"file2.cpp", {{"header2.h", ""}}}
+    };
+    vector<vector<string>> paths = {{"file1.cpp"}, {"file2.cpp"}};
+    vector<string> cycle;
+    auto actual = add_dep_paths(depmap, paths, cycle);
+    vector<vector<string>> expected_paths = {
+        {"file1.cpp", "header1.h"}, {"file1.cpp", "impl1.cpp"},
+        {"file2.cpp", "header2.h"}
+    };
+    vector<string> expected_cycle = {};
+    assert(actual == true && paths == expected_paths && cycle == expected_cycle &&
+           "Should extend all paths with dependencies, no cycle");
+}
+
+void test_add_dep_paths_multiple_paths_one_cycles() {
+    depmap_t depmap = {
+        {"file1.cpp", {{"header1.h", ""}}},
+        {"file2.cpp", {{"file2.cpp", ""}}}
+    };
+    vector<vector<string>> paths = {{"file1.cpp"}, {"file2.cpp"}};
+    vector<string> cycle;
+    auto actual = add_dep_paths(depmap, paths, cycle);
+    vector<vector<string>> expected_paths = {{"file1.cpp", "header1.h"}, {"file2.cpp", "file2.cpp"}};
+    vector<string> expected_cycle = {"file2.cpp", "file2.cpp"};
+    assert(actual == false && paths == expected_paths && cycle == expected_cycle &&
+           "Should stop when one path creates a cycle");
+}
+
+void test_find_circulation_empty_depmap() {
+    depmap_t depmap = {};
+    auto actual = find_circulation(depmap);
+    vector<string> expected = {};
+    assert(actual == expected && "Should return empty vector for empty depmap");
+}
+
+void test_find_circulation_no_cycles() {
+    depmap_t depmap = {
+        {"file1.cpp", {{"header1.h", "impl1.cpp"}}},
+        {"impl1.cpp", {{"header2.h", ""}}}
+    };
+    auto actual = find_circulation(depmap);
+    vector<string> expected = {};
+    assert(actual == expected && "Should return empty vector when no cycles exist");
+}
+
+void test_find_circulation_simple_cycle() {
+    depmap_t depmap = {{"file1.cpp", {{"file1.cpp", ""}}}};
+    auto actual = find_circulation(depmap);
+    vector<string> expected = {"file1.cpp", "file1.cpp"};
+    assert(actual == expected && "Should detect simple direct cycle");
+}
+
+void test_find_circulation_complex_cycle() {
+    depmap_t depmap = {
+        {"file1.cpp", {{"header1.h", "file2.cpp"}}},
+        {"file2.cpp", {{"header2.h", "file1.cpp"}}}
+    };
+    auto actual = find_circulation(depmap);
+    vector<string> expected = {"file1.cpp", "file2.cpp", "file1.cpp"};
+    assert(actual == expected && "Should detect complex cycle across files");
+}
+
+void test_find_circulation_throw_on_cycle() {
+    depmap_t depmap = {{"file1.cpp", {{"file1.cpp", ""}}}};
+    bool threw = false;
+    try {
+        find_circulation(depmap, true);
+    } catch (const exception& e) {
+        threw = true;
+        string expected_msg = "circular dependency found:\nfile1.cpp\n=>file1.cpp";
+        assert(str_contains(e.what(), expected_msg) && "Should throw with correct cycle message");
+    }
+    assert(threw && "Should throw exception when throw_on_cycle is true");
+}
+
+void test_find_circulation_multiple_starting_points_one_cycle() {
+    depmap_t depmap = {
+        {"file1.cpp", {{"header1.h", ""}}},
+        {"file2.cpp", {{"file2.cpp", ""}}}
+    };
+    auto actual = find_circulation(depmap);
+    vector<string> expected = {"file2.cpp", "file2.cpp"};
+    assert(actual == expected && "Should detect cycle from one starting point among many");
+}
+
 // Register tests
 TEST(test_build_find_impfile_found_next_to_header);
 TEST(test_build_find_impfile_found_in_srcdir);
@@ -1580,4 +2099,39 @@ TEST(test_build_config_constructor_valid_input_no_config);
 TEST(test_build_config_constructor_with_config);
 TEST(test_build_config_constructor_with_named_config);
 TEST(test_build_config_constructor_hash_uniqueness);
+TEST(test_get_deps_multiple_dependencies);
+TEST(test_get_deps_no_implementations);
+TEST(test_get_deps_file_not_in_depmap);
+TEST(test_get_deps_empty_depmap);
+TEST(test_get_deps_single_dependency);
+TEST(test_check_and_extend_path_no_cycle_empty_path);
+TEST(test_check_and_extend_path_no_cycle_non_empty_path);
+TEST(test_check_and_extend_path_cycle_detected);
+TEST(test_check_and_extend_path_cycle_at_start);
+TEST(test_check_and_extend_path_single_element_no_cycle);
+TEST(test_process_single_dep_header_only_no_cycle);
+TEST(test_process_single_dep_header_with_cycle);
+TEST(test_process_single_dep_header_and_impl_no_cycle);
+TEST(test_process_single_dep_impl_with_cycle);
+TEST(test_process_single_dep_self_loop_ignored);
+TEST(test_process_single_dep_empty_impl_no_cycle);
+TEST(test_extend_paths_with_deps_no_dependencies);
+TEST(test_extend_paths_with_deps_single_header_no_cycle);
+TEST(test_extend_paths_with_deps_header_with_cycle);
+TEST(test_extend_paths_with_deps_header_and_impl_no_cycle);
+TEST(test_extend_paths_with_deps_impl_with_cycle);
+TEST(test_extend_paths_with_deps_self_loop_ignored);
+TEST(test_extend_paths_with_deps_multiple_headers_no_cycle);
+TEST(test_add_dep_paths_empty_paths);
+TEST(test_add_dep_paths_no_dependencies);
+TEST(test_add_dep_paths_single_path_extend_no_cycle);
+TEST(test_add_dep_paths_single_path_with_cycle);
+TEST(test_add_dep_paths_multiple_paths_all_extend);
+TEST(test_add_dep_paths_multiple_paths_one_cycles);
+TEST(test_find_circulation_empty_depmap);
+TEST(test_find_circulation_no_cycles);
+TEST(test_find_circulation_simple_cycle);
+TEST(test_find_circulation_complex_cycle);
+TEST(test_find_circulation_throw_on_cycle);
+TEST(test_find_circulation_multiple_starting_points_one_cycle);
 #endif

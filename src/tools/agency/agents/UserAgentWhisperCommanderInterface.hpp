@@ -1,43 +1,22 @@
 #pragma once
 
+#include "../../abstracts/Switch.hpp"
 #include "../../regx/regx_match.hpp"
 #include "../../cmd/Commander.hpp"
 #include "../../voice/MicView.hpp"
+#include "../../voice/TTS.hpp"
 
 #include "UserAgentWhisperTranscriberSTTSwitch.hpp"
 
+using namespace tools::abstracts;
 using namespace tools::regx;
 using namespace tools::cmd;
 using namespace tools::voice;
 
 namespace tools::agency::agents {
 
-    class Locker {
-    public:
-        template<typename... Args>
-        Locker(function<void(Args...)> callback) {
-            lock_guard<mutex> lock(mtx);
-            callback(forward<Args>(args)...);
-        }
-    private:
-        mutex mtx;
-    };
-
-    class UserInterface {
-    public:
-        virtual bool readln(string& input) = 0;
-        virtual string readln() = 0;
-        virtual void clearln() = 0;
-        virtual void print(string& output) = 0;
-        virtual void println(string& output) = 0;
-        virtual void hide() { visible = false; }
-        virtual void show() { visible = true; }
-    protected:
-        atomic<bool> visible = true;
-    };
-
     template<typename T>
-    class UserAgentWhisperCommanderInterface {
+    class UserAgentWhisperCommanderInterface { // TODO: public UserInterface (abstract)
     public:
         // TODO: make configurable:
         atomic<bool> voice_input_echo = true;
@@ -51,11 +30,13 @@ namespace tools::agency::agents {
         };
 
         UserAgentWhisperCommanderInterface(
+            TTS& tts,
             UserAgentWhisperTranscriberSTTSwitch<T>& sttSwitch,
             MicView& micView,
             Commander& commander,
             InputPipeInterceptor& interceptor
         ):
+            tts(tts),
             sttSwitch(sttSwitch),
             micView(micView),
             commander(commander),
@@ -70,12 +51,35 @@ namespace tools::agency::agents {
                 sttSwitch.getSttPtr()->stop();
         }
 
+
+
+        // =================================================================
+        // ============================== TTS ==============================
+        // =================================================================
+        
+        void setVoiceOutput(bool state) { tts_voice_output = state; }
+
+        bool isVoiceOutput() const { return tts_voice_output; }
+
+        void speak(const string& text) {
+            if (tts_voice_output) tts.speak(text);
+        }
+
+    private:
+        bool tts_voice_output = false;
+
+        // =================================================================
+        // =================================================================
+        // =================================================================        
+    public:
+
+
+
         void setUser(UserAgent<T>* user) { this->user = user; }
 
         Commander& getCommanderRef() { return commander; }
 
         UserAgentWhisperTranscriberSTTSwitch<T>& get_stt_switch_ref() { return sttSwitch; }
-
 
         void setVoiceInput(bool state) {
             lock_guard<mutex> lock(stt_voice_input_mutex);
@@ -205,6 +209,7 @@ namespace tools::agency::agents {
         }
 
         UserAgent<T>* user = nullptr;
+        TTS& tts;
         UserAgentWhisperTranscriberSTTSwitch<T>& sttSwitch;
         MicView& micView;
         Commander& commander;

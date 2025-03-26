@@ -5,7 +5,7 @@
 #include <queue>
 
 #include "../LineEditor.hpp"
-#include "../CommandLine.hpp"
+// #include "../CommandLine.hpp"
 
 using namespace std;
 using namespace tools::cmd;

@@ -33,10 +33,11 @@ namespace tools::agency::agents::commands {
             Agency<T>& agency = *(Agency<T>*)agency_void;
 
             // get user agent
-            // Agent<T>& agent = agency.getAgentRef("user");
-            // if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
-            // UserAgent<T>& user = (UserAgent<T>&)agent;
-            UserAgent<T>& user = agency.getUserAgentRef();
+            Agent<T>& agent = agency.getAgentRef("user");
+            if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
+            UserAgent<T>& user = (UserAgent<T>&)agent;
+            // UserAgent<T>& user = agency.getUserAgentRef();
+            UserAgentWhisperCommanderInterface<T>& interface = user.getInterfaceRef();
 
             string thru = args[1];
             if (thru == "output") {                
@@ -50,14 +51,15 @@ namespace tools::agency::agents::commands {
                 }
                 
                 bool state = parse<bool>(args[2]);
-                agency.setVoiceOutput(state); //  TODO ...
-                user.getInterfaceRef().println("Text to speech voice mode output is " + string(state ? "ON" : "OFF"));
+                
+                interface.setVoiceOutput(state); //  TODO ...
+                interface.println("Text to speech voice mode output is " + string(state ? "ON" : "OFF"));
                 // cout << "Text to speech voice mode output is " + string(state ? "ON" : "OFF") << endl;
                 return;
             }
             if (thru == "input") {
                 if (args[2] == "mute") {
-                    STT* stt = user.getInterfaceRef().get_stt_switch_ref().getSttPtr(); // getSttPtr();
+                    STT* stt = interface.get_stt_switch_ref().getSttPtr(); // getSttPtr();
                     if (!stt) return;
                     NoiseMonitor* monitor = stt->getMonitorPtr();
                     if (!monitor) return;
@@ -65,7 +67,7 @@ namespace tools::agency::agents::commands {
                     return;
                 }
                 if (args[2] == "unmute") {
-                    STT* stt = user.getInterfaceRef().get_stt_switch_ref().getSttPtr(); // getSttPtr();
+                    STT* stt = interface.get_stt_switch_ref().getSttPtr(); // getSttPtr();
                     if (!stt) return;
                     NoiseMonitor* monitor = stt->getMonitorPtr();
                     if (!monitor) return;
@@ -75,8 +77,8 @@ namespace tools::agency::agents::commands {
 
                 bool state = parse<bool>(args[2]);
 
-                user.getInterfaceRef().setVoiceInput(state);
-                user.getInterfaceRef().println("Speech to text voice mode input is " + string(state ? "ON" : "OFF"));
+                interface.setVoiceInput(state);
+                interface.println("Speech to text voice mode input is " + string(state ? "ON" : "OFF"));
                 // cout << "Speech to text voice mode input is " + string(state ? "ON" : "OFF") << endl;
                 return;
             }

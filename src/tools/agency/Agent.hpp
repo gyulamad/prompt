@@ -1,10 +1,11 @@
 #pragma once
 
+#include "../abstracts/Closable.hpp"
 #include "../utils/system.hpp"
-#include "../utils/Closable.hpp"
 
 #include "PackQueueHolder.hpp"
 
+using namespace tools::abstracts;
 using namespace tools::utils;
 
 namespace tools::agency {
@@ -41,9 +42,7 @@ namespace tools::agency {
 
         virtual void handle(const string& /*sender*/, const T& /*item*/) UNIMP_THROWS
 
-        virtual void tick() {
-            if (app.isClosing()) sleep_ms(100);
-        }
+        virtual void tick() {}
 
         void exit() {
             this->send("agency", "exit");

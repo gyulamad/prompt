@@ -42,7 +42,7 @@ namespace tools::agency::agents::commands {
                 throw ERROR("Invalid agent role: " + role + " - available roles are [" + implode(", ", array_keys(roles)) + "]");
 
             // Spawn the agent
-            Agent<T>& agent = roles[role](agency, name, recipients);
+            Agent<T>& agent = roles[role](agency, name/*TODO: , recipients*/);
             cout << "Agent '" + agent.name + "' created as " + role << endl;
         }
         

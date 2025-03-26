@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Transcriber.hpp"
+// #include "../Transcriber.hpp"
 
-using namespace tools::voice;
+// using namespace tools::voice;
 
 // Mock Transcriber
 class MockTranscriber: public Transcriber {

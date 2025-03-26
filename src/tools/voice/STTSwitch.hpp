@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../utils/Switch.hpp"
+#include "../abstracts/Switch.hpp"
 #include "STT.hpp"
 
-using namespace tools::utils;
+using namespace tools::abstracts;
 
 namespace tools::voice {
 

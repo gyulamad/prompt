@@ -6,7 +6,7 @@
 
 // using namespace std;
 
-namespace tools::utils {
+namespace tools::abstracts {
     
     enum SwitchState { ON = 0, OFF };
 

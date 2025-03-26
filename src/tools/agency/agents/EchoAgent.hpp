@@ -12,32 +12,33 @@ namespace tools::agency::agents {
     template<typename T>
     class EchoAgent: public Agent<T> {
     public:
-        EchoAgent(PackQueue<T>& queue, Agency<T>& agency, TTS* tts = nullptr): Agent<T>(queue, "echo"), agency(agency), tts(tts) {}
+        EchoAgent(
+            PackQueue<T>& queue,
+            const string& name, 
+            UserAgentWhisperCommanderInterface<T>& interface
+        ): 
+            Agent<T>(queue, name), 
+            interface(interface)
+        {}
 
         void handle(const string& sender, const T& item) override {
             // sleep(2); // emulate some background work;
 
-            // get user agent
-            Agent<T>& agent = agency.getAgentRef("user");
-            if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
-            UserAgent<T>& user = (UserAgent<T>&)agent;
+            // // get user agent
+            // Agent<T>& agent = agency.getAgentRef("user");
+            // if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
+            // UserAgent<T>& user = (UserAgent<T>&)agent;
 
             string output = "echo " + sender + "> " + string(item);
-            user.getInterfaceRef()
-
-            interface = agency.
-            user.getInterfaceRef();
-
+            // user.getInterfaceRef()
             interface.println(output, true);
-            if (agency.isVoiceOutput()) {
-                if (tts) tts->speak(item);
-                else throw ERROR("Text to speech is missing");
-            }
+            // if (interface.isVoiceOutput()) 
+            interface.speak(item);
         }
 
     private:
-        Agency<T>& agency;
-        TTS* tts = nullptr;
+        // Agency<T>& agency;
+        UserAgentWhisperCommanderInterface<T>& interface;
     };
     
 }

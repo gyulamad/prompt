@@ -46,7 +46,8 @@ int safe_main(int argc, char* argv[]) {
         ms_t lstmtime = filemtime_ms(config.input_file);
         if (!config.depcache || !file_exists(depcachepath)) {
             if (config.verbose) cout << "Scanning dependency map for: " << config.input_file << endl;
-            scan_includes(mtx, config.input_file, depmap, config.include_path, config.source_path, config.source_extensions, config.verbose);
+            scan_includes(mtx, config.input_file, depmap, config.include_path, config.source_path, config.source_extensions, config.verbose);            
+            find_circulation(depmap, true);
             if (config.depcache) save_depcache(depcachepath, depmap);
         } else depmap = load_depcache(depcachepath);
         lstmtime = get_lstmtime(depmap);

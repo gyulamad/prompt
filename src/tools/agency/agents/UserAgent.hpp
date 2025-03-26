@@ -9,6 +9,7 @@
 #include "../../voice/WhisperTranscriberSTTSwitch.hpp"
 #include "../../utils/InputPipeInterceptor.hpp"
 #include "../Agent.hpp"
+#include "../Agency.hpp"
 
 #include "UserAgentWhisperCommanderInterface.hpp"
 
@@ -29,12 +30,13 @@ namespace tools::agency::agents {
         atomic<bool> text_input_echo = true;
 
         UserAgent(
-            PackQueue<T>& queue, 
+            PackQueue<T>& queue,
+            const string& name, 
             Agency<T>& agency, 
             UserAgentWhisperCommanderInterface<T>& interface,
             vector<string> recipients = { "echo" } // TODO: to config, and have to be able to change/see message package targets
         ): 
-            Agent<T>(queue, "user"), 
+            Agent<T>(queue, name), 
             agency(agency),
             interface(interface),
             recipients(recipients)
