@@ -5,9 +5,7 @@
 #include "../../cmd/Commander.hpp"
 #include "../../voice/MicView.hpp"
 #include "../../voice/TTS.hpp"
-
-// #include "UserAgentWhisperTranscriberSTTSwitch.hpp"
-#include "../../voice/WhisperTranscriberSTTSwitch.hpp"
+#include "../../voice/STTSwitch.hpp"
 
 using namespace tools::abstracts;
 using namespace tools::regx;
@@ -35,8 +33,7 @@ namespace tools::agency::agents {
 
         UserAgentInterface(
             TTS& tts,
-            // UserAgentWhisperTranscriberSTTSwitch/*<T>*/& sttSwitch,
-            WhisperTranscriberSTTSwitch/*<T>*/& sttSwitch,
+            STTSwitch& sttSwitch,
             MicView& micView,
             Commander& commander,
             InputPipeInterceptor& interceptor
@@ -84,8 +81,7 @@ namespace tools::agency::agents {
 
         Commander& getCommanderRef() { return commander; }
 
-        // UserAgentWhisperTranscriberSTTSwitch/*<T>*/& get_stt_switch_ref() { return sttSwitch; }
-        WhisperTranscriberSTTSwitch/*<T>*/& get_stt_switch_ref() { return sttSwitch; }
+        STTSwitch& get_stt_switch_ref() { return sttSwitch; }
 
         void setVoiceInput(bool state) {
             lock_guard<mutex> lock(stt_voice_input_mutex);
@@ -181,7 +177,6 @@ namespace tools::agency::agents {
                 STT* stt = sttSwitch.getSttPtr();
                 try {
                     
-                    // recs--;
                     micView.decRecs();
 
                     if (!stt) {
@@ -216,8 +211,7 @@ namespace tools::agency::agents {
 
         UserAgent<T>* user = nullptr;
         TTS& tts;
-        // UserAgentWhisperTranscriberSTTSwitch/*<T>*/& sttSwitch;
-        WhisperTranscriberSTTSwitch/*<T>*/& sttSwitch;
+        STTSwitch& sttSwitch;
         MicView& micView;
         Commander& commander;
         InputPipeInterceptor& interceptor;

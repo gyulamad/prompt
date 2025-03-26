@@ -6,6 +6,7 @@
 #include "tools/utils/Test.hpp"
 #include "tools/voice/MicView.hpp"
 #include "tools/voice/ESpeakTTSAdapter.hpp"
+#include "tools/voice/WhisperTranscriberSTTSwitch.hpp"
 #include "tools/containers/in_array.hpp"
 
 #include "tools/agency/Agent.hpp"
@@ -13,8 +14,6 @@
 #include "tools/agency/agents/EchoAgent.hpp"
 #include "tools/agency/agents/UserAgent.hpp"
 #include "tools/agency/agents/UserAgentInterface.hpp"
-// #include "tools/agency/agents/UserAgentWhisperTranscriberSTTSwitch.hpp"
-#include "tools/voice//WhisperTranscriberSTTSwitch.hpp"
 
 
 #include "tools/cmd/CommandFactory.hpp"
@@ -27,7 +26,6 @@
 #include "tools/agency/agents/commands/KillCommand.hpp"
 #include "tools/agency/agents/commands/VoiceCommand.hpp"
 
-#include "tools/voice/WhisperTranscriberSTTSwitch.hpp"
 
 using namespace std;
 using namespace tools::utils;
@@ -100,8 +98,7 @@ int safe_main(int , char *[]) {
         );
 
 
-        // UserAgentWhisperTranscriberSTTSwitch/*<PackT>*/ stt_switch(
-        WhisperTranscriberSTTSwitch/*<PackT>*/ stt_switch(
+        WhisperTranscriberSTTSwitch stt_switch(
             whisper_model_path,
             whisper_lang,
             stt_voice_recorder_sample_rate,

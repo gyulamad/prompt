@@ -63,16 +63,9 @@ namespace tools::utils {
 
 
         void onSequenceDetected(vector<char> sequence) {
-            //lock_guard<mutex> lock(callbacks_mutex);
             foreach(callbacks, [sequence](InputSequenceDetectionCallback callback, void* subscriber) {
                 if (subscriber && callback) callback(sequence);
             });
-
-            // for (InputSequenceDetectionCallback callback: callbacks) if (callback) callback(sequence);
-            
-            // string s = "";
-            // for (const char& c: seq) s += "[" + to_string((int)c) + "]"; 
-            // cout << "Sequence detected: " << s << endl;
         }
 
         static void input_handler(InputPipeInterceptor& that, int write_fd) {
@@ -80,13 +73,6 @@ namespace tools::utils {
             struct termios original = set_raw_mode(); // Set raw mode, save original
             vector<char> seq;
             while (!that.closing) {
-                // // Read one character from stdin
-                // ssize_t n = read(STDIN_FILENO, &c, 1);
-                // if (n <= 0) {
-                //     if (n == -1) cerr << "Read error\n";
-                //     continue;
-                // }
-
                 // Set up pollfd structure for STDIN_FILENO
                 struct pollfd fds = {STDIN_FILENO, POLLIN, 0};
                 int timeout = 100; // TODO make configurable: 100ms timeout (adjust as needed)
@@ -122,12 +108,6 @@ namespace tools::utils {
                             break;
                         }
                     }
-        
-                    // Handle standalone ESC (if no additional characters)
-                    // if (seq.size() == 1) {
-                    //     cout << "Standalone ESC detected\n";
-                    //     // Example action: toggle mute or custom logic here
-                    // }
         
                 }
 

@@ -7,11 +7,10 @@ using namespace tools::abstracts;
 
 namespace tools::voice {
 
-    // template<typename DataT>
-    class STTSwitch: public Switch/*<DataT>*/ {
+    class STTSwitch: public Switch {
     public:
-        using Switch/*<DataT>*/::Switch;
-        virtual STT* getSttPtr() { return Switch/*<DataT>*/::is_on() ? stt : nullptr; }
+        using Switch::Switch;
+        virtual STT* getSttPtr() { return Switch::is_on() ? stt : nullptr; }
     protected:
         STT* stt = nullptr;
     };

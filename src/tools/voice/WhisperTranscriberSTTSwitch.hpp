@@ -5,8 +5,7 @@
 
 namespace tools::voice {
 
-    // template<typename T>
-    class WhisperTranscriberSTTSwitch: public STTSwitch/*<T>*/ {
+    class WhisperTranscriberSTTSwitch: public STTSwitch {
     public:
 
         WhisperTranscriberSTTSwitch(
@@ -41,11 +40,11 @@ namespace tools::voice {
             stt_poll_interval_ms(stt_poll_interval_ms),
 
             // for Switch
-            STTSwitch/*<T>*/(state)
+            STTSwitch(state)
         {}
 
         void on() override {
-            if (STTSwitch/*<T>*/::is_on()) return;
+            if (STTSwitch::is_on()) return;
             if (!transcriber) transcriber = new WhisperTranscriberAdapter(whisper_model_path, whisper_lang.c_str());
             if (!this->stt) this->stt = new STT(
                 *transcriber,
@@ -57,12 +56,12 @@ namespace tools::voice {
                 stt_noise_monitor_window,
                 stt_poll_interval_ms
             );
-            STTSwitch/*<T>*/::on();
+            STTSwitch::on();
             this->stt->start();
         }
     
         void off() override {
-            STTSwitch/*<T>*/::off();
+            STTSwitch::off();
             if (this->stt) {
                 this->stt->stop();
                 delete this->stt; this->stt = nullptr;

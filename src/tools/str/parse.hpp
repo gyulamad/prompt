@@ -97,6 +97,11 @@ void test_parse_trailing_characters() {
     assert(actual == 42 && "test_parse_trailing_characters failed");
 }
 
+void test_parse_trailing_characters_negative() {    
+    int actual = parse<int>("-42abc");
+    assert(actual == -42 && "test_parse_trailing_characters_negative failed");
+}
+
 void test_parse_floating_point_with_exponent() {
     double expected = 1.23e3;
     double actual = parse<double>("1.23e3");
@@ -123,6 +128,7 @@ TEST(test_parse_invalid_input);
 TEST(test_parse_empty_string);
 TEST(test_parse_whitespace_only);
 TEST(test_parse_trailing_characters);
+TEST(test_parse_trailing_characters_negative);
 TEST(test_parse_floating_point_with_exponent);
 TEST(test_parse_zero);
 TEST(test_parse_large_number);

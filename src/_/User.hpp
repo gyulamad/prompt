@@ -185,13 +185,11 @@ namespace prompt {
 
         vector<void*> get_commands_ref() {
             return commander.get_commands_ref();
-            // return commands;
         }
 
 
         const CompletionMatcher& get_cmatcher_ref() const {
             return commander.get_cmatcher_ref();
-            // return cmatcher;
         }
 
         void exit() {
@@ -349,7 +347,6 @@ namespace prompt {
             string input = "";
             string response = "";
 
-            // cout << "[DEBUG] User keyboard input handler thread start..." << endl;
             thread keyboard_input_thread([&]{
                 while (!exiting && !commander.is_exiting()) {
                     sleep(1);

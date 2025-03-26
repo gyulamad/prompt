@@ -76,10 +76,6 @@ namespace tools::utils {
 
         using LogFormatter = function<string(Level, const string&, const string&)>;
 
-        // string noFormatter(Level level, const string& name, const string& message) {
-        //     return ""; //getCurrentTime() + " [" + name + "] " + levelToString(level) + ": " + message;
-        // }
-
     protected:
         string name;
         ofstream logFile;
@@ -100,26 +96,6 @@ namespace tools::utils {
             return getCurrentTime() + " [" + name + "] " + levelToString(level) + ": " + message;
         }
 
-        // void processLogs() {
-        //     while (true) {
-        //         string logMessage;
-        //         {
-        //             unique_lock<mutex> lock(queueMutex);
-        //             queueCondition.wait(lock, [this] { return !logQueue.empty() || stopLogging; });
-        //             if (stopLogging && logQueue.empty()) break;
-        //             logMessage = logQueue.front();
-        //             logQueue.pop();
-        //         }
-
-        //         if (logFile.is_open()) {
-        //             // Write to file only (if filename is provided)
-        //             lock_guard<mutex> fileLock(logMutex); // Ensure thread-safe file writing
-        //             logFile << logMessage << endl;
-        //             if (logFile.fail()) cerr << "Failed to write to log file." << endl;
-        //             logFile.flush(); // Flush to ensure the message is written to the file
-        //         } else cout << logMessage << endl; // Write to console only (if no filename is provided)
-        //     }
-        // }
         void processLogs() {
             while (true) {
                 string logMessage;
@@ -145,9 +121,9 @@ namespace tools::utils {
 
         string getCurrentTime() const {
             auto now = chrono::system_clock::now();
-            auto in_time_t = chrono::system_clock::to_time_t(now);
+            struct tm bt;
+            time_t in_time_t = chrono::system_clock::to_time_t(now);
 
-            tm bt;
             localtime_r(&in_time_t, &bt);
 
             ostringstream timeStream;
@@ -184,13 +160,6 @@ namespace tools::utils {
             }) 
         {
             if (!filename.empty()) {
-
-                // Extract the directory path                
-                // string directory = filename.substr(0, filename.find_last_of('/'));
-                // if (!directory.empty() && !is_dir(directory)) {
-                //     mkdir(directory); // Create the directory if it doesn't exist
-                // }
-
                 logFile.open(filename, ios::app);
                 if (!logFile.is_open()) {
                     cerr << "Failed to create log file: " << filename << endl;
