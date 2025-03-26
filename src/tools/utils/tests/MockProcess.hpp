@@ -5,10 +5,10 @@
 #include "../Process.hpp"
 
 using namespace std;
-using namespace tools;
+using namespace tools::utils;
 
 // Mock Process class for testing TTS
-class MockProcess : public Process {
+class MockProcess: public Process {
 public:
     string last_command;
     string mock_output = "[SPEAK-DONE]";
