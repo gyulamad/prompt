@@ -15,7 +15,7 @@ namespace tools::agency::agents {
         EchoAgent(
             PackQueue<T>& queue,
             const string& name, 
-            UserAgentWhisperCommanderInterface<T>& interface
+            UserAgentInterface<T>& interface
         ): 
             Agent<T>(queue, name), 
             interface(interface)
@@ -38,7 +38,7 @@ namespace tools::agency::agents {
 
     private:
         // Agency<T>& agency;
-        UserAgentWhisperCommanderInterface<T>& interface;
+        UserAgentInterface<T>& interface;
     };
     
 }

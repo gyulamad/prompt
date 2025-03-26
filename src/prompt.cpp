@@ -12,8 +12,10 @@
 #include "tools/agency/Agency.hpp"
 #include "tools/agency/agents/EchoAgent.hpp"
 #include "tools/agency/agents/UserAgent.hpp"
-#include "tools/agency/agents/UserAgentWhisperCommanderInterface.hpp"
-#include "tools/agency/agents/UserAgentWhisperTranscriberSTTSwitch.hpp"
+#include "tools/agency/agents/UserAgentInterface.hpp"
+// #include "tools/agency/agents/UserAgentWhisperTranscriberSTTSwitch.hpp"
+#include "tools/voice//WhisperTranscriberSTTSwitch.hpp"
+
 
 #include "tools/cmd/CommandFactory.hpp"
 #include "tools/cmd/LinenoiseAdapter.hpp"
@@ -98,8 +100,9 @@ int safe_main(int , char *[]) {
         );
 
 
-        UserAgentWhisperTranscriberSTTSwitch<PackT> stt_switch(
-            whisper_model_path, 
+        // UserAgentWhisperTranscriberSTTSwitch/*<PackT>*/ stt_switch(
+        WhisperTranscriberSTTSwitch/*<PackT>*/ stt_switch(
+            whisper_model_path,
             whisper_lang,
             stt_voice_recorder_sample_rate,
             stt_voice_recorder_frames_per_buffer,
@@ -110,11 +113,11 @@ int safe_main(int , char *[]) {
             stt_poll_interval_ms
         );
         MicView micView;
-        UserAgentWhisperCommanderInterface<PackT>* interface_ptr;
+        UserAgentInterface<PackT>* interface_ptr;
         // Map of role strings to factory functions
         AgentRoleMap<PackT> roles = {
             {
-                "echo", 
+                "echo", // TODO: this one we dont need here it's just an experimental example until we add more agent
                 [&](Agency<PackT>& agency, const string& name) -> Agent<PackT>& {
                     return agency.template spawn<EchoAgent<PackT>>(name, *interface_ptr);
                 }
@@ -127,7 +130,7 @@ int safe_main(int , char *[]) {
         if (in_array("kill", command_factory_commands)) cfactory.withCommand<KillCommand<PackT>>();
         if (in_array("voice", command_factory_commands)) cfactory.withCommand<VoiceCommand<PackT>>();
         Commander commander(cline, cfactory.getCommands());
-        UserAgentWhisperCommanderInterface<PackT> interface(
+        UserAgentInterface<PackT> interface(
             tts,
             stt_switch, 
             micView,

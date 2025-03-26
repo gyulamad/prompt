@@ -10,7 +10,7 @@ namespace tools::abstracts {
     
     enum SwitchState { ON = 0, OFF };
 
-    template<typename DataT>
+    // template<typename DataT>
     class Switch {
     public:
         // using cb = function<void(Switch& swtch, DataT* data)>;

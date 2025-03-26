@@ -6,7 +6,8 @@
 #include "../../voice/MicView.hpp"
 #include "../../voice/TTS.hpp"
 
-#include "UserAgentWhisperTranscriberSTTSwitch.hpp"
+// #include "UserAgentWhisperTranscriberSTTSwitch.hpp"
+#include "../../voice/WhisperTranscriberSTTSwitch.hpp"
 
 using namespace tools::abstracts;
 using namespace tools::regx;
@@ -16,7 +17,10 @@ using namespace tools::voice;
 namespace tools::agency::agents {
 
     template<typename T>
-    class UserAgentWhisperCommanderInterface { // TODO: public UserInterface (abstract)
+    class UserAgent;
+
+    template<typename T>
+    class UserAgentInterface { // TODO: public UserInterface (abstract)
     public:
         // TODO: make configurable:
         atomic<bool> voice_input_echo = true;
@@ -29,9 +33,10 @@ namespace tools::agency::agents {
             "^\\-.*[\\.\\!\\-]$" // (for hungarian??)
         };
 
-        UserAgentWhisperCommanderInterface(
+        UserAgentInterface(
             TTS& tts,
-            UserAgentWhisperTranscriberSTTSwitch<T>& sttSwitch,
+            // UserAgentWhisperTranscriberSTTSwitch/*<T>*/& sttSwitch,
+            WhisperTranscriberSTTSwitch/*<T>*/& sttSwitch,
             MicView& micView,
             Commander& commander,
             InputPipeInterceptor& interceptor
@@ -43,7 +48,7 @@ namespace tools::agency::agents {
             interceptor(interceptor)
         {}
 
-        virtual ~UserAgentWhisperCommanderInterface() {
+        virtual ~UserAgentInterface() {
             interceptor.unsubscribe(this);
             interceptor.close();
                 
@@ -79,7 +84,8 @@ namespace tools::agency::agents {
 
         Commander& getCommanderRef() { return commander; }
 
-        UserAgentWhisperTranscriberSTTSwitch<T>& get_stt_switch_ref() { return sttSwitch; }
+        // UserAgentWhisperTranscriberSTTSwitch/*<T>*/& get_stt_switch_ref() { return sttSwitch; }
+        WhisperTranscriberSTTSwitch/*<T>*/& get_stt_switch_ref() { return sttSwitch; }
 
         void setVoiceInput(bool state) {
             lock_guard<mutex> lock(stt_voice_input_mutex);
@@ -210,7 +216,8 @@ namespace tools::agency::agents {
 
         UserAgent<T>* user = nullptr;
         TTS& tts;
-        UserAgentWhisperTranscriberSTTSwitch<T>& sttSwitch;
+        // UserAgentWhisperTranscriberSTTSwitch/*<T>*/& sttSwitch;
+        WhisperTranscriberSTTSwitch/*<T>*/& sttSwitch;
         MicView& micView;
         Commander& commander;
         InputPipeInterceptor& interceptor;

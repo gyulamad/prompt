@@ -11,7 +11,7 @@
 #include "../Agent.hpp"
 #include "../Agency.hpp"
 
-#include "UserAgentWhisperCommanderInterface.hpp"
+#include "UserAgentInterface.hpp"
 
 using namespace tools::str;
 using namespace tools::regx;
@@ -33,7 +33,7 @@ namespace tools::agency::agents {
             PackQueue<T>& queue,
             const string& name, 
             Agency<T>& agency, 
-            UserAgentWhisperCommanderInterface<T>& interface,
+            UserAgentInterface<T>& interface,
             vector<string> recipients = { "echo" } // TODO: to config, and have to be able to change/see message package targets
         ): 
             Agent<T>(queue, name), 
@@ -46,7 +46,7 @@ namespace tools::agency::agents {
 
         virtual ~UserAgent() {}
 
-        UserAgentWhisperCommanderInterface<T>& getInterfaceRef() { return interface; }
+        UserAgentInterface<T>& getInterfaceRef() { return interface; }
 
         void tick() override {
             if (agency.isClosing()) {
@@ -70,7 +70,7 @@ namespace tools::agency::agents {
 
     private:
         Agency<T>& agency;
-        UserAgentWhisperCommanderInterface<T>& interface;
+        UserAgentInterface<T>& interface;
         vector<string> recipients;
     };
     

@@ -37,7 +37,7 @@ namespace tools::agency::agents::commands {
             if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
             UserAgent<T>& user = (UserAgent<T>&)agent;
             // UserAgent<T>& user = agency.getUserAgentRef();
-            UserAgentWhisperCommanderInterface<T>& interface = user.getInterfaceRef();
+            UserAgentInterface<T>& interface = user.getInterfaceRef();
 
             string thru = args[1];
             if (thru == "output") {                
