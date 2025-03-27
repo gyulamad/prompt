@@ -36,7 +36,7 @@ namespace tools::cmd {
         }
 
         virtual bool isExiting() const {
-            return exiting || commandLine.is_exited();
+            return exiting || commandLine.isExited();
         }
         
         void setCommands(const vector<Command*>& commands) {
@@ -135,9 +135,9 @@ void test_Commander_getCommandLineRef_returns_reference() {
     Commander commander(cl);
     CommandLine& actual = commander.getCommandLineRef();
     // Modify the CommandLine via the reference
-    actual.set_prompt_suffix("modified> ");
+    actual.setPromptSuffix("modified> ");
     // Check if the modification is reflected in Commander's CommandLine
-    string prompt_suffix_from_commander = commander.getCommandLineRef().get_prompt_suffix();
+    string prompt_suffix_from_commander = commander.getCommandLineRef().getPromptSuffix();
     assert(prompt_suffix_from_commander == "modified> " && 
            "getCommandLineRef should return a reference that modifies the internal CommandLine");
 }

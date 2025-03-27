@@ -81,7 +81,7 @@ namespace tools::agency::agents {
 
         Commander& getCommanderRef() { return commander; }
 
-        STTSwitch& get_stt_switch_ref() { return sttSwitch; }
+        STTSwitch& getSttSwitchRef() { return sttSwitch; }
 
         void setVoiceInput(bool state) {
             lock_guard<mutex> lock(stt_voice_input_mutex);
@@ -89,24 +89,22 @@ namespace tools::agency::agents {
             stt_voice_input = state;
             if (stt_voice_input) {
                 sttSwitch.on();
-                if (!stt_initialized) stt_setup();
+                if (!stt_initialized) sttSetup();
                 stt_initialized = true;
             } else {
                 sttSwitch.off();
                 stt_initialized = false;
 
-                // TODO: I am not sure this one is needed anymore:
-                // if (commander) {
-                //     commander->getCommandLineRef().set_prompt("");
-                //     commander->getCommandLineRef().getEditorRef().WipeLine();
-                // }
+                // remove the last mic-view from the input prompt
+                commander.getCommandLineRef().setPrompt("");
+                commander.getCommandLineRef().getEditorRef().wipeLine();
             }
         }
 
         bool readln(T& input) {
             CommandLine& cline = commander.getCommandLineRef();
             input = cline.readln();
-            return cline.is_exited();
+            return cline.isExited();
         }
 
 
@@ -130,7 +128,7 @@ namespace tools::agency::agents {
 
     private:
 
-        void stt_setup() {
+        void sttSetup() {
             STT* stt = sttSwitch.getSttPtr();
             if (!stt) return;
 
@@ -202,7 +200,7 @@ namespace tools::agency::agents {
                     if (!stt) return;
                     bool in_progress = stt->getTranscriberCRef().isInProgress();
                     string out = micView.getView(muted, loud, threshold_pc, vol_pc, rmax, rms, in_progress);
-                    commander.getCommandLineRef().set_prompt(out + " ");
+                    commander.getCommandLineRef().setPrompt(out + " ");
                 } catch (const exception& e) {
                     cerr << "Error in RMS callback: " << e.what() << endl;
                 }

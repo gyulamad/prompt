@@ -71,19 +71,19 @@ namespace tools::cmd {
 
         LineEditor& getEditorRef() { return line_editor; }
 
-        bool is_exited() const {
+        bool isExited() const {
             return exited;
         }
 
-        void set_prompt(const string& prompt) {
+        void setPrompt(const string& prompt) {
             line_editor.setPrompt(string(prompt + prompt_suffix).c_str());
         }
 
-        void set_prompt_suffix(const string& prompt_suffix) {
+        void setPromptSuffix(const string& prompt_suffix) {
             this->prompt_suffix = prompt_suffix;
         }
 
-        string get_prompt_suffix() const {
+        string getPromptSuffix() const {
             return this->prompt_suffix;
         }
 
@@ -156,7 +156,7 @@ namespace tools::cmd {
 void test_CommandLine_is_exited_initial_state() {
     MockLineEditor mock;
     CommandLine cl(mock);
-    bool actual = cl.is_exited();
+    bool actual = cl.isExited();
     assert(actual == false && "CommandLine should not be exited initially");
     // No fix needed: no post-move access to mock
 }
@@ -167,7 +167,7 @@ void test_CommandLine_is_exited_after_readline_exit() {
     mock.next_input = "exit";
     CommandLine cl(mock);
     cl.readln(); // Trigger exit condition
-    bool actual = cl.is_exited();
+    bool actual = cl.isExited();
     assert(actual == true && "CommandLine should be exited after Readline returns true");
     // Fixed: Added mock_ptr to set mock state before move
 }
@@ -175,8 +175,8 @@ void test_CommandLine_is_exited_after_readline_exit() {
 void test_CommandLine_set_prompt_suffix_changes_prompt_suffix() {
     MockLineEditor mock;
     CommandLine cl(mock, "> ", "test_history.txt", true, 10);
-    cl.set_prompt_suffix("new> ");
-    string actual = cl.get_prompt_suffix();
+    cl.setPromptSuffix("new> ");
+    string actual = cl.getPromptSuffix();
     assert(actual == "new> " && "set_prompt_suffix should update the prompt_suffix string");
     // No fix needed: no direct mock access
 }
@@ -184,7 +184,7 @@ void test_CommandLine_set_prompt_suffix_changes_prompt_suffix() {
 void test_CommandLine_get_prompt_suffix_returns_initial_prompt_suffix() {
     MockLineEditor mock;
     CommandLine cl(mock, "> ", "test_history.txt", true, 10);
-    string actual = cl.get_prompt_suffix();
+    string actual = cl.getPromptSuffix();
     assert(actual == "> " && "get_prompt_suffix should return the initial prompt_suffix");
     // No fix needed: no direct mock access
 }
