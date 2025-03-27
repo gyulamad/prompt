@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../abstracts/Switch.hpp"
+#include "../../abstracts/UserInterface.hpp"
 #include "../../regx/regx_match.hpp"
 #include "../../cmd/Commander.hpp"
 #include "../../voice/MicView.hpp"
@@ -18,7 +19,7 @@ namespace tools::agency::agents {
     class UserAgent;
 
     template<typename T>
-    class UserAgentInterface { // TODO: public UserInterface (abstract)
+    class UserAgentInterface: public UserInterface<T> { // TODO: public UserInterface (abstract)
     public:
         // TODO: make configurable:
         atomic<bool> voice_input_echo = true;
@@ -101,30 +102,46 @@ namespace tools::agency::agents {
             }
         }
 
-        bool readln(T& input) {
+
+        // =================================================================
+        // ==================== UserInterface overrides ====================
+        // ================================================================= 
+
+        bool readln(T& input) override {
             CommandLine& cline = commander.getCommandLineRef();
             input = cline.readln();
             return cline.isExited();
         }
 
 
-        void clearln() {
-            cout << "\33[2K\r" << flush;
+        void clearln() override {
+            CommandLine& cline = commander.getCommandLineRef();
+            cline.clearln();
         }
 
-        void print(const string& output, bool clear = false) {
-            if (clear) clearln();
-            cout << output << flush;
+        // void print(const string& output, bool clear = false) {
+        //     if (clear) clearln();
+        //     cout << output << flush;
+        // }
+
+        // void println(const string& output, bool clear = false, bool refresh = false) {
+        //     print(output + "\n", clear);
+
+        //     if (refresh) {
+        //         CommandLine& cline = commander.getCommandLineRef();
+        //         cline.getEditorRef().refreshLine();
+        //     }
+        // }
+
+        void refresh() {
+            CommandLine& cline = commander.getCommandLineRef();
+            cline.getEditorRef().refreshLine();
         }
 
-        void println(const string& output, bool clear = false, bool refresh = false) {
-            print(output + "\n", clear);
+        // =================================================================
+        // =================================================================
+        // ================================================================= 
 
-            if (refresh) {
-                CommandLine& cline = commander.getCommandLineRef();
-                cline.getEditorRef().refreshLine();
-            }
-        }
 
     private:
 
@@ -145,9 +162,11 @@ namespace tools::agency::agents {
                     if (!monitor) return;
                     bool mute = !monitor->isMuted();
                     monitor->setMuted(mute);
-                    println(mute 
+                    clearln();
+                    this->println(mute 
                         ? "🎤 " ANSI_FMT_C_RED "✖" ANSI_FMT_RESET " STT muted"
-                        : "🎤 " ANSI_FMT_C_GREEN "✔" ANSI_FMT_RESET " STT unmuted", true);
+                        : "🎤 " ANSI_FMT_C_GREEN "✔" ANSI_FMT_RESET " STT unmuted"
+                    );
                     return;
                 }
             });
@@ -186,7 +205,11 @@ namespace tools::agency::agents {
                     for (const string& rgx: speech_ignores_rgxs)
                         if (regx_match(rgx, input)) return;
                     if (input.empty()) return;
-                    if (voice_input_echo) println(input, true, true);
+                    if (voice_input_echo) {
+                        clearln();
+                        this->println(input);
+                        refresh();
+                    }
                     NULLCHK(user);
                     user->onInput(input);
                 } catch (const exception& e) {

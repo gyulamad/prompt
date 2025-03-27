@@ -31,7 +31,8 @@ namespace tools::agency::agents {
 
             string output = "echo " + sender + "> " + string(item);
             // user.getInterfaceRef()
-            interface.println(output, true);
+            interface.clearln();
+            interface.println(output);
             // if (interface.isVoiceOutput()) 
             interface.speak(item);
         }
