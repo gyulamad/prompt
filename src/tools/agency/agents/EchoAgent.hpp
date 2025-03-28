@@ -33,8 +33,7 @@ namespace tools::agency::agents {
             // user.getInterfaceRef()
             interface.clearln();
             interface.println(output);
-            // if (interface.isVoiceOutput()) 
-            interface.speak(item);
+            if (interface.isVoiceOutput()) interface.speak(item);
         }
 
     private:

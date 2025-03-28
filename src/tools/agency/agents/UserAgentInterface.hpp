@@ -64,8 +64,9 @@ namespace tools::agency::agents {
 
         bool isVoiceOutput() const { return tts_voice_output; }
 
-        void speak(const string& text) {
-            if (tts_voice_output) tts.speak(text);
+        //[[nodiscard]]
+        bool speak(const string& text) {
+            return tts.speak(text);
         }
 
     private:
@@ -119,28 +120,14 @@ namespace tools::agency::agents {
             cline.clearln();
         }
 
-        // void print(const string& output, bool clear = false) {
-        //     if (clear) clearln();
-        //     cout << output << flush;
-        // }
-
-        // void println(const string& output, bool clear = false, bool refresh = false) {
-        //     print(output + "\n", clear);
-
-        //     if (refresh) {
-        //         CommandLine& cline = commander.getCommandLineRef();
-        //         cline.getEditorRef().refreshLine();
-        //     }
-        // }
+        // =================================================================
+        // =================================================================
+        // ================================================================= 
 
         void refresh() {
             CommandLine& cline = commander.getCommandLineRef();
             cline.getEditorRef().refreshLine();
         }
-
-        // =================================================================
-        // =================================================================
-        // ================================================================= 
 
 
     private:
