@@ -23,28 +23,46 @@ namespace tools::agency::agents::commands {
         {}
     
         vector<string> getPatterns() const override {
-            return { 
-                "/spawn {string} {string} {string}"
+            return {
+                "/spawn {string}",
+                "/spawn {string} {string}"
             };
+        }
+
+        string getUsage() const override {
+            return "/spawn <role> [name]\n"
+                   "Creates a new agent with specified role and optional name.\n"
+                   "Usage:\n"
+                   "  /spawn <role>              - Spawn agent with default name\n"
+                   "  /spawn <role> <name>       - Spawn agent with custom name\n"
+                   "Parameters:\n"
+                   "  role       - Required agent role type\n"
+                   "  name       - Optional custom agent name (defaults to role)\n"
+                   "Examples:\n"
+                   "  /spawn worker              # Creates worker agent\n"
+                   "  /spawn bot mybot           # Creates bot agent named 'mybot'\n"
+                   "Available roles: " + implode(", ", array_keys(roles)) + "\n"
+                   "Notes:\n"
+                   "  - Role must match an existing role type\n"
+                   "  - Names must be unique within the agency";
         }
         
         void run(void* agency_void, const vector<string>& args) override {
             NULLCHK(agency_void);
             Agency<T>& agency = *(Agency<T>*)agency_void;
 
-            if (args.size() < 2) throw ERROR("Missing argument(s): use: /spawn <role> [<name> [<recipients>,...]]");
+            if (args.size() < 2) throw ERROR("Missing argument(s): use: /spawn <role> [<name>]");
             string role = trim(args[1]);
             string name = args.size() >= 3 ? trim(args[2]) : role;
-            vector<string> recipients = args.size() >= 4 ? explode(",", args[3]) : vector<string>({});
-            foreach (recipients, [](string& recipient) { recipient = trim(recipient); });
 
             if (!in_array(role, array_keys(roles))) 
                 throw ERROR("Invalid agent role: " + role + " - available roles are [" + implode(", ", array_keys(roles)) + "]");
 
-            // Spawn the agent
-            Agent<T>& agent = roles[role](agency, name/*TODO: , recipients*/);
-            cout << "Agent '" + agent.name + "' created as " + role << endl;
+            Agent<T>& agent = roles[role](agency, name);
+            // cout << "Agent '" + agent.name + "' created as " + role << endl;
+            // agency.send("user", "Agent '" + agent.name + "' created as " + role);
         }
+        
         
     private:
         AgentRoleMap<T>& roles;

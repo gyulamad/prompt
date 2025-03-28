@@ -2,6 +2,7 @@
 
 #include "../abstracts/Closable.hpp"
 #include "../utils/system.hpp"
+#include "../utils/ERROR.hpp"
 
 #include "PackQueueHolder.hpp"
 
@@ -49,6 +50,9 @@ namespace tools::agency {
         }
 
         const string name;
+        
+        virtual string type() const UNIMP_THROWS
+
     protected:
         
         void send(const string& recipient, const T& item) {

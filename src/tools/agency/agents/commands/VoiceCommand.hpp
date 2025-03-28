@@ -27,6 +27,27 @@ namespace tools::agency::agents::commands {
                 "/voice input unmute",
             };
         }
+
+        string getUsage() const override {
+            return "/voice <input|output> <on|off|mute|unmute>\n"
+                   "Controls voice input (speech-to-text) and output (text-to-speech) settings.\n"
+                   "Usage:\n"
+                   "  /voice output <on|off>     - Toggle text-to-speech output\n"
+                   "  /voice input <on|off>      - Toggle speech-to-text input\n"
+                   "  /voice input mute          - Mute speech input monitoring\n"
+                   "  /voice input unmute        - Unmute speech input monitoring\n"
+                   "Parameters:\n"
+                   "  input|output - Select voice direction to control\n"
+                   "  on|off       - Enable or disable the feature\n"
+                   "  mute|unmute  - Control input monitoring (input only)\n"
+                   "Examples:\n"
+                   "  /voice output on          # Enable text-to-speech\n"
+                   "  /voice input off          # Disable speech-to-text\n"
+                   "  /voice input mute         # Mute voice input monitoring\n"
+                   "Notes:\n"
+                   "  - Requires valid user agent\n"
+                   "  - 'mute'/'unmute' only available for input";
+        }
     
         void run(void* agency_void, const vector<string>& args) override {
             NULLCHK(agency_void);

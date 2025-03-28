@@ -65,4 +65,10 @@ namespace tools::utils {
         T& ref = (*(T*)ptr);
         return ref;
     }
+
+    template<typename T>
+    T* safe(T* ptr) {
+        NULLCHK(ptr, "Null pointer reference");
+        return ptr;
+    }
 };

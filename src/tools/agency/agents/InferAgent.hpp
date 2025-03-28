@@ -10,18 +10,16 @@ using namespace tools::agency;
 namespace tools::agency::agents {
     
     template<typename T>
-    class EchoAgent: public Agent<T> {
+    class InferAgent: public Agent<T> {
     public:
-        EchoAgent(
+        InferAgent(
             PackQueue<T>& queue,
-            const string& name, 
-            UserAgentInterface<T>& interface
+            const string& name
         ): 
-            Agent<T>(queue, name), 
-            interface(interface)
+            Agent<T>(queue, name)
         {}
 
-        string type() const override { return "echo"; }
+        string type() const override { return "infer"; }
 
         void handle(const string& sender, const T& item) override {
             // sleep(2); // emulate some background work;
@@ -31,16 +29,15 @@ namespace tools::agency::agents {
             // if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
             // UserAgent<T>& user = (UserAgent<T>&)agent;
 
-            string output = "echo " + sender + "> " + string(item);
-            // user.getInterfaceRef()
-            interface.clearln();
-            interface.println(output);
-            if (interface.isVoiceOutput()) interface.speak(item);
+            // string output = "echo " + sender + "> " + string(item);
+            // // user.getInterfaceRef()
+            // interface.clearln();
+            // interface.println(output);
+            // if (interface.isVoiceOutput()) interface.speak(item);
         }
 
     private:
-        // Agency<T>& agency;
-        UserAgentInterface<T>& interface;
+    
     };
     
 }

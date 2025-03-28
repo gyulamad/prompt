@@ -52,6 +52,7 @@ namespace tools::agency {
                 }
             agents.push_back(agent);
             // agent->start();
+            this->send("user", "Agent '" + agent->name + "' created as " + agent->type());
             return *agent;
         }
 

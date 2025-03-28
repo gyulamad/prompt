@@ -15,6 +15,14 @@ namespace tools::agency::agents::commands {
         vector<string> getPatterns() const override {
             return { "/list" };
         }
+
+        string getUsage() const override {
+            return "/list\n"
+                   "Displays a list of all registered agents in the agency.\n"
+                   "Usage: /list\n"
+                   "Example: /list\n"
+                   "Output: Prints each agent's name on a new line";
+        }
     
         void run(void* agency_void, const vector<string>&) override {
             NULLCHK(agency_void);

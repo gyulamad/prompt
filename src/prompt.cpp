@@ -11,6 +11,7 @@
 
 #include "tools/agency/Agent.hpp"
 #include "tools/agency/Agency.hpp"
+#include "tools/agency/agents/InferAgent.hpp"
 #include "tools/agency/agents/EchoAgent.hpp"
 #include "tools/agency/agents/UserAgent.hpp"
 #include "tools/agency/agents/UserAgentInterface.hpp"
@@ -113,11 +114,15 @@ int safe_main(int , char *[]) {
         UserAgentInterface<PackT>* interface_ptr;
         // Map of role strings to factory functions
         AgentRoleMap<PackT> roles = {
-            {
-                "echo", // TODO: this one we dont need here it's just an experimental example until we add more agent
-                [&](Agency<PackT>& agency, const string& name) -> Agent<PackT>& {
+            {   // TODO: this one we dont need here it's just an experimental example until we add more agent
+                "echo", [&](Agency<PackT>& agency, const string& name) -> Agent<PackT>& {
                     return agency.template spawn<EchoAgent<PackT>>(name, *interface_ptr);
                 }
+            },
+            {
+                "infer", [&](Agency<PackT>& agency, const string& name) -> Agent<PackT>& {
+                    return agency.template spawn<InferAgent<PackT>>(name);
+                },
             },
         };
         if (in_array("help", command_factory_commands)) cfactory.withCommand<HelpCommand<PackT>>();

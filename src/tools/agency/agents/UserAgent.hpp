@@ -46,6 +46,8 @@ namespace tools::agency::agents {
 
         virtual ~UserAgent() {}
 
+        string type() const override { return "user"; }
+
         UserAgentInterface<T>& getInterfaceRef() { return interface; }
 
         void tick() override {
@@ -69,6 +71,10 @@ namespace tools::agency::agents {
 
         void onInput(T input) {
             this->send(recipients, input);
+        }
+
+        void handle(const string& sender, const T& item) override {
+            interface.println("Incoming message from '" + sender + "': " + item);
         }
 
     private:
