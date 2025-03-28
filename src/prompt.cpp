@@ -161,7 +161,7 @@ int safe_main(int , char *[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-        //"test_json_selector_empty"
+        // "test_Agency_kill_basic"
     });
     
     return safe_main<string>(argc, argv);

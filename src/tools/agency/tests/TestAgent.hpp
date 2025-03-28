@@ -9,6 +9,8 @@ class TestAgent: public Agent<T> {
 public:
     using Agent<T>::Agent;
 
+    string type() const override { return "test"; }
+
     bool handled = false;
     void handle(const string&, const T&) override {
         handled = true;

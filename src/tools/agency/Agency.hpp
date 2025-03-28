@@ -171,8 +171,9 @@ void test_Agency_kill_basic() {
     Agency<string> agency(queue, "agency");
     agency.spawn<TestAgent<string>>("test_agent");
     queue.Produce(Pack<string>("user", "test_agent", "hello"));
+    agency.tick();  // Process the queue before killing
     assert(agency.kill("test_agent") && "Agent should be found");
-    auto actual_output = capture_cout([&]() { agency.handle("user", "list"); });
+    auto actual_output = capture_cout([&]() { agency.handle("user", "/list"); });
     auto actual_queue = queue_to_vector(queue);
     assert(!str_contains(actual_output, "test_agent") && "Killed agent should not appear in list");
     assert(actual_queue.empty() && "Queue should have no items for killed agent");
