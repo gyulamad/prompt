@@ -58,6 +58,7 @@ namespace tools::voice {
         //     paused = false;
         // }
 
+        [[nodiscard]]
         bool speak(const string& text, bool async = false, bool beep = false, bool think = false) {
             string _text = str_replace(speak_replacements, text);
             if (think && !think_cmd.empty()) 
@@ -225,6 +226,7 @@ void test_TTS_beep() {
 }
 
 void test_TTS_is_speaking() {
+    bool speak_finished = false;
     bool initial_state = true;
     bool speaking_state = true;
     {
@@ -235,11 +237,12 @@ void test_TTS_is_speaking() {
 
         // Simulate speaking (mock process running)
         mock_proc.mock_output = "[SPEAK-DONE]";
-        tts.speak("test", false);
+        speak_finished = tts.speak("test", false);
         speaking_state = tts.is_speaking();
     }
     assert(!initial_state && "is_speaking should be false initially");
     assert(!speaking_state && "is_speaking should be false after completion");
+    assert(speak_finished && "Speak should be finished without interruption");
 }
 
 void test_TTS_speak_stop() {

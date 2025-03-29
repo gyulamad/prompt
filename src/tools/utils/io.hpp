@@ -108,7 +108,7 @@ namespace tools::utils {
     }
 
 
-    bool confirm(const string& message, char def = 'y') {
+    bool confirm(const string& message, int def = 'y') {
         lock_guard<mutex> lock(io_confirm_mtx); // Lock the mutex
 
         while (kbhit()) getchar();
@@ -117,7 +117,7 @@ namespace tools::utils {
         // io_input_active = true;
 
         def = tolower(def); // Normalize the default to lowercase
-        char choice;
+        int choice;
         
         cin.clear();
         while (true) {

@@ -162,7 +162,11 @@ namespace tools::utils {
             vector<char> buffer(buffsize);
             ssize_t n = ::read(fd, buffer.data(), buffer.size() - 1);
             if (n == -1) {
-                if (errno == EAGAIN || errno == EWOULDBLOCK)
+                #if (EAGAIN == EWOULDBLOCK)
+                    if (errno == EAGAIN)
+                #else
+                    if (errno == EAGAIN || errno == EWOULDBLOCK)
+                #endif
                     return ""; // No data available
                 throw ERROR("Failed to read from child: " + string(strerror(errno)) + " - program: " + program);
             }

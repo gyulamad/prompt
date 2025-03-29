@@ -231,11 +231,11 @@ inline int run_tests(const vector<string>& filters = {}, bool failure_throws = f
             ) 
             << endl;
 
-    int result = tests.size() - passed;
+    size_t result = tests.size() - passed;
 #ifdef TEST_ONLY
     exit(result);
 #else
-    return result;
+    return (int)result;
 #endif
 }
 

@@ -1,4 +1,31 @@
 {
-    "flags": ["-g", "-O0", "-DTEST"],
+    "flags": [
+        "-g",               // Debug symbols
+        "-O0",              // No optimization (debugging)
+        "-DTEST",           // Test macro
+
+        "-Wall",           // Enable all standard warnings
+        "-Wextra",          // Extra warnings
+        "-Wpedantic",      // Strict ISO compliance
+        "-Werror",         // Treat warnings as errors
+        "-Wconversion",     // Warn for implicit type conversions
+        // "-Wshadow",         // Warn on variable shadowing
+        // "-Wunused",         // Warn on unused entities
+        "-Wformat=2",       // Strict string format checking
+        "-Wcast-align",     // Warn on pointer casting alignment issues
+        "-Wlogical-op",     // Warn on suspicious logical operations
+        "-Wnull-dereference", // Warn on null dereference
+        "-Wdouble-promotion", // Warn on float-to-double implicit conversion
+        "-Wundef",          // Warn on undefined macro usage
+        "-fstack-protector-strong", // Buffer overflow protection
+        "-fno-common",      // Don't allow common symbols
+        "-fstrict-aliasing", // Strict type aliasing rules
+        // "-fPIC",            // Position Independent Code (for shared libs)
+        // "-std=c++17",       // Modern C++ standard
+        "-D_FORTIFY_SOURCE=2", // Buffer overflow checks
+        "-fexceptions",     // Enable exceptions
+        "-fno-omit-frame-pointer", // Better stack traces
+        "-fsanitize=address,undefined"
+    ],
     "libs": ["-lcurl"]
 }

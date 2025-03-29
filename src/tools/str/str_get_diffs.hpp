@@ -27,7 +27,7 @@ namespace tools::str {
             }
 
             // Start of a diff block
-            int start = i + 1; // 1-based line numbering
+            size_t start = i + 1; // 1-based line numbering
             vector<string> added;
             vector<string> removed;
 

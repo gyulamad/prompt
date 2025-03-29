@@ -17,7 +17,7 @@ namespace tools::str {
             if (!result.empty() && result.back() == esc[0]) {
                 // Count consecutive escape characters from the end of the result
                 size_t escape_count = 0;
-                for (int j = result.size() - 1; j >= 0 && result[j] == esc[0]; --j) escape_count++;
+                for (ssize_t j = result.size() - 1; j >= 0 && result[j] == esc[0]; --j) escape_count++;
 
                 // Odd number of escapes means this character is already escaped
                 is_escaped = (escape_count % 2 == 1);

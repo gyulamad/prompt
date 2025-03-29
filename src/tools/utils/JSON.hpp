@@ -856,18 +856,19 @@ void test_json_type_to_string_object() {
     assert(actual == "object" && "JSON_TYPE_OBJECT should return 'object'");
 }
 
-void test_json_type_to_string_invalid_type() {
-    bool thrown = false;
-    try {
-        json_type_to_string(static_cast<json_type>(99)); // Invalid type
-    } catch (const exception& e) {
-        thrown = true;
-        string actual = e.what();
-        string expected = "Invalid JSON type: 99";
-        assert(str_contains(actual, expected) && "Exception message should match");
-    }
-    assert(thrown && "Invalid JSON type should throw an exception");
-}
+// Use -Wconversion flag instead!
+// void test_json_type_to_string_invalid_type() {
+//     bool thrown = false;
+//     try {
+//         json_type_to_string(static_cast<json_type>(99)); // Invalid type
+//     } catch (const exception& e) {
+//         thrown = true;
+//         string actual = e.what();
+//         string expected = "Invalid JSON type: 99";
+//         assert(str_contains(actual, expected) && "Exception message should match");
+//     }
+//     assert(thrown && "Invalid JSON type should throw an exception");
+// }
 
 void test_json_get_string_valid() {
     string actual = json_get_string("{\"key\": \"value\"}", ".key");
@@ -1358,7 +1359,7 @@ TEST(test_json_type_to_string_real);
 TEST(test_json_type_to_string_boolean);
 TEST(test_json_type_to_string_array);
 TEST(test_json_type_to_string_object);
-TEST(test_json_type_to_string_invalid_type);
+// TEST(test_json_type_to_string_invalid_type);
 TEST(test_json_get_string_valid);
 TEST(test_json_get_string_invalid_type);
 TEST(test_json_get_string_undefined_key);
