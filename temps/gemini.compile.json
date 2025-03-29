@@ -1,0 +1,4 @@
+{
+    "flags": ["-g", "-O0", "-DTEST"],
+    "libs": ["-lcurl"]
+}

@@ -23,7 +23,7 @@ namespace tools::utils {
         cout << "[DEBUG] " <<  FILE_LINE_DEBUG_MSG << endl;
     }
 
-    #define ERROR(msg) error(msg, __FILE__, __LINE__)
+    #define ERROR(msg) tools::utils::error(msg, __FILE__, __LINE__)
 
     #ifdef __PRETTY_FUNCTION__
     #define __FUNC__ __PRETTY_FUNCTION__

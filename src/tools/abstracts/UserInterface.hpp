@@ -13,7 +13,7 @@ namespace tools::abstracts {
     public:
         virtual bool readln(T& input) {
             lock_guard<mutex> lock(imutex);
-            cin >> input;
+            getline(cin, input);
             return false;
         }
 

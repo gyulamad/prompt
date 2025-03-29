@@ -11,7 +11,7 @@
 
 #include "tools/agency/Agent.hpp"
 #include "tools/agency/Agency.hpp"
-#include "tools/agency/agents/InferAgent.hpp"
+#include "tools/agency/agents/LLMAgent.hpp"
 #include "tools/agency/agents/EchoAgent.hpp"
 #include "tools/agency/agents/UserAgent.hpp"
 #include "tools/agency/agents/UserAgentInterface.hpp"
@@ -121,7 +121,7 @@ int safe_main(int , char *[]) {
             },
             {
                 "infer", [&](Agency<PackT>& agency, const string& name) -> Agent<PackT>& {
-                    return agency.template spawn<InferAgent<PackT>>(name);
+                    return agency.template spawn<LLMAgent<PackT>>(name);
                 },
             },
         };

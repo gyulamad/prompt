@@ -65,6 +65,7 @@ namespace tools::agency {
                     found = true;
                     agents[i]->close();
                     // delete agents[i];
+                    agents[i] = nullptr;
                     agents.erase(agents.begin() + i);
                     i--;  // Back up to recheck the shifted element
                 }
@@ -78,7 +79,7 @@ namespace tools::agency {
                 else {
                     lock_guard<mutex> lock(agents_mtx);
                     for (Agent<T>* agent: agents)
-                        if (agent->name == pack.recipient) agent->handle(pack.sender, pack.item);    
+                        if (agent && agent->name == pack.recipient) agent->handle(pack.sender, pack.item);    
                 }
             }
         }

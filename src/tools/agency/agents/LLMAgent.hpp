@@ -1,25 +1,36 @@
 #pragma once
 
+#include <string>
+
 #include "../../voice/TTS.hpp"
 #include "../Agent.hpp"
 #include "UserAgent.hpp"
 
+using namespace tools::abstracts;
 using namespace tools::voice;
 using namespace tools::agency;
 
+using namespace std;
+
 namespace tools::agency::agents {
+
+
+    class GeminiAPI {
+    public:
+        
+    };
     
     template<typename T>
-    class InferAgent: public Agent<T> {
+    class LLMAgent: public Agent<T> {
     public:
-        InferAgent(
+        LLMAgent(
             PackQueue<T>& queue,
             const string& name
         ): 
             Agent<T>(queue, name)
         {}
 
-        string type() const override { return "infer"; }
+        string type() const override { return "llm"; }
 
         void handle(const string& sender, const T& item) override {
             // sleep(2); // emulate some background work;
@@ -34,6 +45,10 @@ namespace tools::agency::agents {
             // interface.clearln();
             // interface.println(output);
             // if (interface.isVoiceOutput()) interface.speak(item);
+            
+            // UserAgent<T>& user = (UserAgent<T>&)agency.getAgentRef("user");
+
+            this->send(sender, llm.request(item));
         }
 
     private:

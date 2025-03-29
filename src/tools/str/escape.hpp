@@ -6,7 +6,7 @@ using namespace std;
 
 namespace tools::str {
 
-    string escape(const string& input, const string& chars = "\\$\"'`", const string& esc = "\\") {
+    string escape(const string& input, const string& chars = "\\$\"'`\n\r\t", const string& esc = "\\") {
         string result;
         for (size_t i = 0; i < input.size(); ++i) {
             char c = input[i];
