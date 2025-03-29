@@ -206,6 +206,47 @@ void test_SentenceStream_close_clears_state() {
     assert(actual_eof && "Should be EOF after close");
 }
 
+void test_SentenceStream_write_no_separator() {
+    BasicSentenceSeparation sep({"."});
+    SentenceStream stream(sep, 1024);
+    stream.write("Hello world");
+    bool actual_available = stream.available();
+    string actual_sentence = stream.read();
+    assert(!actual_available && "Should not have sentence without separator");
+    assert(actual_sentence == "" && "Should return empty string when no sentence available");
+}
+
+void test_SentenceStream_write_not_ending_with_separator() {
+    BasicSentenceSeparation sep({"."});
+    SentenceStream stream(sep, 1024);
+    stream.write("First. Second");
+    string actual_first = stream.read();
+    bool actual_available_after = stream.available();
+    string actual_second = stream.read();
+    assert(actual_first == "First." && "Should read complete sentence");
+    assert(!actual_available_after && "Should not have sentence without ending separator");
+    assert(actual_second == "" && "Should return empty string for remaining partial");
+    stream.write(".");
+    bool final_available = stream.available();
+    string final_sentence = stream.read();
+    assert(final_available && "Should have sentence after adding separator");
+    assert(final_sentence == "Second." && "Should complete partial sentence");
+}
+
+void test_SentenceStream_flush_last_chunk_unfinished() {
+    BasicSentenceSeparation sep({"."});
+    SentenceStream stream(sep, 1024);
+    stream.write("First. Last chunk");
+    string actual_first = stream.read();
+    assert(actual_first == "First." && "Should read complete sentence");
+    assert(!stream.available() && "No sentence available without separator");
+    stream.flush(); // Sender finishes, TTS should get the last chunk
+    bool actual_available = stream.available();
+    string actual_last = stream.read();
+    assert(actual_available && "Should have last chunk available after flush");
+    assert(actual_last == " Last chunk" && "Should read unfinished last chunk after flush");
+}
+
 TEST(test_SentenceStream_write_basic_sentence);
 TEST(test_SentenceStream_write_multiple_sentences);
 TEST(test_SentenceStream_write_partial_then_complete);
@@ -215,6 +256,9 @@ TEST(test_SentenceStream_buffer_overflow);
 TEST(test_SentenceStream_eof_empty);
 TEST(test_SentenceStream_eof_after_read);
 TEST(test_SentenceStream_close_clears_state);
+TEST(test_SentenceStream_write_no_separator);
+TEST(test_SentenceStream_write_not_ending_with_separator);
+TEST(test_SentenceStream_flush_last_chunk_unfinished);
 
 #endif
 
