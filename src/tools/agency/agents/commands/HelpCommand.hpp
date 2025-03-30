@@ -45,9 +45,10 @@ namespace tools::agency::agents::commands {
             Agency<T>& agency = *(Agency<T>*)agency_void;
 
             // get user agent
-            Agent<T>& agent = agency.getAgentRef("user");
-            if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
-            UserAgent<T>& user = (UserAgent<T>&)agent;
+            UserAgent<T>& user = agency.template getAgentRef<UserAgent<T>>("user");
+            // Agent<T>& agent = agency.getAgentRef("user");
+            // if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
+            // UserAgent<T>& user = (UserAgent<T>&)agent;
             // UserAgent<T>& user = agency.getUserAgentRef();
 
             // get commander

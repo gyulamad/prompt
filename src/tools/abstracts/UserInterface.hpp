@@ -9,7 +9,7 @@ using namespace std;
 namespace tools::abstracts {
 
     template<typename T>
-    class UserInterface {
+    class UserInterface { // TODO: extend Printer (and maybe create a Reader too)
     public:
         virtual bool readln(T& input) {
             lock_guard<mutex> lock(imutex);

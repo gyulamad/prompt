@@ -1,13 +1,20 @@
 #pragma once
 
 #include "../abstracts/Closable.hpp"
+#include "../str/str_contains.hpp"
+#include "../str/tpl_replace.hpp"
+#include "../str/implode.hpp"
 #include "../utils/system.hpp"
 #include "../utils/ERROR.hpp"
+#include "../containers/array_merge.hpp"
+#include "../containers/array_diff.hpp"
 
 #include "PackQueueHolder.hpp"
 
 using namespace tools::abstracts;
+using namespace tools::str;
 using namespace tools::utils;
+using namespace tools::containers;
 
 namespace tools::agency {
     
@@ -15,7 +22,15 @@ namespace tools::agency {
     class Agent: public PackQueueHolder<T>, public Closable {
         static_assert(Streamable<T>, "T must support ostream output for dump()");
     public:
-        Agent(PackQueue<T>& queue, const string& name): PackQueueHolder<T>(queue), name(name) {}
+        Agent(
+            PackQueue<T>& queue, 
+            const string& name,
+            vector<string> recipients
+        ):
+            PackQueueHolder<T>(queue), 
+            name(name),
+            recipients(recipients)
+        {}
 
         virtual ~Agent() {
             if (t.joinable()) t.join();
@@ -53,8 +68,51 @@ namespace tools::agency {
         
         virtual string type() const UNIMP_THROWS
 
+
+        void addRecipients(const vector<string>& recipients) {
+            this->recipients = array_merge(this->recipients, recipients);
+        }
+
+        void setRecipients(const vector<string>& recipients) {
+            this->recipients = recipients;
+        }
+
+        void removeRecipients(const vector<string>& recipients) {
+            this->recipients = array_diff(this->recipients, recipients);
+        }
+
+        vector<string> findRecipients(const string& keyword = "") const {
+            if (keyword.empty()) return recipients;
+            vector<string> found;
+            foreach(recipients, [&](const string& recipient) {
+                if (str_contains(recipient, keyword)) 
+                    found.push_back(recipient);
+            });
+            return found;
+        }
+
+        virtual string dump() const {
+            string recipients = implode(", ", this->recipients);
+            return tpl_replace({
+                { "{{name}}" , name },
+                { "{{type}}" , type() },
+                { "{{recipients}}" , recipients.empty() ? "<nobody>" : recipients },
+            }, "Agent {{name}} is a(n) {{type}} agent, talking to {{recipients}}.");
+        }
+
     protected:
-        
+        void send(const T& item) {
+            send(recipients, item);
+        }
+
+        virtual void hoops(const string& errmsg = "") {
+            cerr << errmsg << endl;
+        }
+
+        thread t;
+        vector<string> recipients;
+
+    private:
         void send(const string& recipient, const T& item) {
             if (name == recipient) ERROR("Can not send for itself: " + name);
             Pack<T> pack(name, recipient, item);
@@ -64,12 +122,6 @@ namespace tools::agency {
         void send(const vector<string>& recipients, const T& item) {
             for (const string& recipient: recipients) send(recipient, item);
         }
-
-        virtual void hoops(const string& errmsg = "") {
-            cerr << errmsg << endl;
-        }
-
-        thread t;
     };
     
 }

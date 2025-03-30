@@ -1,44 +1,41 @@
 #pragma once
 
-#include <string>
+// #include <string>
 
-#include "../utils/Printer.hpp"
+// #include "../utils/Printer.hpp"
+// #include "../chat/ChatHistory.hpp"
+
+// using namespace std;
+
+#include "../str/explode.hpp"
+#include "../str/trim.hpp"
+#include "../str/str_starts_with.hpp"
+#include "../str/json_escape.hpp"
 #include "../utils/Curl.hpp"
 #include "../utils/JSON.hpp"
-#include "../str/trim.hpp"
-#include "../str/json_escape.hpp"
-#include "../str/explode.hpp"
-#include "../str/str_starts_with.hpp"
-#include "../chat/Talkbot.hpp"
-#include "../chat/ChatHistory.hpp"
+#include "../chat/Chatbot.hpp"
 
-using namespace std;
+using namespace tools::str;
 using namespace tools::utils;
 using namespace tools::chat;
-using namespace tools::str;
 
 namespace tools::ai {
 
-    class Gemini: public Talkbot {
+    class Gemini {
     public:
-    
         Gemini(
-            const string& name, 
-            ChatHistory& history, 
-            Printer& printer,
-            SentenceStream& sentences,
-            TTS& tts,
             const string& secret, 
             const string& variant,
             long timeout
-        ): 
-            Talkbot(name, history, printer, sentences, tts),
+        ):
             secret(secret),
             variant(variant),
             timeout(timeout)
         {}
-    
-        string chat(const string& sender, const string& text) override {
+
+    protected:
+
+        string chat(Chatbot& chatbot, const string& sender, const string& text) {
             Curl curl;
             curl.AddHeader("Content-Type: application/json");
             curl.AddHeader("Accept: application/json");
@@ -48,10 +45,10 @@ namespace tools::ai {
             string url = "https://generativelanguage.googleapis.com/v1beta/models/" 
                 + variant + ":streamGenerateContent?alt=sse&key=" + escape(secret);            
     
-            history.append(sender, text);
+            chatbot.getHistoryRef().append(sender, text);
             string data = tpl_replace({
-                { "{{history}}", json_escape(history.toString()) }, 
-                { "{{start}}", json_escape(history.startToken(name)) },
+                { "{{history}}", json_escape(chatbot.getHistoryRef().toString()) }, 
+                { "{{start}}", json_escape(chatbot.getHistoryRef().startToken(chatbot.name)) },
             }, R"({
                 "contents": [{
                     "parts": [{
@@ -76,17 +73,17 @@ namespace tools::ai {
                     if (!json.isDefined("candidates[0].content.parts[0].text")) throw ERROR("Gemini error: text is not defined: " + json.dump());
                     string text = json.get<string>("candidates[0].content.parts[0].text");
     
-                    response += this->chunk(text);
+                    response += chatbot.chunk(text);
                 }
             }, data)) throw ERROR("Error requesting Gemini API");        
-            history.append(name, this->response(response));
+            chatbot.getHistoryRef().append(chatbot.name, chatbot.response(response));
             return response;
         }
-    
+
     private:
         string secret;
         string variant;
         long timeout;
-    };
+    };    
 
 }

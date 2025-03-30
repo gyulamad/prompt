@@ -1,7 +1,9 @@
 #pragma once
 
-// #include "agents/UserAgent.hpp"
+#include "../chat/Chatbot.hpp"
 #include "Agent.hpp"
+
+using namespace tools::chat;
 
 namespace tools::agency {
     
@@ -9,7 +11,20 @@ namespace tools::agency {
     class Agency: public Agent<T> {
     public:
 
-        using Agent<T>::Agent;
+        static const string agent_list_tpl;
+
+        // using Agent<T>::Agent;
+        Agency(
+            PackQueue<T>& queue, 
+            const string& name,
+            vector<string> recipients,
+            Factory<Chatbot>& chatbots,
+            Factory<ChatHistory>& histories
+        ):
+            Agent<T>(queue, name, recipients),
+            chatbots(chatbots),
+            histories(histories)
+        {}
 
         virtual ~Agency() {
             lock_guard<mutex> lock(agents_mtx);
@@ -42,9 +57,9 @@ namespace tools::agency {
         }
         
         template<typename AgentT, typename... Args>
-        AgentT& spawn(const string& name, Args&&... args) {
+        AgentT& spawn(const string& name, const vector<string>& recipients, Args&&... args) {
             lock_guard<mutex> lock(agents_mtx);
-            AgentT* agent = new AgentT(this->queue, name, forward<Args>(args)...);
+            AgentT* agent = new AgentT(this->queue, name, recipients, forward<Args>(args)...);
             for (const Agent<T>* a: agents)
                 if (agent->name == a->name) {
                     delete agent;
@@ -52,7 +67,7 @@ namespace tools::agency {
                 }
             agents.push_back(agent);
             // agent->start();
-            this->send("user", "Agent '" + agent->name + "' created as " + agent->type());
+            this->send("Agent '" + agent->name + "' created as " + agent->type());
             return *agent;
         }
 
@@ -84,13 +99,43 @@ namespace tools::agency {
             }
         }
 
-        Agent<T>& getAgentRef(const string& name) {
+        bool hasAgent(const string& name) const {
             for (Agent<T>* agent: agents)
-                if (agent->name == name) return *agent;
+                if (agent->name == name) return true;
+            return false;
+        }
+
+        template<typename AgentT>
+        AgentT& getAgentRef(const string& name) const {
+            for (Agent<T>* agent: agents)
+                if (agent->name == name) return *(AgentT*)agent;
             throw ERROR("Requested agent '" + name + "' is not found.");
         }
 
-        const vector<Agent<T>*>& getAgentsCRef() const { return agents; }
+        // const vector<Agent<T>*>& getAgentsCRef() const { return agents; }
+
+        vector<string> findAgents(const string& keyword = "") const {
+            vector<string> found;
+            for (const Agent<T>* agent: agents) {
+                string name = safe(agent)->name;
+                if (keyword.empty() || str_contains(name, keyword))
+                    found.push_back(name);
+            };
+            return found;
+        }
+
+        string dumpAgents(const vector<string>& names) const {
+            vector<string> dumps;
+            for (const string& name: names) {
+                if (hasAgent(name)) dumps.push_back(getAgentRef<Agent<T>>(name).dump());
+                else dumps.push_back("Agent " + name + " is not exists!");
+            };
+            return implode("\n", dumps);
+        }
+
+
+        Factory<Chatbot>& chatbots;
+        Factory<ChatHistory>& histories;
 
     private:
         // bool voice = false;
@@ -98,6 +143,11 @@ namespace tools::agency {
         mutex agents_mtx;
         Pack<T> pack;
     };
+
+    template<typename T>
+    const string Agency<T>::agent_list_tpl = R"(List of agents:
+{{agents}}
+{{found}} of {{total}} agent(s) found.)";
     
 }
 

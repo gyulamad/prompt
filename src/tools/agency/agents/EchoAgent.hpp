@@ -14,10 +14,11 @@ namespace tools::agency::agents {
     public:
         EchoAgent(
             PackQueue<T>& queue,
-            const string& name, 
+            const string& name,
+            vector<string> recipients, 
             UserAgentInterface<T>& interface
         ): 
-            Agent<T>(queue, name), 
+            Agent<T>(queue, name, recipients), 
             interface(interface)
         {}
 

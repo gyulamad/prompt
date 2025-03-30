@@ -4,6 +4,7 @@
 
 #include "../str/tpl_replace.hpp"
 #include "../utils/foreach.hpp"
+#include "../utils/Factory.hpp"
 
 #include "ChatMessage.hpp"
 
@@ -20,10 +21,17 @@ namespace tools::chat {
         ):
             prompt(prompt), 
             use_start_token(use_start_token)
-        {}
+        {
+            // messages.registry("ChatMessage", [](void* user_data) -> ChatMessage* {
+            //     NULLCHK(user_data);
+            //     ChatMessage* message = (ChatMessage*)user_data;
+            //     return new ChatMessage(message->sender, message->text);
+            // });
+        }
     
         void append(const string& sender, const string& text) {        
-            messages.push_back({sender, text});
+            ChatMessage message(sender, text);
+            messages.push_back(message);
             // TODO: check if full length is more that the bot context window and partially summarise by a customizable context overflow handler
         }
     
@@ -50,6 +58,7 @@ namespace tools::chat {
     private:    
         string prompt;
         bool use_start_token;
+        // Factory<ChatMessage> messages;
         vector<ChatMessage> messages;
     };
 

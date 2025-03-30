@@ -12,6 +12,13 @@ using namespace std;
 namespace tools::agency {
 
     template<typename T>
-    using AgentRoleMap = map<string, function<Agent<T>&(Agency<T>&, const string&)>>;
+    using AgentInstantiator = function<Agent<T>&(
+        Agency<T>&, // agency // TODO PackQueue???
+        const string&, // name
+        const vector<string>& // recipients
+    )>;
+
+    template<typename T>
+    using AgentRoleMap = map<string, AgentInstantiator<T>>;
 
 }

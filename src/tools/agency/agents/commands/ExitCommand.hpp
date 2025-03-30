@@ -30,8 +30,7 @@ namespace tools::agency::agents::commands {
             NULLCHK(agency_void);
             Agency<T>& agency = *(Agency<T>*)agency_void;
 
-            agency.getAgentRef("user").exit();
-            // UserAgent<T>& user = agency.getUserAgentRef().exit();
+            agency.template getAgentRef<UserAgent<T>>("user").exit();
         }
     };
     

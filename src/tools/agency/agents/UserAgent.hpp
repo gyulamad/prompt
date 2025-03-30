@@ -32,14 +32,13 @@ namespace tools::agency::agents {
         UserAgent(
             PackQueue<T>& queue,
             const string& name, 
+            vector<string> recipients, // TODO: to config, and have to be able to change/see message package targets
             Agency<T>& agency, 
-            UserAgentInterface<T>& interface,
-            vector<string> recipients = { "echo" } // TODO: to config, and have to be able to change/see message package targets
+            UserAgentInterface<T>& interface
         ): 
-            Agent<T>(queue, name), 
+            Agent<T>(queue, name, recipients), 
             agency(agency),
-            interface(interface),
-            recipients(recipients)
+            interface(interface)
         {
             interface.setUser(this);
         }
@@ -70,7 +69,7 @@ namespace tools::agency::agents {
         }
 
         void onInput(T input) {
-            this->send(recipients, input);
+            this->send(input);
         }
 
         void handle(const string& sender, const T& item) override {
@@ -80,7 +79,6 @@ namespace tools::agency::agents {
     private:
         Agency<T>& agency;
         UserAgentInterface<T>& interface;
-        vector<string> recipients;
     };
     
 }
