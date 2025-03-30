@@ -12,18 +12,19 @@ namespace tools::chat {
     class Chatbot {
     public:
         Chatbot(
-            const string& name, 
-            ChatHistory& history, 
+            const string& name,
+            Factory<ChatHistory>& histories, const string& history_type, //ChatHistory& history, 
             Printer& printer
         ): 
-            name(name), 
-            history(history),
+            name(name),
+            histories(histories),
+            history(histories.hold(this, histories.create(history_type)) /*history*/),
             printer(printer)
         {}
-        // virtual ~Chatbot() {
-        //     delete history;
-        //     history = nullptr;
-        // }
+        virtual ~Chatbot() {
+            cout << "Chatbot (" + this->name + ") destruction..." << endl; 
+            histories.release(this, history);
+        }
         virtual string chat(const string& sender, const string& text) = 0;
         virtual string chunk(const string& chunk) { 
             printer.print(chunk);
@@ -31,11 +32,12 @@ namespace tools::chat {
         }
         virtual string response(const string& response) { return response; }
 
-        ChatHistory& getHistoryRef() { return history; }
+        ChatHistory& getHistoryRef() { return *safe(history); }
 
         const string name;
     protected:
-        ChatHistory& history;
+        Factory<ChatHistory>& histories;
+        ChatHistory* history = nullptr;
         Printer& printer;
     };
 

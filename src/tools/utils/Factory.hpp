@@ -43,18 +43,6 @@ namespace tools::utils {
             creators[type] = move(creator);
         }
 
-        Creator creator(const string& type) {
-            lock_guard<mutex> lock(mtx);
-            Creator creator = nullptr;
-            foreach (creators, [&](Creator crtr, const string& typ) {
-                if (typ != type) return FE_CONTINUE;
-                creator = crtr;
-                return FE_BREAK;
-            });
-            if (!creator) throw ERROR("Unknown type: " + type);
-            return creator;
-        }
-
         T* create(const string& type, void* user_data = nullptr) {
             lock_guard<mutex> lock(mtx);
             T* instance = nullptr;
@@ -69,31 +57,16 @@ namespace tools::utils {
             }
         }
 
-        typename map<T*, int>::iterator has(T* instance, bool throws) {
+        T* hold(void* owner, T* instance) {
             lock_guard<mutex> lock(mtx);
-            typename map<T*, int>::iterator it = instances.find(instance);
-            if (it == instances.end()) {
-                if (throws) throw ERROR("Factory called on untracked instance: " + 
-                    to_string(reinterpret_cast<uintptr_t>(instance)));
-                return nullptr;
-            }
-            return it;
-        }
-
-        int owners(T* instance) {
-            return has(instance, true)->second;
-        }
-
-        Factory& hold(void* owner, T* instance) {
-            lock_guard<mutex> lock(mtx);
-            has(instance, true)->second++;
+            has(instance)->second++;
             //cout << "Instance " << instance << " now has " << it->second << " owners" << endl;
-            return *this;
+            return instance;
         }
 
-        Factory& release(void* owner, T* instance) {
+        T* release(void* owner, T* instance) {
             lock_guard<mutex> lock(mtx);
-            typename map<T*, int>::iterator it = has(instance, true);
+            typename map<T*, int>::iterator it = has(instance);
             if (it->second <= 0)
                 throw ERROR("release called on instance " + 
                             to_string(reinterpret_cast<uintptr_t>(instance)) + 
@@ -105,7 +78,7 @@ namespace tools::utils {
                 instance = nullptr;
                 instances.erase(it);
             }
-            return *this;
+            return instance;
         }
 
         void destroy(T* instance) {
@@ -123,6 +96,30 @@ namespace tools::utils {
         }
 
     private:
+
+        Creator creator(const string& type) {
+            Creator creator = nullptr;
+            foreach (creators, [&](Creator crtr, const string& typ) {
+                if (typ != type) return FE_CONTINUE;
+                creator = crtr;
+                return FE_BREAK;
+            });
+            if (!creator) throw ERROR("Unknown type: " + type);
+            return creator;
+        }
+
+        typename map<T*, int>::iterator has(T* instance) {
+            typename map<T*, int>::iterator it = instances.find(safe(instance));
+            if (it == instances.end())
+                throw ERROR("Factory called on untracked instance: " + 
+                    to_string(reinterpret_cast<uintptr_t>(instance)));
+            return it;
+        }
+
+        int owners(T* instance) {
+            return has(instance, true)->second;
+        }
+
         mutex mtx;
         map<T*, int> instances;  // instance -> owner count
         map<string, Creator> creators;

@@ -122,26 +122,26 @@ int safe_main(int , char *[]) {
 
         Factory<Chatbot> chatbots;
         chatbots.registry("GeminiChatbot", [&](void*) -> GeminiChatbot* {
-            ChatHistory* history = histories.create("ChatHistory");
+            // ChatHistory* history = histories.create("ChatHistory");
             return new GeminiChatbot(
                 gemini_secret,
                 gemini_variant,
                 gemini_timeout,
                 "gemini",
-                *history,
+                histories, "ChatHistory", //*history,
                 printer
             );
         });
 
         Factory<Talkbot> talkbots;
         talkbots.registry("GeminiTalkbot", [&](void*) -> GeminiTalkbot* {
-            ChatHistory* history = histories.create("ChatHistory");
+            //ChatHistory* history = histories.create("ChatHistory");
             return new GeminiTalkbot(
                 gemini_secret,
                 gemini_variant,
                 gemini_timeout,
                 "gemini",
-                *history,
+                histories, "ChatHistory", //*history,
                 printer,
                 sentences,
                 tts
@@ -150,7 +150,7 @@ int safe_main(int , char *[]) {
 
         Agency<PackT> agency(
             queue, "agency", { "user" }, 
-            chatbots, histories
+            chatbots, talkbots, histories
         );
 
         CommandFactory cfactory;
@@ -180,8 +180,8 @@ int safe_main(int , char *[]) {
         MicView micView;
         // UserAgentInterface<PackT>* interface_ptr;
 
-        ChatHistory* history = histories.create("ChatHistory");
-        Talkbot* talkbot = talkbots.create("GeminiTalkbot");
+        // ChatHistory* history = histories.create("ChatHistory");
+        // Talkbot* talkbot = talkbots.create("GeminiTalkbot");
         // GeminiTalkbot talkbot(
         //     gemini_secret,
         //     gemini_variant,
@@ -203,15 +203,19 @@ int safe_main(int , char *[]) {
 
             {
                 "chat", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
-                    ChatHistory* history = agency.histories.create("ChatHistory");
-                    Chatbot* chatbot = agency.chatbots.create("GeminiChatbot");
-                    return agency.template spawn<ChatbotAgent<PackT>>(name, recipients, *chatbot);
+                    // ChatHistory* history = agency.histories.create("ChatHistory");
+                    // Chatbot* chatbot = agency.chatbots.create("GeminiChatbot");
+                    return agency.template spawn<ChatbotAgent<PackT>>(
+                        name, 
+                        recipients, 
+                        agency.chatbots, "GeminiChatbot"//*chatbot
+                    );
                 },
 
             },
             {
                 "talk", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
-                    return agency.template spawn<TalkbotAgent<PackT>>(name, recipients, *talkbot);
+                    return agency.template spawn<TalkbotAgent<PackT>>(name, recipients, agency.talkbots, "GeminiTalkbot");
                 },
             },
         };
@@ -232,7 +236,7 @@ int safe_main(int , char *[]) {
         );
         // interface_ptr = &interface;
 
-        agency.template spawn<TalkbotAgent<PackT>>("talk", { "user" }, *talkbot).async();
+        agency.template spawn<TalkbotAgent<PackT>>("talk", { "user" }, agency.talkbots, "GeminiTalkbot").async();
         agency.template spawn<UserAgent<PackT>>("user", { "talk" }, agency, interface).async();
         //cout << "Agency started" << endl;
         agency.sync();

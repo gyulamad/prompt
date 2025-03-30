@@ -24,21 +24,28 @@ namespace tools::agency::agents {
             PackQueue<T>& queue,
             const string& name,
             vector<string> recipients,
-            Chatbot& chatbot
+            Factory<Chatbot>& chatbots, const string& chatbot_type//Chatbot& chatbot
         ): 
             Agent<T>(queue, name, recipients),
-            chatbot(chatbot)
+            chatbots(chatbots),
+            chatbot(chatbots.hold(this, chatbots.create(chatbot_type)))
         {}
+
+        virtual ~ChatbotAgent() {
+            cout << "ChatbotAgent (" + this->name + ") destruction..." << endl;
+            chatbots.release(this, chatbot);
+        }
 
         string type() const override { return "chat"; }
 
         void handle(const string& sender, const T& item) override {
             this->addRecipients({ sender });
-            this->send(chatbot.chat(sender, item));
+            this->send(chatbot->chat(sender, item));
         }
 
     private:
-        Chatbot& chatbot;
+        Factory<Chatbot>& chatbots;
+        Chatbot* chatbot = nullptr;
     };
     
 }

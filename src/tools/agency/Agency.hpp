@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../chat/Chatbot.hpp"
+#include "../chat/Talkbot.hpp"
 #include "Agent.hpp"
 
 using namespace tools::chat;
@@ -19,16 +20,21 @@ namespace tools::agency {
             const string& name,
             vector<string> recipients,
             Factory<Chatbot>& chatbots,
+            Factory<Talkbot>& talkbots,
             Factory<ChatHistory>& histories
         ):
             Agent<T>(queue, name, recipients),
             chatbots(chatbots),
+            talkbots(talkbots),
             histories(histories)
         {}
 
         virtual ~Agency() {
             lock_guard<mutex> lock(agents_mtx);
-            for (Agent<T>* agent : agents) delete agent;
+            for (Agent<T>* agent : agents) {
+                delete agent;
+                agent = nullptr;
+            }
             agents.clear();
         }
 
@@ -78,8 +84,8 @@ namespace tools::agency {
             for (size_t i = 0; i < agents.size(); i++)
                 if (agents[i]->name == name) {
                     found = true;
-                    agents[i]->close();
-                    // delete agents[i];
+                    //agents[i]->close();
+                    delete agents[i];
                     agents[i] = nullptr;
                     agents.erase(agents.begin() + i);
                     i--;  // Back up to recheck the shifted element
@@ -135,6 +141,7 @@ namespace tools::agency {
 
 
         Factory<Chatbot>& chatbots;
+        Factory<Talkbot>& talkbots;
         Factory<ChatHistory>& histories;
 
     private:

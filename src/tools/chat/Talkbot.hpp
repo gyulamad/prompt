@@ -13,14 +13,18 @@ namespace tools::chat {
     public:
         Talkbot(
             const string& name, 
-            ChatHistory& history, 
+            Factory<ChatHistory>& histories, const string& history_type, //ChatHistory& history, 
             Printer& printer,
             SentenceStream& sentences,
             TTS& tts
         ):
-            Chatbot(name, history, printer),
+            Chatbot(name, histories, history_type /*history*/, printer),
             sentences(sentences), tts(tts)
         {}
+
+        virtual ~Talkbot() {
+            cout << "Talkbot (" + this->name + ") destruction..." << endl;
+        }
     
         string chunk(const string& chunk) override { 
             Chatbot::chunk(chunk);

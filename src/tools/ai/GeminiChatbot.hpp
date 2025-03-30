@@ -15,12 +15,16 @@ namespace tools::ai {
             const string& variant,
             long timeout,
             const string& name, 
-            ChatHistory& history, 
+            Factory<ChatHistory>& histories, const string& history_type, // ChatHistory& history
             Printer& printer
         ):
             Gemini(secret, variant, timeout),
-            Chatbot(name, history, printer)
+            Chatbot(name, histories, history_type/*history*/, printer)
         {}
+
+        virtual ~GeminiChatbot() {
+            cout << "GeminiChatbot (" + this->name + ") destruction..." << endl;
+        }
     
         string chat(const string& sender, const string& text) override {
             return Gemini::chat(*this, sender, text);

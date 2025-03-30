@@ -33,6 +33,10 @@ namespace tools::ai {
             timeout(timeout)
         {}
 
+        virtual ~Gemini() {
+            cout << "Gemini destruction..." << endl;
+        }
+
     protected:
 
         string chat(Chatbot& chatbot, const string& sender, const string& text) {
