@@ -247,7 +247,7 @@ int safe_main(int , char *[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-        // "test_Agency_kill_basic"
+        // "test_parse_vector_invalid_input"
     });
     
     return safe_main<string>(argc, argv);

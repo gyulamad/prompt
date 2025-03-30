@@ -163,15 +163,19 @@ namespace tools::agency {
 // Agency tests
 void test_Agency_constructor_basic() {
     PackQueue<string> queue;
-    Agency<string> agency(queue, "agency");
+    Factory<Chatbot> chatbots;
+    Factory<ChatHistory> histories;
+    Agency<string> agency(queue, "agency", {}, chatbots, histories);
     auto actual_name = agency.name;
     assert(actual_name == "agency" && "Agency name should be 'agency'");
 }
 
 void test_Agency_handle_exit() {
     PackQueue<string> queue;
-    TestAgency<string> agency(queue, "agency");
-    TestAgent<string>& test_agent = agency.spawn<TestAgent<string>>("test_agent");
+    Factory<Chatbot> chatbots;
+    Factory<ChatHistory> histories;
+    TestAgency<string> agency(queue, "agency", {}, chatbots, histories);
+    TestAgent<string>& test_agent = agency.spawn<TestAgent<string>>("test_agent", {});
     auto actual_output = capture_cout([&]() { agency.handle("user", "exit"); });
     auto actual_closed = agency.isClosing();
     auto actual_agent_closed = test_agent.isClosing();
@@ -184,9 +188,11 @@ void test_Agency_handle_exit() {
 
 void test_Agency_handle_list() {
     PackQueue<string> queue;
-    Agency<string> agency(queue, "agency");
-    agency.spawn<TestAgent<string>>("agent1");
-    agency.spawn<TestAgent<string>>("agent2");
+    Factory<Chatbot> chatbots;
+    Factory<ChatHistory> histories;
+    Agency<string> agency(queue, "agency", {}, chatbots, histories);
+    agency.spawn<TestAgent<string>>("agent1", {});
+    agency.spawn<TestAgent<string>>("agent2", {});
     auto actual_output = capture_cout([&]() { agency.handle("user", "list"); });
     auto expected_output = "Agents in the agency:\nagent1\nagent2\n";
     assert(actual_output == expected_output && "List should output all agent names");
@@ -194,8 +200,10 @@ void test_Agency_handle_list() {
 
 void test_Agency_spawn_success() {
     PackQueue<string> queue;
-    Agency<string> agency(queue, "agency");
-    auto& agent = agency.spawn<TestAgent<string>>("test_agent");
+    Factory<Chatbot> chatbots;
+    Factory<ChatHistory> histories;
+    Agency<string> agency(queue, "agency", {}, chatbots, histories);
+    auto& agent = agency.spawn<TestAgent<string>>("test_agent", {});
     auto actual_name = agent.name;
     assert(actual_name == "test_agent" && "Spawned agent should have correct name");
     auto actual_output = capture_cout([&]() { agency.handle("user", "list"); });
@@ -204,11 +212,13 @@ void test_Agency_spawn_success() {
 
 void test_Agency_spawn_duplicate() {
     PackQueue<string> queue;
-    Agency<string> agency(queue, "agency");
-    agency.spawn<TestAgent<string>>("test_agent");
+    Factory<Chatbot> chatbots;
+    Factory<ChatHistory> histories;
+    Agency<string> agency(queue, "agency", {}, chatbots, histories);
+    agency.spawn<TestAgent<string>>("test_agent", {});
     bool thrown = false;
     try {
-        agency.spawn<TestAgent<string>>("test_agent");
+        agency.spawn<TestAgent<string>>("test_agent", {});
     } catch (exception& e) {
         thrown = true;
         string what = e.what();
@@ -219,8 +229,10 @@ void test_Agency_spawn_duplicate() {
 
 void test_Agency_kill_basic() {
     PackQueue<string> queue;
-    Agency<string> agency(queue, "agency");
-    agency.spawn<TestAgent<string>>("test_agent");
+    Factory<Chatbot> chatbots;
+    Factory<ChatHistory> histories;
+    Agency<string> agency(queue, "agency", {}, chatbots, histories);
+    agency.spawn<TestAgent<string>>("test_agent", {});
     queue.Produce(Pack<string>("user", "test_agent", "hello"));
     agency.tick();  // Process the queue before killing
     assert(agency.kill("test_agent") && "Agent should be found");
@@ -232,8 +244,10 @@ void test_Agency_kill_basic() {
 
 void test_Agency_tick_dispatch() {
     PackQueue<string> queue;
-    Agency<string> agency(queue, "agency");
-    auto& test_agent = agency.spawn<TestAgent<string>>("test_agent");
+    Factory<Chatbot> chatbots;
+    Factory<ChatHistory> histories;
+    Agency<string> agency(queue, "agency", {}, chatbots, histories);
+    auto& test_agent = agency.spawn<TestAgent<string>>("test_agent", {});
     queue.Produce(Pack<string>("user", "agency", "list"));
     queue.Produce(Pack<string>("user", "test_agent", "hello"));
     auto actual_output = capture_cout([&]() { agency.tick(); });

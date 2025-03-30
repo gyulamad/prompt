@@ -16,13 +16,21 @@ public:
         handled = true;
     }
 
-    void send(const string& recipient, const T& item) {
-        Agent<T>::send(recipient, item);
+    void testSend(const string& recipient, const T& item) {
+        this->setRecipients({recipient});
+        this->send(item);
     }
+    // void send(const string& recipient, const T& item) {
+    //     Agent<T>::send(recipient, item);
+    // }
 
-    void send(const vector<string>& recipients, const T& item) {
-        Agent<T>::send(recipients, item);
+    void testSend(const vector<string>& recipients, const T& item) {
+        this->setRecipients(recipients);
+        this->send(item);
     }
+    // void send(const vector<string>& recipients, const T& item) {
+    //     Agent<T>::send(recipients, item);
+    // }
 
 
     bool isClosing() const { return this->closing; }

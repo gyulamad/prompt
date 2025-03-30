@@ -62,8 +62,15 @@ void test_parse_vector_custom_separator() {
 
 void test_parse_vector_empty_input() {
     string input = "";
-    auto result = parse_vector<int>(input);
-    assert(result.empty() && "Empty input should return empty vector");
+    bool throws = false;
+    try {
+        parse_vector<int>(input);
+    } catch (exception& e) {
+        throws = true;
+        string what = e.what();
+        assert(str_contains(what, "Invalid input string (not a number): <empty>"));
+    }
+    assert(throws && "Empty input should throw as it's not a number");
 }
 
 void test_parse_vector_single_item() {
@@ -77,11 +84,11 @@ void test_parse_vector_invalid_input() {
     string input = "1,apple,3";
     bool thrown = false;
     try {
-        auto result = parse_vector<int>(input);
+        parse_vector<int>(input);
     } catch (exception& e) {
         thrown = true;
         string what = e.what();
-        assert(str_contains(what, "parse error") && "Exception message should contain 'parse error'");
+        assert(str_contains(what, "Invalid input string (not a number): apple") && "Exception message should contains");
     }
     assert(thrown && "Should throw on invalid input");
 }

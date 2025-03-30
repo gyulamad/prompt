@@ -21,12 +21,10 @@ namespace tools::chat {
         ):
             prompt(prompt), 
             use_start_token(use_start_token)
-        {
-            // messages.registry("ChatMessage", [](void* user_data) -> ChatMessage* {
-            //     NULLCHK(user_data);
-            //     ChatMessage* message = (ChatMessage*)user_data;
-            //     return new ChatMessage(message->sender, message->text);
-            // });
+        {}
+
+        virtual ~ChatHistory() {
+            cout << "a history deleted" << endl;
         }
     
         void append(const string& sender, const string& text) {        

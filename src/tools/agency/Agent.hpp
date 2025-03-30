@@ -129,18 +129,20 @@ namespace tools::agency {
 #ifdef TEST
 
 #include "../str/str_contains.hpp"
-#include "../utils/Test.hpp"
+#include "../chat/Chatbot.hpp"
+#include "../chat/ChatHistory.hpp"
 #include "tests/helpers.hpp"
 #include "tests/TestAgent.hpp"
 #include "PackQueue.hpp" // Needed for queue operations
 
 using namespace tools::agency;
 using namespace tools::str;
+using namespace tools::chat;
 
 // Test constructor
 void test_Agent_constructor_basic() {
     PackQueue<string> queue;
-    Agent<string> agent(queue, "test_agent");
+    Agent<string> agent(queue, "test_agent", {});
     auto actual_name = agent.name;
     assert(actual_name == "test_agent" && "Agent name should be set correctly");
     // Can't directly test queue ref, but we'll use it in send tests
@@ -149,8 +151,8 @@ void test_Agent_constructor_basic() {
 // Test single send
 void test_Agent_send_single() {
     PackQueue<string> queue;
-    TestAgent<string> agent(queue, "alice");
-    agent.send("bob", "hello");
+    TestAgent<string> agent(queue, "alice", {});
+    agent.testSend("bob", "hello");
     auto actual_contents = queue_to_vector(queue);
     assert(actual_contents.size() == 1 && "Send should produce one pack");
     assert(actual_contents[0].sender == "alice" && "Sender should be 'alice'");
@@ -161,9 +163,9 @@ void test_Agent_send_single() {
 // Test multiple sends
 void test_Agent_send_multiple() {
     PackQueue<string> queue;
-    TestAgent<string> agent(queue, "alice");
+    TestAgent<string> agent(queue, "alice", {});
     vector<string> recipients = {"bob", "charlie"};
-    agent.send(recipients, "hello");
+    agent.testSend(recipients, "hello");
     auto actual_contents = queue_to_vector(queue);
     assert(actual_contents.size() == 2 && "Send should produce two packs");
     assert(actual_contents[0].sender == "alice" && "First sender should be 'alice'");
@@ -177,7 +179,7 @@ void test_Agent_send_multiple() {
 // Test handle throws exception
 void test_Agent_handle_unimplemented() {
     PackQueue<string> queue;
-    Agent<string> agent(queue, "test_agent");
+    Agent<string> agent(queue, "test_agent", {});
     bool thrown = false;
     try {
         agent.handle("alice", "hello");
@@ -192,7 +194,7 @@ void test_Agent_handle_unimplemented() {
 // Test tick default does nothing
 void test_Agent_tick_default() {
     PackQueue<string> queue;
-    Agent<string> agent(queue, "test_agent");
+    Agent<string> agent(queue, "test_agent", {});
     // No output or state to check, just ensure it runs without crashing
     agent.tick();
     // If we reach here, it’s fine—no assert needed for empty default
@@ -201,7 +203,7 @@ void test_Agent_tick_default() {
 // Test sync runs until closed
 void test_Agent_sync_basic() {
     PackQueue<string> queue;
-    TestAgent<string> agent(queue, "test_agent");
+    TestAgent<string> agent(queue, "test_agent", {});
     agent.close(); // Set closing first
     agent.sync(1); // Should exit immediately
     auto actual_closed = agent.isClosing();
@@ -211,7 +213,7 @@ void test_Agent_sync_basic() {
 // Test async starts and stops
 void test_Agent_async_basic() {
     PackQueue<string> queue;
-    Agent<string> agent(queue, "test_agent");
+    Agent<string> agent(queue, "test_agent", {});
     agent.start(1, true); // Async with 1ms sleep
     sleep_ms(10); // Let it run briefly
     agent.close(); // Signal to stop
