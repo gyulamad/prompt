@@ -1,11 +1,17 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "../../../containers/array_key_exists.hpp"
+#include "../../../cmd/Usage.hpp"
+#include "../../../cmd/Parameter.hpp"
 #include "../../../cmd/Command.hpp"
 #include "../../../cmd/Commander.hpp"
 #include "../../Agency.hpp"
 #include "../../agents/UserAgent.hpp"
 
+using namespace std;
 using namespace tools::utils;
 using namespace tools::cmd;
 using namespace tools::agency;
@@ -22,22 +28,30 @@ namespace tools::agency::agents::commands {
                 "/help",
                 "/help {string}"
             };
-        }
+        }        
 
         string getUsage() const override {
-            return "/help [command]\n"
-                   "Displays available commands or detailed help for a specific command.\n"
-                   "Usage:\n"
-                   "  /help           - List all available command patterns\n"
-                   "  /help <command> - Show detailed usage for a specific command\n"
-                   "Parameters:\n"
-                   "  command - (optional) Name of the command to get help for\n"
-                   "Examples:\n"
-                   "  /help          # Shows all command patterns\n"
-                   "  /help list     # Shows detailed help for the list command\n"
-                   "Notes:\n"
-                   "  - Without arguments, lists all command patterns alphabetically\n"
-                   "  - With a command name, shows that command's detailed usage";
+            return implode("\n", vector<string>({
+                Usage({
+                    string("/help"), // command
+                    string("Displays available commands or detailed help for a specific command."), // help
+                    vector<Parameter>({ // parameters
+                        {
+                            string("command"), // name
+                            bool(true), // optional
+                            string("Name of the command to get help for") // help
+                        }
+                    }),
+                    vector<pair<string, string>>({ // examples
+                        make_pair("/help", "Shows all command patterns"), 
+                        make_pair("/help list", "Shows detailed help for the list command")
+                    }),
+                    vector<string>({ // notes
+                        string("Without arguments, lists all command patterns alphabetically"),
+                        string("With a command name, shows that command's detailed usage")
+                    })
+                }).to_string()
+            }));
         }
     
         void run(void* agency_void, const vector<string>& args) override {
@@ -56,28 +70,29 @@ namespace tools::agency::agents::commands {
 
             vector<Command*>& commands = commander.getCommandsRef();
 
-            vector<string> patterns;
+            // vector<string> patterns;
             vector<const Command*> cmds;
             string cmd = "/" + (args.size() >= 2 ? args[1] : "");
             for (const Command* command: commands) {
                 NULLCHK(command);
                 vector<string> pttrns = command->getPatterns();
-                patterns = array_merge(patterns, pttrns);
+                // patterns = array_merge(patterns, pttrns);
 
                 for (const string& pttrn: pttrns)
                     if (str_starts_with(pttrn, cmd) && !in_array(command, cmds))
                         cmds.push_back(command);
             }
-            sort(patterns);
+            // sort(patterns);
 
-            if (args.size() == 1)
-                for (const string& pattern: patterns)
-                    cout << pattern << endl;
-                    
-            foreach (cmds, [](const Command* cmd) {
-                cout << safe(cmd)->getUsage() << endl;
+            // if (args.size() == 1)
+            //     for (const string& pattern: patterns)
+            //         cout << pattern << endl;
+                
+            vector<string> outputs;
+            foreach (cmds, [&](const Command* cmd) {
+                outputs.push_back(safe(cmd)->getUsage());
             });
-
+            user.getInterfaceRef().println(implode("\n\n", outputs));
         }
     };
     

@@ -1,11 +1,17 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "../../../containers/array_keys.hpp"
 #include "../../../str/parse_vector.hpp"
+#include "../../../cmd/Usage.hpp"
+#include "../../../cmd/Parameter.hpp"
 #include "../../../cmd/Command.hpp"
 #include "../../Agency.hpp"
 #include "../../AgentRoleMap.hpp"
 
+using namespace std;
 using namespace tools::containers;
 using namespace tools::str;
 using namespace tools::cmd;
@@ -33,24 +39,39 @@ namespace tools::agency::agents::commands {
         }
 
         string getUsage() const override {
-            return "/spawn <role> [name] [recipients]\n"
-                   "Creates a new agent with specified role, optional name, and optional recipients.\n"
-                   "Usage:\n"
-                   "  /spawn <role>              - Spawn agent with default name and no recipients\n"
-                   "  /spawn <role> <name>       - Spawn agent with custom name and no recipients\n"
-                   "  /spawn <role> <name> <recipients> - Spawn agent with custom name and recipients\n"
-                   "Parameters:\n"
-                   "  role       - Required agent role type\n"
-                   "  name       - Optional custom agent name (defaults to role)\n"
-                   "  recipients - Optional comma-separated list of recipient names\n"
-                   "Examples:\n"
-                   "  /spawn worker              # Creates worker agent\n"
-                   "  /spawn bot mybot           # Creates bot agent named 'mybot'\n"
-                   "  /spawn bot mybot user1,user2 # Creates bot agent named 'mybot' with recipients user1 and user2\n"
-                   "Available roles: " + implode(", ", array_keys(roles)) + "\n"
-                   "Notes:\n"
-                   "  - Role must match an existing role type\n"
-                   "  - Names must be unique within the agency";
+            return implode("\n", vector<string>({
+                Usage({
+                    string("/spawn"), // command
+                    string("Creates a new agent with specified role, optional name, and optional recipients."), // help
+                    vector<Parameter>({ // parameters
+                        {
+                            string("role"), // name
+                            bool(false), // optional
+                            string("Agent role type (available: " + implode(", ", array_keys(roles)) + ")") // help
+                        },
+                        {
+                            string("name"), // name
+                            bool(true), // optional
+                            string("Custom agent name (defaults to role name)") // help
+                        },
+                        {
+                            string("recipients"), // name
+                            bool(true), // optional
+                            string("Comma-separated list of recipient names") // help
+                        }
+                    }),
+                    vector<pair<string, string>>({ // examples
+                        make_pair("/spawn worker", "Creates worker agent"),
+                        make_pair("/spawn bot mybot", "Creates bot agent named 'mybot'"),
+                        make_pair("/spawn bot mybot user1,user2", "Creates bot agent with recipients")
+                    }),
+                    vector<string>({ // notes
+                        string("Role must match an existing role type"),
+                        string("Names must be unique within the agency"),
+                        string("Default recipient is the current user")
+                    })
+                }).to_string()
+            }));
         }
         
         void run(void* agency_void, const vector<string>& args) override {

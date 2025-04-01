@@ -1,10 +1,16 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "../../../containers/array_key_exists.hpp"
 #include "../../../str/parse_vector.hpp"
+#include "../../../cmd/Usage.hpp"
+#include "../../../cmd/Parameter.hpp"
 #include "../../../cmd/Command.hpp"
 #include "../../Agency.hpp"
 
+using namespace std;
 using namespace tools::str;
 using namespace tools::cmd;
 using namespace tools::agency;
@@ -26,29 +32,35 @@ namespace tools::agency::agents::commands {
         }
         
         string getUsage() const override {
-            return R"(
-/target [operation] [targets] - Manages the list of recipients for messages.
-
-Usage:
-  /target list [filter] - Lists all targets, optionally filtered.
-  /target set {target1,target2,...} - Sets the targets to the specified list.
-  /target add {target1,target2,...} - Adds the specified targets to the existing list.
-  /target remove {target1,target2,...} - Removes the specified targets from the list.
-
-Parameters:
-  operation - (list|set|add|remove) The operation to perform.
-  targets   - (optional) Comma-separated list of target names.
-
-Examples:
-  /target list             # Lists all targets.
-  /target set user1,user2  # Sets targets to user1 and user2.
-  /target add user3        # Adds user3 to the targets.
-  /target remove user1     # Removes user1 from the targets.
-
-Notes:
-  - If no operation is specified, it defaults to 'list'.
-  - Target names must be unique.
-)";
+            return implode("\n", vector<string>({
+                Usage({
+                    string("/target"), // command
+                    string("Manages the list of recipients for messages."), // help
+                    vector<Parameter>({ // parameters
+                        {
+                            string("operation"), // name
+                            bool(true), // optional
+                            string("Operation to perform (list|set|add|remove), defaults to 'list'") // help
+                        },
+                        {
+                            string("targets"), // name
+                            bool(true), // optional
+                            string("Comma-separated list of target names (required for set/add/remove)") // help
+                        }
+                    }),
+                    vector<pair<string, string>>({ // examples
+                        make_pair("/target list", "Lists all targets"),
+                        make_pair("/target set user1,user2", "Sets targets to user1 and user2"),
+                        make_pair("/target add user3", "Adds user3 to the targets"),
+                        make_pair("/target remove user1", "Removes user1 from the targets") 
+                    }),
+                    vector<string>({ // notes
+                        string("If no operation is specified, it defaults to 'list'"),
+                        string("Target names must be unique"),
+                        string("For set/add/remove operations, targets parameter is required")
+                    })
+                }).to_string()
+            }));
         }
     
         void run(void* agency_void, const vector<string>& args) override {

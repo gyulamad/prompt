@@ -1,8 +1,14 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
+#include "../../../cmd/Usage.hpp"
+#include "../../../cmd/Parameter.hpp"
 #include "../../../cmd/Command.hpp"
 #include "../../Agency.hpp"
 
+using namespace std;
 using namespace tools::cmd;
 using namespace tools::agency;
 
@@ -17,13 +23,20 @@ namespace tools::agency::agents::commands {
         }
         
         string getUsage() const override {
-            return "/exit\n"
-                   "Terminates the user agent's operation and exits the system.\n"
-                   "Usage: /exit\n"
-                   "Example: /exit\n"
-                   "Notes:\n"
-                   "  - Only affects the user agent\n"
-                   "  - Requires a valid user agent to be registered";
+            return implode("\n", vector<string>({
+                Usage({
+                    string("/exit"), // command
+                    string("Terminates the user agent's operation and exits the system."), // help
+                    vector<Parameter>(), // parameters (empty)
+                    vector<pair<string, string>>({ // examples
+                        make_pair("/exit", "Terminates the user agent's operation")
+                    }),
+                    vector<string>({ // notes
+                        string("Only affects the user agent"),
+                        string("Requires a valid user agent to be registered")
+                    })
+                }).to_string()
+            }));
         }
     
         void run(void* agency_void, const vector<string>&) override {

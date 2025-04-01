@@ -1,8 +1,14 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
+#include "../../../cmd/Usage.hpp"
+#include "../../../cmd/Parameter.hpp"
 #include "../../../cmd/Command.hpp"
 #include "../../Agency.hpp"
 
+using namespace std;
 using namespace tools::cmd;
 using namespace tools::agency;
 
@@ -20,11 +26,27 @@ namespace tools::agency::agents::commands {
         }
 
         string getUsage() const override {
-            return "/list\n"
-                   "Displays a list of all registered agents in the agency.\n"
-                   "Usage: /list\n"
-                   "Example: /list\n"
-                   "Output: Prints each agent's name on a new line";
+            return implode("\n", vector<string>({
+                Usage({
+                    string("/list"), // command
+                    string("Displays a list of all registered agents in the agency."), // help
+                    vector<Parameter>({ // parameters
+                        {
+                            string("filter"), // name
+                            bool(true), // optional
+                            string("Optional filter string to match agent names") // help
+                        }
+                    }),
+                    vector<pair<string, string>>({ // examples
+                        make_pair("/list", "Lists all agents"),
+                        make_pair("/list bot", "Lists agents containing 'bot' in their name")
+                    }),
+                    vector<string>({ // notes
+                        string("Outputs each agent's name on a new line"),
+                        string("Shows total count of matching agents")
+                    })
+                }).to_string()
+            }));
         }
     
         void run(void* agency_void, const vector<string>& args) override {
