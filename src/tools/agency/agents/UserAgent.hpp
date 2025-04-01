@@ -9,7 +9,7 @@
 #include "../../voice/WhisperTranscriberSTTSwitch.hpp"
 #include "../../utils/InputPipeInterceptor.hpp"
 #include "../Agent.hpp"
-#include "../Agency.hpp"
+#include "Agency.hpp"
 
 #include "UserAgentInterface.hpp"
 
@@ -26,24 +26,23 @@ namespace tools::agency::agents {
     class UserAgentConfig: public AgentConfig<T> {
     public:
         UserAgentConfig(
+            Owns& owns,
+            void* agency,
             PackQueue<T>& queue,
             const string& name, 
             vector<string> recipients, // TODO: to config, and have to be able to change/see message package targets
-            Agency<T>& agency, 
+            // Agency<T>& agency, 
             UserAgentInterface<T>& interface
         ):
-            AgentConfig<T>(queue, name, recipients),
-            agency(agency),
+            AgentConfig<T>(owns, agency, queue, name, recipients),
             interface(interface)
         {}
 
         virtual ~UserAgentConfig() {}
 
-        Agency<T>& getAgencyRef() { return agency; } 
         UserAgentInterface<T>& getInterfaceRef() { return interface; }
 
     private:
-        Agency<T>& agency;
         UserAgentInterface<T>& interface;
     };
 
@@ -62,7 +61,7 @@ namespace tools::agency::agents {
             // UserAgentInterface<T>& interface
         ): 
             Agent<T>(config), 
-            agency(config.getAgencyRef()),
+            agency(*(Agency<T>*)safe(config.getAgencyPtr())),
             interface(config.getInterfaceRef())
         {
             interface.setUser(this);

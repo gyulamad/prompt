@@ -21,23 +21,21 @@ namespace tools::agency::agents {
     public:
         ChatbotAgentConfig(
             Owns& owns,
+            void* agency,
             PackQueue<T>& queue,
             const string& name,
             vector<string> recipients,
             void* chatbot
         ):
-            owns(owns),
-            AgentConfig<T>(queue, name, recipients),
+            AgentConfig<T>(owns, agency, queue, name, recipients),
             chatbot(chatbot)
         {}
         
         virtual ~ChatbotAgentConfig() {}
 
-        Owns& getOwnsRef() { return owns; }
         void* getChatbotPtr() { return chatbot; }
 
     private:
-        Owns& owns;
         void* chatbot;
     };
 

@@ -5,9 +5,10 @@
 #include <functional>
 
 #include "Agent.hpp"
-#include "Agency.hpp"
+#include "agents/Agency.hpp"
 
 using namespace std;
+using namespace tools::agency::agents;
 
 namespace tools::agency {
 

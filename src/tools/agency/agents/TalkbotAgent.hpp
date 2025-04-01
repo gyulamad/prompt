@@ -15,27 +15,22 @@ namespace tools::agency::agents {
     public:
         TalkbotAgentConfig(
             Owns& owns,
+            void* agency,
             PackQueue<T>& queue,
             const string& name,
             vector<string> recipients,
             void* talkbot
         ):
             talkbot(talkbot),
-            owns(owns),
-            AgentConfig<T>(queue, name, recipients)
+            AgentConfig<T>(owns, agency, queue, name, recipients)
         {}
 
         virtual ~TalkbotAgentConfig() {}
 
-        Owns& getOwnsRef() { return owns; }
         void* getTalkbotPtr() { return talkbot; }
 
     private:
         void* talkbot = nullptr;
-        Owns& owns;
-        // PackQueue<T>& queue;
-        // string name;
-        // vector<string> recipients;
     };
 
     template<typename T>
@@ -112,7 +107,7 @@ void test_TalkbotAgent_reserve() {
         owns, name, history, printer, sentences, tts
     ); // Dummy Talkbot
     PackQueue<string> queue;
-    TalkbotAgentConfig<string> config(owns, queue, "talk", {"user"}, talkbot);
+    TalkbotAgentConfig<string> config(owns, nullptr, queue, "talk", {"user"}, talkbot);
     TalkbotAgent<string> agent(config);
 }
 

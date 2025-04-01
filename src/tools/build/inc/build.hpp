@@ -8,6 +8,7 @@
 #include "../../str/get_path.hpp"
 #include "../../str/replace_extension.hpp"
 #include "../../str/remove_path.hpp"
+#include "../../str/str_replace.hpp"
 #include "../../regx/regx_match.hpp"
 #include "../../containers/array_keys.hpp"
 #include "../../containers/array_merge.hpp"

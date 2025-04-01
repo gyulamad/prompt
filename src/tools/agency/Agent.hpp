@@ -22,10 +22,14 @@ namespace tools::agency {
     class AgentConfig {
     public:
         AgentConfig(
+            Owns& owns,
+            void* agency,
             PackQueue<T>& queue,
             const string& name,
             vector<string> recipients
         ):
+            owns(owns),
+            agency(agency),
             queue(queue),
             name(name),
             recipients(recipients)
@@ -33,11 +37,15 @@ namespace tools::agency {
 
         virtual ~AgentConfig() {}
 
+        Owns& getOwnsRef() { return owns; }
+        void* getAgencyPtr() { return agency ? agency : this; }
         PackQueue<T>& getQueueRef() { return queue; }
         string getName() { return name; }
         vector<string> getRecipients() { return recipients; }
 
     private:
+        Owns& owns;
+        void* agency = nullptr;
         PackQueue<T>& queue;
         string name;
         vector<string> recipients;
@@ -49,6 +57,8 @@ namespace tools::agency {
     public:
 
         Agent(AgentConfig<T>& config):
+            owns(config.getOwnsRef()),
+            agency(config.getAgencyPtr()),
             PackQueueHolder<T>(config.getQueueRef()),
             name(config.getName()), 
             recipients(config.getRecipients())
@@ -133,6 +143,8 @@ namespace tools::agency {
         }
 
         thread t;
+        Owns& owns;
+        void* agency = nullptr;
         vector<string> recipients;
 
     private:
@@ -156,6 +168,7 @@ namespace tools::agency {
 #include "../chat/ChatHistory.hpp"
 #include "tests/helpers.hpp"
 #include "tests/TestAgent.hpp"
+#include "tests/default_test_agency_setup.hpp"
 #include "PackQueue.hpp" // Needed for queue operations
 
 using namespace tools::agency;
@@ -164,8 +177,8 @@ using namespace tools::chat;
 
 // Test constructor
 void test_Agent_constructor_basic() {
-    PackQueue<string> queue;
-    AgentConfig<string> config(queue, "test_agent", {});
+    default_test_agency_setup setup;
+    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "test_agent", {});
     Agent<string> agent(config);
     auto actual_name = agent.name;
     assert(actual_name == "test_agent" && "Agent name should be set correctly");
@@ -174,11 +187,11 @@ void test_Agent_constructor_basic() {
 
 // Test single send
 void test_Agent_send_single() {
-    PackQueue<string> queue;
-    AgentConfig<string> config(queue, "alice", {});
+    default_test_agency_setup setup;
+    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "alice", {});
     TestAgent<string> agent(config);
     agent.testSend("bob", "hello");
-    auto actual_contents = queue_to_vector(queue);
+    auto actual_contents = queue_to_vector(setup.queue);
     assert(actual_contents.size() == 1 && "Send should produce one pack");
     assert(actual_contents[0].sender == "alice" && "Sender should be 'alice'");
     assert(actual_contents[0].recipient == "bob" && "Recipient should be 'bob'");
@@ -187,12 +200,12 @@ void test_Agent_send_single() {
 
 // Test multiple sends
 void test_Agent_send_multiple() {
-    PackQueue<string> queue;
-    AgentConfig<string> config(queue, "alice", {});
+    default_test_agency_setup setup;
+    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "alice", {});
     TestAgent<string> agent(config);
     vector<string> recipients = {"bob", "charlie"};
     agent.testSend(recipients, "hello");
-    auto actual_contents = queue_to_vector(queue);
+    auto actual_contents = queue_to_vector(setup.queue);
     assert(actual_contents.size() == 2 && "Send should produce two packs");
     assert(actual_contents[0].sender == "alice" && "First sender should be 'alice'");
     assert(actual_contents[0].recipient == "bob" && "First recipient should be 'bob'");
@@ -204,8 +217,8 @@ void test_Agent_send_multiple() {
 
 // Test handle throws exception
 void test_Agent_handle_unimplemented() {
-    PackQueue<string> queue;
-    AgentConfig<string> config(queue, "test_agent", {});
+    default_test_agency_setup setup;
+    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "test_agent", {});
     Agent<string> agent(config);
     bool thrown = false;
     try {
@@ -220,8 +233,8 @@ void test_Agent_handle_unimplemented() {
 
 // Test tick default does nothing
 void test_Agent_tick_default() {
-    PackQueue<string> queue;
-    AgentConfig<string> config(queue, "test_agent", {});
+    default_test_agency_setup setup;
+    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "test_agent", {});
     Agent<string> agent(config);
     // No output or state to check, just ensure it runs without crashing
     agent.tick();
@@ -230,8 +243,8 @@ void test_Agent_tick_default() {
 
 // Test sync runs until closed
 void test_Agent_sync_basic() {
-    PackQueue<string> queue;
-    AgentConfig<string> config(queue, "test_agent", {});
+    default_test_agency_setup setup;
+    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "test_agent", {});
     TestAgent<string> agent(config);
     agent.close(); // Set closing first
     agent.sync(1); // Should exit immediately
@@ -241,8 +254,8 @@ void test_Agent_sync_basic() {
 
 // Test async starts and stops
 void test_Agent_async_basic() {
-    PackQueue<string> queue;
-    AgentConfig<string> config(queue, "test_agent", {});
+    default_test_agency_setup setup;
+    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "test_agent", {});
     Agent<string> agent(config);
     agent.start(1, true); // Async with 1ms sleep
     sleep_ms(10); // Let it run briefly

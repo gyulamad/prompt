@@ -8,13 +8,15 @@
 #include "tools/utils/files.hpp"
 #include "tools/utils/Settings.hpp"
 #include "tools/utils/JSON.hpp"
+#include "tools/str/get_absolute_path.hpp"
+#include "tools/str/get_filename_only.hpp"
 #include "tools/voice/MicView.hpp"
 #include "tools/voice/ESpeakTTSAdapter.hpp"
 #include "tools/voice/WhisperTranscriberSTTSwitch.hpp"
 #include "tools/containers/in_array.hpp"
 
 #include "tools/agency/Agent.hpp"
-#include "tools/agency/Agency.hpp"
+#include "tools/agency/agents/Agency.hpp"
 #include "tools/agency/agents/ChatbotAgent.hpp"
 #include "tools/agency/agents/TalkbotAgent.hpp"
 // #include "tools/agency/agents/EchoAgent.hpp"
@@ -38,6 +40,7 @@
 
 using namespace std;
 using namespace tools::utils;
+using namespace tools::str;
 using namespace tools::containers;
 using namespace tools::cmd;
 using namespace tools::agency;
@@ -49,16 +52,19 @@ using namespace tools::ai;
 template<typename PackT>
 int safe_main(int argc, char* argv[]) {
     try {
+        const string basedir = get_path(__FILE__); // temp only for dev / get from executable filename
         Arguments args(argc, argv);
-        JSON conf( // TODO: better config loader
-            args.has("config") 
-                ? file_get_contents(args.get<string>("config")) 
-                : "{}"
-        );
+        JSON conf(file_get_contents(get_absolute_path( // TODO: better config loader
+            basedir + "/" + (
+                args.has("config") 
+                    ? args.get<string>("config")
+                    : get_filename_only(args.get<string>(0))
+                ) + ".config.json"
+        )));
         Settings settings(args, conf);
 
-        const string prompt = "> ";
-        const string lang = "hu";
+        // const string prompt = "> ";
+        // const string lang = "hu";
 
 
         const string command_list_history_path = "cline_history.log";
@@ -87,29 +93,37 @@ int safe_main(int argc, char* argv[]) {
         const string gemini_variant = "gemini-1.5-flash-8b";
         const long gemini_timeout = 30000;
 
+        const int tts_speed = 200;
+        const int tts_gap = 0;
+        const string tts_beep_cmd = "sox -v 0.03 beep.wav -t wav - | aplay -q -N";
+        const string tts_think_cmd = "find sounds/r2d2/ -name \"*.wav\" | shuf -n 1 | xargs -I {} bash -c 'sox -v 0.01 \"{}\" -t wav - | aplay -q -N'";
+        const map<string, string> tts_speak_replacements = {
+            { "...", "\n.\n.\n.\n" },
+            { "***", "\n.\n.\n.\n" },
+            { "**", "\n.\n.\n" },
+            { "*", "\n.\n" },
+            { "'", "" },
+        };
+
         // ----
-        const string linenoise_prompt = prompt;
-        const string command_list_prompt = prompt;
-        const string chatbot_history_prompt = prompt;
-        const string talkbot_history_prompt = prompt;
-        const string whisper_lang = lang;
+        const string linenoise_prompt = settings.get<string>("prompt");
+        const string command_list_prompt = settings.get<string>("prompt");
+        const string chatbot_history_prompt = settings.get<string>("prompt");
+        const string talkbot_history_prompt = settings.get<string>("prompt");
+        const string tts_lang = settings.get<string>("lang");
+        const string whisper_lang = settings.get<string>("lang");
 
         Owns owns;
 
+        
         Process process;
         ESpeakTTSAdapter tts(
-            lang,
-            200, //int speed, 
-            0, //int gap,
-            "sox -v 0.03 beep.wav -t wav - | aplay -q -N", //const string& beep_cmd,
-            "find sounds/r2d2/ -name \"*.wav\" | shuf -n 1 | xargs -I {} bash -c 'sox -v 0.01 \"{}\" -t wav - | aplay -q -N'", //const string& think_cmd,
-            {
-                { "...", "\n.\n.\n.\n" },
-                { "***", "\n.\n.\n.\n" },
-                { "**", "\n.\n.\n" },
-                { "*", "\n.\n" },
-                { "'", "" },
-            }, //const map<string, string>& speak_replacements,
+            tts_lang,
+            tts_speed, //int speed, 
+            tts_gap, //int gap,
+            tts_beep_cmd, //const string& beep_cmd,
+            tts_think_cmd, //const string& think_cmd,
+            tts_speak_replacements,
             &process //Process* process = nullptr
         );
 
@@ -124,52 +138,9 @@ int safe_main(int argc, char* argv[]) {
         );
 
         PackQueue<PackT> queue;
-        
-
-        // Factory<ChatHistory> histories;
-        // histories.registry("ChatHistory", [&](void*) -> ChatHistory* {
-        //     return new ChatHistory(
-        //         chatbot_prompt, 
-        //         chatbot_use_start_token
-        //     );
-        // });
-
-        // Dependency<ChatHistory> dhistories(hostories, "ChatHistory")
-
-        // Factory<Chatbot> chatbots;
-        // chatbots.registry("GeminiChatbot", [&](void*) -> GeminiChatbot* {
-        //     // ChatHistory* history = histories.create("ChatHistory");
-        //     return new GeminiChatbot(
-        //         gemini_secret,
-        //         gemini_variant,
-        //         gemini_timeout,
-        //         "gemini",
-        //         histories,
-        //         //histories, "ChatHistory", //*history,
-        //         printer
-        //     );
-        // });
-
-        // Factory<Talkbot> talkbots;
-        // talkbots.registry("GeminiTalkbot", [&](void*) -> GeminiTalkbot* {
-        //     //ChatHistory* history = histories.create("ChatHistory");
-        //     return new GeminiTalkbot(
-        //         gemini_secret,
-        //         gemini_variant,
-        //         gemini_timeout,
-        //         "gemini",
-        //         histories, "ChatHistory", //*history,
-        //         printer,
-        //         sentences,
-        //         tts
-        //     );
-        // });
 
         AgencyConfig<PackT> agencyConfig(owns, queue, "agency", { "user" });
-        Agency<PackT> agency(agencyConfig
-            // owns, queue, "agency", { "user" }//, 
-            // chatbots, talkbots, histories
-        );
+        Agency<PackT> agency(agencyConfig);
 
         CommandFactory cfactory;
         InputPipeInterceptor interceptor;
@@ -240,6 +211,7 @@ int safe_main(int argc, char* argv[]) {
                     );
                     ChatbotAgentConfig<PackT> chatbotAgentConfig(
                         owns,
+                        &agency,
                         agency.queue,
                         name, 
                         recipients, 
@@ -276,6 +248,7 @@ int safe_main(int argc, char* argv[]) {
                     );
                     TalkbotAgentConfig<PackT> talkbotAgentConfig(
                         owns,
+                        &agency,
                         agency.queue, 
                         name, 
                         recipients, 
@@ -336,6 +309,7 @@ int safe_main(int argc, char* argv[]) {
         // cerr << "Before config: " << talkbot_ptr << endl;  // 0x5555556c06a0
         TalkbotAgentConfig<string> talkbotAgentConfig(
             owns,
+            &agency,
             agency.queue,
             name, recipients,
             talkbot
@@ -352,9 +326,11 @@ int safe_main(int argc, char* argv[]) {
         string uname = "user";
         vector<string> urecipients = { "talk" };
         UserAgentConfig<PackT> userAgentConfig(
+            owns,
+            &agency,
             agency.queue,
             uname, urecipients, // string("user"), vector<string>({ "talk" }), 
-            agency, interface
+            interface
         );
         agency.template spawn<UserAgent<PackT>>(userAgentConfig
             // agency.queue,

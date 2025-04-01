@@ -1,14 +1,13 @@
 #pragma once
 
-#include "../chat/Chatbot.hpp"
-#include "../chat/Talkbot.hpp"
-#include "Agent.hpp"
-#include "agents/TalkbotAgent.hpp"
+#include "../../chat/Chatbot.hpp"
+#include "../../chat/Talkbot.hpp"
+#include "../Agent.hpp"
 
 using namespace tools::chat;
-using namespace tools::agency::agents;
+using namespace tools::agency;
 
-namespace tools::agency {
+namespace tools::agency::agents {
     
 
     template<typename T>
@@ -20,17 +19,13 @@ namespace tools::agency {
             const string& name,
             vector<string> recipients
         ):
-            owns(owns),
-            AgentConfig<T>(queue, name, recipients)
-
+            AgentConfig<T>(owns, nullptr, queue, name, recipients)
         {}
 
         virtual ~AgencyConfig() {}
 
-        Owns& getOwnsRef() { return owns; }
-
     private:
-        Owns& owns;
+    
     };
 
     template<typename T>
@@ -197,34 +192,36 @@ namespace tools::agency {
 
 #ifdef TEST
 
-#include "../utils/Test.hpp"
-#include "tests/TestAgent.hpp"
-#include "tests/TestAgency.hpp"
-#include "PackQueue.hpp"
+#include "../../utils/Test.hpp"
+#include "../tests/TestAgent.hpp"
+#include "../tests/default_test_agency_setup.hpp"
+#include "../PackQueue.hpp"
 
 // Previous helpers (e.g., queue_to_vector) ...
 
+using namespace tools::agency::agents;
+
+#include "../tests/TestAgency.hpp"
+
 // Agency tests
 void test_Agency_constructor_basic() {
-    Owns owns;
-    PackQueue<string> queue;
-    AgencyConfig<string> config(owns, queue, "agency", {});
+    default_test_agency_setup setup;
+    AgencyConfig<string> config(setup.owns, setup.queue, "agency", {});
     Agency<string> agency(config);
     auto actual_name = agency.name;
     assert(actual_name == "agency" && "Agency name should be 'agency'");
 }
 
 void test_Agency_handle_exit() {
-    Owns owns;
-    PackQueue<string> queue;
-    AgencyConfig<string> agency_config(owns, queue, "agency", {});
+    default_test_agency_setup setup;
+    AgencyConfig<string> agency_config(setup.owns, setup.queue, "agency", {});
     TestAgency<string> agency(agency_config);
-    AgentConfig<string> test_agent_config(agency.queue, string("test_agent"), vector<string>({}));
+    AgentConfig<string> test_agent_config(setup.owns, &agency, agency.queue, "test_agent", {});
     TestAgent<string>& test_agent = agency.spawn<TestAgent<string>>(test_agent_config);
     auto actual_output = capture_cout([&]() { agency.handle("user", "exit"); });
     auto actual_closed = agency.isClosing();
     auto actual_agent_closed = test_agent.isClosing();
-    auto actual_queue_contents = queue_to_vector(queue);
+    auto actual_queue_contents = queue_to_vector(setup.queue);
     assert(actual_closed && "Agency should be closed after exit");
     assert(actual_agent_closed && "Spawned agent should be closed after exit");
     assert(actual_queue_contents.empty() && "Queue should be empty after exit");
@@ -232,12 +229,11 @@ void test_Agency_handle_exit() {
 }
 
 void test_Agency_handle_list() {
-    Owns owns;
-    PackQueue<string> queue;
-    AgencyConfig<string> agency_config(owns, queue, "agency", {});
+    default_test_agency_setup setup;
+    AgencyConfig<string> agency_config(setup.owns, setup.queue, "agency", {});
     Agency<string> agency(agency_config);
-    AgentConfig<string> agent_config_1(agency.queue, string("agent1"), vector<string>({}));
-    AgentConfig<string> agent_config_2(agency.queue, string("agent2"), vector<string>({}));
+    AgentConfig<string> agent_config_1(setup.owns, &agency, agency.queue, "agent1", {});
+    AgentConfig<string> agent_config_2(setup.owns, &agency, agency.queue, "agent2", {});
     agency.spawn<TestAgent<string>>(agent_config_1);
     agency.spawn<TestAgent<string>>(agent_config_2);
     auto actual_output = capture_cout([&]() { agency.handle("user", "list"); });
@@ -246,11 +242,10 @@ void test_Agency_handle_list() {
 }
 
 void test_Agency_spawn_success() {
-    Owns owns;
-    PackQueue<string> queue;
-    AgencyConfig<string> agency_config(owns, queue, "agency", {});
+    default_test_agency_setup setup;
+    AgencyConfig<string> agency_config(setup.owns, setup.queue, "agency", {});
     Agency<string> agency(agency_config);
-    AgentConfig<string> agent_config(agency.queue, string("test_agent"), vector<string>({}));
+    AgentConfig<string> agent_config(setup.owns, &agency, agency.queue, "test_agent", {});
     auto& agent = agency.spawn<TestAgent<string>>(agent_config);
     auto actual_name = agent.name;
     assert(actual_name == "test_agent" && "Spawned agent should have correct name");
@@ -259,15 +254,14 @@ void test_Agency_spawn_success() {
 }
 
 void test_Agency_spawn_duplicate() {
-    Owns owns;
-    PackQueue<string> queue;
-    AgencyConfig<string> agency_config(owns, queue, "agency", {});
+    default_test_agency_setup setup;
+    AgencyConfig<string> agency_config(setup.owns, setup.queue, "agency", {});
     Agency<string> agency(agency_config);
-    AgentConfig<string> agent_config_1(agency.queue, string("test_agent"), vector<string>({}));
+    AgentConfig<string> agent_config_1(setup.owns, &agency, agency.queue, "test_agent", {});
     agency.spawn<TestAgent<string>>(agent_config_1);
     bool thrown = false;
     try {
-        AgentConfig<string> agent_config_2(agency.queue, string("test_agent"), vector<string>({}));
+        AgentConfig<string> agent_config_2(setup.owns, &agency, agency.queue, "test_agent", {});
         agency.spawn<TestAgent<string>>(agent_config_2);
     } catch (exception& e) {
         thrown = true;
@@ -278,30 +272,28 @@ void test_Agency_spawn_duplicate() {
 }
 
 void test_Agency_kill_basic() {
-    Owns owns;
-    PackQueue<string> queue;
-    AgencyConfig<string> agency_config(owns, queue, "agency", {});
+    default_test_agency_setup setup;
+    AgencyConfig<string> agency_config(setup.owns, setup.queue, "agency", {});
     Agency<string> agency(agency_config);
-    AgentConfig<string> agent_config(agency.queue, string("test_agent"), vector<string>({}));
+    AgentConfig<string> agent_config(setup.owns, &agency, agency.queue, "test_agent", {});
     agency.spawn<TestAgent<string>>(agent_config);
-    queue.Produce(Pack<string>("user", "test_agent", "hello"));
+    setup.queue.Produce(Pack<string>("user", "test_agent", "hello"));
     agency.tick();  // Process the queue before killing
     assert(agency.kill("test_agent") && "Agent should be found");
     auto actual_output = capture_cout([&]() { agency.handle("user", "/list"); });
-    auto actual_queue = queue_to_vector(queue);
+    auto actual_queue = queue_to_vector(setup.queue);
     assert(!str_contains(actual_output, "test_agent") && "Killed agent should not appear in list");
     assert(actual_queue.empty() && "Queue should have no items for killed agent");
 }
 
 void test_Agency_tick_dispatch() {
-    Owns owns;
-    PackQueue<string> queue;
-    AgencyConfig<string> config(owns, queue, "agency", {});
+    default_test_agency_setup setup;
+    AgencyConfig<string> config(setup.owns, setup.queue, "agency", {});
     Agency<string> agency(config);
-    AgentConfig<string> agent_config(agency.queue, string("test_agent"), vector<string>({}));
+    AgentConfig<string> agent_config(setup.owns, &agency, agency.queue, "test_agent", {});
     auto& test_agent = agency.spawn<TestAgent<string>>(agent_config);
-    queue.Produce(Pack<string>("user", "agency", "list"));
-    queue.Produce(Pack<string>("user", "test_agent", "hello"));
+    setup.queue.Produce(Pack<string>("user", "agency", "list"));
+    setup.queue.Produce(Pack<string>("user", "test_agent", "hello"));
     auto actual_output = capture_cout([&]() { agency.tick(); });
     assert(str_contains(actual_output, "test_agent") && "Tick should process agency message");
     assert(test_agent.handled && "Tick should dispatch to agent");

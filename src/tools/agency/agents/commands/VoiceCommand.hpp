@@ -8,8 +8,8 @@
 #include "../../../cmd/Usage.hpp"
 #include "../../../cmd/Parameter.hpp"
 #include "../../../cmd/Command.hpp"
-#include "../../Agency.hpp"
-#include "../../agents/UserAgent.hpp"
+#include "../Agency.hpp"
+#include "../UserAgent.hpp"
 
 using namespace std;
 using namespace tools::str;
