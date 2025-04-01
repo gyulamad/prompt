@@ -11,19 +11,20 @@ namespace tools::ai {
     class GeminiChatbot: public Gemini, public Chatbot {
     public:
         GeminiChatbot(
+            Owns& owns,
             const string& secret, 
             const string& variant,
             long timeout,
             const string& name, 
-            Factory<ChatHistory>& histories, const string& history_type, // ChatHistory& history
+            ChatHistory* history,
             Printer& printer
         ):
             Gemini(secret, variant, timeout),
-            Chatbot(name, histories, history_type/*history*/, printer)
+            Chatbot(owns, name, history, printer)
         {}
 
         virtual ~GeminiChatbot() {
-            cout << "GeminiChatbot (" + this->name + ") destruction..." << endl;
+            // cout << "GeminiChatbot (" + this->name + ") destruction..." << endl;
         }
     
         string chat(const string& sender, const string& text) override {

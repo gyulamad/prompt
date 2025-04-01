@@ -3,8 +3,10 @@
 #include "Arguments.hpp"
 #include "JSON.hpp"
 #include "files.hpp"
+#include "str/get_path.hpp"
 
 using namespace std;
+using namespace tools::str;
 
 namespace tools::utils {
 

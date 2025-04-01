@@ -11,21 +11,22 @@ namespace tools::ai {
     class GeminiTalkbot: public Gemini, public Talkbot {
     public:
         GeminiTalkbot(
+            Owns& owns,
             const string& secret, 
             const string& variant,
             long timeout,
-            const string& name, 
-            Factory<ChatHistory>& histories, const string& history_type, //ChatHistory& history, 
+            const string& name, // TODO: remove it
+            ChatHistory* history, 
             Printer& printer,
             SentenceStream& sentences,
             TTS& tts
         ):
             Gemini(secret, variant, timeout),
-            Talkbot(name, histories, history_type /*history*/, printer, sentences, tts)
+            Talkbot(owns, name, history, printer, sentences, tts)
         {}
 
         virtual ~GeminiTalkbot() {
-            cout << "GeminiTalkbot (" + this->name + ") destruction..." << endl;
+            // cout << "GeminiTalkbot (" + this->name + ") destruction..." << endl;
         }
     
         string chat(const string& sender, const string& text) override {

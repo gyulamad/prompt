@@ -23,22 +23,47 @@ using namespace tools::agency;
 namespace tools::agency::agents {
 
     template<typename T>
+    class UserAgentConfig: public AgentConfig<T> {
+    public:
+        UserAgentConfig(
+            PackQueue<T>& queue,
+            const string& name, 
+            vector<string> recipients, // TODO: to config, and have to be able to change/see message package targets
+            Agency<T>& agency, 
+            UserAgentInterface<T>& interface
+        ):
+            AgentConfig<T>(queue, name, recipients),
+            agency(agency),
+            interface(interface)
+        {}
+
+        virtual ~UserAgentConfig() {}
+
+        Agency<T>& getAgencyRef() { return agency; } 
+        UserAgentInterface<T>& getInterfaceRef() { return interface; }
+
+    private:
+        Agency<T>& agency;
+        UserAgentInterface<T>& interface;
+    };
+
+    template<typename T>
     class UserAgent: public Agent<T> {
     public:
 
         // TODO: make configurable:
         atomic<bool> text_input_echo = true;
 
-        UserAgent(
-            PackQueue<T>& queue,
-            const string& name, 
-            vector<string> recipients, // TODO: to config, and have to be able to change/see message package targets
-            Agency<T>& agency, 
-            UserAgentInterface<T>& interface
+        UserAgent(UserAgentConfig<T> config
+            // PackQueue<T>& queue,
+            // const string& name, 
+            // vector<string> recipients, // TODO: to config, and have to be able to change/see message package targets
+            // Agency<T>& agency, 
+            // UserAgentInterface<T>& interface
         ): 
-            Agent<T>(queue, name, recipients), 
-            agency(agency),
-            interface(interface)
+            Agent<T>(config), 
+            agency(config.getAgencyRef()),
+            interface(config.getInterfaceRef())
         {
             interface.setUser(this);
         }

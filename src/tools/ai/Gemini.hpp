@@ -49,10 +49,10 @@ namespace tools::ai {
             string url = "https://generativelanguage.googleapis.com/v1beta/models/" 
                 + variant + ":streamGenerateContent?alt=sse&key=" + escape(secret);            
     
-            chatbot.getHistoryRef().append(sender, text);
+            ((ChatHistory*)chatbot.getHistoryPtr())->append(sender, text);
             string data = tpl_replace({
-                { "{{history}}", json_escape(chatbot.getHistoryRef().toString()) }, 
-                { "{{start}}", json_escape(chatbot.getHistoryRef().startToken(chatbot.name)) },
+                { "{{history}}", json_escape(((ChatHistory*)chatbot.getHistoryPtr())->toString()) }, 
+                { "{{start}}", json_escape(((ChatHistory*)chatbot.getHistoryPtr())->startToken(chatbot.name)) },
             }, R"({
                 "contents": [{
                     "parts": [{
@@ -80,7 +80,7 @@ namespace tools::ai {
                     response += chatbot.chunk(text);
                 }
             }, data)) throw ERROR("Error requesting Gemini API");        
-            chatbot.getHistoryRef().append(chatbot.name, chatbot.response(response));
+            ((ChatHistory*)chatbot.getHistoryPtr())->append(chatbot.name, chatbot.response(response));
             return response;
         }
 

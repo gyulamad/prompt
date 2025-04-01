@@ -16,36 +16,61 @@ using namespace std;
 
 namespace tools::agency::agents {
 
+    template<typename T>
+    class ChatbotAgentConfig: public AgentConfig<T> {
+    public:
+        ChatbotAgentConfig(
+            Owns& owns,
+            PackQueue<T>& queue,
+            const string& name,
+            vector<string> recipients,
+            void* chatbot
+        ):
+            owns(owns),
+            AgentConfig<T>(queue, name, recipients),
+            chatbot(chatbot)
+        {}
+        
+        virtual ~ChatbotAgentConfig() {}
+
+        Owns& getOwnsRef() { return owns; }
+        void* getChatbotPtr() { return chatbot; }
+
+    private:
+        Owns& owns;
+        void* chatbot;
+    };
 
     template<typename T>
     class ChatbotAgent: public Agent<T> {
     public:
-        ChatbotAgent(
-            PackQueue<T>& queue,
-            const string& name,
-            vector<string> recipients,
-            Factory<Chatbot>& chatbots, const string& chatbot_type//Chatbot& chatbot
+        ChatbotAgent(ChatbotAgentConfig<T>& config
+            // Owns& owns,
+            // PackQueue<T>& queue,
+            // const string& name,
+            // vector<string> recipients,
+            // Chatbot* chatbot
         ): 
-            Agent<T>(queue, name, recipients),
-            chatbots(chatbots),
-            chatbot(chatbots.hold(this, chatbots.create(chatbot_type)))
+            owns(config.getOwnsRef()),
+            Agent<T>(config),
+            chatbot(owns.reserve(this, config.getChatbotPtr(), FILELN))
         {}
 
         virtual ~ChatbotAgent() {
-            cout << "ChatbotAgent (" + this->name + ") destruction..." << endl;
-            chatbots.release(this, chatbot);
+            // cout << "ChatbotAgent (" + this->name + ") destruction..." << endl;
+            owns.release(this, chatbot);
         }
 
         string type() const override { return "chat"; }
 
         void handle(const string& sender, const T& item) override {
             this->addRecipients({ sender });
-            this->send(chatbot->chat(sender, item));
+            this->send(((Chatbot*)chatbot)->chat(sender, item));
         }
 
     private:
-        Factory<Chatbot>& chatbots;
-        Chatbot* chatbot = nullptr;
+        Owns& owns;
+        void* chatbot = nullptr;
     };
     
 }

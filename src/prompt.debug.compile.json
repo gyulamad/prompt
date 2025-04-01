@@ -1,5 +1,5 @@
 {
     "flags": [
-        "-g -O0"
+        "-g -O0 -fno-optimize-sibling-calls"
     ]
 }

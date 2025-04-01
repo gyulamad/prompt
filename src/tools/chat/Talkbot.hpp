@@ -12,13 +12,14 @@ namespace tools::chat {
     class Talkbot: public Chatbot {
     public:
         Talkbot(
+            Owns& owns,
             const string& name, 
-            Factory<ChatHistory>& histories, const string& history_type, //ChatHistory& history, 
+            void* history, 
             Printer& printer,
             SentenceStream& sentences,
             TTS& tts
         ):
-            Chatbot(name, histories, history_type /*history*/, printer),
+            Chatbot(owns, name, history, printer),
             sentences(sentences), tts(tts)
         {}
 

@@ -68,8 +68,9 @@ int safe_main(int , char *[]) {
         const long stt_poll_interval_ms = 30;
 
         const bool chatbot_use_start_token = false;
-        const vector<string> chatbot_sentence_separators = {".", "!", "?"};
-        const long chatbot_sentences_max_buffer_size = 1024*1024;
+        const bool talkbot_use_start_token = false;
+        const vector<string> talkbot_sentence_separators = {".", "!", "?"};
+        const long talkbot_sentences_max_buffer_size = 1024*1024;
 
         const string gemini_secret = "AIzaSyDabZvXQNSyDYAcivoaKhSWhRmu9Q6hMh4";
         const string gemini_variant = "gemini-1.5-flash-8b";
@@ -78,9 +79,11 @@ int safe_main(int , char *[]) {
         // ----
         const string linenoise_prompt = prompt;
         const string command_list_prompt = prompt;
-        const string chatbot_prompt = prompt;
+        const string chatbot_history_prompt = prompt;
+        const string talkbot_history_prompt = prompt;
         const string whisper_lang = lang;
 
+        Owns owns;
 
         Process process;
         ESpeakTTSAdapter tts(
@@ -102,55 +105,59 @@ int safe_main(int , char *[]) {
         Printer printer;
         
         BasicSentenceSeparation separator(
-            chatbot_sentence_separators
+            talkbot_sentence_separators
         );
         SentenceStream sentences(
             separator, 
-            chatbot_sentences_max_buffer_size
+            talkbot_sentences_max_buffer_size
         );
 
         PackQueue<PackT> queue;
         
 
-        Factory<ChatHistory> histories;
-        histories.registry("ChatHistory", [&](void*) -> ChatHistory* {
-            return new ChatHistory(
-                chatbot_prompt, 
-                chatbot_use_start_token
-            );
-        });
+        // Factory<ChatHistory> histories;
+        // histories.registry("ChatHistory", [&](void*) -> ChatHistory* {
+        //     return new ChatHistory(
+        //         chatbot_prompt, 
+        //         chatbot_use_start_token
+        //     );
+        // });
 
-        Factory<Chatbot> chatbots;
-        chatbots.registry("GeminiChatbot", [&](void*) -> GeminiChatbot* {
-            // ChatHistory* history = histories.create("ChatHistory");
-            return new GeminiChatbot(
-                gemini_secret,
-                gemini_variant,
-                gemini_timeout,
-                "gemini",
-                histories, "ChatHistory", //*history,
-                printer
-            );
-        });
+        // Dependency<ChatHistory> dhistories(hostories, "ChatHistory")
 
-        Factory<Talkbot> talkbots;
-        talkbots.registry("GeminiTalkbot", [&](void*) -> GeminiTalkbot* {
-            //ChatHistory* history = histories.create("ChatHistory");
-            return new GeminiTalkbot(
-                gemini_secret,
-                gemini_variant,
-                gemini_timeout,
-                "gemini",
-                histories, "ChatHistory", //*history,
-                printer,
-                sentences,
-                tts
-            );
-        });
+        // Factory<Chatbot> chatbots;
+        // chatbots.registry("GeminiChatbot", [&](void*) -> GeminiChatbot* {
+        //     // ChatHistory* history = histories.create("ChatHistory");
+        //     return new GeminiChatbot(
+        //         gemini_secret,
+        //         gemini_variant,
+        //         gemini_timeout,
+        //         "gemini",
+        //         histories,
+        //         //histories, "ChatHistory", //*history,
+        //         printer
+        //     );
+        // });
 
-        Agency<PackT> agency(
-            queue, "agency", { "user" }, 
-            chatbots, talkbots, histories
+        // Factory<Talkbot> talkbots;
+        // talkbots.registry("GeminiTalkbot", [&](void*) -> GeminiTalkbot* {
+        //     //ChatHistory* history = histories.create("ChatHistory");
+        //     return new GeminiTalkbot(
+        //         gemini_secret,
+        //         gemini_variant,
+        //         gemini_timeout,
+        //         "gemini",
+        //         histories, "ChatHistory", //*history,
+        //         printer,
+        //         sentences,
+        //         tts
+        //     );
+        // });
+
+        AgencyConfig<PackT> agencyConfig(owns, queue, "agency", { "user" });
+        Agency<PackT> agency(agencyConfig
+            // owns, queue, "agency", { "user" }//, 
+            // chatbots, talkbots, histories
         );
 
         CommandFactory cfactory;
@@ -205,17 +212,74 @@ int safe_main(int , char *[]) {
                 "chat", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
                     // ChatHistory* history = agency.histories.create("ChatHistory");
                     // Chatbot* chatbot = agency.chatbots.create("GeminiChatbot");
-                    return agency.template spawn<ChatbotAgent<PackT>>(
+                    ChatHistory* history = owns.allocate<ChatHistory>(
+                        chatbot_history_prompt,
+                        chatbot_use_start_token
+                    );
+                    GeminiChatbot* chatbot = owns.allocate<GeminiChatbot>(
+                        owns,
+                        gemini_secret,
+                        gemini_variant,
+                        gemini_timeout,
+                        "gemini",
+                        history,
+                        // histories,
+                        //histories, "ChatHistory", //*history,
+                        printer
+                    );
+                    ChatbotAgentConfig<PackT> chatbotAgentConfig(
+                        owns,
+                        agency.queue,
                         name, 
                         recipients, 
-                        agency.chatbots, "GeminiChatbot"//*chatbot
+                        chatbot
+                    );
+                    return agency.template spawn<ChatbotAgent<PackT>>(chatbotAgentConfig
+                        // owns,
+                        // agency.queue,
+                        // name, 
+                        // recipients, 
+                        // chatbot
+
+                        // agency.chatbots, "GeminiChatbot"//*chatbot
                     );
                 },
 
             },
             {
                 "talk", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
-                    return agency.template spawn<TalkbotAgent<PackT>>(name, recipients, agency.talkbots, "GeminiTalkbot");
+                    ChatHistory* history = owns.allocate<ChatHistory>(
+                        talkbot_history_prompt,
+                        talkbot_use_start_token
+                    );
+                    GeminiTalkbot* talkbot = owns.allocate<GeminiTalkbot>(
+                        owns,
+                        gemini_secret,
+                        gemini_variant,
+                        gemini_timeout,
+                        "gemini",
+                        history,
+                        printer,
+                        sentences, // TODO: create it, do not use the same sentences object at each chatbot!!
+                        tts // TODO: tts also should be separated. (different tone/speed or even different kind of speach syntheser)
+                    );
+                    TalkbotAgentConfig<PackT> talkbotAgentConfig(
+                        owns,
+                        agency.queue, 
+                        name, 
+                        recipients, 
+                        talkbot
+                        // agency.talkbots, "GeminiTalkbot"
+                    );
+                    return agency.template spawn<TalkbotAgent<PackT>>(talkbotAgentConfig
+                        // owns,
+                        // agency.queue, 
+                        // name, 
+                        // recipients, 
+                        // talkbot
+
+                        // agency.talkbots, "GeminiTalkbot"
+                    );
                 },
             },
         };
@@ -236,8 +300,56 @@ int safe_main(int , char *[]) {
         );
         // interface_ptr = &interface;
 
-        agency.template spawn<TalkbotAgent<PackT>>("talk", { "user" }, agency.talkbots, "GeminiTalkbot").async();
-        agency.template spawn<UserAgent<PackT>>("user", { "talk" }, agency, interface).async();
+        ChatHistory* history = owns.allocate<ChatHistory>(
+            talkbot_history_prompt,
+            talkbot_use_start_token
+        );
+        GeminiTalkbot* talkbot = owns.allocate<GeminiTalkbot>( // TODO: parameters from config to config always and for everywhere!!
+            owns,
+            gemini_secret,
+            gemini_variant,
+            gemini_timeout,
+            "gemini",
+            history,
+            printer,
+            sentences, // TODO: create it, do not use the same sentences object at each chatbot!!
+            tts // TODO: tts also should be separated. (different tone/speed or even different kind of speach syntheser)
+        );
+        cerr << "Talkbot allocated: " << talkbot << endl;
+        for (const auto& [ptr, data] : owns.reserves)
+            cerr << "Reserves: " << ptr << endl;
+        string name = "talk";
+        vector<string> recipients = { "user" };
+        cerr << "Talkbot allocated: " << talkbot << endl;  // 0x5555556c0650
+        // Talkbot* talkbot_ptr = talkbot;
+        // cerr << "Before config: " << talkbot_ptr << endl;  // 0x5555556c06a0
+        TalkbotAgentConfig<string> talkbotAgentConfig(
+            owns,
+            agency.queue,
+            name, recipients,
+            talkbot
+        );
+        cerr << "talkbotAgentConfig.talkbot: " << talkbotAgentConfig.getTalkbotPtr() << endl;
+        agency.template spawn<TalkbotAgent<PackT>>(talkbotAgentConfig
+            // owns,
+            // agency.queue,
+            // name, recipients,
+            // talkbot
+
+            // agency.talkbots, "GeminiTalkbot"
+        ).async();
+        string uname = "user";
+        vector<string> urecipients = { "talk" };
+        UserAgentConfig<PackT> userAgentConfig(
+            agency.queue,
+            uname, urecipients, // string("user"), vector<string>({ "talk" }), 
+            agency, interface
+        );
+        agency.template spawn<UserAgent<PackT>>(userAgentConfig
+            // agency.queue,
+            // uname, urecipients, // string("user"), vector<string>({ "talk" }), 
+            // agency, interface
+        ).async();
         //cout << "Agency started" << endl;
         agency.sync();
 
@@ -251,7 +363,7 @@ int safe_main(int , char *[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-        // "test_parse_vector_invalid_input"
+       //"test_TalkbotAgent_reserve"
     });
     
     return safe_main<string>(argc, argv);

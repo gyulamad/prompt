@@ -25,6 +25,8 @@ namespace tools::utils {
 
     #define ERROR(msg) tools::utils::error(msg, __FILE__, __LINE__)
 
+    #define FILELN ANSI_FMT_FILE_LINE(__FILE__, __LINE__)
+
     #ifdef __PRETTY_FUNCTION__
     #define __FUNC__ __PRETTY_FUNCTION__
     #else

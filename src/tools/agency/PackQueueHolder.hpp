@@ -5,10 +5,10 @@
 namespace tools::agency {
 
     template<typename T>
-    class PackQueueHolder {
+    class PackQueueHolder { // TODO: once each agent get an agency reference this class may not needed anymore
     public:
         PackQueueHolder(PackQueue<T>& queue): queue(queue) {}
-    protected:
+    // protected:
         PackQueue<T>& queue;
     };
     
