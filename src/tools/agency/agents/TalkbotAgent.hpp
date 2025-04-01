@@ -23,21 +23,12 @@ namespace tools::agency::agents {
             talkbot(talkbot),
             owns(owns),
             AgentConfig<T>(queue, name, recipients)
-            // queue(queue),
-            // name(name),
-            // recipients(recipients),
         {}
 
         virtual ~TalkbotAgentConfig() {}
 
         Owns& getOwnsRef() { return owns; }
-        // PackQueue<T>& getQueueRef() { return queue; }
-        // string getName() { return name; }
-        // vector<string> getRecipients() { return recipients; }
-        void* getTalkbotPtr() { 
-            cerr << "Config get talkbot: " << talkbot << endl;
-            return talkbot; 
-        }
+        void* getTalkbotPtr() { return talkbot; }
 
     private:
         void* talkbot = nullptr;
@@ -60,21 +51,12 @@ namespace tools::agency::agents {
         ): 
             owns(config.getOwnsRef()),
             Agent<T>(config),
-            talkbot(config.getTalkbotPtr())
-            // talkbot(nullptr) // TODO: temp init
-            //talkbot((Talkbot*)owns.reserve(this, config.getTalkbotPtr(), FILELN))
+            talkbot(owns.reserve(this, config.getTalkbotPtr(), FILELN))
         {
-            // Talkbot* tb = config.getTalkbotPtr();
-            // cerr << "Talkbot before reserve: " << tb << endl;
-            // for (const auto& [ptr, data] : owns.reserves)
-            //     cerr << "Reserves: " << ptr << endl;
-            // this->talkbot = (Talkbot*)owns.reserve(this, tb, FILELN);
-            owns.reserve(this, talkbot, FILELN);
+            // owns.reserve(this, talkbot, FILELN);
         }
 
         virtual ~TalkbotAgent() {
-            // cout << "TalkbotAgent (" + this->name + ") destruction..." << endl;
-            // talkbots.release(this, talkbot);
             owns.release(this, talkbot);
         }
 

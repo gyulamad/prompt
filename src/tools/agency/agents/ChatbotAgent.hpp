@@ -57,7 +57,6 @@ namespace tools::agency::agents {
         {}
 
         virtual ~ChatbotAgent() {
-            // cout << "ChatbotAgent (" + this->name + ") destruction..." << endl;
             owns.release(this, chatbot);
         }
 

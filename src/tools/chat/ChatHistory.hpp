@@ -23,9 +23,7 @@ namespace tools::chat {
             use_start_token(use_start_token)
         {}
 
-        virtual ~ChatHistory() {
-            cout << "a history deleted" << endl;
-        }
+        virtual ~ChatHistory() {}
     
         void append(const string& sender, const string& text) {        
             ChatMessage message(sender, text);

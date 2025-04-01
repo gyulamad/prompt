@@ -362,12 +362,15 @@ void test_Owns_cleanup() {
     bool has_entries = !owns.getReserves().empty();
     assert(has_entries && "Reserves should have entries before cleanup");
     
-    // Perform cleanup
-    owns.publicCleanup();
+    string err = capture_cerr([&]() {
+        // Perform cleanup
+        owns.publicCleanup();
+    });
     
     // After cleanup, reserves should be empty
     bool cleanup_happened = owns.getReserves().empty();
     assert(cleanup_happened && "Destructor didn't cleanup"); // Message kept for consistency
+    assert(str_contains(err, "Unrelesed pointer by 1 owner(s) detected"));
 }
 
 void test_Owns_reserve_unmanaged_throws() {
@@ -429,16 +432,23 @@ void test_Owns_multi_owner_release() {
 }
 
 void test_Owns_multi_owner_reserve() {
-    Owns owns;
-    void* owner1 = reinterpret_cast<void*>(1);
-    void* owner2 = reinterpret_cast<void*>(2);
-    int* ptr = owns.allocate<int>(42);
+    int owner_count = 0;
+
+    string err = capture_cerr([&]() {
+        Owns owns;
+        void* owner1 = reinterpret_cast<void*>(1);
+        void* owner2 = reinterpret_cast<void*>(2);
+        int* ptr = owns.allocate<int>(42);
     
-    owns.reserve(owner1, ptr, FILELN);
-    owns.reserve(owner2, ptr, FILELN); // Should not throw
-    unordered_map<void*, Owns::ownnfo> reserves = static_cast<OwnsSpy&>(owns).getReserves();
-    int owner_count = reserves[ptr].owners.size();
+        owns.reserve(owner1, ptr, FILELN);
+        owns.reserve(owner2, ptr, FILELN); // Should not throw
+
+        unordered_map<void*, Owns::ownnfo> reserves = static_cast<OwnsSpy&>(owns).getReserves();
+        owner_count = reserves[ptr].owners.size();
+    });
+    
     assert(owner_count == 2 && "Multiple owners not registered");
+    assert(str_contains(err, "Unrelesed pointer by 2 owner(s) detected"));
 }
 
 // Register all tests

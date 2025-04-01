@@ -5,6 +5,9 @@
 #include "tools/utils/ERROR.hpp"
 #include "tools/utils/Test.hpp"
 #include "tools/utils/Factory.hpp"
+#include "tools/utils/files.hpp"
+#include "tools/utils/Settings.hpp"
+#include "tools/utils/JSON.hpp"
 #include "tools/voice/MicView.hpp"
 #include "tools/voice/ESpeakTTSAdapter.hpp"
 #include "tools/voice/WhisperTranscriberSTTSwitch.hpp"
@@ -44,8 +47,16 @@ using namespace tools::ai;
 
 
 template<typename PackT>
-int safe_main(int , char *[]) {
+int safe_main(int argc, char* argv[]) {
     try {
+        Arguments args(argc, argv);
+        JSON conf( // TODO: better config loader
+            args.has("config") 
+                ? file_get_contents(args.get<string>("config")) 
+                : "{}"
+        );
+        Settings settings(args, conf);
+
         const string prompt = "> ";
         const string lang = "hu";
 

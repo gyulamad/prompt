@@ -55,7 +55,6 @@ namespace tools::agency {
         {}
 
         virtual ~Agent() {
-            cout << "Agent (" + this->name + ") destruction..." << endl;
             this->close();
             if (t.joinable()) t.join();
         }

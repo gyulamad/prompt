@@ -33,9 +33,7 @@ namespace tools::ai {
             timeout(timeout)
         {}
 
-        virtual ~Gemini() {
-            cout << "Gemini destruction..." << endl;
-        }
+        virtual ~Gemini() {}
 
     protected:
 

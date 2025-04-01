@@ -13,7 +13,7 @@ namespace tools::chat {
     public:
         Talkbot(
             Owns& owns,
-            const string& name, 
+            const string& name, // TODO: do we need name here?
             void* history, 
             Printer& printer,
             SentenceStream& sentences,
@@ -23,9 +23,7 @@ namespace tools::chat {
             sentences(sentences), tts(tts)
         {}
 
-        virtual ~Talkbot() {
-            cout << "Talkbot (" + this->name + ") destruction..." << endl;
-        }
+        virtual ~Talkbot() {}
     
         string chunk(const string& chunk) override { 
             Chatbot::chunk(chunk);
