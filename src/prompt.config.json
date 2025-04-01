@@ -1,4 +1,24 @@
 {
     "prompt": "> ",
-    "lang": "en"
+    "lang": "en",
+    "command_line": {
+        "multi_line": true,
+        "history_path": "cline_history.log",
+        "history_max_length": 100,
+
+        // It should contains all by default, 
+        // comment out whichever you don't need:
+        "available_commands": [
+            "help", 
+            "exit", 
+            "list", 
+            "spawn", 
+            "kill", 
+            "voice", 
+            "target"
+        ] 
+    },
+    "whisper": {
+        "model_path": "libs/ggerganov/whisper.cpp/models/ggml-base-q8_0.bin"
+    }
 }

@@ -72,8 +72,8 @@ namespace tools::voice {
         WhisperTranscriberAdapter* transcriber = nullptr;
 
         // for wishper transcriber
-        const string& whisper_model_path;
-        const string& whisper_lang;
+        const string whisper_model_path;
+        const string whisper_lang;
 
         // for STT
         const double stt_voice_recorder_sample_rate;
