@@ -106,7 +106,8 @@ namespace tools::voice {
         //     recorder.resume();
         // }   
 
-    // TODO: private
+    protected:
+
         float calculate_rms(const vector<float>& buffer) {
             float sum = 0;
             for (float sample : buffer) sum += sample * sample;
@@ -138,6 +139,7 @@ namespace tools::voice {
 #include "../utils/Suppressor.hpp"
 
 #include "tests/MockVoiceRecorder.hpp"
+#include "tests/MockNoiseMonitor_with_public_calculate_rms.hpp"
 
 using namespace tools::utils;
 using namespace tools::voice;
@@ -159,10 +161,10 @@ void test_NoiseMonitor_calculate_rms_zero_buffer() {
     {
         Suppressor supressor(stderr);
         MockVoiceRecorder recorder(16000.0, 512, 5);
-        NoiseMonitor monitor(recorder, 0.1f, 0.01f, 1024);
+        MockNoiseMonitor_with_public_calculate_rms monitor(recorder, 0.1f, 0.01f, 1024);
         
         vector<float> buffer(1024, 0.0f);
-        actual = monitor.calculate_rms(buffer);
+        actual = monitor.public_calculate_rms(buffer);
     }
     assert(actual == expected && "RMS of zero buffer should be 0");
 }
@@ -174,10 +176,10 @@ void test_NoiseMonitor_calculate_rms_known_values() {
     {
         Suppressor supressor(stderr);
         MockVoiceRecorder recorder(16000.0, 512, 5);
-        NoiseMonitor monitor(recorder, 0.1f, 0.01f, 1024);
+        MockNoiseMonitor_with_public_calculate_rms monitor(recorder, 0.1f, 0.01f, 1024);
 
         vector<float> buffer = {1.0f, -1.0f, 1.0f, -1.0f};
-        actual = monitor.calculate_rms(buffer); // sqrt((1^2 + (-1)^2 + 1^2 + (-1)^2) / 4) = 1
+        actual = monitor.public_calculate_rms(buffer); // sqrt((1^2 + (-1)^2 + 1^2 + (-1)^2) / 4) = 1
     }
     assert(actual == expected && "RMS calculation incorrect for known values");
 }
