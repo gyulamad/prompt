@@ -56,5 +56,9 @@
             "' ": " ",
             "'": " "
         }
+    },
+    "startup": {
+        "batch": [ "/voice input on" ],
+        "echo": true
     }
 }

@@ -245,8 +245,17 @@ int safe_main(int argc, char* argv[]) {
             uname, urecipients,
             interface
         ).async();
+
+        vector<string> batch = settings.get<vector<string>>("startup.batch");
+        bool echo = settings.get<bool>("startup.echo");
+        foreach (batch, [&](const string& input) {
+            if (echo) interface.println(input);
+            if (!commander.runCommand(&agency, input)) return FE_BREAK;
+            return FE_CONTINUE;
+        });
+
         //cout << "Agency started" << endl;
-        agency.sync();
+        agency.sync();        
 
     } catch (exception &e) {
         cerr << "Error: " << e.what() << endl;
