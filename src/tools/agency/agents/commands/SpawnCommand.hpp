@@ -9,7 +9,7 @@
 #include "../../../cmd/Parameter.hpp"
 #include "../../../cmd/Command.hpp"
 #include "../../AgentRoleMap.hpp"
-#include "../Agency.hpp"
+#include "../../Agency.hpp"
 
 using namespace std;
 using namespace tools::containers;
@@ -84,7 +84,7 @@ namespace tools::agency::agents::commands {
             string name = args.size() >= 3 ? trim(args[2]) : role;
             vector<string> recipients = args.size() >= 4 
                 ? parse_vector<string>(args[3]) 
-                : vector<string>({ agency.template getAgentRef<UserAgent<T>>("user").name });
+                : vector<string>({ agency.template getWorkerRef<UserAgent<T>>("user").name });
 
             if (!in_array(role, array_keys(roles))) {
                 throw ERROR("Invalid agent role: " + role + " - available roles are [" + implode(", ", array_keys(roles)) + "]");

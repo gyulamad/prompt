@@ -1,6 +1,6 @@
 {
     "prompt": "> ",
-    "lang": "en",
+    "lang": "hu",
     "command_line": {
         "multi_line": true,
         "history_path": "cline_history.log",

@@ -6,7 +6,7 @@
 #include "../../../cmd/Usage.hpp"
 #include "../../../cmd/Parameter.hpp"
 #include "../../../cmd/Command.hpp"
-#include "../Agency.hpp"
+#include "../../Agency.hpp"
 
 using namespace std;
 using namespace tools::cmd;

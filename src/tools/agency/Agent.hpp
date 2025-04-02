@@ -1,162 +1,28 @@
 #pragma once
 
-#include "../abstracts/Closable.hpp"
 #include "../str/str_contains.hpp"
 #include "../str/tpl_replace.hpp"
 #include "../str/implode.hpp"
 #include "../utils/system.hpp"
 #include "../utils/ERROR.hpp"
-#include "../containers/array_merge.hpp"
-#include "../containers/array_diff.hpp"
 
+#include "Worker.hpp"
 #include "PackQueueHolder.hpp"
 
-using namespace tools::abstracts;
 using namespace tools::str;
 using namespace tools::utils;
 using namespace tools::containers;
 
 namespace tools::agency {
-    
-    template<typename T>
-    class AgentConfig {
-    public:
-        AgentConfig(
-            Owns& owns,
-            void* agency,
-            PackQueue<T>& queue,
-            const string& name,
-            vector<string> recipients
-        ):
-            owns(owns),
-            agency(agency),
-            queue(queue),
-            name(name),
-            recipients(recipients)
-        {}
-
-        virtual ~AgentConfig() {}
-
-        Owns& getOwnsRef() { return owns; }
-        void* getAgencyPtr() { return agency ? agency : this; }
-        PackQueue<T>& getQueueRef() { return queue; }
-        string getName() { return name; }
-        vector<string> getRecipients() { return recipients; }
-
-    private:
-        Owns& owns;
-        void* agency = nullptr;
-        PackQueue<T>& queue;
-        string name;
-        vector<string> recipients;
-    };
 
     template<typename T>
-    class Agent: public PackQueueHolder<T>, public Closable {
+    class Agent: /*public PackQueueHolder<T>,*/ public Worker<T> {
         static_assert(Streamable<T>, "T must support ostream output for dump()");
     public:
 
-        Agent(AgentConfig<T>& config):
-            owns(config.getOwnsRef()),
-            agency(config.getAgencyPtr()),
-            PackQueueHolder<T>(config.getQueueRef()),
-            name(config.getName()), 
-            recipients(config.getRecipients())
-        {}
-
-        virtual ~Agent() {
-            this->close();
-            if (t.joinable()) t.join();
-        }
-
-        void start(long ms = 10, bool run_async = true) {
-            if (run_async) async(ms);
-            else sync(ms);
-        }
-
-        void async(long ms = 10) {
-            t = thread([this, ms]() { sync(ms); });
-        }
-
-        void sync(long ms = 10) {
-            while (!closing) {
-                try {
-                    if (ms) sleep_ms(ms);
-                    tick();
-                } catch (exception &e) {
-                    hoops("Agent '" + name + "' error: " + string(e.what()));
-                }
-            }
-        }
-
-        virtual void handle(const string& /*sender*/, const T& /*item*/) UNIMP_THROWS
-
-        virtual void tick() {}
-
-        void exit() {
-            this->send("agency", "exit");
-        }
-
-        const string name;
+        using Worker<T>::Worker;
         
-        virtual string type() const UNIMP_THROWS
-
-
-        void addRecipients(const vector<string>& recipients) {
-            this->recipients = array_merge(this->recipients, recipients);
-        }
-
-        void setRecipients(const vector<string>& recipients) {
-            this->recipients = recipients;
-        }
-
-        void removeRecipients(const vector<string>& recipients) {
-            this->recipients = array_diff(this->recipients, recipients);
-        }
-
-        vector<string> findRecipients(const string& keyword = "") const {
-            if (keyword.empty()) return recipients;
-            vector<string> found;
-            foreach(recipients, [&](const string& recipient) {
-                if (str_contains(recipient, keyword)) 
-                    found.push_back(recipient);
-            });
-            return found;
-        }
-
-        virtual string dump() const {
-            string recipients = implode(", ", this->recipients);
-            return tpl_replace({
-                { "{{name}}" , name },
-                { "{{type}}" , type() },
-                { "{{recipients}}" , recipients.empty() ? "<nobody>" : recipients },
-            }, "Agent {{name}} is a(n) {{type}} agent, talking to {{recipients}}.");
-        }
-
-    protected:
-        void send(const T& item) {
-            send(recipients, item);
-        }
-
-        virtual void hoops(const string& errmsg = "") {
-            cerr << errmsg << endl;
-        }
-
-        thread t;
-        Owns& owns;
-        void* agency = nullptr;
-        vector<string> recipients;
-
-    private:
-        void send(const string& recipient, const T& item) {
-            if (name == recipient) ERROR("Can not send for itself: " + name);
-            Pack<T> pack(name, recipient, item);
-            this->queue.Produce(move(pack));
-        }
-
-        void send(const vector<string>& recipients, const T& item) {
-            for (const string& recipient: recipients) send(recipient, item);
-        }
+        virtual ~Agent() {}
     };
     
 }
@@ -167,7 +33,7 @@ namespace tools::agency {
 #include "../chat/Chatbot.hpp"
 #include "../chat/ChatHistory.hpp"
 #include "tests/helpers.hpp"
-#include "tests/TestAgent.hpp"
+#include "tests/TestWorker.hpp"
 #include "tests/default_test_agency_setup.hpp"
 #include "PackQueue.hpp" // Needed for queue operations
 
@@ -178,8 +44,7 @@ using namespace tools::chat;
 // Test constructor
 void test_Agent_constructor_basic() {
     default_test_agency_setup setup;
-    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "test_agent", {});
-    Agent<string> agent(config);
+    Agent<string> agent(setup.owns, setup.agency, setup.queue, string("test_agent"), setup.recipients);
     auto actual_name = agent.name;
     assert(actual_name == "test_agent" && "Agent name should be set correctly");
     // Can't directly test queue ref, but we'll use it in send tests
@@ -188,8 +53,7 @@ void test_Agent_constructor_basic() {
 // Test single send
 void test_Agent_send_single() {
     default_test_agency_setup setup;
-    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "alice", {});
-    TestAgent<string> agent(config);
+    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, string("alice"), setup.recipients);
     agent.testSend("bob", "hello");
     auto actual_contents = queue_to_vector(setup.queue);
     assert(actual_contents.size() == 1 && "Send should produce one pack");
@@ -201,8 +65,7 @@ void test_Agent_send_single() {
 // Test multiple sends
 void test_Agent_send_multiple() {
     default_test_agency_setup setup;
-    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "alice", {});
-    TestAgent<string> agent(config);
+    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, string("alice"), setup.recipients);
     vector<string> recipients = {"bob", "charlie"};
     agent.testSend(recipients, "hello");
     auto actual_contents = queue_to_vector(setup.queue);
@@ -218,8 +81,7 @@ void test_Agent_send_multiple() {
 // Test handle throws exception
 void test_Agent_handle_unimplemented() {
     default_test_agency_setup setup;
-    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "test_agent", {});
-    Agent<string> agent(config);
+    Agent<string> agent(setup.owns, setup.agency, setup.queue, string("test_agent"), setup.recipients);
     bool thrown = false;
     try {
         agent.handle("alice", "hello");
@@ -234,8 +96,7 @@ void test_Agent_handle_unimplemented() {
 // Test tick default does nothing
 void test_Agent_tick_default() {
     default_test_agency_setup setup;
-    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "test_agent", {});
-    Agent<string> agent(config);
+    Agent<string> agent(setup.owns, setup.agency, setup.queue, string("test_agent"), setup.recipients);
     // No output or state to check, just ensure it runs without crashing
     agent.tick();
     // If we reach here, it’s fine—no assert needed for empty default
@@ -244,8 +105,7 @@ void test_Agent_tick_default() {
 // Test sync runs until closed
 void test_Agent_sync_basic() {
     default_test_agency_setup setup;
-    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "test_agent", {});
-    TestAgent<string> agent(config);
+    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, string("test_agent"), setup.recipients);
     agent.close(); // Set closing first
     agent.sync(1); // Should exit immediately
     auto actual_closed = agent.isClosing();
@@ -255,8 +115,7 @@ void test_Agent_sync_basic() {
 // Test async starts and stops
 void test_Agent_async_basic() {
     default_test_agency_setup setup;
-    AgentConfig<string> config(setup.owns, setup.agency, setup.queue, "test_agent", {});
-    Agent<string> agent(config);
+    Agent<string> agent(setup.owns, setup.agency, setup.queue, string("test_agent"), setup.recipients);
     agent.start(1, true); // Async with 1ms sleep
     sleep_ms(10); // Let it run briefly
     agent.close(); // Signal to stop

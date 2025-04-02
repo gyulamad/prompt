@@ -4,7 +4,7 @@
 
 #include "../str/tpl_replace.hpp"
 #include "../utils/foreach.hpp"
-#include "../utils/Factory.hpp"
+#include "../utils/Owns.hpp"
 
 #include "ChatMessage.hpp"
 

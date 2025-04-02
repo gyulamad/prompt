@@ -8,7 +8,7 @@
 #include "../../../cmd/Parameter.hpp"
 #include "../../../cmd/Command.hpp"
 #include "../../../cmd/Commander.hpp"
-#include "../Agency.hpp"
+#include "../../Agency.hpp"
 #include "../UserAgent.hpp"
 
 using namespace std;
@@ -59,7 +59,7 @@ namespace tools::agency::agents::commands {
             Agency<T>& agency = *(Agency<T>*)agency_void;
 
             // get user agent
-            UserAgent<T>& user = agency.template getAgentRef<UserAgent<T>>("user");
+            UserAgent<T>& user = agency.template getWorkerRef<UserAgent<T>>("user");
             // Agent<T>& agent = agency.getAgentRef("user");
             // if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
             // UserAgent<T>& user = (UserAgent<T>&)agent;

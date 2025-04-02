@@ -9,7 +9,7 @@
 #include "../../voice/WhisperTranscriberSTTSwitch.hpp"
 #include "../../utils/InputPipeInterceptor.hpp"
 #include "../Agent.hpp"
-#include "Agency.hpp"
+#include "../Agency.hpp"
 
 #include "UserAgentInterface.hpp"
 
@@ -21,31 +21,7 @@ using namespace tools::utils;
 using namespace tools::agency;
 
 namespace tools::agency::agents {
-
-    template<typename T>
-    class UserAgentConfig: public AgentConfig<T> {
-    public:
-        UserAgentConfig(
-            Owns& owns,
-            void* agency,
-            PackQueue<T>& queue,
-            const string& name, 
-            vector<string> recipients, // TODO: to config, and have to be able to change/see message package targets
-            // Agency<T>& agency, 
-            UserAgentInterface<T>& interface
-        ):
-            AgentConfig<T>(owns, agency, queue, name, recipients),
-            interface(interface)
-        {}
-
-        virtual ~UserAgentConfig() {}
-
-        UserAgentInterface<T>& getInterfaceRef() { return interface; }
-
-    private:
-        UserAgentInterface<T>& interface;
-    };
-
+    
     template<typename T>
     class UserAgent: public Agent<T> {
     public:
@@ -53,28 +29,30 @@ namespace tools::agency::agents {
         // TODO: make configurable:
         atomic<bool> text_input_echo = true;
 
-        UserAgent(UserAgentConfig<T> config
-            // PackQueue<T>& queue,
-            // const string& name, 
-            // vector<string> recipients, // TODO: to config, and have to be able to change/see message package targets
+        UserAgent(
+            Owns& owns,
+            Worker<T>* agency,
+            PackQueue<T>& queue,
+            const string& name, 
+            vector<string> recipients, // TODO: to config, and have to be able to change/see message package targets
             // Agency<T>& agency, 
-            // UserAgentInterface<T>& interface
+            UserAgentInterface<T>& interface
         ): 
-            Agent<T>(config), 
-            agency(*(Agency<T>*)safe(config.getAgencyPtr())),
-            interface(config.getInterfaceRef())
+            Agent<T>(owns, agency, queue, name, recipients), 
+            interface(interface)
         {
             interface.setUser(this);
         }
 
         virtual ~UserAgent() {}
 
-        string type() const override { return "user"; }
-
         UserAgentInterface<T>& getInterfaceRef() { return interface; }
 
+
+        string type() const override { return "user"; }
+
         void tick() override {
-            if (agency.isClosing()) {
+            if (this->getAgencyPtr()->isClosing()) {
                 sleep_ms(100);
                 return;
             }
@@ -82,7 +60,7 @@ namespace tools::agency::agents {
             if (interface.readln(input)) this->exit();
             if (trim(input).empty()) return;
             else if (str_starts_with(input, "/")) { // TODO: add is_command(input) as a command matcher (regex or callback fn) instead just test for "/"
-                interface.getCommanderRef().runCommand(&agency, input); 
+                interface.getCommanderRef().runCommand(this->agency, input); 
             } else {
                 if (text_input_echo) {
                     interface.clearln();
@@ -101,7 +79,6 @@ namespace tools::agency::agents {
         }
 
     private:
-        Agency<T>& agency;
         UserAgentInterface<T>& interface;
     };
     

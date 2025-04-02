@@ -2,8 +2,8 @@
 
 #include <string>
 
-// #include "../../voice/TTS.hpp"
-// #include "../Agent.hpp"
+#include "../../voice/TTS.hpp"
+#include "../Agent.hpp"
 // #include "UserAgent.hpp"
 #include "../../chat/Chatbot.hpp"
 
@@ -15,48 +15,28 @@ using namespace tools::chat;
 using namespace std;
 
 namespace tools::agency::agents {
-
+    
     template<typename T>
-    class ChatbotAgentConfig: public AgentConfig<T> {
+    class ChatbotAgent: public Agent<T> {
     public:
-        ChatbotAgentConfig(
+        ChatbotAgent(
             Owns& owns,
-            void* agency,
+            Worker<T>* agency,
             PackQueue<T>& queue,
             const string& name,
             vector<string> recipients,
             void* chatbot
-        ):
-            AgentConfig<T>(owns, agency, queue, name, recipients),
-            chatbot(chatbot)
-        {}
-        
-        virtual ~ChatbotAgentConfig() {}
-
-        void* getChatbotPtr() { return chatbot; }
-
-    private:
-        void* chatbot;
-    };
-
-    template<typename T>
-    class ChatbotAgent: public Agent<T> {
-    public:
-        ChatbotAgent(ChatbotAgentConfig<T>& config
-            // Owns& owns,
-            // PackQueue<T>& queue,
-            // const string& name,
-            // vector<string> recipients,
-            // Chatbot* chatbot
         ): 
-            owns(config.getOwnsRef()),
-            Agent<T>(config),
-            chatbot(owns.reserve(this, config.getChatbotPtr(), FILELN))
+            Agent<T>(owns, agency, queue, name, recipients),
+            chatbot(owns.reserve(this, chatbot, FILELN))
         {}
 
         virtual ~ChatbotAgent() {
-            owns.release(this, chatbot);
+            this->owns.release(this, chatbot);
         }
+
+        void* getChatbotPtr() { return chatbot; }
+
 
         string type() const override { return "chat"; }
 
@@ -66,7 +46,6 @@ namespace tools::agency::agents {
         }
 
     private:
-        Owns& owns;
         void* chatbot = nullptr;
     };
     

@@ -4,6 +4,7 @@
 
 namespace tools::agency {
 
+    // TODO: deprecated
     template<typename T>
     class PackQueueHolder { // TODO: once each agent get an agency reference this class may not needed anymore
     public:

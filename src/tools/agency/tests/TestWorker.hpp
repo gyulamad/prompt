@@ -1,13 +1,13 @@
 #pragma once
 
-// #include "../Agent.hpp"
+// #include "../Worker.hpp"
 
 // using namespace tools::agency;
 
 template<typename T>
-class TestAgent: public Agent<T> {
+class TestWorker: public Worker<T> {
 public:
-    using Agent<T>::Agent;
+    using Worker<T>::Worker;
 
     string type() const override { return "test"; }
 
@@ -21,7 +21,7 @@ public:
         this->send(item);
     }
     // void send(const string& recipient, const T& item) {
-    //     Agent<T>::send(recipient, item);
+    //     Worker<T>::send(recipient, item);
     // }
 
     void testSend(const vector<string>& recipients, const T& item) {
@@ -29,7 +29,7 @@ public:
         this->send(item);
     }
     // void send(const vector<string>& recipients, const T& item) {
-    //     Agent<T>::send(recipients, item);
+    //     Worker<T>::send(recipients, item);
     // }
 
 

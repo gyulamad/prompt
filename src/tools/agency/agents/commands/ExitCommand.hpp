@@ -6,7 +6,7 @@
 #include "../../../cmd/Usage.hpp"
 #include "../../../cmd/Parameter.hpp"
 #include "../../../cmd/Command.hpp"
-#include "../Agency.hpp"
+#include "../../Agency.hpp"
 
 using namespace std;
 using namespace tools::cmd;
@@ -44,7 +44,7 @@ namespace tools::agency::agents::commands {
             NULLCHK(agency_void);
             Agency<T>& agency = *(Agency<T>*)agency_void;
 
-            agency.template getAgentRef<UserAgent<T>>("user").exit();
+            agency.template getWorkerRef<UserAgent<T>>("user").exit();
         }
     };
     

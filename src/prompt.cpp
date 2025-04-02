@@ -4,7 +4,7 @@
 
 #include "tools/utils/ERROR.hpp"
 #include "tools/utils/Test.hpp"
-#include "tools/utils/Factory.hpp"
+#include "tools/utils/Owns.hpp"
 #include "tools/utils/files.hpp"
 #include "tools/utils/Settings.hpp"
 #include "tools/utils/JSON.hpp"
@@ -15,8 +15,9 @@
 #include "tools/voice/WhisperTranscriberSTTSwitch.hpp"
 #include "tools/containers/in_array.hpp"
 
-#include "tools/agency/Agent.hpp"
-#include "tools/agency/agents/Agency.hpp"
+// #include "tools/agency/Agent.hpp"
+#include "tools/agency/Agency.hpp"
+
 #include "tools/agency/agents/ChatbotAgent.hpp"
 #include "tools/agency/agents/TalkbotAgent.hpp"
 // #include "tools/agency/agents/EchoAgent.hpp"
@@ -149,8 +150,7 @@ int safe_main(int argc, char* argv[]) {
 
         PackQueue<PackT> queue;
 
-        AgencyConfig<PackT> agencyConfig(owns, queue, "agency", { "user" });
-        Agency<PackT> agency(agencyConfig);
+        Agency<PackT> agency(owns, queue, "agency", { "user" });
 
         CommandFactory cfactory;
         InputPipeInterceptor interceptor;
@@ -204,15 +204,14 @@ int safe_main(int argc, char* argv[]) {
                         history,
                         printer
                     );
-                    ChatbotAgentConfig<PackT> chatbotAgentConfig(
+                    return agency.template spawn<ChatbotAgent<PackT>>(
                         owns,
                         &agency,
-                        agency.queue,
+                        queue,
                         name, 
                         recipients, 
                         chatbot
                     );
-                    return agency.template spawn<ChatbotAgent<PackT>>(chatbotAgentConfig);
                 },
 
             },
@@ -233,15 +232,14 @@ int safe_main(int argc, char* argv[]) {
                         sentences, // TODO: create it, do not use the same sentences object at each chatbot!!
                         tts // TODO: tts also should be separated. (different tone/speed or even different kind of speach syntheser)
                     );
-                    TalkbotAgentConfig<PackT> talkbotAgentConfig(
+                    return agency.template spawn<TalkbotAgent<PackT>>(
                         owns,
                         &agency,
-                        agency.queue, 
+                        queue, 
                         name, 
                         recipients, 
                         talkbot
                     );
-                    return agency.template spawn<TalkbotAgent<PackT>>(talkbotAgentConfig);
                 },
             },
         };
@@ -281,24 +279,23 @@ int safe_main(int argc, char* argv[]) {
         
         string name = "talk";
         vector<string> recipients = { "user" };
-        TalkbotAgentConfig<string> talkbotAgentConfig(
+        agency.template spawn<TalkbotAgent<PackT>>(
             owns,
             &agency,
-            agency.queue,
-            name, recipients,
+            queue,
+            name, 
+            recipients,
             talkbot
-        );
-        agency.template spawn<TalkbotAgent<PackT>>(talkbotAgentConfig).async();
+        ).async();
         string uname = "user";
         vector<string> urecipients = { "talk" };
-        UserAgentConfig<PackT> userAgentConfig(
+        agency.template spawn<UserAgent<PackT>>(
             owns,
             &agency,
-            agency.queue,
+            queue,
             uname, urecipients,
             interface
-        );
-        agency.template spawn<UserAgent<PackT>>(userAgentConfig).async();
+        ).async();
         //cout << "Agency started" << endl;
         agency.sync();
 

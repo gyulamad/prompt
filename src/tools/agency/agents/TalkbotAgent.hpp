@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "../Agent.hpp"
 #include "../../chat/Talkbot.hpp"
 
 using namespace tools::chat;
@@ -9,51 +10,30 @@ using namespace tools::chat;
 using namespace std;
 
 namespace tools::agency::agents {
-
-    template<typename T>
-    class TalkbotAgentConfig: public AgentConfig<T> { // TODO extends Agent::Config ???
-    public:
-        TalkbotAgentConfig(
-            Owns& owns,
-            void* agency,
-            PackQueue<T>& queue,
-            const string& name,
-            vector<string> recipients,
-            void* talkbot
-        ):
-            talkbot(talkbot),
-            AgentConfig<T>(owns, agency, queue, name, recipients)
-        {}
-
-        virtual ~TalkbotAgentConfig() {}
-
-        void* getTalkbotPtr() { return talkbot; }
-
-    private:
-        void* talkbot = nullptr;
-    };
-
+    
     template<typename T>
     class TalkbotAgent: public Agent<T> {
     public:
 
-        TalkbotAgent(TalkbotAgentConfig<T>& config
-            // Owns& owns,
-            // PackQueue<T>& queue,
-            // const string& name,
-            // vector<string> recipients,
-            // Talkbot* talkbot
+        TalkbotAgent(
+            Owns& owns,
+            Worker<T>* agency,
+            PackQueue<T>& queue,
+            const string& name,
+            vector<string> recipients,
+            void* talkbot
         ): 
-            owns(config.getOwnsRef()),
-            Agent<T>(config),
-            talkbot(owns.reserve(this, config.getTalkbotPtr(), FILELN))
-        {
-            // owns.reserve(this, talkbot, FILELN);
-        }
+            owns(owns),
+            Agent<T>(owns, agency, queue, name, recipients),
+            talkbot(owns.reserve(this, talkbot, FILELN))
+        {}
 
         virtual ~TalkbotAgent() {
             owns.release(this, talkbot);
         }
+
+        void* getTalkbotPtr() { return talkbot; }
+
 
         string type() const override { return "talk"; }
 
@@ -107,8 +87,7 @@ void test_TalkbotAgent_reserve() {
         owns, name, history, printer, sentences, tts
     ); // Dummy Talkbot
     PackQueue<string> queue;
-    TalkbotAgentConfig<string> config(owns, nullptr, queue, "talk", {"user"}, talkbot);
-    TalkbotAgent<string> agent(config);
+    TalkbotAgent<string> agent(owns, nullptr, queue, "talk", {"user"}, talkbot);
 }
 
 TEST(test_TalkbotAgent_reserve);

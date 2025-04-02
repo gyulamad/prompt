@@ -8,7 +8,7 @@
 #include "../../../cmd/Usage.hpp"
 #include "../../../cmd/Parameter.hpp"
 #include "../../../cmd/Command.hpp"
-#include "../Agency.hpp"
+#include "../../Agency.hpp"
 
 using namespace std;
 using namespace tools::str;
@@ -84,17 +84,17 @@ namespace tools::agency::agents::commands {
                 targets = explode(",", args[2]);
             } if (asize > 3) throw ERROR("Invalid argument(s).");
             
-            UserAgent<T>& user = agency.template getAgentRef<UserAgent<T>>("user");
+            UserAgent<T>& user = agency.template getWorkerRef<UserAgent<T>>("user");
             vector<string> recipients;
             if (operation != LIST && targets.empty()) throw ERROR("No target(s) provided for operation: " + (args[1]));
             switch (operation) {
             case LIST:
                 recipients = user.findRecipients(asize == 3 ? args[2] : "");
                 user.getInterfaceRef().println(tpl_replace({
-                    { "{{agents}}", agency.dumpAgents(recipients) },
+                    { "{{agents}}", agency.dumpWorkers(recipients) },
                     { "{{found}}", to_string(recipients.size()) },
                     { "{{total}}", to_string(user.findRecipients().size()) },
-                }, Agency<T>::agent_list_tpl));
+                }, Agency<T>::worker_list_tpl));
                 break;
             case SET:
                 user.setRecipients(targets);

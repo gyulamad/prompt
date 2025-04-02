@@ -6,7 +6,7 @@
 #include "../../../cmd/Usage.hpp"
 #include "../../../cmd/Parameter.hpp"
 #include "../../../cmd/Command.hpp"
-#include "../Agency.hpp"
+#include "../../Agency.hpp"
 
 using namespace std;
 using namespace tools::cmd;
@@ -53,14 +53,14 @@ namespace tools::agency::agents::commands {
         void run(void* agency_void, const vector<string>& args) override {
             NULLCHK(agency_void);
             Agency<T>& agency = *(Agency<T>*)agency_void;
-            vector<string> agents = agency.findAgents(args.size() >= 2 ? args[1] : "");
-            agency.template getAgentRef<UserAgent<T>>("user")
+            vector<string> agents = agency.findWorkers(args.size() >= 2 ? args[1] : "");
+            agency.template getWorkerRef<UserAgent<T>>("user")
                 .getInterfaceRef()
                 .println(tpl_replace({
-                    { "{{agents}}", agency.dumpAgents(agents) },
+                    { "{{workers}}", agency.dumpWorkers(agents) },
                     { "{{found}}", to_string(agents.size()) },
-                    { "{{total}}", to_string(agency.findAgents().size()) },
-                }, Agency<T>::agent_list_tpl));
+                    { "{{total}}", to_string(agency.findWorkers().size()) },
+                }, Agency<T>::worker_list_tpl));
                 
             // vector<Agent<T>*> agents = agency.getAgentsCRef();
             // cout << "List of agents:" << endl;
