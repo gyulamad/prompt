@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../NoiseMonitor.hpp"
-
 using namespace tools::voice;
 
 class MockNoiseMonitor_with_public_calculate_rms: public NoiseMonitor {

@@ -1,0 +1,7 @@
+{
+    "gemini": {
+        "secret": "__GEMINI_API_KEY__",
+        "variant": "gemini-1.5-flash-8b",
+        "timeout": 30000
+    }
+}

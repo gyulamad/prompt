@@ -64,59 +64,8 @@ int safe_main(int argc, char* argv[]) {
         )));
         Settings settings(args, conf);
 
-        // -----------------------------------------------------------
-        // -----------------------------------------------------------
-        // -----------------------------------------------------------
-
-        // const string prompt = "> ";
-        // const string lang = "hu";
-
-
-        // const string command_list_history_path = "cline_history.log";
-        // const bool command_list_multi_line = true;
-        // const size_t command_list_history_max_length = 0;
-        // const vector<string> command_factory_commands = {
-        //     "help", "exit", "list", "spawn", "kill", "voice", "target"
-        // };
-
-        // const string whisper_model_path = "libs/ggerganov/whisper.cpp/models/ggml-base-q8_0.bin";
-
-        const double stt_voice_recorder_sample_rate = 16000;
-        const unsigned long stt_voice_recorder_frames_per_buffer = 512;
-        const size_t stt_voice_recorder_buffer_seconds = 5;
-        const float stt_noise_monitor_threshold_pc = 0.1;
-        const float stt_noise_monitor_rmax_decay_pc = 0.0;
-        const size_t stt_noise_monitor_window = 16384;
-        const long stt_poll_interval_ms = 30;
-
-        const bool chatbot_use_start_token = false;
-        const bool talkbot_use_start_token = false;
-        const vector<string> talkbot_sentence_separators = {".", "!", "?"};
-        const long talkbot_sentences_max_buffer_size = 1024*1024;
-
-        const string gemini_secret = "AIzaSyDabZvXQNSyDYAcivoaKhSWhRmu9Q6hMh4";
-        const string gemini_variant = "gemini-1.5-flash-8b";
-        const long gemini_timeout = 30000;
-
-        const int tts_speed = 200;
-        const int tts_gap = 0;
-        const string tts_beep_cmd = "sox -v 0.03 beep.wav -t wav - | aplay -q -N";
-        const string tts_think_cmd = "find sounds/r2d2/ -name \"*.wav\" | shuf -n 1 | xargs -I {} bash -c 'sox -v 0.01 \"{}\" -t wav - | aplay -q -N'";
-        const map<string, string> tts_speak_replacements = {
-            { "...", "\n.\n.\n.\n" },
-            { "***", "\n.\n.\n.\n" },
-            { "**", "\n.\n.\n" },
-            { "*", "\n.\n" },
-            { "'", "" },
-        };
-
-        // ----
-        const string linenoise_prompt = settings.get<string>("prompt");
-        // const string command_list_prompt = settings.get<string>("prompt");
-        const string chatbot_history_prompt = settings.get<string>("prompt");
-        const string talkbot_history_prompt = settings.get<string>("prompt");
-        const string tts_lang = settings.get<string>("lang");
-        const string whisper_lang = settings.get<string>("lang");
+        // config overrider
+        settings.extends(JSON(file_get_contents(basedir + "/gemini.config.json")));
 
 
         // -----------------------------------------------------------
@@ -129,23 +78,23 @@ int safe_main(int argc, char* argv[]) {
         
         Process process;
         ESpeakTTSAdapter tts(
-            tts_lang,
-            tts_speed, //int speed, 
-            tts_gap, //int gap,
-            tts_beep_cmd, //const string& beep_cmd,
-            tts_think_cmd, //const string& think_cmd,
-            tts_speak_replacements,
+            settings.get<string>("lang"),
+            settings.get<int>("tts.speed"), // tts_speed, //int speed, 
+            settings.get<int>("tts.gap"), // tts_gap, //int gap,
+            settings.get<string>("tts.beep_cmd"), // tts_beep_cmd, //const string& beep_cmd,
+            settings.get<string>("tts.think_cmd"), // tts_think_cmd, //const string& think_cmd,
+            settings.get<map<string, string>>("tts.speak_replacements"), // tts_speak_replacements,
             &process //Process* process = nullptr
         );
 
         Printer printer;
         
         BasicSentenceSeparation separator(
-            talkbot_sentence_separators
+            settings.get<vector<string>>("talkbot.sentence_separators") // talkbot_sentence_separators
         );
         SentenceStream sentences(
             separator, 
-            talkbot_sentences_max_buffer_size
+            settings.get<size_t>("talkbot.sentences_max_buffer_size") // talkbot_sentences_max_buffer_size
         );
 
         PackQueue<PackT> queue;
@@ -156,7 +105,7 @@ int safe_main(int argc, char* argv[]) {
         InputPipeInterceptor interceptor;
 
         LinenoiseAdapter editor(
-            linenoise_prompt, 
+            settings.get<string>("prompt"), 
             interceptor.getPipeFileDescriptorAt(STDIN_FILENO)
         );
         CommandLine cline(
@@ -171,13 +120,13 @@ int safe_main(int argc, char* argv[]) {
         WhisperTranscriberSTTSwitch stt_switch(
             settings.get<string>("whisper.model_path"), // whisper_model_path,
             settings.get<string>("lang"),
-            stt_voice_recorder_sample_rate,
-            stt_voice_recorder_frames_per_buffer,
-            stt_voice_recorder_buffer_seconds,
-            stt_noise_monitor_threshold_pc,
-            stt_noise_monitor_rmax_decay_pc,
-            stt_noise_monitor_window,
-            stt_poll_interval_ms
+            settings.get<double>("stt.voice_recorder.sample_rate"), // stt_voice_recorder_sample_rate,
+            settings.get<unsigned long>("stt.voice_recorder.frames_per_buffer"), // stt_voice_recorder_frames_per_buffer,
+            settings.get<size_t>("stt.voice_recorder.buffer_seconds"), // stt_voice_recorder_buffer_seconds,
+            settings.get<float>("stt.noise_monitor.threshold_pc"), // stt_noise_monitor_threshold_pc,
+            settings.get<float>("stt.noise_monitor.rmax_decay_pc"), // stt_noise_monitor_rmax_decay_pc,
+            settings.get<size_t>("stt.noise_monitor.window"), // stt_noise_monitor_window,
+            settings.get<long>("stt.poll_interval_ms") // stt_poll_interval_ms
         );
         MicView micView;
 
@@ -192,14 +141,14 @@ int safe_main(int argc, char* argv[]) {
             {
                 "chat", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
                     ChatHistory* history = owns.allocate<ChatHistory>(
-                        chatbot_history_prompt,
-                        chatbot_use_start_token
+                        settings.get<string>("prompt"),
+                        settings.get<bool>("chatbot.use_start_token") // chatbot_use_start_token
                     );
                     GeminiChatbot* chatbot = owns.allocate<GeminiChatbot>(
                         owns,
-                        gemini_secret,
-                        gemini_variant,
-                        gemini_timeout,
+                        settings.get<string>("gemini.secret"), // gemini_secret,
+                        settings.get<string>("gemini.variant"), // gemini_variant,
+                        settings.get<long>("gemini.timeout"), // gemini_timeout,
                         "gemini",
                         history,
                         printer
@@ -218,14 +167,14 @@ int safe_main(int argc, char* argv[]) {
             {
                 "talk", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
                     ChatHistory* history = owns.allocate<ChatHistory>(
-                        talkbot_history_prompt,
-                        talkbot_use_start_token
+                        settings.get<string>("prompt"),
+                        settings.get<bool>("talkbot.use_start_token") // talkbot_use_start_token
                     );
                     GeminiTalkbot* talkbot = owns.allocate<GeminiTalkbot>(
                         owns,
-                        gemini_secret,
-                        gemini_variant,
-                        gemini_timeout,
+                        settings.get<string>("gemini.secret"), // gemini_secret,
+                        settings.get<string>("gemini.variant"), // gemini_variant,
+                        settings.get<long>("gemini.timeout"), // gemini_timeout,
                         "gemini",
                         history,
                         printer,
@@ -262,14 +211,14 @@ int safe_main(int argc, char* argv[]) {
         // interface_ptr = &interface;
 
         ChatHistory* history = owns.allocate<ChatHistory>(
-            talkbot_history_prompt,
-            talkbot_use_start_token
+            settings.get<string>("prompt"),
+            settings.get<bool>("talkbot.use_start_token") // talkbot_use_start_token
         );
         GeminiTalkbot* talkbot = owns.allocate<GeminiTalkbot>( // TODO: parameters from config to config always and for everywhere!!
             owns,
-            gemini_secret,
-            gemini_variant,
-            gemini_timeout,
+            settings.get<string>("gemini.secret"), // gemini_secret,
+            settings.get<string>("gemini.variant"), // gemini_variant,
+            settings.get<long>("gemini.timeout"), // gemini_timeout,
             "gemini",
             history,
             printer,

@@ -8,6 +8,49 @@ using namespace tools::str;
 
 namespace tools::utils {
 
+    class JSONExts {
+    public:
+    
+        void extends(JSON ext) {
+            exts.emplace(exts.begin(), ext);
+        }
+    
+        template<typename T>
+        T get(string jselector) const {
+            for (const JSON& ext: exts)
+                if (ext.has(jselector))
+                    return ext.get<T>(jselector);
+            throw ERROR("No value at '" + jselector + "'");
+        }
+    
+        bool has(string jselector) const {
+            for (const JSON& ext: exts)
+                if (ext.has(jselector))
+                    return true;
+            return false;
+        }
+    
+        template<typename T>
+        void set(string jselector, T value) {
+            if (exts.empty()) exts.push_back(JSON("{}"));
+            exts[0].set(jselector, value);
+        }
+
+        bool empty() const {
+            return exts.empty();
+        }
+
+        string dump(const int indent = -1, const char indent_char = ' ') const {
+            vector<string> dumps;
+            for (const JSON& ext: exts)
+                dumps.push_back(ext.dump(indent, indent_char));
+            return "[" + implode(",", dumps) + "]";
+        }
+    
+    private:
+        vector<JSON> exts;
+    };
+
     class Settings {
     public:
     
@@ -16,22 +59,29 @@ namespace tools::utils {
         Settings(Arguments& args): args(&args) {}
         Settings(JSON& conf, Arguments& args): args(&args), conf(&conf) {}
         Settings(Arguments& args, JSON& conf): args(&args), conf(&conf) {}
+
+        void extends(JSON ext) {
+            exts.extends(ext);
+        }
     
         string hash() const { 
             return get_hash(
+                (!exts.empty() ? exts.dump() : "<noexts>") +
                 (conf ? conf->dump() : "<noconf>") + 
                 (args ? implode(" ", args->getArgsCRef()) : "<noargs>")
             );
         }
     
-        bool has(const string& key) {
+        bool has(const string& key) {            
             if (args && args->has(key)) return true;
+            if (!exts.empty() && exts.has(key)) return true;
             if (conf && conf->has(key)) return true;
             return false;
         }
     
         bool has(const pair<string, string>& keys) {
             if (args && args->has(keys)) return true;
+            if (!exts.empty() && exts.has(keys.first)) return true;
             if (conf && conf->has(keys.first)) return true;
             return false;
         }
@@ -39,6 +89,7 @@ namespace tools::utils {
         template<typename T>
         T get(const string& key) {
             if constexpr (!is_container<T>::value) if (args && args->has(key)) return args->get<T>(key);
+            if (!exts.empty() && exts.has(key)) return exts.get<T>(key);
             if (conf && conf->has(key)) return conf->get<T>(key);
             throw ERROR("Settings is missing for '" + key + "'");
         }
@@ -46,6 +97,7 @@ namespace tools::utils {
         template<typename T>
         T get(const string& key, const T defval) {
             if constexpr (!is_container<T>::value) if (args && args->has(key)) return args->get<T>(key);
+            if (!exts.empty() && exts.has(key)) return exts.get<T>(key);
             if (conf && conf->has(key)) return conf->get<T>(key);
             return defval;
         }
@@ -53,6 +105,7 @@ namespace tools::utils {
         template<typename T>
         T get(const pair<string, string>& keys) {
             if constexpr (!is_container<T>::value) if (args && args->has(keys)) return args->get<T>(keys);
+            if (!exts.empty() && exts.has(keys.first)) return exts.get<T>(keys.first);
             if (conf && conf->has(keys.first)) return conf->get<T>(keys.first);
             throw ERROR("Settings is missing for '" + keys.first + "' (or '" + keys.second + "')");
         }
@@ -60,12 +113,14 @@ namespace tools::utils {
         template<typename T>
         T get(const pair<string, string>& keys, const T defval) {
             if constexpr (!is_container<T>::value) if (args && args->has(keys)) return args->get<T>(keys);
+            if (!exts.empty() && exts.has(keys.first)) return exts.get<T>(keys.first);
             if (conf && conf->has(keys.first)) return conf->get<T>(keys.first);
             return defval;
         }
     
         Arguments* args = nullptr;
         JSON* conf = nullptr;
+        JSONExts exts;
     
     private:
     
