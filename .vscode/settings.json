@@ -87,7 +87,8 @@
         "coroutine": "cpp",
         "*.inc": "cpp",
         "filesystem": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "mockspeechlistenerwithpublic_noise_cb": "cpp"
     },
     "editor.rulers": [80]
 }

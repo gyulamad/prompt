@@ -33,7 +33,9 @@ namespace tools::voice {
         // void resume() {
         //     monitor.resume();
         // }   
-    // TODO private
+
+    protected:
+
         static void noise_cb(
             void* listener, 
             float vol_pc, 
@@ -53,7 +55,6 @@ namespace tools::voice {
         };
 
         
-    protected:
         RMSCallback rms_cb = nullptr;
         SpeechCallback speech_cb = nullptr;
 
@@ -73,6 +74,7 @@ namespace tools::voice {
 #include "../utils/Test.hpp"
 
 #include "tests/MockNoiseMonitor.hpp"
+#include "tests/MockSpeechListenerWithPublic_noise_cb"
 
 using namespace tools::voice;
 
@@ -130,7 +132,7 @@ void test_SpeechListener_noise_cb_speech_detection() {
         vector<float> buffer(1024, 1.0f); // Non-zero values to simulate noise
         
         // First call: noisy (should add to record)
-        SpeechListener::noise_cb(
+        MockSpeechListenerWithPublic_noise_cb::public_noise_cb(
             &listener,
             0.2f,      // vol_pc
             0.1f,      // threshold_pc
@@ -142,7 +144,7 @@ void test_SpeechListener_noise_cb_speech_detection() {
         );
         
         // Second call: not noisy (should trigger speech callback)
-        SpeechListener::noise_cb(
+        MockSpeechListenerWithPublic_noise_cb::public_noise_cb(
             &listener,
             0.05f,     // vol_pc
             0.1f,      // threshold_pc
@@ -180,17 +182,17 @@ void test_SpeechListener_noise_cb_continuous_noise() {
         vector<float> buffer(1024, 1.0f);
         
         // Simulate continuous noise
-        SpeechListener::noise_cb(
+        MockSpeechListenerWithPublic_noise_cb::public_noise_cb(
             &listener,
             0.2f, true, 1.0f, 0.5f, true, buffer, false
         );
-        SpeechListener::noise_cb(
+        MockSpeechListenerWithPublic_noise_cb::public_noise_cb(
             &listener,
             0.2f, true, 1.0f, 0.5f, true, buffer, false
         );
         
         // Then silence
-        SpeechListener::noise_cb(
+        MockSpeechListenerWithPublic_noise_cb::public_noise_cb(
             &listener,
             0.05f, true, 1.0f, 0.5f, false, buffer, false
         );
