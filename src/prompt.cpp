@@ -170,7 +170,8 @@ int safe_main(int argc, char* argv[]) {
                         queue,
                         name, 
                         recipients, 
-                        chatbot
+                        chatbot,
+                        interface
                     );
                 },
 

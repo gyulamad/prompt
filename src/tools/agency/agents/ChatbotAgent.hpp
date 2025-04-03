@@ -6,13 +6,16 @@
 #include "../Agent.hpp"
 // #include "UserAgent.hpp"
 #include "../../chat/Chatbot.hpp"
+// #include "../../abstracts/UserInterface.hpp"
+#include "UserAgentInterface.hpp"
+
+using namespace std;
 
 // using namespace tools::abstracts;
 // using namespace tools::voice;
 // using namespace tools::agency;
 using namespace tools::chat;
-
-using namespace std;
+// using namespace tools::abstracts;
 
 namespace tools::agency::agents {
     
@@ -25,10 +28,12 @@ namespace tools::agency::agents {
             PackQueue<T>& queue,
             const string& name,
             vector<string> recipients,
-            void* chatbot
+            void* chatbot,
+            UserAgentInterface<T>& interface
         ): 
             Agent<T>(owns, agency, queue, name, recipients),
-            chatbot(owns.reserve(this, chatbot, FILELN))
+            chatbot(owns.reserve<Chatbot>(this, chatbot, FILELN)),
+            interface(interface)
         {}
 
         virtual ~ChatbotAgent() {
@@ -41,12 +46,25 @@ namespace tools::agency::agents {
         string type() const override { return "chat"; }
 
         void handle(const string& sender, const T& item) override {
+
+            interface.getCommanderRef().getCommandLineRef().setPromptVisible(false);
+
+            bool interrupted;
+            string response = safe(chatbot)->chat(sender, item, interrupted);
+
+            if (interrupted) {
+                DEBUG("[[[---CHAT INTERRUPTED BY USER---]]] (DBG)"); // TODO interrupt next, now
+            }
+
             this->addRecipients({ sender });
-            this->send(((Chatbot*)chatbot)->chat(sender, item));
+            this->send(response);
+
+            interface.getCommanderRef().getCommandLineRef().setPromptVisible(true);
         }
 
     private:
-        void* chatbot = nullptr;
+        Chatbot* chatbot = nullptr;
+        UserAgentInterface<T>& interface;
     };
     
 }

@@ -13,7 +13,7 @@
 #include "../str/json_escape.hpp"
 #include "../utils/Curl.hpp"
 #include "../utils/JSON.hpp"
-#include "../chat/Chatbot.hpp"
+#include "../chat/Talkbot.hpp"
 
 using namespace tools::str;
 using namespace tools::utils;
@@ -37,7 +37,7 @@ namespace tools::ai {
 
     protected:
 
-        string chat(Chatbot& chatbot, const string& sender, const string& text) {
+        string chat(Chatbot& chatbot, const string& sender, const string& text, bool& interrupted) {
             Curl curl;
             curl.AddHeader("Content-Type: application/json");
             curl.AddHeader("Accept: application/json");
@@ -47,10 +47,13 @@ namespace tools::ai {
             string url = "https://generativelanguage.googleapis.com/v1beta/models/" 
                 + variant + ":streamGenerateContent?alt=sse&key=" + escape(secret);            
     
-            ((ChatHistory*)chatbot.getHistoryPtr())->append(sender, text);
+            ChatHistory& history = *safe((ChatHistory*)chatbot.getHistoryPtr());
+            
+            history.append(sender, text);
+
             string data = tpl_replace({
-                { "{{history}}", json_escape(((ChatHistory*)chatbot.getHistoryPtr())->toString()) }, 
-                { "{{start}}", json_escape(((ChatHistory*)chatbot.getHistoryPtr())->startToken(chatbot.name)) },
+                { "{{history}}", json_escape(history.toString()) }, 
+                { "{{start}}", json_escape(history.startToken(chatbot.name)) },
             }, R"({
                 "contents": [{
                     "parts": [{
@@ -61,24 +64,32 @@ namespace tools::ai {
             
             // TODO: if error happens because the rate limit, check all the variant (from API endpoint), and pick the next suitable
             string response;
-            if (!curl.POST(url, [&](const string& chunk) {
-                // Process SSE events
-                vector<string> splits = explode("\r\n\r\n", chunk);
-                for (const string& split : splits) {
-                    string trm = trim(split);
-                    if (trm.empty()) continue;
-                    if (!str_starts_with(trm, "data:")) throw ERROR("Invalid SSE response: " + trm);
-                    vector<string> parts = explode("data: ", trm);
-                    if (parts.size() < 2) throw ERROR("Invalid SSE data: " + trm);
-                    JSON json(parts[1]);
-                    if (json.isDefined("error")) throw ERROR("Gemini error: " + json.dump());
-                    if (!json.isDefined("candidates[0].content.parts[0].text")) throw ERROR("Gemini error: text is not defined: " + json.dump());
-                    string text = json.get<string>("candidates[0].content.parts[0].text");
-    
-                    response += chatbot.chunk(text);
-                }
-            }, data)) throw ERROR("Error requesting Gemini API");        
-            ((ChatHistory*)chatbot.getHistoryPtr())->append(chatbot.name, chatbot.response(response));
+            interrupted = false;
+            try {
+                if (!curl.POST(url, [&](const string& chunk) {
+                    // Process SSE events
+                    vector<string> splits = explode("\r\n\r\n", chunk);
+                    for (const string& split : splits) {
+                        string trm = trim(split);
+                        if (trm.empty()) continue;
+                        if (!str_starts_with(trm, "data:")) throw ERROR("Invalid SSE response: " + trm);
+                        vector<string> parts = explode("data: ", trm);
+                        if (parts.size() < 2) throw ERROR("Invalid SSE data: " + trm);
+                        JSON json(parts[1]);
+                        if (json.isDefined("error")) throw ERROR("Gemini error: " + json.dump());
+                        if (!json.isDefined("candidates[0].content.parts[0].text")) throw ERROR("Gemini error: text is not defined: " + json.dump());
+                        string text = json.get<string>("candidates[0].content.parts[0].text");
+        
+                        response += chatbot.chunk(text);
+                    }
+                }, data)) throw ERROR("Error requesting Gemini API"); 
+            } catch (Talkbot::cancel&) {
+                interrupted = true;
+            }
+
+            history.append(chatbot.name, chatbot.response(response));
+            if (interrupted) history.append(sender, "['" + chatbot.name + "' interrupted by '" + sender + "']");
+
             return response;
         }
 

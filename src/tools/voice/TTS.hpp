@@ -6,14 +6,16 @@
 #include "../str/escape.hpp"
 #include "../str/str_contains.hpp"
 #include "../utils/Process.hpp"
+#include "../abstracts/Closable.hpp"
 
 using namespace std;
 using namespace tools::str;
 using namespace tools::utils;
+using namespace tools::abstracts;
 
 namespace tools::voice {
 
-    class TTS {
+    class TTS: public Closable {
     private:
         // atomic<bool> paused{true};
         string lang;
@@ -42,10 +44,27 @@ namespace tools::voice {
             speak_replacements(speak_replacements),
             proc(process ? process : new Process()),
             owns_proc(process == nullptr)
-        {}
+        {
+            t = thread([&]() {
+                while (!closing) {
+                    // set pause_ends_at to a ms_t timepoint to timeout a resume
+                    // set pause_ends_at to 0 to pause indefinitely
+                    while (!pause_ends_at || get_time_ms() <= pause_ends_at) {
+                        sleep_ms(100);
+                        if (closing) return;
+                    }
+                    pause_ends_at = 0;
+                    speak_resume();
+                }
+            });
+        }
+
+        thread t;
         
         virtual ~TTS() {
             speak_stop();
+            this->close();
+            if (t.joinable()) t.join();
             if (owns_proc && proc) delete proc; // Only delete if TTS owns it
         }
 
@@ -69,6 +88,7 @@ namespace tools::voice {
                 + (beep && !beep_cmd.empty() ? " && " + beep_cmd : "")
                 + (async ? "" : " && echo \"[SPEAK-DONE]\"")
             );
+            speak_paused = false;
             if (async) return true;
             bool finished = false;
             while (true) {
@@ -86,23 +106,39 @@ namespace tools::voice {
             if (!beep_cmd.empty()) Process::execute(beep_cmd); // proc.writeln(beep_cmd);
         }
 
-        void speak_pause() {
+        void speak_pause(time_t ms = 0) {
             // Send SIGSTOP to pause the espeak process
-            cout << Process::execute("pkill -STOP espeak") << flush;
+            if (!speak_paused) {
+                cout << Process::execute("pkill -STOP espeak") << flush;
+                speak_paused = true;
+            }
+
+            //if (ms) cout << Process::execute("timeout " + to_string((float)ms / 1000) + "s pkill -CONT espeak") << flush;
+            pause_ends_at = get_time_ms() + ms;
         }
 
         void speak_resume() {
             // Send SIGCONT to continue the espeak process
-            cout << Process::execute("pkill -CONT espeak") << flush;
+            if (speak_paused) { // TODO: thread safe pause!!
+                cout << Process::execute("pkill -CONT espeak") << flush;
+                speak_paused = false;
+            }
         }
+
+        //bool is_speak_paused() { return speak_paused; }
+
+        bool speak_paused;
+        time_t pause_ends_at = 0;
+
 
         void speak_stop() {
             cout << Process::execute("pkill -9 espeak") << flush;
             cout << Process::execute("pkill -9 sox") << flush;
+            speak_paused = false;
         }
 
         bool is_speaking() {
-            return is_process_running("espeak");
+            return !speak_paused && is_process_running("espeak");
         }
 
     };

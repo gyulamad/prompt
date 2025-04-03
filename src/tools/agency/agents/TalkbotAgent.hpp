@@ -9,7 +9,7 @@
 
 using namespace std;
 using namespace tools::chat;
-// using namespace tools::abstracts;
+using namespace tools::abstracts;
 
 namespace tools::agency::agents {
     
@@ -24,16 +24,15 @@ namespace tools::agency::agents {
             const string& name,
             vector<string> recipients,
             void* talkbot,
-            UserAgentInterface<T>& interface // TODO: this maybe not needed?
+            UserAgentInterface<T>& interface
         ): 
-            owns(owns),
             Agent<T>(owns, agency, queue, name, recipients),
-            talkbot(owns.reserve(this, talkbot, FILELN)),
+            talkbot(owns.reserve<Talkbot>(this, talkbot, FILELN)),
             interface(interface)
         {}
 
         virtual ~TalkbotAgent() {
-            owns.release(this, talkbot);
+            this->owns.release(this, talkbot);
         }
 
         void* getTalkbotPtr() { return talkbot; }
@@ -50,21 +49,25 @@ namespace tools::agency::agents {
 
             interface.getCommanderRef().getCommandLineRef().setPromptVisible(false);
             
+            bool interrupted;
+            string response = safe(talkbot)->chat(sender, item, interrupted);
+
+            if (interrupted) {
+                DEBUG("[[[---TALK INTERRUPTED BY USER---]]] (DBG)"); // TODO interrupt next, now
+            }
             
-            string response = ((Talkbot*)talkbot)->chat(sender, item);
             // this->removeRecipients({ sender });
             // this->send(response);
 
             // TODO: show/enable input
-            interface.println("[[[---STOP---]]]"); // TODO !@# -- interrupt next, now
+            // DEBUG("[[[---STOP---]]]"); // TODO interrupt next, now
             // interface.show_prompt();
 
             interface.getCommanderRef().getCommandLineRef().setPromptVisible(true);
         }
 
     private:
-        Owns& owns;
-        void* talkbot = nullptr;
+        Talkbot* talkbot = nullptr;
         UserAgentInterface<T>& interface;
     };
     
@@ -82,7 +85,7 @@ using namespace tools::agency::agents;
 class DummyTalkbot: public Talkbot {
 public:
     using Talkbot::Talkbot;
-    string chat(const string& sender, const string& text) override { return ""; }
+    string chat(const string& sender, const string& text, bool& interrupted) override { return ""; }
 };
 
 class DummySentenceSeparation: public SentenceSeparation {

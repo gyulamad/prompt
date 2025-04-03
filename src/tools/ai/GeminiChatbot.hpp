@@ -27,8 +27,8 @@ namespace tools::ai {
             // cout << "GeminiChatbot (" + this->name + ") destruction..." << endl;
         }
     
-        string chat(const string& sender, const string& text) override {
-            return Gemini::chat(*this, sender, text);
+        string chat(const string& sender, const string& text, bool& interrupted) override {
+            return Gemini::chat(*this, sender, text, interrupted);
         }
     };    
 

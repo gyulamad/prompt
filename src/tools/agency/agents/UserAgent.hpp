@@ -71,6 +71,11 @@ namespace tools::agency::agents {
         }
 
         void onInput(T input) {
+            // TODO: <-- !!! voice speach interrupted here?? (or just pause?) !!!
+            interface.getTTSRef().speak_stop();
+            // TTS& tts = interface.getTTSRef();
+            // if (tts.is_speaking()) tts.speak_stop();
+
             // interface.getCommanderRef().getCommandLineRef().setPromptVisible(false);
             this->send(input);
         }

@@ -75,13 +75,13 @@ namespace tools::cmd {
             return exited;
         }
 
-        bool promptVisible = true;
+        atomic<bool> promptVisible = true;
         string prompt;
         void setPromptVisible(bool promptVisible) {
-            if (promptVisible) setPrompt(prompt);
-            else line_editor.setPrompt("");
             // if (this->promptVisible == promptVisible) return;
             this->promptVisible = promptVisible;
+            if (promptVisible) setPrompt(prompt);
+            else line_editor.setPrompt("");
         }
 
         void setPrompt(const string& prompt) {

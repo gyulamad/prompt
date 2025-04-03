@@ -56,6 +56,12 @@ namespace tools::agency::agents {
                 sttSwitch.getSttPtr()->stop();
         }
 
+        TTS& getTTSRef() { return tts; }
+
+        // =================================================================
+        // =================================================================
+        // =================================================================
+
 
     //     virtual void set_prompt_visible(bool prompt_visible) { 
     //         if (this->prompt_visible == prompt_visible) return;
@@ -177,6 +183,10 @@ namespace tools::agency::agents {
                 
                     // recs++;
                     micView.incRecs();
+                    DEBUG("inc recs to:" + to_string(micView.getRecs()));
+                    if (micView.getRecs() >= 1) tts.speak_pause(3000);
+                    if (micView.getRecs() >= 2) tts.speak_stop();
+                    
 
 
                     // DEBUG("record:" + to_string(record.size()));
@@ -225,6 +235,12 @@ namespace tools::agency::agents {
                     bool in_progress = stt->getTranscriberCRef().isInProgress();
                     string out = micView.getView(muted, loud, threshold_pc, vol_pc, rmax, rms, in_progress);
                     commander.getCommandLineRef().setPrompt(out + " ");
+
+                    // interruption check starts...
+                    if (micView.getRecs() >= 1 || vol_pc > threshold_pc && tts.is_speaking()) {
+                        tts.speak_pause(3000);
+                    }
+
                 } catch (const exception& e) {
                     cerr << "Error in RMS callback: " << e.what() << endl;
                 }

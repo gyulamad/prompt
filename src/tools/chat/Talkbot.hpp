@@ -11,6 +11,7 @@ namespace tools::chat {
 
     class Talkbot: public Chatbot {
     public:
+
         Talkbot(
             Owns& owns,
             const string& name, // TODO: do we need name here?
@@ -23,13 +24,27 @@ namespace tools::chat {
             sentences(sentences), tts(tts)
         {}
 
-        virtual ~Talkbot() {}
+        virtual ~Talkbot() {
+            tts.speak_stop();
+        }
     
         string chunk(const string& chunk) override { 
-            Chatbot::chunk(chunk);
+            // Chatbot::chunk(chunk);
             sentences.write(chunk);
-            while (sentences.available()) tell(sentences.read());
-            return chunk;
+            bool interrupted = tts.is_speaking();
+            string told = "";
+            string sentence = "***";
+            while (!(sentence).empty()) {
+                sentence = sentences.read();
+                if (interrupted) continue; 
+                this->printer.print(sentence);          
+                interrupted = !tell(sentence);
+                if (interrupted) continue;
+                told += sentence;
+            };
+            if (interrupted) throw cancel();
+            // return chunk;
+            return told;
         }
     
         string response(const string& response) override { 

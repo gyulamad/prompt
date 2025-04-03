@@ -70,7 +70,7 @@ namespace tools::agency {
             lock_guard<mutex> lock(workers_mtx);
             // WorkerT* worker = new WorkerT(forward<Args>(args)...); // Direct construction
             WorkerT* worker = owns.allocate<WorkerT>(forward<Args>(args)...);
-            owns.reserve(this, worker, FILELN);
+            owns.reserve<void>(this, worker, FILELN);
             // WorkerT* worker = new WorkerT(/*this->queue, name, recipients,*/ forward<Args>(args)...);
             for (const Worker<T>* a: workers)
                 if (worker->name == a->name) {
@@ -84,7 +84,7 @@ namespace tools::agency {
         }
 
         [[nodiscard]]
-        bool kill(const std::string& name) {        
+        bool kill(const string& name) {        
             lock_guard<mutex> lock(workers_mtx);
             bool found = false;   
             for (size_t i = 0; i < workers.size(); i++)

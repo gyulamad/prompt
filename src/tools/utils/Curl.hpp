@@ -31,12 +31,13 @@ namespace tools::utils {
         ~Curl() = default;
 
         struct Context {
-            atomic<bool>* cancelled;  // Pointer to parent's cancellation flag
+            atomic<bool> cancelled{false};
             StreamCallback cb;
             string buffer;
             string upload_data;
             size_t upload_offset = 0;
             char error[CURL_ERROR_SIZE]{};
+            exception_ptr exception;
         };
 
         // === Core Request Method ===
@@ -125,6 +126,11 @@ namespace tools::utils {
             if (headers) curl_slist_free_all(headers);
             curl_easy_cleanup(handle);
 
+            // Rethrow any exception caught during streaming
+            if (ctx->exception) {
+                rethrow_exception(ctx->exception);
+            }
+
             // Final error check
             if (res != CURLE_OK) {
                 cerr << "cURL error (" << res << "): " << ctx->error << "\n";
@@ -139,10 +145,10 @@ namespace tools::utils {
             return true;
         }
 
-        void cancel() {
-            lock_guard<mutex> lock(cancel_mutex);
-            cancelled = true;
-        }
+        // void cancel() {
+        //     lock_guard<mutex> lock(cancel_mutex);
+        //     cancelled = true;
+        // }
 
         // === Convenience Methods ===
         bool GET(
@@ -247,7 +253,7 @@ namespace tools::utils {
         }
 
     private:
-        atomic<bool> cancelled{false};
+        // atomic<bool> cancelled{false};
         mutex cancel_mutex;
         mutex config_mutex;
         mutex headers_mutex;
@@ -276,10 +282,17 @@ namespace tools::utils {
             while ((pos = ctx->buffer.find("\n\n")) != string::npos) {
                 string chunk = ctx->buffer.substr(0, pos+2);
                 ctx->buffer.erase(0, pos+2);
-                ctx->cb(chunk);
+                
+                try {
+                    ctx->cb(chunk);
+                } catch (...) {
+                    ctx->exception = current_exception();
+                    ctx->cancelled = true;  // Treat any exception as a cancellation signal
+                    return 0;  // Abort transfer
+                }
 
                 // Check cancellation flag
-                if (ctx->cancelled && ctx->cancelled->load()) 
+                if (ctx->cancelled.load()) 
                     return 0;  // Abort transfer by returning different size
             }
             

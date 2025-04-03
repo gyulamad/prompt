@@ -11,6 +11,9 @@ namespace tools::chat {
 
     class Chatbot {
     public:
+
+        class cancel: public exception {};
+
         Chatbot(
             Owns& owns,
             const string& name,
@@ -19,7 +22,7 @@ namespace tools::chat {
         ): 
             owns(owns),
             name(name),
-            history(owns.reserve(this, history, FILELN)),
+            history(owns.reserve<void>(this, history, FILELN)),
             printer(printer)
         {}
 
@@ -29,7 +32,7 @@ namespace tools::chat {
             owns.release(this, history);
         }
 
-        virtual string chat(const string& sender, const string& text) = 0;
+        virtual string chat(const string& sender, const string& text, bool& interrupted) = 0;
 
         virtual string chunk(const string& chunk) { 
             printer.print(chunk);

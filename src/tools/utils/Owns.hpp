@@ -36,13 +36,14 @@ namespace tools::utils {
         }
 
         // TODO: shall we be able to adapt non managed pointers? (configurable??)
-        void* reserve(void* owner, void* pointer, string dbgnfo /*= "<untracked>"*/) {
+        template<typename T>
+        T* reserve(void* owner, void* pointer, string dbgnfo /*= "<untracked>"*/) {
             if (dbgnfo.empty()) dbgnfo = "<untracked>";
             if (!managed(pointer))
                 throw ERROR("Cannot reserve unallocated pointer: " + dbgnfo);
             reserves[pointer].owners.insert(owner);
             reserves[pointer].dbgnfos.push_back(dbgnfo);
-            return pointer;
+            return (T*)pointer;
         }
 
         void release(void* owner, void* pointer) {
@@ -113,11 +114,11 @@ void test_Owns_reserve_basic() {
     void* owner1 = reinterpret_cast<void*>(1);
     void* owner2 = reinterpret_cast<void*>(2);
     int* ptr = owns.allocate<int>(42);
-    owns.reserve(owner1, ptr, FILELN);
+    owns.reserve<void>(owner1, ptr, FILELN);
     unordered_map<void*, Owns::ownnfo> reserves = static_cast<OwnsSpy&>(owns).getReserves();
     bool is_tracked = reserves.count(ptr) == 1;
     assert(is_tracked && "Reserve failed to track after allocation");
-    owns.reserve(owner2, ptr, FILELN);
+    owns.reserve<void>(owner2, ptr, FILELN);
     reserves = static_cast<OwnsSpy&>(owns).getReserves(); // Refresh the copy after second reserve
     int owner_count = reserves[ptr].owners.size();
     assert(owner_count == 2 && "Owner count mismatch after second reserve");
@@ -133,7 +134,7 @@ void test_Owns_reserve_unallocated() {
     bool thrown = false;
     string what;
     try {
-        owns.reserve(owner, ptr, FILELN);
+        owns.reserve<void>(owner, ptr, FILELN);
     } catch (exception& e) {
         thrown = true;
         what = e.what();
@@ -148,7 +149,7 @@ void test_Owns_release_single_owner() {
     OwnsSpy owns;
     void* owner = reinterpret_cast<void*>(1);
     int* ptr = owns.allocate<int>(42);
-    owns.reserve(owner, ptr, FILELN);
+    owns.reserve<void>(owner, ptr, FILELN);
     
     owns.release(owner, ptr);
     assert(owns.getReserves().empty() && "Reserve not cleaned up");
@@ -160,8 +161,8 @@ void test_Owns_release_multi_owner() {
     void* owner2 = reinterpret_cast<void*>(2);
     int* ptr = owns.allocate<int>(42);
     
-    owns.reserve(owner1, ptr, FILELN);
-    owns.reserve(owner2, ptr, FILELN);
+    owns.reserve<void>(owner1, ptr, FILELN);
+    owns.reserve<void>(owner2, ptr, FILELN);
     
     owns.release(owner1, ptr);
     unordered_map<void*, Owns::ownnfo> reserves = owns.getReserves();
@@ -176,7 +177,7 @@ void test_Owns_cleanup() {
     OwnsSpy owns;
     void* owner = reinterpret_cast<void*>(1);
     int* ptr = owns.allocate<int>(42);
-    owns.reserve(owner, ptr, FILELN);
+    owns.reserve<void>(owner, ptr, FILELN);
     
     // Before cleanup, reserves should have entries
     bool has_entries = !owns.getReserves().empty();
@@ -201,7 +202,7 @@ void test_Owns_reserve_unmanaged_throws() {
     bool thrown = false;
     string what;
     try {
-        owns.reserve(owner, ptr, FILELN);
+        owns.reserve<void>(owner, ptr, FILELN);
     } catch (exception& e) {
         thrown = true;
         what = e.what();
@@ -239,8 +240,8 @@ void test_Owns_multi_owner_release() {
     void* owner2 = reinterpret_cast<void*>(2);
     int* ptr = owns.allocate<int>(42);
     
-    owns.reserve(owner1, ptr, FILELN);
-    owns.reserve(owner2, ptr, FILELN);
+    owns.reserve<void>(owner1, ptr, FILELN);
+    owns.reserve<void>(owner2, ptr, FILELN);
     
     owns.release(owner1, ptr);
     unordered_map<void*, Owns::ownnfo> reserves = owns.getReserves();
@@ -260,8 +261,8 @@ void test_Owns_multi_owner_reserve() {
         void* owner2 = reinterpret_cast<void*>(2);
         int* ptr = owns.allocate<int>(42);
     
-        owns.reserve(owner1, ptr, FILELN);
-        owns.reserve(owner2, ptr, FILELN); // Should not throw
+        owns.reserve<void>(owner1, ptr, FILELN);
+        owns.reserve<void>(owner2, ptr, FILELN); // Should not throw
 
         unordered_map<void*, Owns::ownnfo> reserves = static_cast<OwnsSpy&>(owns).getReserves();
         owner_count = reserves[ptr].owners.size();
