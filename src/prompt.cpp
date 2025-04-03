@@ -101,7 +101,8 @@ int safe_main(int argc, char* argv[]) {
 
         Agency<PackT> agency(owns, queue, "agency", { "user" });
 
-        CommandFactory cfactory;
+        vector<Command*> commands;
+        CommandFactory cfactory(commands);
         InputPipeInterceptor interceptor;
 
         LinenoiseAdapter editor(
@@ -129,6 +130,16 @@ int safe_main(int argc, char* argv[]) {
             settings.get<long>("stt.poll_interval_ms") // stt_poll_interval_ms
         );
         MicView micView;
+
+        Commander commander(cline, cfactory.getCommandsRef());
+
+        UserAgentInterface<PackT> interface(
+            tts,
+            stt_switch, 
+            micView,
+            commander, 
+            interceptor
+        );
 
         // Map of role strings to factory functions
         AgentRoleMap<PackT> roles = {
@@ -187,7 +198,8 @@ int safe_main(int argc, char* argv[]) {
                         queue, 
                         name, 
                         recipients, 
-                        talkbot
+                        talkbot,
+                        interface
                     );
                 },
             },
@@ -200,15 +212,7 @@ int safe_main(int argc, char* argv[]) {
         if (in_array("kill", command_factory_commands)) cfactory.withCommand<KillCommand<PackT>>();
         if (in_array("voice", command_factory_commands)) cfactory.withCommand<VoiceCommand<PackT>>();
         if (in_array("target", command_factory_commands)) cfactory.withCommand<TargetCommand<PackT>>();
-        Commander commander(cline, cfactory.getCommands());
-        UserAgentInterface<PackT> interface(
-            tts,
-            stt_switch, 
-            micView,
-            commander, 
-            interceptor
-        );
-        // interface_ptr = &interface;
+        commander.setupCommands(/*commands*/);
 
         ChatHistory* history = owns.allocate<ChatHistory>(
             settings.get<string>("prompt"),
@@ -234,7 +238,8 @@ int safe_main(int argc, char* argv[]) {
             queue,
             name, 
             recipients,
-            talkbot
+            talkbot,
+            interface
         ).async();
         string uname = "user";
         vector<string> urecipients = { "talk" };

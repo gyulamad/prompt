@@ -94,8 +94,8 @@ namespace tools::agency::agents::commands {
                 
                 bool state = parse<bool>(args[2]);
                 
-                interface.setVoiceOutput(state); //  TODO ...
-                interface.println("Text to speech voice mode output is " + string(state ? "ON" : "OFF"));
+                // interface.setVoiceOutput(state); //  TODO ...
+                interface.println("[STUB] Text to speech voice mode output is " + string(state ? "ON" : "OFF"));
                 // cout << "Text to speech voice mode output is " + string(state ? "ON" : "OFF") << endl;
                 return;
             }

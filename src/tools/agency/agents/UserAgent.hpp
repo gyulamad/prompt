@@ -71,11 +71,13 @@ namespace tools::agency::agents {
         }
 
         void onInput(T input) {
+            // interface.getCommanderRef().getCommandLineRef().setPromptVisible(false);
             this->send(input);
         }
 
         void handle(const string& sender, const T& item) override {
             interface.println("Incoming message from '" + sender + "': " + item);
+            // interface.getCommanderRef().getCommandLineRef().setPromptVisible(true); // TODO: not here but here: [[[---STOP---]]]
         }
 
     private:

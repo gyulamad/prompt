@@ -36,13 +36,19 @@ namespace tools::abstracts {
         virtual void println(const T& output) {
             print(output + "\n");
         }
+        
 
-        virtual void hide() { visible = false; }
-        virtual void show() { visible = true; }
+        // virtual void set_prompt_visible(bool prompt_visible) { this->prompt_visible = prompt_visible; }
+        // virtual void hide_prompt() { set_prompt_visible(false); }
+        // virtual void show_prompt() { set_prompt_visible(true); }
+        // virtual bool is_prompt_visible() const { return prompt_visible; }
+        // virtual bool is_prompt_hidden() const { return !prompt_visible; }
+
     protected:
         mutex imutex;
         mutex output_mutex;
-        atomic<bool> visible = true;
+
+        // atomic<bool> prompt_visible = true;
     };
 
 }

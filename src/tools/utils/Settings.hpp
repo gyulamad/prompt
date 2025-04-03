@@ -185,7 +185,7 @@ void test_Settings_hash_with_both() {
     
     // Expected string and hash
     string expected_input = "{\"key\":\"value\"}program --test 123";  // Adjust based on actual json.dump() output
-    string expected = get_hash(expected_input);
+    string expected = get_hash("<noexts>" + expected_input);
     
     // Debug: Check if the input strings match
     assert(actual_input == expected_input && "Input string to hash function does not match expected");
@@ -198,7 +198,7 @@ void test_Settings_hash_no_conf() {
     Arguments args(3, argv);
     Settings settings(args);
     string actual = settings.hash();
-    string expected = get_hash("<noconf>program --test 456");  // No space between "<noconf>" and "program"
+    string expected = get_hash("<noexts><noconf>program --test 456");  // No space between "<noconf>" and "program"
     assert(actual == expected && "Hash should handle missing conf correctly");
 }
 

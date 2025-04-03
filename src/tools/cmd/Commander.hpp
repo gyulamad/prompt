@@ -16,13 +16,15 @@ namespace tools::cmd {
     class Commander {
     private:
         CommandLine& commandLine;
-        vector<Command*> commands;
-        CompletionMatcher completionMatcher;
+        vector<Command*>& commands;
+        CompletionMatcher completionMatcher; // TODO: send it as a reference? (&)
         bool exiting = false;
 
     public:
-        Commander(CommandLine& commandLine, const vector<Command*>& commands = {}): commandLine(commandLine) {
-            setCommands(commands);
+        Commander(CommandLine& commandLine, vector<Command*>& commands): 
+            commandLine(commandLine), commands(commands)
+        {
+            setupCommands(/*commands*/);
         }
 
         virtual ~Commander() {}
@@ -39,10 +41,10 @@ namespace tools::cmd {
             return exiting || commandLine.isExited();
         }
         
-        void setCommands(const vector<Command*>& commands) {
-            this->commands = commands;
+        void setupCommands(/*const vector<Command*>& commands*/) {
+            // this->commands = commands;
             
-            // also update command patterns:
+            // update command patterns:
             completionMatcher.commandPatterns = {};
             for (const Command* command : commands)
                 completionMatcher.commandPatterns = array_merge(
@@ -105,7 +107,8 @@ namespace tools::cmd {
 void test_Commander_isExiting_initial_state() {
     MockLineEditor editor;
     MockCommandLine cl(editor);
-    Commander commander(cl);
+    vector<Command*> commands;
+    Commander commander(cl, commands);
     bool actual = commander.isExiting();
     assert(actual == false && "Commander should not be exiting initially");
 }
@@ -113,7 +116,8 @@ void test_Commander_isExiting_initial_state() {
 void test_Commander_isExiting_after_exit() {
     MockLineEditor editor;
     MockCommandLine cl(editor);
-    Commander commander(cl);
+    vector<Command*> commands;
+    Commander commander(cl, commands);
     commander.exit();
     bool actual = commander.isExiting();
     assert(actual == true && "Commander should be exiting after exit() is called");
@@ -123,7 +127,8 @@ void test_Commander_isExiting_after_commandline_exit() {
     MockLineEditor mock_editor;
     mock_editor.should_exit = true;
     CommandLine cl(mock_editor);
-    Commander commander(cl); // Move the CommandLine into Commander
+    vector<Command*> commands;
+    Commander commander(cl, commands); // Move the CommandLine into Commander
     commander.getCommandLineRef().readln(); // Call readln() on the Commander's CommandLine
     bool actual = commander.isExiting();
     assert(actual == true && "Commander should be exiting after CommandLine exits");
@@ -132,7 +137,8 @@ void test_Commander_isExiting_after_commandline_exit() {
 void test_Commander_getCommandLineRef_returns_reference() {
     MockLineEditor mock_editor;
     MockCommandLine cl(mock_editor);
-    Commander commander(cl);
+    vector<Command*> commands;
+    Commander commander(cl, commands);
     CommandLine& actual = commander.getCommandLineRef();
     // Modify the CommandLine via the reference
     actual.setPromptSuffix("modified> ");
@@ -145,11 +151,11 @@ void test_Commander_getCommandLineRef_returns_reference() {
 void test_Commander_set_commands_updates_patterns() {
     MockLineEditor editor;
     MockCommandLine cl(editor);
-    Commander commander(cl);
     MockCommand command;
     command.patterns = {"test cmd", "test {param}"};
     vector<Command*> commands = { &command };
-    commander.setCommands(commands);
+    Commander commander(cl, commands);
+    commander.setupCommands();
     const CompletionMatcher& cm = commander.getCompletionMatcherRef();
     vector<string> actual = cm.commandPatterns;
     assert(actual.size() == 2 && "setCommands should update command patterns");
@@ -160,7 +166,8 @@ void test_Commander_set_commands_updates_patterns() {
 void test_Commander_runCommand_empty_input() {
     MockLineEditor editor;
     MockCommandLine cl(editor);
-    Commander commander(cl);
+    vector<Command*> commands;
+    Commander commander(cl, commands);
     bool actual = commander.runCommand(nullptr, "");
     assert(actual == false && "runCommand should return false for empty input");
 }
@@ -169,11 +176,11 @@ void test_Commander_runCommand_unknown_command() {
     string err = capture_cerr([&]() {
         MockLineEditor editor;
         MockCommandLine cl(editor);
-        Commander commander(cl);
         MockCommand command;
         command.patterns = {"known"};
         vector<Command*> commands = { &command };
-        commander.setCommands(commands);
+        Commander commander(cl, commands);
+        commander.setupCommands();
         bool actual = commander.runCommand(nullptr, "unknown");
         assert(actual == false && "runCommand should return false for unknown command");
     });
@@ -184,11 +191,11 @@ void test_Commander_runCommand_invalid_arguments() {
     string err = capture_cerr([&]() {
         MockLineEditor editor;
         MockCommandLine cl(editor);
-        Commander commander(cl);
         MockCommand command;
-        command.patterns = {"test arg1"};
         vector<Command*> commands = { &command };
-        commander.setCommands(commands);
+        command.patterns = {"test arg1"};
+        Commander commander(cl, commands);
+        commander.setupCommands();
         bool actual = commander.runCommand(nullptr, "test");
         assert(actual == false && "runCommand should return false for invalid argument count");
     });
@@ -198,11 +205,11 @@ void test_Commander_runCommand_invalid_arguments() {
 void test_Commander_runCommand_successful_execution() {
     MockLineEditor editor;
     MockCommandLine cl(editor);
-    Commander commander(cl);
     MockCommand command;
     command.patterns = {"test arg"};
     vector<Command*> commands = { &command };
-    commander.setCommands(commands);
+    Commander commander(cl, commands);
+    commander.setupCommands();
     bool actual = commander.runCommand(nullptr, "test value");
     assert(actual == true && "runCommand should return true for valid command");
     assert(command.last_args.size() == 2 && "runCommand should pass correct number of args");

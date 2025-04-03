@@ -7,11 +7,13 @@
 #include "../../voice/MicView.hpp"
 #include "../../voice/TTS.hpp"
 #include "../../voice/STTSwitch.hpp"
+#include "../../utils/InputPipeInterceptor.hpp"
 
 using namespace tools::abstracts;
 using namespace tools::regx;
 using namespace tools::cmd;
 using namespace tools::voice;
+using namespace tools::utils;
 
 namespace tools::agency::agents {
 
@@ -55,22 +57,33 @@ namespace tools::agency::agents {
         }
 
 
+    //     virtual void set_prompt_visible(bool prompt_visible) { 
+    //         if (this->prompt_visible == prompt_visible) return;
+    //         this->prompt_visible = prompt_visible;
+    //     }
+    //     virtual void hide_prompt() { set_prompt_visible(false); }
+    //     virtual void show_prompt() { set_prompt_visible(true); }
+    //     virtual bool is_prompt_visible() const { return prompt_visible; }
+    //     virtual bool is_prompt_hidden() const { return !prompt_visible; }
+        
+    // // protected: // TODO
+    //     atomic<bool> prompt_visible = true;
 
         // =================================================================
         // ============================== TTS ==============================
         // =================================================================
-        
-        void setVoiceOutput(bool state) { tts_voice_output = state; }
 
-        bool isVoiceOutput() const { return tts_voice_output; }
+    //     void setVoiceOutput(bool state) { tts_voice_output = state; }
 
-        //[[nodiscard]]
-        bool speak(const string& text) {
-            return tts.speak(text);
-        }
+    //     bool isVoiceOutput() const { return tts_voice_output; }
 
-    private:
-        bool tts_voice_output = false;
+    //     //[[nodiscard]]
+    //     bool speak(const string& text) {
+    //         return tts.speak(text);
+    //     }
+
+    // private:
+    //     bool tts_voice_output = false;
 
         // =================================================================
         // =================================================================
@@ -205,6 +218,7 @@ namespace tools::agency::agents {
             });
 
             stt->setRMSHandler([this](float vol_pc, float threshold_pc, float rmax, float rms, bool loud, bool muted) {
+                // if (tts.is_speaking() || this->is_prompt_hidden()) return;
                 STT* stt = sttSwitch.getSttPtr();
                 try {
                     if (!stt) return;

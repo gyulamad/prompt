@@ -75,8 +75,20 @@ namespace tools::cmd {
             return exited;
         }
 
+        bool promptVisible = true;
+        string prompt;
+        void setPromptVisible(bool promptVisible) {
+            if (promptVisible) setPrompt(prompt);
+            else line_editor.setPrompt("");
+            // if (this->promptVisible == promptVisible) return;
+            this->promptVisible = promptVisible;
+        }
+
         void setPrompt(const string& prompt) {
+            this->prompt = prompt;
+            if (!promptVisible) return;
             line_editor.setPrompt(string(prompt + prompt_suffix).c_str());
+            line_editor.refreshLine();
         }
 
         void setPromptSuffix(const string& prompt_suffix) {

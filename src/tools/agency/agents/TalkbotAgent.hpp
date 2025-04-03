@@ -4,10 +4,12 @@
 
 #include "../Agent.hpp"
 #include "../../chat/Talkbot.hpp"
-
-using namespace tools::chat;
+// #include "../../abstracts/UserInterface.hpp"
+#include "UserAgentInterface.hpp"
 
 using namespace std;
+using namespace tools::chat;
+// using namespace tools::abstracts;
 
 namespace tools::agency::agents {
     
@@ -21,11 +23,13 @@ namespace tools::agency::agents {
             PackQueue<T>& queue,
             const string& name,
             vector<string> recipients,
-            void* talkbot
+            void* talkbot,
+            UserAgentInterface<T>& interface // TODO: this maybe not needed?
         ): 
             owns(owns),
             Agent<T>(owns, agency, queue, name, recipients),
-            talkbot(owns.reserve(this, talkbot, FILELN))
+            talkbot(owns.reserve(this, talkbot, FILELN)),
+            interface(interface)
         {}
 
         virtual ~TalkbotAgent() {
@@ -38,13 +42,30 @@ namespace tools::agency::agents {
         string type() const override { return "talk"; }
 
         void handle(const string& sender, const T& item) override {
-            this->addRecipients({ sender });
-            this->send(((Talkbot*)talkbot)->chat(sender, item));
+            
+            // // TODO: hide/disable input interface prompt (voice input only to interrupt - or keypress also??)
+            // interface.clearln();
+            // // interface.hide_prompt();
+            // interface.println("[[[---START--->>>");
+
+            interface.getCommanderRef().getCommandLineRef().setPromptVisible(false);
+            
+            
+            string response = ((Talkbot*)talkbot)->chat(sender, item);
+            // this->removeRecipients({ sender });
+            // this->send(response);
+
+            // TODO: show/enable input
+            interface.println("[[[---STOP---]]]"); // TODO !@# -- interrupt next, now
+            // interface.show_prompt();
+
+            interface.getCommanderRef().getCommandLineRef().setPromptVisible(true);
         }
 
     private:
         Owns& owns;
         void* talkbot = nullptr;
+        UserAgentInterface<T>& interface;
     };
     
 }
@@ -87,7 +108,29 @@ void test_TalkbotAgent_reserve() {
         owns, name, history, printer, sentences, tts
     ); // Dummy Talkbot
     PackQueue<string> queue;
-    TalkbotAgent<string> agent(owns, nullptr, queue, "talk", {"user"}, talkbot);
+
+    class MockLineEditor: public LineEditor {
+        void setCompletionCallback(CompletionCallback) override {}
+    } editor;
+    CommandLine commandLine(
+        editor
+    );
+    vector<Command*> commands;
+    STTSwitch sttSwitch;
+    MicView micView;
+    Commander commander(
+        commandLine, 
+        commands
+    );
+    InputPipeInterceptor interceptor;
+    UserAgentInterface<string> interface(
+        tts,
+        sttSwitch,
+        micView,
+        commander,
+        interceptor
+    );
+    TalkbotAgent<string> agent(owns, nullptr, queue, "talk", {"user"}, talkbot, interface);
 }
 
 TEST(test_TalkbotAgent_reserve);

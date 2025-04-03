@@ -15,9 +15,11 @@ namespace tools::voice {
     public:
         MicView() {}
         virtual ~MicView() {}
+        // void set_visible(bool visible) { this->visible = visible; }
         void incRecs() { recs++; }
         void decRecs() { recs--; }
         string getView(bool muted, bool loud, float threshold_pc, float vol_pc, float rmax, float rms, bool in_progress) {
+            // if (!visible) return "";
 
             string out = "";
 
@@ -59,6 +61,7 @@ namespace tools::voice {
             return out;
         }
     private:
+        // bool visible = false;
 
         // ---- roller ----
 

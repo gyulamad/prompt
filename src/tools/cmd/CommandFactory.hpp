@@ -8,8 +8,10 @@ using namespace std;
 
 namespace tools::cmd {
 
-    class   CommandFactory {
+    class CommandFactory {
     public:
+        CommandFactory(vector<Command*>& commands): commands(commands) {}
+
         virtual ~CommandFactory() { reset(); }
 
         template<typename T, typename... Args>
@@ -19,19 +21,19 @@ namespace tools::cmd {
             return *command;
         }
 
-        vector<Command*> getCommands() const {
+        vector<Command*>& getCommandsRef() const {
             return commands;
         }
 
     protected:
 
         void reset() {
-            for (auto* command : commands) delete command;
+            for (Command* command : commands) delete command;
             commands.clear();
         }
 
     private:
-        vector<Command*> commands;
+        vector<Command*>& commands;
     };
 
 } // namespace tools::cmd
