@@ -27,7 +27,7 @@ namespace tools::agency::agents::commands {
         string getUsage() const override {
             return implode("\n", vector<string>({
                 Usage({
-                    string("/load agency <agency-name> [<input-name>]"), // command
+                    string("/load agency"), // command
                     string("Loads an agency from a file."), // help
                     vector<Parameter>({ // parameters
                         {

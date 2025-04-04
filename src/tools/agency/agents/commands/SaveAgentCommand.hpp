@@ -29,7 +29,7 @@ namespace tools::agency::agents::commands {
         string getUsage() const override {
             return implode("\n", vector<string>({
                 Usage({
-                    string("/save agent <agent-name> [<output-name>]"), // command
+                    string("/save agent"), // command
                     string("Saves an agent to a file."), // help
                     vector<Parameter>({ // parameters
                         {
@@ -65,7 +65,7 @@ namespace tools::agency::agents::commands {
             string agentName = args[2];
             string outputName = (args.size() > 3) ? args[3] : agentName + ".json";
 
-            Agent<T>& agent = agency.getWorkerRef(agentName);
+            Agent<T>& agent = agency.template getWorkerRef<Agent<T>>(agentName);
             if (agent.name != agentName) throw ERROR("Invalid agent, name is '" + agent.name + "'");
 
             saveAgent(agent, outputName);

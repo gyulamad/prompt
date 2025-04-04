@@ -27,7 +27,7 @@ namespace tools::agency::agents::commands {
         string getUsage() const override {
             return implode("\n", vector<string>({
                 Usage({
-                    string("/save agency <agency-name> [<output-name>]"), // command
+                    string("/save agency"), // command
                     string("Saves an agency to a file."), // help
                     vector<Parameter>({ // parameters
                         {

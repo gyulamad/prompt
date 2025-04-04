@@ -29,7 +29,7 @@ namespace tools::agency::agents::commands {
         string getUsage() const override {
             return implode("\n", vector<string>({
                 Usage({
-                    string("/load agent <agent-name> [<input-name>]"), // command
+                    string("/load agent"), // command
                     string("Loads an agent from a file."), // help
                     vector<Parameter>({ // parameters
                         {

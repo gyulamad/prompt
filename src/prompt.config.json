@@ -14,9 +14,13 @@
             "list", 
             "spawn", 
             "kill", 
-            "voice", 
-            "target"
-        ] 
+            "voice",
+            "target",
+            "load_agency",
+            "load_agent",
+            "save_agency",
+            "save_agent"
+        ]
     },
     "whisper": {
         "model_path": "libs/ggerganov/whisper.cpp/models/ggml-base-q8_0.bin"

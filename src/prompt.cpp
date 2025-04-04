@@ -35,6 +35,10 @@
 #include "tools/agency/agents/commands/KillCommand.hpp"
 #include "tools/agency/agents/commands/VoiceCommand.hpp"
 #include "tools/agency/agents/commands/TargetCommand.hpp"
+#include "tools/agency/agents/commands/LoadAgencyCommand.hpp"
+#include "tools/agency/agents/commands/LoadAgentCommand.hpp"
+#include "tools/agency/agents/commands/SaveAgencyCommand.hpp"
+#include "tools/agency/agents/commands/SaveAgentCommand.hpp"
 
 #include "tools/ai/GeminiChatbot.hpp"
 #include "tools/ai/GeminiTalkbot.hpp"
@@ -196,7 +200,7 @@ int safe_main(int argc, char* argv[]) {
                     return agency.template spawn<TalkbotAgent<PackT>>(
                         owns,
                         &agency,
-                        queue, 
+                        queue,
                         name, 
                         recipients, 
                         talkbot,
@@ -213,6 +217,10 @@ int safe_main(int argc, char* argv[]) {
         if (in_array("kill", command_factory_commands)) cfactory.withCommand<KillCommand<PackT>>();
         if (in_array("voice", command_factory_commands)) cfactory.withCommand<VoiceCommand<PackT>>();
         if (in_array("target", command_factory_commands)) cfactory.withCommand<TargetCommand<PackT>>();
+        if (in_array("load_agency", command_factory_commands)) cfactory.withCommand<LoadAgencyCommand<PackT>>();
+        if (in_array("load_agent", command_factory_commands)) cfactory.withCommand<LoadAgentCommand<PackT>>();
+        if (in_array("save_agency", command_factory_commands)) cfactory.withCommand<SaveAgencyCommand<PackT>>();
+        if (in_array("save_agent", command_factory_commands)) cfactory.withCommand<SaveAgentCommand<PackT>>();
         commander.setupCommands(/*commands*/);
 
         ChatHistory* history = owns.allocate<ChatHistory>(
