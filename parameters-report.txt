@@ -1,0 +1,42 @@
+src/tools/ai/Gemini.hpp:40: string url = "https://generativelanguage.googleapis.com/v1beta/models/" + variant + ":streamGenerateContent?alt=sse&key=" + escape(secret); - The base URL for the Gemini API could be externalized.
+src/tools/ai/Gemini.hpp:32: timeout - The default timeout value used by Curl could be externalized.
+src/tools/chat/Chatbot.hpp:20: const string name - Could be externalized to customize the chatbot name.
+src/tools/chat/Talkbot.hpp:18: const string name - Could be externalized to customize the talkbot name.
+src/tools/voice/TTS.hpp:23: string lang - The language used by espeak could be externalized.
+src/tools/voice/TTS.hpp:24: int speed - The speech speed could be externalized.
+src/tools/voice/TTS.hpp:25: int gap - The gap between words could be externalized.
+src/tools/voice/TTS.hpp:26: string beep_cmd - The command to play a beep sound could be externalized.
+src/tools/voice/TTS.hpp:27: string think_cmd - The command to execute when the TTS is thinking could be externalized.
+src/tools/voice/TTS.hpp:28: map<string, string> speak_replacements - The replacements to apply to the text before speaking could be externalized.
+src/tools/voice/TTS.hpp:69: cout << Process::execute("pkill -STOP espeak") << flush; - The command to pause espeak could be externalized.
+src/tools/voice/TTS.hpp:77: cout << Process::execute("pkill -CONT espeak") << flush; - The command to resume espeak could be externalized.
+src/tools/voice/TTS.hpp:86: cout << Process::execute("pkill -9 espeak") << flush; - The command to stop espeak could be externalized.
+src/tools/voice/TTS.hpp:87: cout << Process::execute("pkill -9 sox") << flush; - The command to stop sox could be externalized.
+src/tools/cmd/CommandLine.hpp:25: string prompt_suffix - The suffix added to the command prompt could be externalized.
+src/tools/cmd/CommandLine.hpp:26: string history_path - The path to the command history file could be externalized.
+src/tools/cmd/CommandLine.hpp:27: bool multi_line - Whether multi-line input is enabled could be externalized.
+src/tools/cmd/CommandLine.hpp:28: size_t history_max_length - The maximum number of history entries to store could be externalized.
+src/tools/voice/WhisperTranscriberAdapter.hpp:18: params.language = "en"; - The default language for Whisper transcription could be externalized.
+src/tools/voice/VoiceRecorder.hpp:54: while (running) Pa_Sleep(30); - The sleep time in the voice recorder thread could be externalized.
+src/tools/voice/STT.hpp:101: transcriber, 16000.0, 512, 5, 0.1f, 0.01f, 1024, 10 - The default values used in the STT constructor could be externalized.
+src/tools/cmd/LinenoiseAdapter.hpp:15: LinenoiseAdapter(const string& prompt, int stdin_fd = STDIN_FILENO, int stdout_fd = STDOUT_FILENO) - The prompt string, stdin file descriptor, and stdout file descriptor could be externalized.
+src/tools/voice/MicView.hpp:29: const char* roller = "|/-\\"; - The characters used for the progress indicator could be externalized.
+src/tools/voice/MicView.hpp:39: double step = 0.2; - The step value for the volume indicator could be externalized.
+src/tools/voice/NoiseMonitor.hpp:38: float threshold_pc - The threshold percentage for noise detection could be externalized.
+src/tools/voice/NoiseMonitor.hpp:39: float rmax_decay_pc - The decay percentage for the maximum RMS value could be externalized.
+src/tools/voice/NoiseMonitor.hpp:40: size_t window - The window size for RMS calculation could be externalized.
+src/tools/voice/SentenceStream.hpp:21: size_t max_buffer_size - The maximum buffer size for the sentence stream could be externalized.
+src/tools/agency/Agency.hpp:15: static const string Agency<T>::worker_list_tpl; - The template used to display the list of workers could be externalized.
+src/tools/agency/Worker.hpp:69: return tpl_replace({ - The template used to display the list of workers could be externalized.
+src/tools/agency/Pack.hpp:14: os << "Pack[sender: " << sender << ", recipient: " << recipient << ", item: "; - The template used in the dump method could be externalized.
+src/tools/agency/Pack.hpp:16: os << "(unprintable)]"; - The template used in the dump method could be externalized.
+src/tools/regx/regx_match.hpp:17: syntax_option_type flags = ECMAScript - The default regex syntax option could be externalized.
+src/tools/regx/regx_match_all.hpp:16: syntax_option_type flags = ECMAScript - The default regex syntax option could be externalized.
+src/tools/str/tpl_replace.hpp:15: const string& placeholder_ptrn = "\\{\\{[^}]+\\}\\}"; - The default placeholder pattern could be externalized.
+src/tools/str/escape.hpp:11: const string& chars = "\\$\"'`\n\r\t" - The default characters to escape could be externalized.
+src/tools/str/escape.hpp:11: const string& esc = "\\" - The default escape character could be externalized.
+src/tools/build/inc/build.hpp: The LOADCFG_ macros could be modified to allow for default values to be specified in the configuration file as well.
+src/tools/utils/ERROR.hpp:10: #define FILE_LINE_ERROR_MSG (ANSI_FMT_ERROR + msg + ANSI_FMT_RESET + "\nat " + ANSI_FMT_FILE_LINE(file, line) + ANSI_FMT_RESET) - The format string for error messages could be externalized.
+src/tools/utils/ERROR.hpp:28: #define UNIMP_THROWS { throw ERROR("Unimplemented function: " + string(__FUNC__)); } - The error message for unimplemented functions could be externalized.
+src/tools/utils/ERROR.hpp:41: #define NULLCHK_1(ptr) NULLCHK_IMPL(ptr, "nullptr: "#ptr) - The error message for null pointer checks could be externalized.
+src/tools/utils/ERROR.hpp:42: #define NULLCHK_2(ptr, errmsg) NULLCHK_IMPL(ptr, errmsg) - The error message for null pointer checks could be externalized.
