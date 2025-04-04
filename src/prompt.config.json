@@ -16,10 +16,8 @@
             "kill", 
             "voice",
             "target",
-            "load_agency",
-            "load_agent",
-            "save_agency",
-            "save_agent"
+            "load",
+            "save"
         ]
     },
     "whisper": {
