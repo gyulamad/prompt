@@ -3,3 +3,4 @@ TODO: compile with strict padentic flags
 TODO: add tests and coverage report
 
 TODO: Profile: Use a tool like gprof or valgrind to identify real bottlenecks in your use case.
+TODO: Implement save/load functionality in SaveAgentCommand, LoadAgentCommand, SaveAgencyCommand, and LoadAgencyCommand.

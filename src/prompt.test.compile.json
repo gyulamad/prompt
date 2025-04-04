@@ -1,5 +1,5 @@
 {
     "flags": [
-        "-g -O0 -DTEST -DTEST_ONLY "
+        "-g -O0 -DTEST -DTEST_ONLY"
     ]
 }
