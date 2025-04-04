@@ -27,13 +27,7 @@ namespace tools::agency::agents {
         void handle(const string& sender, const T& item) override {
             // sleep(2); // emulate some background work;
 
-            // // get user agent
-            // Agent<T>& agent = agency.getAgentRef("user");
-            // if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
-            // UserAgent<T>& user = (UserAgent<T>&)agent;
-
             string output = "echo " + sender + "> " + string(item);
-            // user.getInterfaceRef()
             interface.clearln();
             interface.println(output);
             if (interface.isVoiceOutput()) interface.speak(item);

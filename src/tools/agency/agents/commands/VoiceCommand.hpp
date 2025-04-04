@@ -73,12 +73,8 @@ namespace tools::agency::agents::commands {
             NULLCHK(agency_void);
             Agency<T>& agency = *(Agency<T>*)agency_void;
 
-            // get user agent
+            // get user interface
             UserAgent<T>& user = agency.template getWorkerRef<UserAgent<T>>("user");
-            // Agent<T>& agent = agency.getAgentRef("user");
-            // if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
-            // UserAgent<T>& user = (UserAgent<T>&)agent;
-            // UserAgent<T>& user = agency.getUserAgentRef();
             UserAgentInterface<T>& interface = user.getInterfaceRef();
 
             string thru = args[1];

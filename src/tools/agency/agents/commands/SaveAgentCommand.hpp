@@ -65,7 +65,7 @@ namespace tools::agency::agents::commands {
             string agentName = args[2];
             string outputName = (args.size() > 3) ? args[3] : agentName + ".json";
 
-            Agent<T>& agent = agency.getAgentRef(agentName);
+            Agent<T>& agent = agency.getWorkerRef(agentName);
             if (agent.name != agentName) throw ERROR("Invalid agent, name is '" + agent.name + "'");
 
             saveAgent(agent, outputName);

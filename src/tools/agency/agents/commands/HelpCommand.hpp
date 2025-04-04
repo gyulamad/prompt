@@ -60,10 +60,6 @@ namespace tools::agency::agents::commands {
 
             // get user agent
             UserAgent<T>& user = agency.template getWorkerRef<UserAgent<T>>("user");
-            // Agent<T>& agent = agency.getAgentRef("user");
-            // if (agent.name != "user") throw ERROR("Invalid user agent, name is '" + agent.name + "'");
-            // UserAgent<T>& user = (UserAgent<T>&)agent;
-            // UserAgent<T>& user = agency.getUserAgentRef();
 
             // get commander
             Commander& commander = user.getInterfaceRef().getCommanderRef();
