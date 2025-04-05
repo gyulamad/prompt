@@ -14,33 +14,39 @@ using namespace tools::utils; // For ERROR
 namespace tools::agency::agents::commands {
 
     template<typename T>
-    class LoadCommand : public PersistenceCommand<T> {
+    class LoadCommand: public PersistenceCommand<T> {
     public:
         // Constructor calling the base class constructor
-        LoadCommand() : PersistenceCommand<T>(
-            "load",        // commandName
-            "Loads"       // actionVerb
-        ) {}
+        LoadCommand(): PersistenceCommand<T>(PersistenceCommand<T>::LOAD) {}
 
     protected:
 
-        void performAction(void* thing, PersistenceCommand<T>::Type type, const string& name, const string& filename) override {
-            // TODO needs to be implemented
+        void performAction(Agency<T>& agency, PersistenceCommand<T>::Type type, const string& name, const string& filename) override {
+            switch (type) {
+                
+                case PersistenceCommand<T>::AGENT:
+                    loadAgent(name, filename);
+                    break;
+                
+                case PersistenceCommand<T>::AGENCY:
+                    loadAgency(name, filename);
+                    break;
+
+                default:
+                    throw ERROR("Couldn't save, invalid type given.");
+            }
         }
 
     private:
-        // Keep the internal implementation methods
-        void loadAgentInternal(Agent<T>& agent, const string& agentName, const string& inputName) {
+    
+        void loadAgent(Agent<T>& agent, const string& agentName, const string& inputName) {
             // TODO: needs to be implemented
         }
 
-        void loadAgencyInternal(Agency<T>& agency, const string& agencyName, const string& inputName) {
+        void loadAgency(Agency<T>& agency, const string& agencyName, const string& inputName) {
             // TODO: needs to be implemented
         }
 
-        T load(const string& inputName) {
-            // TODO: common load implementation for both Agent and Agency
-        }
     };
 
 }

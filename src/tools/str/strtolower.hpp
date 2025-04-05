@@ -11,7 +11,7 @@ namespace tools::str {
         string result = s; // Create a copy of the input string
         for (char& c : result) // Iterate over each character
             c = tolower(static_cast<unsigned char>(c)); // Convert to lower case
-        return result;
+        return result;        
     }
     
 }

@@ -14,35 +14,39 @@ using namespace tools::utils; // For ERROR
 namespace tools::agency::agents::commands {
 
     template<typename T>
-    class SaveCommand : public PersistenceCommand<T> {
+    class SaveCommand: public PersistenceCommand<T> {
     public:
         // Constructor calling the base class constructor
-        SaveCommand() : PersistenceCommand<T>(
-            "save",         // commandName
-            "Saves",        // actionVerb
-            "agent",       // agentTypeName
-            "agency"        // agencyTypeName
-        ) {}
+        SaveCommand(): PersistenceCommand<T>(PersistenceCommand<T>::SAVE) {}
 
     protected: 
     
-        void performAction(void* thing, PersistenceCommand<T>::Type type, const string& name, const string& filename) override {
-            // TODO needs to be implemented
+        void performAction(Agency<T>& agency, PersistenceCommand<T>::Type type, const string& name, const string& filename) override {
+            switch (type) {
+                
+                case PersistenceCommand<T>::AGENT:
+                    saveAgent(name, filename);
+                    break;
+                
+                case PersistenceCommand<T>::AGENCY:
+                    saveAgency(name, filename);
+                    break;
+
+                default:
+                    throw ERROR("Couldn't save, invalid type given.");
+            }
         }
 
     private:
-        // Keep the internal implementation methods
-        void saveAgentInternal(Agent<T>& agent, const string& outputName) {
+    
+        void saveAgent(Agent<T>& agent, const string& filename) {
             // TODO: needs to be implemented
         }
 
-        void saveAgencyInternal(Agency<T>& agency, const string& outputName) {
+        void saveAgency(Agency<T>& agency, const string& filename) {
             // TODO: needs to be implemented
         }
 
-        void save(T& object, const string& outputName) {
-            // TODO: common save implementation for both Agent and Agency
-        }
     };
 
 }

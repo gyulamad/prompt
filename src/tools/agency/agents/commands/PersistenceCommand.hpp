@@ -3,19 +3,18 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <stdexcept> // For std::runtime_error
 
 #include "../../../cmd/Command.hpp"
 #include "../../../cmd/Usage.hpp"
 #include "../../../cmd/Parameter.hpp"
 #include "../../../utils/ERROR.hpp" // For NULLCHK and ERROR macros
 #include "../../../str/implode.hpp" // For implode
-#include "../../../str/toLower.hpp"
-#include "../../../str/toUpperFirst.hpp"
+#include "../../../str/strtolower.hpp"
+#include "../../../str/ucfirst.hpp"
 #include "../../../utils/foreach.hpp"
 #include "../../../containers/array_key_exists.hpp"
-#include "../../Agency.hpp"
-#include "../../Agent.hpp"
+// #include "../../Agency.hpp"
+// #include "../../Agent.hpp"
 
 using namespace std;
 using namespace tools::cmd;
@@ -29,10 +28,9 @@ namespace tools::agency::agents::commands {
     template<typename T>
     class PersistenceCommand : public Command {
     protected:
-        string commandName;
+        enum Persistor { LOAD, SAVE };
 
-        string actionVerbCapitalized;
-        string actionVerbLowercase;
+        Persistor persistor;
 
         string filenameParamName;
         string filenameParamDesc;
@@ -43,7 +41,7 @@ namespace tools::agency::agents::commands {
 
         enum Type { AGENT, AGENCY };
 
-        map<Type, string> typeNameMap = {
+        const map<Type, string> typeNameMap = {
             { AGENT, "agent" },
             { AGENCY, "agency" },
         };
@@ -53,16 +51,30 @@ namespace tools::agency::agents::commands {
 
         // ===============================================================
 
+
+
+        struct PersistorNameWord {
+            string commandName;
+            string directorWord;
+        };
+
+        const map<Persistor, string> commandNameMap = {
+            { LOAD , "load" },
+            { SAVE , "save" },
+        };
+
+        const map<Persistor, string> directorWordMap = {
+            { LOAD , "from" },
+            { SAVE , "to" },
+        };
+
     public:
         PersistenceCommand(
-            const string& commandName,
-            const string& actionVerb,
+            Persistor persistor,
             const string& filenameParamName = "filename", // Default value
             const string& filenameParamDesc = "file"      // Default value
         ): 
-            commandName(commandName),
-            actionVerbCapitalized(toUpperFirst(actionVerb)),
-            actionVerbLowercase(toLower(actionVerb)),
+            persistor(persistor),
             filenameParamName(filenameParamName),
             filenameParamDesc(filenameParamDesc)
         {}
@@ -70,40 +82,76 @@ namespace tools::agency::agents::commands {
         vector<string> getPatterns() const override {
             vector<string> patterns;
             foreach (typeNameMap, [&](const string& typeName) {
-                patterns.push_back("/" + commandName + " " + typeName + " {string} [{string}]");
+                patterns.push_back(
+                    "/" + getCommandName(persistor) + " " + typeName 
+                    + " {string}"
+                );
+                patterns.push_back(
+                    "/" + getCommandName(persistor) + " " + typeName 
+                    + " {string} [{string}]"
+                );
             });
             return patterns;
         }
 
         string getUsage() const override {
-            string defaultFilenameNote = "If " + filenameParamName + " is not provided, the agent or agency will be " + actionVerbLowercase + "d from/to a file named after the agent or agency name.";
+            string defaultFilenameNote = 
+                "If " + filenameParamName + " is not provided, it will " 
+                    + getActionVerbLowercase(persistor) + " the " + implode(" or ", typeNames) 
+                    + " " + getDirectorWord(persistor) + " a " + filenameParamDesc 
+                    + " named after the " + implode(" or ", typeNames) + " name.";
 
             vector<pair<string, string>> examples;
             foreach (typeNameMap, [&](const string& typeName) {
                 examples.push_back(make_pair(
-                    "/" + commandName + " " + typeName + " my_" + typeName,
-                    actionVerbCapitalized + " the " + typeName + " 'my_" + typeName + "' from/to file 'my_" + typeName + "'"
+                    "/" + getCommandName(persistor) + " " + typeName + " my_" + typeName,
+                    getActionVerbCapitalized(persistor) + " the " + typeName + " 'my_" 
+                        + typeName + "' " + getDirectorWord(persistor) + " " 
+                        + filenameParamDesc + " 'my_" + typeName + "'"
                 ));
                 examples.push_back(make_pair(
-                    "/" + commandName + " " + typeName + " my_" + typeName + " my_" + typeName + "_file",
-                    actionVerbCapitalized + " the " + typeName + " 'my_" + typeName + "' from/to file '" + filenameParamName + "'"
+                    "/" + getCommandName(persistor) + " " + typeName + " my_" + typeName 
+                        + " my_" + typeName + "_file",
+                    getActionVerbCapitalized(persistor) + " the " + typeName + " 'my_" 
+                        + typeName + "' " + getDirectorWord(persistor) + " " 
+                        + filenameParamDesc + " '" + filenameParamName + "'"
                 ));
             });
 
             return implode("\n", vector<string>({
                 Usage({
-                    string("/" + commandName), // command
-                    string(actionVerbCapitalized + " an " + implode(" or ", typeNames) + " from/to a file."), // help
+                    string("/" + getCommandName(persistor)), // command
+                    string(
+                        getActionVerbCapitalized(persistor) + " an " 
+                        + implode(" or ", typeNames) + " " 
+                        + getDirectorWord(persistor) 
+                        + " a " + filenameParamDesc + "."
+                    ), // help
                     vector<Parameter>({ // parameters
+                        {
+                            string("type"), // name
+                            bool(false), // optional
+                            string(
+                                "Type of the " + implode(" or ", typeNames) 
+                                + " to " + getActionVerbLowercase(persistor) + "."
+                            ) // help
+                        },
                         {
                             string("name"), // name
                             bool(false), // optional
-                            string("Name of the " + implode(" or ", typeNames) + " to " + actionVerbLowercase + ".") // help
+                            string(
+                                "Name of the " + implode(" or ", typeNames) 
+                                + " to " + getActionVerbLowercase(persistor) + "."
+                            ) // help
                         },
                         {
                             filenameParamName, // name
                             bool(true), // optional
-                            string("Name of the " + filenameParamDesc + ". Defaults to " + implode(" or ", typeNames) + " name.") // help
+                            string(
+                                "Name of the " + filenameParamDesc 
+                                + ". Defaults to " + implode(" or ", typeNames) 
+                                + " name."
+                            ) // help
                         }
                     }),
                     examples, // examples
@@ -121,49 +169,48 @@ namespace tools::agency::agents::commands {
             // args[3] is the optional filename
             if (args.size() < 3) {
                  // Provide more specific usage based on the actual command invoked if possible
-                string specific_pattern = "/" + commandName + " " + implode("|", typeNames) + " {name} [filename]";
-                throw ERROR("Usage: " + specific_pattern);
+                throw ERROR(
+                    string("Usage: ") + "/" + getCommandName(persistor) + " " 
+                    + implode("|", typeNames) + " {name} [filename]"
+                );
             }
             return args;
         }
 
     protected:
 
-        void run(void* thing_void, const vector<string>& args) override {
-            NULLCHK(thing_void);
+        void run(void* agency_void, const vector<string>& args) override {
+            NULLCHK(agency_void);
 
             string typeName = args[1]; // "agent" or "agency"
             string thingName = args[2]; // agentName or agencyName
             // Keep the .json default for now as discussed
             string filename = (args.size() > 3) ? args[3] : thingName + ".json";
 
-            performAction(thing_void, getType(typeName), thingName, filename);
+            performAction(*(Agency<T>*)agency_void, getType(typeName), thingName, filename);
         }
 
-        virtual void performAction(void* thing, Type type, const string& name, const string& filename) = 0;
+        virtual void performAction(Agency<T>& agency, Type type, const string& name, const string& filename) = 0;
 
         // Virtual destructor is important for base classes with virtual functions
         virtual ~PersistenceCommand() = default;
 
     private:
 
-        vector<string> getTypeNames() {
+        vector<string> getTypeNames() const {
             vector<string> typeNames;
-            // if (!typeNames.empty()) return typeNames;
             for (Type type: types) 
-            // foreach (types, [&](Type type) {
                 typeNames.push_back(getTypeName(type));
-            // });
             return typeNames;
         }
 
-        string getTypeName(Type type) {
+        string getTypeName(Type type) const {
             if (!array_key_exists(type, typeNameMap)) 
                 throw getInvalidTypeError(to_string((int)type));
-            return typeNameMap[type];
+            return typeNameMap.at(type);
         }
         
-        Type getType(const string& typeName) {
+        Type getType(const string& typeName) const {
             bool found = false;
             Type type;
             foreach (typeNameMap, [&](const string& name, Type typ) {
@@ -178,10 +225,38 @@ namespace tools::agency::agents::commands {
             throw ERROR("Invalid type: " + typeName);
         }
 
-        runtime_error getInvalidTypeError(string typeName) {
-            return ERROR("Invalid type given (" + typeName + ").  possible types are: " + implode("|", getTypeNames()));
+        runtime_error getInvalidTypeError(string typeName) const {
+            return ERROR(
+                "Invalid type given (" + typeName + ").  possible types are: " 
+                + implode("|", getTypeNames())
+            );
         }
 
+
+        string getCommandName(Persistor persistor) const {
+            if (!array_key_exists(persistor, commandNameMap))
+                throw getInvalidPersistorError(persistor);
+            return commandNameMap.at(persistor);
+        }
+
+        string getDirectorWord(Persistor persistor) const {
+            if (!array_key_exists(persistor, directorWordMap))
+                throw getInvalidPersistorError(persistor);
+            return directorWordMap.at(persistor);
+        }
+
+        runtime_error getInvalidPersistorError(Persistor persistor) const {
+            return ERROR("Invalid persistor: " + to_string((int)persistor));
+        }
+
+
+        string getActionVerbCapitalized(Persistor persistor) const {
+            return ucfirst(getCommandName(persistor));
+        }
+
+        string getActionVerbLowercase(Persistor persistor) const {
+            return strtolower(getCommandName(persistor));
+        }
     };
 
 }
