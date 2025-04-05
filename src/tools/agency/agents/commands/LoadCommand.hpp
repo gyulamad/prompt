@@ -56,7 +56,8 @@ namespace tools::agency::agents::commands {
 
             vector<string> recipients = json.get<vector<string>>("recipients");
 
-            roles[role](agency, name, recipients).fromJSON(json);
+            Agent<T>& agent = roles[role](agency, name, recipients);
+            agent.fromJSON(json);
         }
 
         void loadAgency(Agency<T>& agency, const string& name, const string& filename) {

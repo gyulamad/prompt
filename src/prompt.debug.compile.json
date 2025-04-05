@@ -1,5 +1,5 @@
 {
     "flags": [
-        "-g -O0 -fno-optimize-sibling-calls"
+        "-g -O0 -fno-optimize-sibling-calls" // -fsanitize=address"
     ]
 }

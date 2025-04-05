@@ -91,6 +91,7 @@ namespace tools::agency::agents::commands {
             case LIST:
                 recipients = user.findRecipients(asize == 3 ? args[2] : "");
                 user.getInterfaceRef().println(tpl_replace({
+                    { "{{agency}}", agency.name },
                     { "{{workers}}", agency.dumpWorkers(recipients) },
                     { "{{found}}", to_string(recipients.size()) },
                     { "{{total}}", to_string(user.findRecipients().size()) },

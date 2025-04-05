@@ -292,7 +292,7 @@ int safe_main(int argc, char* argv[]) {
             interface
         ).async();
 
-
+        commander.getCommandLineRef().setPromptVisible(false);
         vector<string> batch = settings.get<vector<string>>("startup.batch");
         bool echo = settings.get<bool>("startup.echo");
         foreach (batch, [&](const string& input) {
@@ -300,6 +300,7 @@ int safe_main(int argc, char* argv[]) {
             if (!commander.runCommand(&agency, input)) return FE_BREAK;
             return FE_CONTINUE;
         });
+        commander.getCommandLineRef().setPromptVisible(true);
 
         //cout << "Agency started" << endl;
         agency.sync();        

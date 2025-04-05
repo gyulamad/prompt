@@ -9,7 +9,7 @@ using namespace std;
 
 namespace tools::chat {
 
-    class Chatbot { //  TODO: refact: build up a correct abstraction hierarhy
+    class Chatbot: public JSONSerializable { //  TODO: refact: build up a correct abstraction hierarhy
     public:
 
         class cancel: public exception {};
@@ -19,10 +19,11 @@ namespace tools::chat {
             const string& name,
             void* history, 
             Printer& printer
-        ): 
+        ):
+            JSONSerializable(),
             owns(owns),
             name(name),
-            history(owns.reserve<void>(this, history, FILELN)),
+            history(owns.reserve<ChatHistory>(this, history, FILELN)),
             printer(printer)
         {}
 
@@ -53,10 +54,24 @@ namespace tools::chat {
 
         virtual string respond(const string& sender, const string& text) = 0;
 
+
+        // ----- serialization -----
+
+        void fromJSON(const JSON& json) override {
+            DEBUG("Chatbot::fromJSON called"); 
+            // Convert pointer to integer type for printing
+            uintptr_t history_addr = reinterpret_cast<uintptr_t>(history);
+            DEBUG("Checking history pointer address: " + to_string(history_addr)); 
+            safe(history); // Check history pointer before use
+            DEBUG("History pointer is safe"); 
+            history->fromJSON(json); // Call history's fromJSON
+            DEBUG("Called history->fromJSON"); 
+        }
+
         const string name; //  TODO: remove this!
     protected:
         Owns& owns;
-        void* history = nullptr;
+        ChatHistory* history = nullptr;
         Printer& printer;
     };
 

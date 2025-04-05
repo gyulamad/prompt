@@ -436,6 +436,16 @@ namespace tools::utils {
             }
         }
 
+        // ----- validation helpers -----
+
+        void need(const string& field) const {
+            if (!has(field)) throw ERROR("JSON misses field: " + field);
+        }
+
+        void need(const vector<string>& fields) const {
+            for (const string& field: fields) need(field);                
+        }
+
     };
 
 }

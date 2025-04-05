@@ -13,7 +13,7 @@ using namespace tools::utils;
 
 namespace tools::chat {
 
-    class ChatHistory {
+    class ChatHistory: public JSONSerializable {
     public:
         ChatHistory(
             const string& prompt,
@@ -44,11 +44,27 @@ namespace tools::chat {
             string serialized = "";
             foreach (messages, [&](const ChatMessage& message) {
                 serialized += tpl_replace({
-                    { "{{start}}", startToken(message.sender) },
-                    { "{{text}}", message.text },
+                    { "{{start}}", startToken(message.getSender()) },
+                    { "{{text}}", message.getText() },
                 }, "\n{{start}}{{text}}");
             });
             return serialized;
+        }
+
+        // ---- JSON serialization ----
+
+        void fromJSON(const JSON& json) override {
+            DEBUG("ChatHistory::fromJSON called");
+            DEBUG("ChatHistory::fromJSON: json = " + json.dump());
+            json.need({ "prompt", "use_start_token", "messages" });
+
+            prompt = json.get<string>("prompt");
+            use_start_token = json.get<bool>("use_start_token");
+            
+            // load messages
+            messages.clear();
+            vector<JSON> msgs = json.get<vector<JSON>>("messages");
+            for (JSON& msg: msgs) messages.push_back(ChatMessage(msg));
         }
     
     private:    

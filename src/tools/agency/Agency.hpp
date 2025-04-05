@@ -155,7 +155,7 @@ namespace tools::agency {
     };
 
     template<typename T>
-    const string Agency<T>::worker_list_tpl = R"(List of workers:
+    const string Agency<T>::worker_list_tpl = R"(List of workers in agency '{{agency}}':
 {{workers}}
 {{found}} of {{total}} worker(s) found.)";
     

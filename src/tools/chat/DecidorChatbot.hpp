@@ -18,7 +18,7 @@ namespace tools::chat {
 
         virtual ~DecidorChatbot() = default;
 
-
+        // TODO: add chat/stream mode to the chatbot (avoid talkbot concept separation)
         string chat(const string& sender, const string& text, bool& interrupted) override {
             throw ERROR("DecidorChatbot does not support chat stream resonse.");
         }

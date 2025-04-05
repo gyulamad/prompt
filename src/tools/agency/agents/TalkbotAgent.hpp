@@ -41,6 +41,8 @@ namespace tools::agency::agents {
         string type() const override { return "talk"; }
 
         void handle(const string& sender, const T& item) override {
+            DEBUG("TalkbotAgent::handle called");
+            DEBUG("Command: " + item);
             
             // // TODO: hide/disable input interface prompt (voice input only to interrupt - or keypress also??)
             // interface.clearln();
@@ -64,6 +66,15 @@ namespace tools::agency::agents {
             // interface.show_prompt();
 
             interface.getCommanderRef().getCommandLineRef().setPromptVisible(true);
+        }
+
+        void fromJSON(const JSON& json) override {
+            DEBUG("TalkbotAgent::fromJSON called");
+            safe(talkbot);
+            DEBUG("talkbot is safe");
+            DEBUG("json is: " + json.dump());
+            talkbot->fromJSON(json);
+            DEBUG("talkbot->fromJSON(json) is called");
         }
 
     private:

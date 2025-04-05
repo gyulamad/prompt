@@ -57,6 +57,7 @@ namespace tools::agency::agents::commands {
             agency.template getWorkerRef<UserAgent<T>>("user")
                 .getInterfaceRef()
                 .println(tpl_replace({
+                    { "{{agency}}", agency.name },
                     { "{{workers}}", agency.dumpWorkers(agents) },
                     { "{{found}}", to_string(agents.size()) },
                     { "{{total}}", to_string(agency.findWorkers().size()) },
