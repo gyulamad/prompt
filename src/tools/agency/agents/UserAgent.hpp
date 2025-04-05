@@ -81,7 +81,8 @@ namespace tools::agency::agents {
         }
 
         void handle(const string& sender, const T& item) override {
-            interface.println("Incoming message from '" + sender + "': " + item);
+            DEBUG("Incoming message from '" + sender + "'");
+            interface.println(sender + ": " + item);
             // interface.getCommanderRef().getCommandLineRef().setPromptVisible(true); // TODO: not here but here: [[[---STOP---]]]
         }
 

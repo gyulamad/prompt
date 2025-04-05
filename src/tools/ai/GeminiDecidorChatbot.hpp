@@ -26,9 +26,9 @@ namespace tools::ai {
         virtual ~GeminiDecidorChatbot() = default;
     
 
-        string chat(const string& sender, const string& text, bool& interrupted) override {
-            return Gemini::chat(*this, sender, text, interrupted);
-        }
+        // string chat(const string& sender, const string& text, bool& interrupted) override {
+        //     return Gemini::chat(*this, sender, text, interrupted);
+        // }
 
         string respond(const string& sender, const string& text) override {
             return Gemini::respond(*this, sender, text);

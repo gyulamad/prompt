@@ -23,15 +23,15 @@ namespace tools::chat {
             throw ERROR("DecidorChatbot does not support chat stream resonse.");
         }
     
-        string response(const string& response) override { 
+        string response(const string& response) override {
             Chatbot::response(response);
             return response;
         }
 
-        string respond(const string& sender, const string& text) override {
-            STUB("Needs to be implemented");
-            return "";
-        }
+        // string respond(const string& sender, const string& text) override {
+        //     STUB("Needs to be implemented");
+        //     return "";
+        // }
         
         // ----- decision making -----
         enum Decision { YES, NO, CANCEL };

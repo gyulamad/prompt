@@ -82,7 +82,7 @@ namespace tools::agency::agents::commands {
                 if (!array_key_exists(args[1], opnames)) throw ERROR("Invalid operation: " + args[1]);
                 operation = opnames[args[1]];
                 targets = explode(",", args[2]);
-            } if (asize > 3) throw ERROR("Invalid argument(s).");
+            } if (asize > 3) throw ERROR("Target: Invalid argument(s).");
             
             UserAgent<T>& user = agency.template getWorkerRef<UserAgent<T>>("user");
             vector<string> recipients;

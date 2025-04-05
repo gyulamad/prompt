@@ -9,7 +9,7 @@ using namespace std;
 
 namespace tools::chat {
 
-    class Chatbot {
+    class Chatbot { //  TODO: refact: build up a correct abstraction hierarhy
     public:
 
         class cancel: public exception {};

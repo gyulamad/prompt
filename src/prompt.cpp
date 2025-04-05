@@ -252,35 +252,38 @@ int safe_main(int argc, char* argv[]) {
         if (in_array("save", command_factory_commands)) cfactory.withCommand<SaveCommand<PackT>>();
         commander.setupCommands(/*commands*/);
 
-        ChatHistory* history = owns.allocate<ChatHistory>(
-            settings.get<string>("prompt"),
-            settings.get<bool>("talkbot.use_start_token") // talkbot_use_start_token
-        );
-        GeminiTalkbot* talkbot = owns.allocate<GeminiTalkbot>( // TODO: parameters from config to config always and for everywhere!!
-            owns,
-            settings.get<string>("gemini.secret"), // gemini_secret,
-            settings.get<string>("gemini.variant"), // gemini_variant,
-            settings.get<long>("gemini.timeout"), // gemini_timeout,
-            "gemini",
-            history,
-            printer,
-            sentences, // TODO: create it, do not use the same sentences object at each chatbot!!
-            tts // TODO: tts also should be separated. (different tone/speed or even different kind of speach syntheser)
-        );
+
+
+        // ChatHistory* history = owns.allocate<ChatHistory>(
+        //     settings.get<string>("prompt"),
+        //     settings.get<bool>("talkbot.use_start_token") // talkbot_use_start_token
+        // );
+        // GeminiTalkbot* talkbot = owns.allocate<GeminiTalkbot>( // TODO: parameters from config to config always and for everywhere!!
+        //     owns,
+        //     settings.get<string>("gemini.secret"), // gemini_secret,
+        //     settings.get<string>("gemini.variant"), // gemini_variant,
+        //     settings.get<long>("gemini.timeout"), // gemini_timeout,
+        //     "gemini",
+        //     history,
+        //     printer,
+        //     sentences, // TODO: create it, do not use the same sentences object at each chatbot!!
+        //     tts // TODO: tts also should be separated. (different tone/speed or even different kind of speach syntheser)
+        // );
         
-        string name = "talk";
-        vector<string> recipients = { "user" };
-        agency.template spawn<TalkbotAgent<PackT>>(
-            owns,
-            &agency,
-            queue,
-            name, 
-            recipients,
-            talkbot,
-            interface
-        ).async();
-        string uname = "user";
-        vector<string> urecipients = { "talk" };
+        // string name = "talk";
+        // vector<string> recipients = { "user" };
+        // agency.template spawn<TalkbotAgent<PackT>>(
+        //     owns,
+        //     &agency,
+        //     queue,
+        //     name, 
+        //     recipients,
+        //     talkbot,
+        //     interface
+        // ).async();
+
+        string uname = "user"; // TODO: to config
+        vector<string> urecipients = { "talk" }; // TODO: to config
         agency.template spawn<UserAgent<PackT>>(
             owns,
             &agency,
@@ -288,6 +291,7 @@ int safe_main(int argc, char* argv[]) {
             uname, urecipients,
             interface
         ).async();
+
 
         vector<string> batch = settings.get<vector<string>>("startup.batch");
         bool echo = settings.get<bool>("startup.echo");

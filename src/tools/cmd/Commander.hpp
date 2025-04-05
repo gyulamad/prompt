@@ -90,10 +90,18 @@ namespace tools::cmd {
                 }
                 if (commandFound) break;
             }
-            if (!commandFound) cerr << "Command not found: " << inputParts[0] << endl;
-            else if (!commandArgumentsMatches) cerr << "Invalid argument(s)." << endl;
+            if (!commandFound) cerr << "Command not found: " << cleanCommandName(inputParts[0]) << endl;
+            else if (!commandArgumentsMatches) cerr << "Invalid argument(s). Use '/help " + cleanCommandName(inputParts[0]) + "'..." << endl;
             return commandArgumentsMatches;
         }
+
+    protected:
+
+        string cleanCommandName(const string& inputParts0) const {
+            if (str_starts_with(inputParts0, "/")) return inputParts0.substr(1);
+            throw ERROR("Invalid command name: " + inputParts0);
+        }
+
     };
 
 } // namespace tools::cmd
