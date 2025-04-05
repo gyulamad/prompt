@@ -93,6 +93,9 @@ namespace tools::ai {
             return response;
         }
 
+        // TODO: load with curl but no need to show (it's for internal conversations)
+        string respond(Chatbot& chatbot, const string& sender, const string& text) UNIMP_THROWS
+
     private:
         string secret;
         string variant;

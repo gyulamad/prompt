@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../chat/Chatbot.hpp"
+#include "../chat/DecidorChatbot.hpp"
 
 #include "Gemini.hpp"
 
@@ -8,25 +8,24 @@ using namespace tools::chat;
 
 namespace tools::ai {
 
-    class GeminiChatbot: public Gemini, public Chatbot {
+    class GeminiDecidorChatbot: public Gemini, public DecidorChatbot {
     public:
-        GeminiChatbot(
+        GeminiDecidorChatbot(
             Owns& owns,
             const string& secret, 
             const string& variant,
             long timeout,
-            const string& name, 
+            const string& name, // TODO: remove it
             ChatHistory* history,
             Printer& printer
         ):
             Gemini(secret, variant, timeout),
-            Chatbot(owns, name, history, printer)
+            DecidorChatbot(owns, name, history, printer)
         {}
 
-        virtual ~GeminiChatbot() {
-            // cout << "GeminiChatbot (" + this->name + ") destruction..." << endl;
-        }
+        virtual ~GeminiDecidorChatbot() = default;
     
+
         string chat(const string& sender, const string& text, bool& interrupted) override {
             return Gemini::chat(*this, sender, text, interrupted);
         }
@@ -35,6 +34,6 @@ namespace tools::ai {
             return Gemini::respond(*this, sender, text);
         }
 
-    };    
+    };
 
 }

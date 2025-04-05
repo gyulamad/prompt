@@ -77,22 +77,12 @@ namespace tools::agency::agents {
 
 #include "../../voice/SentenceSeparation.hpp"
 #include "../PackQueue.hpp"
+#include "../tests/DummyTalkbot.hpp"
+#include "../tests/DummySentenceSeparation.hpp"
 
 using namespace tools::voice;
 using namespace tools::agency;
 using namespace tools::agency::agents;
-
-class DummyTalkbot: public Talkbot {
-public:
-    using Talkbot::Talkbot;
-    string chat(const string& sender, const string& text, bool& interrupted) override { return ""; }
-};
-
-class DummySentenceSeparation: public SentenceSeparation {
-public:
-    using SentenceSeparation::SentenceSeparation;
-    size_t findSentenceEnd(const string& text, size_t start_pos) const override { return 0; }
-};
 
 void test_TalkbotAgent_reserve() {
     Owns owns;

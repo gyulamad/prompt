@@ -6,7 +6,7 @@
 #include "../Agent.hpp"
 // #include "UserAgent.hpp"
 #include "../../chat/Chatbot.hpp"
-// #include "../../abstracts/UserInterface.hpp"
+// #include "../../abstracts/JSONSerializable.hpp"
 #include "UserAgentInterface.hpp"
 
 using namespace std;
@@ -40,7 +40,7 @@ namespace tools::agency::agents {
             this->owns.release(this, chatbot);
         }
 
-        void* getChatbotPtr() { return chatbot; }
+        void* getChatbotPtr() { return chatbot; } // TODO: remove this
 
 
         string type() const override { return "chat"; }

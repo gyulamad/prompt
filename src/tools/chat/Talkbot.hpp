@@ -57,6 +57,10 @@ namespace tools::chat {
         bool tell(const string& text) {
             return tts.speak(text);
         }
+
+        string respond(const string& sender, const string& text) override {
+            throw ERROR("Talkbots does not support full completion resonse.");
+        }
     
     private:
         SentenceStream& sentences;

@@ -5,6 +5,7 @@
 
 #include "../utils/Owns.hpp"
 #include "../abstracts/Closable.hpp"
+#include "../abstracts/JSONSerializable.hpp"
 #include "../containers/array_merge.hpp"
 #include "../containers/array_diff.hpp"
 
@@ -19,7 +20,7 @@ using namespace tools::containers;
 namespace tools::agency {
 
     template<typename T>
-    class Worker: public Closable {
+    class Worker: public Closable, public JSONSerializable {
     public:
         Worker(
             Owns& owns,

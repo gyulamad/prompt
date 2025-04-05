@@ -1,7 +1,8 @@
 #pragma once
 
-#include "PersistenceCommand.hpp" // Include the base class
 #include "../../../utils/ERROR.hpp"    // Ensure ERROR macro is available if needed by internal methods
+#include "../../AgentRoleMap.hpp"
+#include "PersistenceCommand.hpp" // Include the base class
 
 // Keep other necessary includes like string, vector, Agency, Agent if needed by internal methods
 
@@ -17,7 +18,7 @@ namespace tools::agency::agents::commands {
     class LoadCommand: public PersistenceCommand<T> {
     public:
         // Constructor calling the base class constructor
-        LoadCommand(): PersistenceCommand<T>(PersistenceCommand<T>::LOAD) {}
+        LoadCommand(AgentRoleMap<T>& roles): roles(roles), PersistenceCommand<T>(PersistenceCommand<T>::LOAD) {}
 
     protected:
 
@@ -25,11 +26,11 @@ namespace tools::agency::agents::commands {
             switch (type) {
                 
                 case PersistenceCommand<T>::AGENT:
-                    loadAgent(name, filename);
+                    loadAgent(agency, name, filename);
                     break;
                 
                 case PersistenceCommand<T>::AGENCY:
-                    loadAgency(name, filename);
+                    loadAgency(agency, name, filename);
                     break;
 
                 default:
@@ -39,13 +40,31 @@ namespace tools::agency::agents::commands {
 
     private:
     
-        void loadAgent(Agent<T>& agent, const string& agentName, const string& inputName) {
-            // TODO: needs to be implemented
+        void loadAgent(Agency<T>& agency, const string& name, const string& filename) {
+            
+            JSON json(file_get_contents(filename));
+
+            // typename PersistenceCommand<T>::Type type = this->getType(json.get<string>("type"));
+            // if (type != PersistenceCommand<T>::AGENT)
+            //     throw ERROR("Agent type missmatch: " + json.get<string>("type"));
+
+            typename PersistenceCommand<T>::Type type = PersistenceCommand<T>::AGENT;
+
+            string role = json.get<string>("role");
+            if (!array_key_exists(role, roles))
+                throw ERROR("Agent role not exists: " + role);
+
+            vector<string> recipients = json.get<vector<string>>("recipients");
+
+            roles[role](agency, name, recipients).fromJSON(json);
         }
 
-        void loadAgency(Agency<T>& agency, const string& agencyName, const string& inputName) {
-            // TODO: needs to be implemented
+        void loadAgency(Agency<T>& agency, const string& name, const string& filename) {
+            // ((JSONSerializable&)agency)
+            //     .fromJSON(JSON(file_get_contents(filename)));
         }
+
+        AgentRoleMap<T>& roles;
 
     };
 

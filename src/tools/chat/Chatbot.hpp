@@ -32,17 +32,26 @@ namespace tools::chat {
             owns.release(this, history);
         }
 
+        void* getHistoryPtr() { return history; } // TODO: remove this
+
+        // ----- stream chat -----
+
         virtual string chat(const string& sender, const string& text, bool& interrupted) = 0;
 
-        virtual string chunk(const string& chunk) { 
+        virtual string chunk(const string& chunk) {
+            STUB_VIRTUAL // TODO...
             printer.print(chunk);
             return chunk;
         }
 
-        virtual string response(const string& response) { return response; }
+        virtual string response(const string& response) {
+            STUB_VIRTUAL // TODO...
+            return response; 
+        }
 
-        void* getHistoryPtr() { return history; } // TODO: remove this
+        // ----- completion -----
 
+        virtual string respond(const string& sender, const string& text) = 0;
 
         const string name; //  TODO: remove this!
     protected:
@@ -50,5 +59,7 @@ namespace tools::chat {
         void* history = nullptr;
         Printer& printer;
     };
+
+    
 
 }

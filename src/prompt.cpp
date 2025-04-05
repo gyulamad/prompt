@@ -18,11 +18,12 @@
 // #include "tools/agency/Agent.hpp"
 #include "tools/agency/Agency.hpp"
 
-#include "tools/agency/agents/ChatbotAgent.hpp"
-#include "tools/agency/agents/TalkbotAgent.hpp"
-// #include "tools/agency/agents/EchoAgent.hpp"
 #include "tools/agency/agents/UserAgent.hpp"
 #include "tools/agency/agents/UserAgentInterface.hpp"
+#include "tools/agency/agents/ChatbotAgent.hpp"
+#include "tools/agency/agents/TalkbotAgent.hpp"
+#include "tools/agency/agents/DecidorChatbotAgent.hpp"
+// #include "tools/agency/agents/EchoAgent.hpp"
 
 
 #include "tools/cmd/CommandFactory.hpp"
@@ -40,6 +41,7 @@
 
 #include "tools/ai/GeminiChatbot.hpp"
 #include "tools/ai/GeminiTalkbot.hpp"
+#include "tools/ai/GeminiDecidorChatbot.hpp"
 
 using namespace std;
 using namespace tools::utils;
@@ -145,12 +147,14 @@ int safe_main(int argc, char* argv[]) {
 
         // Map of role strings to factory functions
         AgentRoleMap<PackT> roles = {
+            // // echo
             // {   // TODO: this one we dont need here it's just an experimental example until we add more agent
             //     "echo", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
             //         return agency.template spawn<EchoAgent<PackT>>(name, recipients, *interface_ptr);
             //     }
             // },
 
+            // chat
             {
                 "chat", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
                     ChatHistory* history = owns.allocate<ChatHistory>(
@@ -178,6 +182,8 @@ int safe_main(int argc, char* argv[]) {
                 },
 
             },
+
+            // talk
             {
                 "talk", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
                     ChatHistory* history = owns.allocate<ChatHistory>(
@@ -204,7 +210,34 @@ int safe_main(int argc, char* argv[]) {
                         talkbot,
                         interface
                     );
-                },
+                }
+            },
+
+            // decidor
+            {
+                "decidor", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
+                    ChatHistory* history = owns.allocate<ChatHistory>(
+                        settings.get<string>("prompt"),
+                        settings.get<bool>("chatbot.use_start_token") // chatbot_use_start_token
+                    );
+                    GeminiDecidorChatbot* decidorChatbot = owns.allocate<GeminiDecidorChatbot>(
+                        owns,
+                        settings.get<string>("gemini.secret"), // gemini_secret,
+                        settings.get<string>("gemini.variant"), // gemini_variant,
+                        settings.get<long>("gemini.timeout"), // gemini_timeout,
+                        "gemini",
+                        history,
+                        printer
+                    );
+                    return agency.template spawn<DecidorChatbotAgent<PackT>>(
+                        owns,
+                        &agency,
+                        queue,
+                        name, 
+                        recipients, 
+                        decidorChatbot
+                    );
+                }
             },
         };
         const vector<string> command_factory_commands = settings.get<vector<string>>("command_line.available_commands");
@@ -215,7 +248,7 @@ int safe_main(int argc, char* argv[]) {
         if (in_array("kill", command_factory_commands)) cfactory.withCommand<KillCommand<PackT>>();
         if (in_array("voice", command_factory_commands)) cfactory.withCommand<VoiceCommand<PackT>>();
         if (in_array("target", command_factory_commands)) cfactory.withCommand<TargetCommand<PackT>>();
-        if (in_array("load", command_factory_commands)) cfactory.withCommand<LoadCommand<PackT>>();
+        if (in_array("load", command_factory_commands)) cfactory.withCommand<LoadCommand<PackT>>(roles);
         if (in_array("save", command_factory_commands)) cfactory.withCommand<SaveCommand<PackT>>();
         commander.setupCommands(/*commands*/);
 

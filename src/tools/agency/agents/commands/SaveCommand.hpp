@@ -25,11 +25,11 @@ namespace tools::agency::agents::commands {
             switch (type) {
                 
                 case PersistenceCommand<T>::AGENT:
-                    saveAgent(name, filename);
+                    saveAgent(agency, name, filename);
                     break;
                 
                 case PersistenceCommand<T>::AGENCY:
-                    saveAgency(name, filename);
+                    saveAgency(agency, name, filename);
                     break;
 
                 default:
@@ -39,12 +39,12 @@ namespace tools::agency::agents::commands {
 
     private:
     
-        void saveAgent(Agent<T>& agent, const string& filename) {
-            // TODO: needs to be implemented
+        void saveAgent(Agency<T>& agency, const string& name, const string& filename) {
+            // file_put_contents(filename, ((JSONSerializable&)agency.getWorkerRef()).toJSON().dump(), false, true);
         }
 
-        void saveAgency(Agency<T>& agency, const string& filename) {
-            // TODO: needs to be implemented
+        void saveAgency(Agency<T>& agency, const string& name, const string& filename) {
+            // file_put_contents(filename, ((JSONSerializable&)agency).toJSON().dump(), false, true);
         }
 
     };

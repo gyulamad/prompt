@@ -83,7 +83,7 @@ namespace tools::cmd {
                         commandFound = true;
                         if (inputParts.size() == commandPatternParts.size()) {
                             commandArgumentsMatches = true;
-                            command.run(user_context, inputParts);
+                            command.run(user_context, command.validate(inputParts));
                             break;
                         }
                     }

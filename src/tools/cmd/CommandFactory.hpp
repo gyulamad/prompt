@@ -28,7 +28,10 @@ namespace tools::cmd {
     protected:
 
         void reset() {
-            for (Command* command : commands) delete command;
+            for (Command* command : commands) {
+                delete command;
+                command = nullptr;
+            }
             commands.clear();
         }
 

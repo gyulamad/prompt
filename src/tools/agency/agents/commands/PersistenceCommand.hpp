@@ -78,6 +78,8 @@ namespace tools::agency::agents::commands {
             filenameParamName(filenameParamName),
             filenameParamDesc(filenameParamDesc)
         {}
+        
+        virtual ~PersistenceCommand() = default;
 
         vector<string> getPatterns() const override {
             vector<string> patterns;
@@ -184,18 +186,13 @@ namespace tools::agency::agents::commands {
 
             string typeName = args[1]; // "agent" or "agency"
             string thingName = args[2]; // agentName or agencyName
-            // Keep the .json default for now as discussed
-            string filename = (args.size() > 3) ? args[3] : thingName + ".json";
+            string filename = (args.size() > 3) ? args[3] : thingName;
 
             performAction(*(Agency<T>*)agency_void, getType(typeName), thingName, filename);
         }
 
         virtual void performAction(Agency<T>& agency, Type type, const string& name, const string& filename) = 0;
 
-        // Virtual destructor is important for base classes with virtual functions
-        virtual ~PersistenceCommand() = default;
-
-    private:
 
         vector<string> getTypeNames() const {
             vector<string> typeNames;
@@ -222,7 +219,7 @@ namespace tools::agency::agents::commands {
                 return FE_CONTINUE;
             });
             if (found) return type;
-            throw ERROR("Invalid type: " + typeName);
+            throw getInvalidTypeError(typeName);
         }
 
         runtime_error getInvalidTypeError(string typeName) const {

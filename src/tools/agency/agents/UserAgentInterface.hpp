@@ -183,7 +183,7 @@ namespace tools::agency::agents {
                 
                     // recs++;
                     micView.incRecs();
-                    DEBUG("inc recs to:" + to_string(micView.getRecs()));
+                    // DEBUG("inc recs to:" + to_string(micView.getRecs()));
                     if (micView.getRecs() >= 1) tts.speak_pause(3000);
                     if (micView.getRecs() >= 2) tts.speak_stop();
                     
