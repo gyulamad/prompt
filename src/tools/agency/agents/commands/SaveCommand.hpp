@@ -19,27 +19,15 @@ namespace tools::agency::agents::commands {
         // Constructor calling the base class constructor
         SaveCommand() : PersistenceCommand<T>(
             "save",         // commandName
-            "Saves",        // actionVerbCapitalized
-            "save",         // actionVerbLowercase
-            "output-name",  // filenameParamName
-            "output file"   // filenameParamDesc
+            "Saves",        // actionVerb
+            "agent",       // agentTypeName
+            "agency"        // agencyTypeName
         ) {}
 
-    protected: // Changed access specifier for overridden virtual methods
-        // Implement the pure virtual methods from the base class
-        void performAgentAction(Agency<T>& agency, const string& agentName, const string& filename) override {
-            // Need to get the agent reference here, as the base run() doesn't do it anymore
-            Agent<T>& agent = agency.template getWorkerRef<Agent<T>>(agentName);
-            // Optional: Add validation back if needed, e.g.,
-            // if (agent.name != agentName) throw ERROR("Invalid agent, name mismatch: expected '" + agentName + "', got '" + agent.name + "'");
-            saveAgentInternal(agent, filename);
-        }
-
-        void performAgencyAction(Agency<T>& agency, const string& agencyName, const string& filename) override {
-            // The agency passed is the one to save. The agencyName parameter might be used
-            // for validation or logging if needed, but the base run() passes the name from args[2].
-            // We might want to validate agency.name against agencyName if relevant.
-            saveAgencyInternal(agency, filename);
+    protected: 
+    
+        void performAction(void* thing, PersistenceCommand<T>::Type type, const string& name, const string& filename) override {
+            // TODO needs to be implemented
         }
 
     private:

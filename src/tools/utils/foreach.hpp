@@ -8,6 +8,7 @@
 using namespace std;
 
 namespace tools::utils {
+    // TODO: move these under tools::containers namespace
 
     // ===============================================================
     // =========================== foreach ===========================

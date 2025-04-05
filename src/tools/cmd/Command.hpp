@@ -18,6 +18,11 @@ namespace tools::cmd {
 
         virtual string getUsage() const UNIMP_THROWS
         
+        virtual const vector<string>& validate(const vector<string>& args) {
+            // Override if need validation and "throw ERROR(<validation failure message to the caller>);" on error
+            return args;
+        }
+
         /**
          * @brief 
          * 

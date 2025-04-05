@@ -19,25 +19,18 @@ namespace tools::agency::agents::commands {
         // Constructor calling the base class constructor
         LoadCommand() : PersistenceCommand<T>(
             "load",        // commandName
-            "Loads",       // actionVerbCapitalized
-            "load",        // actionVerbLowercase
-            "input-name",  // filenameParamName
-            "input file"   // filenameParamDesc
+            "Loads"       // actionVerb
         ) {}
 
-    protected: // Changed access specifier for overridden virtual methods
-        // Implement the pure virtual methods from the base class
-        void performAgentAction(Agency<T>& agency, const string& agentName, const string& filename) override {
-            loadAgentInternal(agency, agentName, filename);
-        }
+    protected:
 
-        void performAgencyAction(Agency<T>& agency, const string& agencyName, const string& filename) override {
-            loadAgencyInternal(agency, agencyName, filename);
+        void performAction(void* thing, PersistenceCommand<T>::Type type, const string& name, const string& filename) override {
+            // TODO needs to be implemented
         }
 
     private:
         // Keep the internal implementation methods
-        void loadAgentInternal(Agency<T>& agency, const string& agentName, const string& inputName) {
+        void loadAgentInternal(Agent<T>& agent, const string& agentName, const string& inputName) {
             // TODO: needs to be implemented
         }
 
