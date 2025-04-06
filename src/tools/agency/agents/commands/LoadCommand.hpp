@@ -54,7 +54,7 @@ namespace tools::agency::agents::commands {
 
             string role = json.get<string>("role");
             if (!array_key_exists(role, roles))
-                throw ERROR("Agent role not exists: " + role);
+                throw ERROR("Role type does not exist: '" + role + "'");
 
             // vector<string> recipients = json.get<vector<string>>("recipients");
 

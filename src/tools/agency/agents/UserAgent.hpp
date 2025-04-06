@@ -8,6 +8,7 @@
 #include "../../voice/STTSwitch.hpp"
 #include "../../voice/WhisperTranscriberSTTSwitch.hpp"
 #include "../../utils/InputPipeInterceptor.hpp"
+#include "../../containers/array_shift.hpp"
 #include "../Agent.hpp"
 #include "../Agency.hpp"
 
@@ -34,12 +35,9 @@ namespace tools::agency::agents {
             Worker<T>* agency,
             PackQueue<T>& queue,
             const JSON& json,
-            // const string& name, 
-            // vector<string> recipients, // TODO: to config, and have to be able to change/see message package targets
-            // Agency<T>& agency, 
             UserAgentInterface<T>& interface
         ): 
-            Agent<T>(owns, agency, queue, json/*, name, recipients*/), 
+            Agent<T>(owns, agency, queue, json), 
             interface(interface)
         {
             interface.setUser(this);
@@ -58,7 +56,8 @@ namespace tools::agency::agents {
                 return;
             }
             T input;
-            if (interface.readln(input)) this->exit();
+            if (!inputs.empty()) input = array_shift(inputs);
+            else if (interface.readln(input)) this->exit();
             if (trim(input).empty()) return;
             Commander& commander = interface.getCommanderRef();
             if (commander.isPrefixed(input)) { // TODO: add is_command(input) as a command matcher (regex or callback fn) instead just test for "/"
@@ -83,13 +82,33 @@ namespace tools::agency::agents {
         }
 
         void handle(const string& sender, const T& item) override {
-            DEBUG("Incoming message from '" + sender + "'");
+            // DEBUG("Incoming message from '" + sender + "'");
             interface.println(sender + ": " + item);
             // interface.getCommanderRef().getCommandLineRef().setPromptVisible(true); // TODO: not here but here: [[[---STOP---]]]
         }
 
+
+        // ------ startup & batch -----
+
+        void batch(const vector<string>& inputs) {
+            if (inputs.empty()) return;
+
+        //     // Commander& commander = interface.getCommanderRef();
+        //     // commander.getCommandLineRef().setPromptVisible(false);
+            foreach (inputs, [&](const string& input) {
+                this->inputs.push_back(input);
+        //         if (echo) interface.println(input);
+                
+        //         // if (!commander.runCommand(this->agency, input)) return FE_BREAK;
+        //         // return FE_CONTINUE;
+            });
+        //     // commander.getCommandLineRef().setPromptVisible(true);
+            
+        }
+
     private:
         UserAgentInterface<T>& interface;
+        vector<string> inputs = {};
     };
     
 }

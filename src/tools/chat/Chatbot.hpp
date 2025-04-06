@@ -37,24 +37,18 @@ namespace tools::chat {
 
         void* getHistoryPtr() { return history; } // TODO: remove this
 
-        // ----- stream chat -----
 
+        // prompt completion call
+        virtual string respond(const string& sender, const string& text) = 0;
+
+        // stream chat
         virtual string chat(const string& sender, const string& text, bool& interrupted) = 0;
 
-        virtual string chunk(const string& chunk) {
-            STUB_VIRTUAL // TODO...
-            printer.print(chunk);
-            return chunk;
-        }
+        // on stream chunk recieved
+        virtual string chunk(const string& chunk) = 0;
 
-        virtual string response(const string& response) {
-            STUB_VIRTUAL // TODO...
-            return response; 
-        }
-
-        // ----- completion -----
-
-        virtual string respond(const string& sender, const string& text) = 0;
+        // on full response recieved
+        virtual string response(const string& response) = 0;
 
 
         // ----- JSON serialization -----

@@ -107,11 +107,13 @@ namespace tools::agency {
         
         void tick() {
             while (this->queue.Consume(pack)) {
-                if (this->name == pack.recipient) handle(pack.sender, pack.item);
+                if (this->name == pack.recipient) 
+                    handle(pack.sender, pack.item);
                 else {
                     lock_guard<mutex> lock(workers_mtx);
                     for (Worker<T>* worker: workers)
-                        if (worker && worker->getName() == pack.recipient) worker->handle(pack.sender, pack.item);    
+                        if (worker && worker->getName() == pack.recipient) 
+                            worker->handle(pack.sender, pack.item);    
                 }
             }
         }
@@ -150,7 +152,7 @@ namespace tools::agency {
             return implode("\n", dumps);
         }
 
-        // ---- serialization ----
+        // ---- JSON serialization ----
 
         void fromJSON(const JSON& json) override {
             vector<JSON> jworkers = json.get<vector<JSON>>("workers");

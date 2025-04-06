@@ -16,16 +16,20 @@ namespace tools::chat {
             Chatbot(owns, name, history, printer)
         {}
 
-        virtual ~DecidorChatbot() = default;
+        virtual ~DecidorChatbot() {}
+
+        string chunk(const string& chunk) override {
+            printer.print(chunk);
+            return chunk;
+        }
+    
+        string response(const string& response) override {
+            return response;
+        }
 
         // TODO: add chat/stream mode to the chatbot (avoid talkbot concept separation)
         string chat(const string& sender, const string& text, bool& interrupted) override {
             throw ERROR("DecidorChatbot does not support chat stream resonse.");
-        }
-    
-        string response(const string& response) override {
-            Chatbot::response(response);
-            return response;
         }
 
         // string respond(const string& sender, const string& text) override {

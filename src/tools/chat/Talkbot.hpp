@@ -47,8 +47,7 @@ namespace tools::chat {
             return told;
         }
     
-        string response(const string& response) override { 
-            Chatbot::response(response);
+        string response(const string& response) override {
             sentences.flush();
             tell(sentences.read());
             return response;

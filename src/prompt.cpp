@@ -274,24 +274,20 @@ int safe_main(int argc, char* argv[]) {
         JSON juser;
         juser.set("name", uname);
         juser.set("recipients", urecipients);
-        agency.template spawn<UserAgent<PackT>>(
+        UserAgent<PackT>& user = agency.template spawn<UserAgent<PackT>>(
             owns,
             &agency,
             queue,
             juser,
             // uname, urecipients,
             interface
-        ).async();
-
-        commander.getCommandLineRef().setPromptVisible(false);
-        vector<string> batch = settings.get<vector<string>>("startup.batch");
-        bool echo = settings.get<bool>("startup.echo");
-        foreach (batch, [&](const string& input) {
-            if (echo) interface.println(input);
-            if (!commander.runCommand(&agency, input)) return FE_BREAK;
-            return FE_CONTINUE;
-        });
-        commander.getCommandLineRef().setPromptVisible(true);
+        );
+        user.batch(settings.get<vector<string>>("startup.batch"));
+        user.async();
+        // user.startup(
+        //     settings.get<vector<string>>("startup.batch"), 
+        //     settings.get<bool>("startup.echo")
+        // );
 
         //cout << "Agency started" << endl;
         agency.sync();        
@@ -306,7 +302,7 @@ int safe_main(int argc, char* argv[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-       "test_CommandLine_readln_adds_to_history"
+       //"test_TalkbotAgent_reserve"
     });
     
     return safe_main<string>(argc, argv);

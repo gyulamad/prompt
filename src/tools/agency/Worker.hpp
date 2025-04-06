@@ -137,6 +137,7 @@ namespace tools::agency {
 
         JSON toJSON() const override {
             JSON json;
+            json.set("role", this->type());
             json.set("name", name);
             json.set("recipients", recipients);
             return json;

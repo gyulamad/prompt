@@ -146,6 +146,8 @@ void test_TalkbotAgent_reserve() {
         interceptor
     );
     JSON json;
+    json.set("name", "name");
+    json.set("recipients", vector<string>{});
     TalkbotAgent<string> agent(owns, nullptr, queue, json, talkbot, interface);
 }
 
