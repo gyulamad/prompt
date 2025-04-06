@@ -21,6 +21,9 @@ public:
     string loaded_history_path;
     string saved_history_path;
 
+    using LineEditor::LineEditor;
+    virtual ~MockLineEditor() {}
+
     void setCompletionCallback(CompletionCallback) override {}
     void setMultiLine(bool enable) override { multi_line_enabled = enable; }
     void setHistoryMaxLen(size_t len) override { max_history_len = len; }
@@ -45,6 +48,9 @@ public:
     bool wasWiped() const { return wiped; }
     bool wasRefreshed() const { return refreshed; }
     void resetFlags() { wiped = false; refreshed = false; }
+
+    void setPrompt(const char* /*prompt*/) override  {}
+    void setPrompt(string& /*prompt*/) override {}
     
 private:
     bool useQueue = false;

@@ -228,15 +228,15 @@ int safe_main(int argc, char* argv[]) {
             );//->fromJSON(json);
         };
         const vector<string> command_factory_commands = settings.get<vector<string>>("command_line.available_commands");
-        if (in_array("help", command_factory_commands)) cfactory.withCommand<HelpCommand<PackT>>();
-        if (in_array("exit", command_factory_commands)) cfactory.withCommand<ExitCommand<PackT>>();
-        if (in_array("list", command_factory_commands)) cfactory.withCommand<ListCommand<PackT>>();
-        if (in_array("spawn", command_factory_commands)) cfactory.withCommand<SpawnCommand<PackT>>(roles);
-        if (in_array("kill", command_factory_commands)) cfactory.withCommand<KillCommand<PackT>>();
-        if (in_array("voice", command_factory_commands)) cfactory.withCommand<VoiceCommand<PackT>>();
-        if (in_array("target", command_factory_commands)) cfactory.withCommand<TargetCommand<PackT>>();
-        if (in_array("load", command_factory_commands)) cfactory.withCommand<LoadCommand<PackT>>(roles);
-        if (in_array("save", command_factory_commands)) cfactory.withCommand<SaveCommand<PackT>>();
+        if (in_array("help", command_factory_commands)) cfactory.withCommand<HelpCommand<PackT>>(commander.getPrefix());
+        if (in_array("exit", command_factory_commands)) cfactory.withCommand<ExitCommand<PackT>>(commander.getPrefix());
+        if (in_array("list", command_factory_commands)) cfactory.withCommand<ListCommand<PackT>>(commander.getPrefix());
+        if (in_array("spawn", command_factory_commands)) cfactory.withCommand<SpawnCommand<PackT>>(commander.getPrefix(), roles);
+        if (in_array("kill", command_factory_commands)) cfactory.withCommand<KillCommand<PackT>>(commander.getPrefix());
+        if (in_array("voice", command_factory_commands)) cfactory.withCommand<VoiceCommand<PackT>>(commander.getPrefix());
+        if (in_array("target", command_factory_commands)) cfactory.withCommand<TargetCommand<PackT>>(commander.getPrefix());
+        if (in_array("load", command_factory_commands)) cfactory.withCommand<LoadCommand<PackT>>(commander.getPrefix(), roles);
+        if (in_array("save", command_factory_commands)) cfactory.withCommand<SaveCommand<PackT>>(commander.getPrefix());
         commander.setupCommands(/*commands*/);
 
 
@@ -281,7 +281,7 @@ int safe_main(int argc, char* argv[]) {
             juser,
             // uname, urecipients,
             interface
-        )->async(); // TODO: revert spawn to return reference
+        ).async();
 
         commander.getCommandLineRef().setPromptVisible(false);
         vector<string> batch = settings.get<vector<string>>("startup.batch");
@@ -306,7 +306,7 @@ int safe_main(int argc, char* argv[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-       //"test_Commander_runCommand_unknown_command"
+       "test_CommandLine_readln_adds_to_history"
     });
     
     return safe_main<string>(argc, argv);

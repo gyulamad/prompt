@@ -21,22 +21,33 @@ namespace tools::agency::agents::commands {
     template<typename T>
     class TargetCommand: public Command {
     public:
+
+        using Command::Command;
+        virtual ~TargetCommand() {}
     
         vector<string> getPatterns() const override {
             return { 
-                "/target", // default is "list"
-                "/target list",
-                "/target set {string}",
-                "/target add {string}",
-                "/target remove {string}"
+                this->prefix + "target", // default is "list"
+                this->prefix + "target list",
+                this->prefix + "target set {string}",
+                this->prefix + "target add {string}",
+                this->prefix + "target remove {string}"
             };
+        }
+
+        string getName() const override {
+            return this->prefix + "target";
+        }
+
+        string getDescription() const override {
+            return "Manages the list of recipients for messages.";
         }
         
         string getUsage() const override {
             return implode("\n", vector<string>({
                 Usage({
-                    string("/target"), // command
-                    string("Manages the list of recipients for messages."), // help
+                    getName(), // command
+                    getDescription(), // help
                     vector<Parameter>({ // parameters
                         {
                             string("operation"), // name
@@ -50,10 +61,10 @@ namespace tools::agency::agents::commands {
                         }
                     }),
                     vector<pair<string, string>>({ // examples
-                        make_pair("/target list", "Lists all targets"),
-                        make_pair("/target set user1,user2", "Sets targets to user1 and user2"),
-                        make_pair("/target add user3", "Adds user3 to the targets"),
-                        make_pair("/target remove user1", "Removes user1 from the targets") 
+                        make_pair(this->prefix + "target list", "Lists all targets"),
+                        make_pair(this->prefix + "target set user1,user2", "Sets targets to user1 and user2"),
+                        make_pair(this->prefix + "target add user3", "Adds user3 to the targets"),
+                        make_pair(this->prefix + "target remove user1", "Removes user1 from the targets") 
                     }),
                     vector<string>({ // notes
                         string("If no operation is specified, it defaults to 'list'"),

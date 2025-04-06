@@ -9,4 +9,5 @@ using namespace tools::cmd;
 class MockCommandLine : public CommandLine {
 public:
     MockCommandLine(LineEditor& editor) : CommandLine(editor) {}
+    virtual ~MockCommandLine() {}
 };

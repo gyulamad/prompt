@@ -18,19 +18,30 @@ namespace tools::agency::agents::commands {
     template<typename T>
     class ListCommand: public Command {
     public:
+
+        using Command::Command;
+        virtual ~ListCommand() {}
     
         vector<string> getPatterns() const override {
             return {
-                "/list",
-                "/list {string}",
+                this->prefix + "list",
+                this->prefix + "list {string}",
             };
+        }
+
+        string getName() const override {
+            return this->prefix + "list";
+        }
+
+        string getDescription() const override {
+            return "Displays a list of all registered agents in the agency.";
         }
 
         string getUsage() const override {
             return implode("\n", vector<string>({
                 Usage({
-                    string("/list"), // command
-                    string("Displays a list of all registered agents in the agency."), // help
+                    getName(), // command
+                    getDescription(), // help
                     vector<Parameter>({ // parameters
                         {
                             string("filter"), // name
@@ -39,8 +50,8 @@ namespace tools::agency::agents::commands {
                         }
                     }),
                     vector<pair<string, string>>({ // examples
-                        make_pair("/list", "Lists all agents"),
-                        make_pair("/list bot", "Lists agents containing 'bot' in their name")
+                        make_pair(this->prefix + "list", "Lists all agents"),
+                        make_pair(this->prefix + "list bot", "Lists agents containing 'bot' in their name")
                     }),
                     vector<string>({ // notes
                         string("Outputs each agent's name on a new line"),

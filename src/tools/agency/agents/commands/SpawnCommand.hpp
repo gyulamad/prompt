@@ -25,25 +25,36 @@ namespace tools::agency::agents::commands {
     public:
 
         SpawnCommand(
+            const string& prefix,
             AgentRoleMap& roles
         ): 
-            Command(),
+            Command(prefix),
             roles(roles)
         {}
+
+        virtual ~SpawnCommand() {}
     
         vector<string> getPatterns() const override {
             return {
-                "/spawn {string}",
-                "/spawn {string} {string}",
-                "/spawn {string} {string} {string}"
+                this->prefix + "spawn {string}",
+                this->prefix + "spawn {string} {string}",
+                this->prefix + "spawn {string} {string} {string}"
             };
+        }
+
+        string getName() const override {
+            return this->prefix + "spawn";
+        }
+
+        string getDescription() const override {
+            return "Creates a new agent with specified role, optional name, and optional recipients.";
         }
 
         string getUsage() const override {
             return implode("\n", vector<string>({
                 Usage({
-                    string("/spawn"), // command
-                    string("Creates a new agent with specified role, optional name, and optional recipients."), // help
+                    getName(), // command
+                    getDescription(), // help
                     vector<Parameter>({ // parameters
                         {
                             string("role"), // name
@@ -62,9 +73,9 @@ namespace tools::agency::agents::commands {
                         }
                     }),
                     vector<pair<string, string>>({ // examples
-                        make_pair("/spawn worker", "Creates worker agent"),
-                        make_pair("/spawn bot mybot", "Creates bot agent named 'mybot'"),
-                        make_pair("/spawn bot mybot user1,user2", "Creates bot agent with recipients")
+                        make_pair(this->prefix + "spawn worker", "Creates worker agent"),
+                        make_pair(this->prefix + "spawn bot mybot", "Creates bot agent named 'mybot'"),
+                        make_pair(this->prefix + "spawn bot mybot user1,user2", "Creates bot agent with recipients")
                     }),
                     vector<string>({ // notes
                         string("Role must match an existing role type"),

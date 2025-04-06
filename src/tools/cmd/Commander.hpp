@@ -163,7 +163,7 @@ void test_Commander_getCommandLineRef_returns_reference() {
 void test_Commander_set_commands_updates_patterns() {
     MockLineEditor editor;
     MockCommandLine cl(editor);
-    MockCommand command;
+    MockCommand command("/");
     command.patterns = {"test cmd", "test {param}"};
     vector<Command*> commands = { &command };
     Commander commander(cl, commands, "/");
@@ -188,7 +188,7 @@ void test_Commander_runCommand_unknown_command() {
     string err = capture_cerr([&]() {
         MockLineEditor editor;
         MockCommandLine cl(editor);
-        MockCommand command;
+        MockCommand command("/");
         command.patterns = {"known"};
         vector<Command*> commands = { &command };
         Commander commander(cl, commands, "/");
@@ -203,7 +203,7 @@ void test_Commander_runCommand_invalid_arguments() {
     string err = capture_cerr([&]() {
         MockLineEditor editor;
         MockCommandLine cl(editor);
-        MockCommand command;
+        MockCommand command("/");
         vector<Command*> commands = { &command };
         command.patterns = {"/test arg1"};
         Commander commander(cl, commands, "/");
@@ -217,7 +217,7 @@ void test_Commander_runCommand_invalid_arguments() {
 void test_Commander_runCommand_successful_execution() {
     MockLineEditor editor;
     MockCommandLine cl(editor);
-    MockCommand command;
+    MockCommand command("/");
     command.patterns = {"test arg"};
     vector<Command*> commands = { &command };
     Commander commander(cl, commands, "/");

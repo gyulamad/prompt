@@ -22,12 +22,10 @@ namespace tools::agency::agents {
             Worker<T>* agency,
             PackQueue<T>& queue,
             const JSON& json,
-            // const string& name,
-            // vector<string> recipients,
             void* talkbot,
             UserAgentInterface<T>& interface
         ): 
-            Agent<T>(owns, agency, queue, json/*, name, recipients*/),
+            Agent<T>(owns, agency, queue, json),
             talkbot(owns.reserve<Talkbot>(this, talkbot, FILELN)),
             interface(interface)
         {}
@@ -117,6 +115,16 @@ void test_TalkbotAgent_reserve() {
 
     class MockLineEditor: public LineEditor {
         void setCompletionCallback(CompletionCallback) override {}
+        void setMultiLine(bool /*enable*/) override {}
+        void setHistoryMaxLen(size_t /*max_len*/) override {}
+        void loadHistory(const char* /*path*/) override {}
+        void saveHistory(const char* /*path*/) override {}
+        void addHistory(const char* /*line*/) override {}
+        bool readLine(string& /*line*/) override { return false; }
+        void refreshLine() override {}
+        void wipeLine() override {}
+        void setPrompt(const char* /*prompt*/) override {}
+        void setPrompt(string& /*prompt*/) override {}
     } editor;
     CommandLine commandLine(
         editor
@@ -137,7 +145,8 @@ void test_TalkbotAgent_reserve() {
         commander,
         interceptor
     );
-    TalkbotAgent<string> agent(owns, nullptr, queue, "talk", {"user"}, talkbot, interface);
+    JSON json;
+    TalkbotAgent<string> agent(owns, nullptr, queue, json, talkbot, interface);
 }
 
 TEST(test_TalkbotAgent_reserve);

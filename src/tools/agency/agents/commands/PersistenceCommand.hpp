@@ -69,31 +69,39 @@ namespace tools::agency::agents::commands {
         };
 
     public:
+
         PersistenceCommand(
+            const string& prefix,
             Persistor persistor,
             const string& filenameParamName = "filename", // Default value
             const string& filenameParamDesc = "file"      // Default value
         ): 
+            Command(prefix),
             persistor(persistor),
             filenameParamName(filenameParamName),
             filenameParamDesc(filenameParamDesc)
         {}
         
-        virtual ~PersistenceCommand() = default;
+        virtual ~PersistenceCommand() {}
 
         vector<string> getPatterns() const override {
             vector<string> patterns;
             foreach (typeNameMap, [&](const string& typeName) {
-                patterns.push_back(
-                    "/" + getCommandName(persistor) + " " + typeName 
-                    + " {string}"
-                );
-                patterns.push_back(
-                    "/" + getCommandName(persistor) + " " + typeName 
-                    + " {string} [{string}]"
-                );
+                patterns.push_back(getName() + " " + typeName + " {string}");
+                patterns.push_back(getName() + " " + typeName + " {string} [{string}]");
             });
             return patterns;
+        }
+
+        string getName() const override {
+            return this->prefix + getCommandName(persistor);
+        }
+
+        string getDescription() const override {
+            return getActionVerbCapitalized(persistor) + " an " 
+                + implode(" or ", typeNames) + " " 
+                + getDirectorWord(persistor) 
+                + " a " + filenameParamDesc + ".";
         }
 
         string getUsage() const override {
@@ -106,13 +114,13 @@ namespace tools::agency::agents::commands {
             vector<pair<string, string>> examples;
             foreach (typeNameMap, [&](const string& typeName) {
                 examples.push_back(make_pair(
-                    "/" + getCommandName(persistor) + " " + typeName + " my_" + typeName,
+                    getName() + " " + typeName + " my_" + typeName,
                     getActionVerbCapitalized(persistor) + " the " + typeName + " 'my_" 
                         + typeName + "' " + getDirectorWord(persistor) + " " 
                         + filenameParamDesc + " 'my_" + typeName + "'"
                 ));
                 examples.push_back(make_pair(
-                    "/" + getCommandName(persistor) + " " + typeName + " my_" + typeName 
+                    getName() + " " + typeName + " my_" + typeName 
                         + " my_" + typeName + "_file",
                     getActionVerbCapitalized(persistor) + " the " + typeName + " 'my_" 
                         + typeName + "' " + getDirectorWord(persistor) + " " 
@@ -122,13 +130,14 @@ namespace tools::agency::agents::commands {
 
             return implode("\n", vector<string>({
                 Usage({
-                    string("/" + getCommandName(persistor)), // command
-                    string(
-                        getActionVerbCapitalized(persistor) + " an " 
-                        + implode(" or ", typeNames) + " " 
-                        + getDirectorWord(persistor) 
-                        + " a " + filenameParamDesc + "."
-                    ), // help
+                    getName(), // string("/" + getCommandName(persistor)), // command
+                    getDescription(),
+                    // string(
+                    //     getActionVerbCapitalized(persistor) + " an " 
+                    //     + implode(" or ", typeNames) + " " 
+                    //     + getDirectorWord(persistor) 
+                    //     + " a " + filenameParamDesc + "."
+                    // ), // help
                     vector<Parameter>({ // parameters
                         {
                             string("type"), // name
@@ -172,7 +181,7 @@ namespace tools::agency::agents::commands {
             if (args.size() < 3) {
                  // Provide more specific usage based on the actual command invoked if possible
                 throw ERROR(
-                    string("Usage: ") + "/" + getCommandName(persistor) + " " 
+                    string("Usage: ") + getName() + " " 
                     + implode("|", typeNames) + " {name} [filename]"
                 );
             }

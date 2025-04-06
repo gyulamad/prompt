@@ -8,6 +8,7 @@ template<typename T>
 class TestWorker: public Worker<T> {
 public:
     using Worker<T>::Worker;
+    virtual ~TestWorker() {}
 
     string type() const override { return "test"; }
 

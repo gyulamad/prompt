@@ -12,10 +12,12 @@ namespace tools::cmd {
 
     class Command {
     public:
+        Command(const string& prefix): prefix(prefix) {}
         virtual ~Command() {}
 
         virtual vector<string> getPatterns() const UNIMP_THROWS
-
+        virtual string getName() const UNIMP_THROWS
+        virtual string getDescription() const UNIMP_THROWS
         virtual string getUsage() const UNIMP_THROWS
         
         virtual const vector<string>& validate(const vector<string>& args) {
@@ -30,6 +32,9 @@ namespace tools::cmd {
          * @param args 
          */
         virtual void run(void*, const vector<string>&) UNIMP_THROWS
+        
+    protected:
+        string prefix;
     };    
 
 }

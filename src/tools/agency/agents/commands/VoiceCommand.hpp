@@ -24,21 +24,32 @@ namespace tools::agency::agents::commands {
     template<typename T>
     class VoiceCommand: public Command {
     public:
+
+        using Command::Command;
+        virtual ~VoiceCommand() {}
     
         vector<string> getPatterns() const override {
             return { 
-                "/voice output {switch}",
-                "/voice input {switch}",
-                "/voice input mute",
-                "/voice input unmute",
+                this->prefix + "voice output {switch}",
+                this->prefix + "voice input {switch}",
+                this->prefix + "voice input mute",
+                this->prefix + "voice input unmute",
             };
+        }
+
+        string getName() const override {
+            return this->prefix + "voice";
+        }
+
+        string getDescription() const override {
+            return "Controls voice input (speech-to-text) and output (text-to-speech) settings.";
         }
 
         string getUsage() const override {
             return implode("\n", vector<string>({
                 Usage({
-                    string("/voice"), // command
-                    string("Controls voice input (speech-to-text) and output (text-to-speech) settings."), // help
+                    getName(), // command
+                    getDescription(), // help
                     vector<Parameter>({ // parameters
                         {
                             string("direction"), // name
@@ -52,12 +63,12 @@ namespace tools::agency::agents::commands {
                         }
                     }),
                     vector<pair<string, string>>({ // examples
-                        make_pair("/voice output on", "Enable text-to-speech"),
-                        make_pair("/voice output off", "Disable text-to-speech"),
-                        make_pair("/voice input on", "Enable speech-to-text"),
-                        make_pair("/voice input off", "Disable speech-to-text"), 
-                        make_pair("/voice input mute", "Mute voice input monitoring"),
-                        make_pair("/voice input unmute", "Unmute voice input monitoring")
+                        make_pair(this->prefix + "voice output on", "Enable text-to-speech"),
+                        make_pair(this->prefix + "voice output off", "Disable text-to-speech"),
+                        make_pair(this->prefix + "voice input on", "Enable speech-to-text"),
+                        make_pair(this->prefix + "voice input off", "Disable speech-to-text"), 
+                        make_pair(this->prefix + "voice input mute", "Mute voice input monitoring"),
+                        make_pair(this->prefix + "voice input unmute", "Unmute voice input monitoring")
                     }),
                     vector<string>({ // notes
                         string("Requires valid user agent"),

@@ -18,7 +18,9 @@ namespace tools::agency::agents::commands {
     class LoadCommand: public PersistenceCommand<T> {
     public:
         // Constructor calling the base class constructor
-        LoadCommand(AgentRoleMap& roles): roles(roles), PersistenceCommand<T>(PersistenceCommand<T>::LOAD) {}
+        LoadCommand(const string& prefix, AgentRoleMap& roles): 
+            roles(roles), PersistenceCommand<T>(prefix, PersistenceCommand<T>::LOAD) {}
+        virtual ~LoadCommand() {}
 
     protected:
 

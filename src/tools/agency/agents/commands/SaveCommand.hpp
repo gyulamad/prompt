@@ -17,7 +17,9 @@ namespace tools::agency::agents::commands {
     class SaveCommand: public PersistenceCommand<T> {
     public:
         // Constructor calling the base class constructor
-        SaveCommand(): PersistenceCommand<T>(PersistenceCommand<T>::SAVE) {}
+        SaveCommand(const string& prefix): 
+            PersistenceCommand<T>(prefix, PersistenceCommand<T>::SAVE) {}
+        virtual ~SaveCommand() {}
 
     protected: 
     
@@ -40,7 +42,6 @@ namespace tools::agency::agents::commands {
     private:
     
         void saveAgent(Agency<T>& agency, const string& name, const string& filename) {
-            agency.getWorkerRef(name)
             file_put_contents(filename, agency.getWorkerRef(name).toJSON().dump(), false, true);
         }
 

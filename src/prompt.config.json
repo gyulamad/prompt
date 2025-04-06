@@ -63,7 +63,7 @@
     "startup": {
         "batch": [
             "/spawn chat chatbot1 user",
-            "/target set chatbot1",
+            "/target set chatbot1"
             // "/load agent joci1 joci.json"
 
             // -----------------

@@ -27,14 +27,10 @@ namespace tools::agency {
             Worker<T>* agency,
             PackQueue<T>& queue,
             const JSON& json
-            // const string& name,
-            // vector<string> recipients
         ): 
             owns(owns),
             agency(agency),
-            queue(queue),            
-            // name(name),
-            // recipients(recipients),
+            queue(queue),
             Closable()
         {
             fromJSON(json);
@@ -134,7 +130,7 @@ namespace tools::agency {
         // ----- JSON serialization -----
 
         void fromJSON(const JSON& json) override {
-            DEBUG(json.dump());
+            // DEBUG(json.dump());
             name = json.get<string>("name");
             recipients = json.get<vector<string>>("recipients");
         }

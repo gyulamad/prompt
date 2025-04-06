@@ -71,7 +71,7 @@ namespace tools::agency {
         }
         
         template<typename WorkerT, typename... Args>
-        WorkerT* spawn(Args&&... args) { // TODO: forward Args
+        WorkerT& spawn(Args&&... args) { // TODO: forward Args
             lock_guard<mutex> lock(workers_mtx);
             // WorkerT* worker = new WorkerT(forward<Args>(args)...); // Direct construction
             WorkerT* worker = owns.allocate<WorkerT>(forward<Args>(args)...);
@@ -85,7 +85,7 @@ namespace tools::agency {
             workers.push_back(worker);
             // worker->start();
             this->send("Worker '" + worker->getName() + "' created as '" + worker->type() + "'.");
-            return (WorkerT*)worker;
+            return *(WorkerT*)worker;
         }
 
         [[nodiscard]]
@@ -204,16 +204,17 @@ using namespace tools::agency;
 
 // Agency tests
 void test_Agency_constructor_basic() {
-    default_test_agency_setup setup;
-    Agency<string> agency(setup.owns, setup.queue, "agency", {});
-    auto actual_name = agency.name;
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
+    auto actual_name = agency.getName();
     assert(actual_name == "agency" && "Agency name should be 'agency'");
 }
 
 void test_Agency_handle_exit() {
-    default_test_agency_setup setup;
-    TestAgency<string> agency(setup.owns, setup.queue, "agency", {});
-    TestWorker<string>& test_worker = agency.template spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.worker_name, setup.recipients);
+    default_test_agency_setup setup("agency");
+    TestAgency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
+    setup.json.set("name", "test_worker");
+    TestWorker<string>& test_worker = agency.template spawn<TestWorker<string>>(setup.owns, setup.agency, setup.queue, setup.json);
     auto actual_output = capture_cout([&]() { agency.handle("user", "exit"); });
     auto actual_closed = agency.isClosing();
     auto actual_worker_closed = test_worker.isClosing();
@@ -225,32 +226,36 @@ void test_Agency_handle_exit() {
 }
 
 void test_Agency_handle_list() {
-    default_test_agency_setup setup;
-    Agency<string> agency(setup.owns, setup.queue, setup.agency_name, setup.recipients);
-    agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, string("worker1"), vector<string>({}));
-    agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, string("worker2"), vector<string>({}));
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
+    setup.json.set("name", "worker1");
+    agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
+    setup.json.set("name", "worker2");
+    agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
     auto actual_output = capture_cout([&]() { agency.handle("user", "list"); });
     auto expected_output = "Workers in the agency:\nworker1\nworker2\n";
     assert(actual_output == expected_output && "List should output all worker names");
 }
 
 void test_Agency_spawn_success() {
-    default_test_agency_setup setup;
-    Agency<string> agency(setup.owns, setup.queue, "agency", {});
-    auto& worker = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.worker_name, setup.recipients);
-    auto actual_name = worker.name;
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
+    setup.json.set("name", "test_worker");
+    auto& worker = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
+    auto actual_name = worker.getName();
     assert(actual_name == "test_worker" && "Spawned worker should have correct name");
     auto actual_output = capture_cout([&]() { agency.handle("user", "list"); });
     assert(str_contains(actual_output, "test_worker") && "Spawned worker should appear in list");
 }
 
 void test_Agency_spawn_duplicate() {
-    default_test_agency_setup setup;
-    Agency<string> agency(setup.owns, setup.queue, "agency", {});
-    agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.worker_name, setup.recipients);
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
+    setup.json.set("name", "test_worker");
+    agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
     bool thrown = false;
     try {
-        agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.worker_name, setup.recipients);
+        agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
     } catch (exception& e) {
         thrown = true;
         string what = e.what();
@@ -260,9 +265,10 @@ void test_Agency_spawn_duplicate() {
 }
 
 void test_Agency_kill_basic() {
-    default_test_agency_setup setup;
-    Agency<string> agency(setup.owns, setup.queue, "agency", {});
-    agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.worker_name, setup.recipients);
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
+    setup.json.set("name", "test_worker");
+    agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
     setup.queue.Produce(Pack<string>("user", "test_worker", "hello"));
     agency.tick();  // Process the queue before killing
     assert(agency.kill("test_worker") && "Worker should be found");
@@ -273,9 +279,10 @@ void test_Agency_kill_basic() {
 }
 
 void test_Agency_tick_dispatch() {
-    default_test_agency_setup setup;
-    Agency<string> agency(setup.owns, setup.queue, "agency", {});
-    auto& test_worker = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.worker_name, setup.recipients);
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
+    setup.json.set("name", "test_worker");
+    auto& test_worker = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
     setup.queue.Produce(Pack<string>("user", "agency", "list"));
     setup.queue.Produce(Pack<string>("user", "test_worker", "hello"));
     auto actual_output = capture_cout([&]() { agency.tick(); });

@@ -18,16 +18,27 @@ namespace tools::agency::agents::commands {
     template<typename T>
     class KillCommand: public Command {
     public:
+
+        using Command::Command;
+        virtual ~KillCommand() {}
     
         vector<string> getPatterns() const override {
-            return { "/kill {string}" };
+            return { this->prefix + "kill {string}" };
+        }
+
+        string getName() const override {
+            return this->prefix + "kill";
+        }
+
+        string getDescription() const override {
+            return "Terminates a specified agent by name.";
         }
 
         string getUsage() const override {
             return implode("\n", vector<string>({
                 Usage({
-                    string("/kill"), // command
-                    string("Terminates a specified agent by name."), // help
+                    getName(), // command
+                    getDescription(), // help
                     vector<Parameter>({ // parameters
                         {
                             string("agent_name"), // name
@@ -36,7 +47,7 @@ namespace tools::agency::agents::commands {
                         }
                     }),
                     vector<pair<string, string>>({ // examples
-                        make_pair("/kill bot1", "Terminates the agent named 'bot1'")
+                        make_pair(this->prefix + "kill bot1", "Terminates the agent named 'bot1'")
                     }),
                     vector<string>({ // notes
                         string("Cannot kill the 'user' agent"),

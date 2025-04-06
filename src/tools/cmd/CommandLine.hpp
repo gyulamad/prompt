@@ -135,9 +135,9 @@ namespace tools::cmd {
         // }
 
         string readln() {
-            // line_editor.setMultiLine(multi_line);
+            line_editor.setMultiLine(multi_line);
             if (history_max_length) {
-                // line_editor.setHistoryMaxLen(history_max_length); // TODO: MAKE THE HISTORY GREAT AGAIN!
+                line_editor.setHistoryMaxLen(history_max_length); // TODO: MAKE THE HISTORY GREAT AGAIN!
             }
             if (!history_path.empty()) {
                 line_editor.loadHistory(history_path.c_str());
