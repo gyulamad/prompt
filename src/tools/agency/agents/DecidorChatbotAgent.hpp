@@ -11,11 +11,12 @@ namespace tools::agency::agents {
             Owns& owns,
             Worker<T>* agency,
             PackQueue<T>& queue,
-            const string& name,
-            vector<string> recipients,
+            const JSON& json,
+            // const string& name,
+            // vector<string> recipients,
             void* decidorChatbot
         ): 
-            Agent<T>(owns, agency, queue, name, recipients),
+            Agent<T>(owns, agency, queue, json/*, name, recipients*/),
             decidorChatbot(owns.reserve<DecidorChatbot>(this, decidorChatbot, FILELN))
         {}
 
@@ -24,6 +25,11 @@ namespace tools::agency::agents {
         }
 
         string type() const override { return "decidor"; }
+
+        void handle(const string& /*sender*/, const T& /*item*/) {
+            STUB("Needs to be implemented"); // TODO
+            throw ERROR("Unimplemented");
+        }
     
     private:
         DecidorChatbot* decidorChatbot = nullptr;

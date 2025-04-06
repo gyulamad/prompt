@@ -54,10 +54,10 @@ namespace tools::agency::agents::commands {
             NULLCHK(agency_void);
             Agency<T>& agency = *(Agency<T>*)agency_void;
             vector<string> agents = agency.findWorkers(args.size() >= 2 ? args[1] : "");
-            agency.template getWorkerRef<UserAgent<T>>("user")
-                .getInterfaceRef()
+            UserAgent<T>& user = (UserAgent<T>&)agency.getWorkerRef("user");
+            user.getInterfaceRef()
                 .println(tpl_replace({
-                    { "{{agency}}", agency.name },
+                    { "{{agency}}", agency.getName() },
                     { "{{workers}}", agency.dumpWorkers(agents) },
                     { "{{found}}", to_string(agents.size()) },
                     { "{{total}}", to_string(agency.findWorkers().size()) },

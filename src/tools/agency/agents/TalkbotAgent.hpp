@@ -21,12 +21,13 @@ namespace tools::agency::agents {
             Owns& owns,
             Worker<T>* agency,
             PackQueue<T>& queue,
-            const string& name,
-            vector<string> recipients,
+            const JSON& json,
+            // const string& name,
+            // vector<string> recipients,
             void* talkbot,
             UserAgentInterface<T>& interface
         ): 
-            Agent<T>(owns, agency, queue, name, recipients),
+            Agent<T>(owns, agency, queue, json/*, name, recipients*/),
             talkbot(owns.reserve<Talkbot>(this, talkbot, FILELN)),
             interface(interface)
         {}
@@ -68,14 +69,14 @@ namespace tools::agency::agents {
             interface.getCommanderRef().getCommandLineRef().setPromptVisible(true);
         }
 
-        void fromJSON(const JSON& json) override {
-            DEBUG("TalkbotAgent::fromJSON called");
-            safe(talkbot);
-            DEBUG("talkbot is safe");
-            DEBUG("json is: " + json.dump());
-            talkbot->fromJSON(json);
-            DEBUG("talkbot->fromJSON(json) is called");
-        }
+        // void fromJSON(const JSON& json) override {
+        //     DEBUG("TalkbotAgent::fromJSON called");
+        //     safe(talkbot);
+        //     DEBUG("talkbot is safe");
+        //     DEBUG("json is: " + json.dump());
+        //     talkbot->fromJSON(json); // TODO !@# segfault here!!!
+        //     DEBUG("talkbot->fromJSON(json) is called");
+        // }
 
     private:
         Talkbot* talkbot = nullptr;
@@ -99,6 +100,7 @@ void test_TalkbotAgent_reserve() {
     Owns owns;
     string name = "dummy";
     string prompt = "";
+    string cprefix = "/";
     bool use_start_token = false;
     ChatHistory* history = owns.allocate<ChatHistory>(prompt, use_start_token);
     Printer printer;
@@ -124,7 +126,8 @@ void test_TalkbotAgent_reserve() {
     MicView micView;
     Commander commander(
         commandLine, 
-        commands
+        commands,
+        cprefix
     );
     InputPipeInterceptor interceptor;
     UserAgentInterface<string> interface(

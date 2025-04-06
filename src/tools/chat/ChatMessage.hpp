@@ -33,6 +33,13 @@ namespace tools::chat {
             sender = json.get<string>("sender");
             text = json.get<string>("text");
         }
+
+        JSON toJSON() const override {
+            JSON json;
+            json.set("sender", sender);
+            json.set("text", text);
+            return json;
+        }
     
     protected:
         string sender;

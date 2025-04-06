@@ -1,5 +1,6 @@
 {
     "prompt": "> ",
+    "prefix": "/",
     "lang": "hu",
     "command_line": {
         "multi_line": true,
@@ -63,7 +64,9 @@
         "batch": [
             "/spawn chat chatbot1 user",
             "/target set chatbot1",
-            "/load agent joci1 joci.json"
+            // "/load agent joci1 joci.json"
+
+            // -----------------
             // "/voice input on" 
         ],
         "echo": true

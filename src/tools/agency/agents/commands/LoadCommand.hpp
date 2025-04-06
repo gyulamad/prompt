@@ -18,7 +18,7 @@ namespace tools::agency::agents::commands {
     class LoadCommand: public PersistenceCommand<T> {
     public:
         // Constructor calling the base class constructor
-        LoadCommand(AgentRoleMap<T>& roles): roles(roles), PersistenceCommand<T>(PersistenceCommand<T>::LOAD) {}
+        LoadCommand(AgentRoleMap& roles): roles(roles), PersistenceCommand<T>(PersistenceCommand<T>::LOAD) {}
 
     protected:
 
@@ -48,16 +48,17 @@ namespace tools::agency::agents::commands {
             // if (type != PersistenceCommand<T>::AGENT)
             //     throw ERROR("Agent type missmatch: " + json.get<string>("type"));
 
-            typename PersistenceCommand<T>::Type type = PersistenceCommand<T>::AGENT;
+            // typename PersistenceCommand<T>::Type type = PersistenceCommand<T>::AGENT;
 
             string role = json.get<string>("role");
             if (!array_key_exists(role, roles))
                 throw ERROR("Agent role not exists: " + role);
 
-            vector<string> recipients = json.get<vector<string>>("recipients");
+            // vector<string> recipients = json.get<vector<string>>("recipients");
 
-            Agent<T>& agent = roles[role](agency, name, recipients);
-            agent.fromJSON(json);
+            // Agent<T>& agent = 
+            roles[role](json);
+            // agent.fromJSON(json);
         }
 
         void loadAgency(Agency<T>& agency, const string& name, const string& filename) {
@@ -65,7 +66,7 @@ namespace tools::agency::agents::commands {
             //     .fromJSON(JSON(file_get_contents(filename)));
         }
 
-        AgentRoleMap<T>& roles;
+        AgentRoleMap& roles;
 
     };
 

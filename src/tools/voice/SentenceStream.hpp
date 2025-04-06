@@ -68,6 +68,11 @@ namespace tools::voice {
             sentences.clear();
         }
 
+        bool error() override { // TODO
+            STUB("Need to be implemented");
+            throw ERROR("Unimplemented");
+        }
+
     private:
         SentenceSeparation& separator;
         string buffer;

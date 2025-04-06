@@ -38,36 +38,36 @@ namespace tools::cmd {
             history_max_length(history_max_length)
         {}
 
-        // Move constructor
-        CommandLine(CommandLine&& other) noexcept
-            : line_editor(other.line_editor),
-            exited(other.exited),
-            prompt_suffix(move(other.prompt_suffix)),
-            history_path(move(other.history_path)),
-            multi_line(other.multi_line),
-            history_max_length(other.history_max_length) {
-            other.exited = false; // Reset moved-from state if needed
-        }
+        // // Move constructor
+        // CommandLine(CommandLine&& other) noexcept
+        //     : line_editor(other.line_editor),
+        //     exited(other.exited),
+        //     prompt_suffix(move(other.prompt_suffix)),
+        //     history_path(move(other.history_path)),
+        //     multi_line(other.multi_line),
+        //     history_max_length(other.history_max_length) {
+        //     other.exited = false; // Reset moved-from state if needed
+        // }
 
-        // Move assignment operator (optional but good practice)
-        CommandLine& operator=(CommandLine&& other) noexcept {
-            if (this != &other) {
-                line_editor = move(other.line_editor);
-                exited = other.exited;
-                prompt_suffix = move(other.prompt_suffix);
-                history_path = move(other.history_path);
-                multi_line = other.multi_line;
-                history_max_length = other.history_max_length;
-                other.exited = false; // Reset moved-from state if needed
-            }
-            return *this;
-        }
+        // // Move assignment operator (optional but good practice)
+        // CommandLine& operator=(CommandLine&& other) noexcept {
+        //     if (this != &other) {
+        //         line_editor = move(other.line_editor);
+        //         exited = other.exited;
+        //         prompt_suffix = move(other.prompt_suffix);
+        //         history_path = move(other.history_path);
+        //         multi_line = other.multi_line;
+        //         history_max_length = other.history_max_length;
+        //         other.exited = false; // Reset moved-from state if needed
+        //     }
+        //     return *this;
+        // }
 
-        // Deleted copy constructor and assignment to be explicit
-        CommandLine(const CommandLine&) = delete;
-        CommandLine& operator=(const CommandLine&) = delete;
+        // // Deleted copy constructor and assignment to be explicit
+        // CommandLine(const CommandLine&) = delete;
+        // CommandLine& operator=(const CommandLine&) = delete;
 
-        ~CommandLine() = default;
+        virtual ~CommandLine() = default;
 
         LineEditor& getEditorRef() { return line_editor; }
 
@@ -135,18 +135,18 @@ namespace tools::cmd {
         // }
 
         string readln() {
-            line_editor.setMultiLine(multi_line);
+            // line_editor.setMultiLine(multi_line);
             if (history_max_length) {
-                line_editor.setHistoryMaxLen(history_max_length);
+                // line_editor.setHistoryMaxLen(history_max_length); // TODO: MAKE THE HISTORY GREAT AGAIN!
             }
             if (!history_path.empty()) {
                 line_editor.loadHistory(history_path.c_str());
             }
-            string line;
+            string line = "";
             exited = line_editor.readLine(line);
-            line_editor.addHistory(line.c_str());
+            // line_editor.addHistory(line.c_str()); // TODO
             if (!history_path.empty()) {
-                line_editor.saveHistory(history_path.c_str());
+                // line_editor.saveHistory(history_path.c_str()); TODO
             }
             return line;
         }

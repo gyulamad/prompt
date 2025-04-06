@@ -9,7 +9,7 @@ using namespace std;
 
 namespace tools::chat {
 
-    class Chatbot: public JSONSerializable { //  TODO: refact: build up a correct abstraction hierarhy
+    class Chatbot { // : public JSONSerializable { //  TODO: refact: build up a correct abstraction hierarhy
     public:
 
         class cancel: public exception {};
@@ -20,7 +20,7 @@ namespace tools::chat {
             void* history, 
             Printer& printer
         ):
-            JSONSerializable(),
+            // JSONSerializable(),
             owns(owns),
             name(name),
             history(owns.reserve<ChatHistory>(this, history, FILELN)),
@@ -32,6 +32,8 @@ namespace tools::chat {
             // histories.release(this, history);
             owns.release(this, history);
         }
+
+        string getName() const { return name; }
 
         void* getHistoryPtr() { return history; } // TODO: remove this
 
@@ -55,22 +57,32 @@ namespace tools::chat {
         virtual string respond(const string& sender, const string& text) = 0;
 
 
-        // ----- serialization -----
+        // ----- JSON serialization -----
 
-        void fromJSON(const JSON& json) override {
-            DEBUG("Chatbot::fromJSON called"); 
-            // Convert pointer to integer type for printing
-            uintptr_t history_addr = reinterpret_cast<uintptr_t>(history);
-            DEBUG("Checking history pointer address: " + to_string(history_addr)); 
-            safe(history); // Check history pointer before use
-            DEBUG("History pointer is safe"); 
-            history->fromJSON(json); // Call history's fromJSON
-            DEBUG("Called history->fromJSON"); 
-        }
+        // void fromJSON(const JSON& json) override {
+        //     DEBUG("Chatbot::fromJSON called"); 
+        //     // Convert pointer to integer type for printing
+        //     uintptr_t history_addr = reinterpret_cast<uintptr_t>(history);
+        //     DEBUG("Checking history pointer address: " + to_string(history_addr)); 
+        //     safe(history); // Check history pointer before use
+        //     DEBUG("History pointer is safe"); 
+        //     history->fromJSON(json.get<JSON>("history")); // Call history's fromJSON
+        //     DEBUG("Called history->fromJSON"); 
 
-        const string name; //  TODO: remove this!
+        //     name = json.get<string>("name");
+        // }
+
+        // JSON toJSON() const override {
+        //     JSON json;
+        //     json.set("history", safe(history)->toJSON());
+        //     json.set("name", name);
+        //     return json;
+        // }
+        
+
     protected:
         Owns& owns;
+        string name; //  TODO: remove this!
         ChatHistory* history = nullptr;
         Printer& printer;
     };

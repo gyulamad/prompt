@@ -12,9 +12,9 @@ namespace tools::utils {
 
     // #define FILE_LINE_ERROR_MSG (ANSI_FMT_FILE_LINE(file, line) + " - " + ANSI_FMT_ERROR + msg + ANSI_FMT_RESET)
     // #define FILE_LINE_DEBUG_MSG (ANSI_FMT_FILE_LINE(file, line) + " - " + ANSI_FMT_DEBUG + msg + ANSI_FMT_RESET)
-    #define FILE_LINE_ERROR_MSG (ANSI_FMT_ERROR + msg + ANSI_FMT_RESET + " at " + ANSI_FMT_FILE_LINE(file, line) + ANSI_FMT_RESET)
-    #define FILE_LINE_DEBUG_MSG (ANSI_FMT_DEBUG + msg + ANSI_FMT_RESET + " at " + ANSI_FMT_FILE_LINE(file, line) + ANSI_FMT_RESET)
-    #define FILE_LINE_STUB_MSG (ANSI_FMT_STUB + msg + ANSI_FMT_RESET + " at " + ANSI_FMT_CALL(func, file, line) + ANSI_FMT_RESET)
+    #define FILE_LINE_ERROR_MSG (ANSI_FMT_ERROR + msg + ANSI_FMT_RESET + "\nat " + ANSI_FMT_FILE_LINE(file, line) + ANSI_FMT_RESET)
+    #define FILE_LINE_DEBUG_MSG (ANSI_FMT_DEBUG + msg + ANSI_FMT_RESET + "\nat " + ANSI_FMT_FILE_LINE(file, line) + ANSI_FMT_RESET)
+    #define FILE_LINE_STUB_MSG (ANSI_FMT_STUB + msg + ANSI_FMT_RESET + "\nat " + ANSI_FMT_CALL(func, file, line) + ANSI_FMT_RESET)
 
     inline runtime_error error(const string& msg, const string& file, int line) {
         return runtime_error(FILE_LINE_ERROR_MSG.c_str());
@@ -49,11 +49,11 @@ namespace tools::utils {
     
     #define UNIMP_NEED = 0;
     #define UNIMP_SKIP { }
-    #define UNIMP_THROWS { throw ERROR("Unimplemented function: " + string(__FUNC__)); }
+    #define UNIMP_THROWS = 0; //{ throw ERROR("Unimplemented function: " + string(__FUNC__)); }
     
 
-    #define DEBUG(msg) debug(msg, __FILE__, __LINE__)
-    #define STUB(msg) stub(msg, __FUNC__, __FILE__, __LINE__)
+    #define DEBUG(msg) tools::utils::debug(msg, __FILE__, __LINE__)
+    #define STUB(msg) tools::utils::stub(msg, __FUNC__, __FILE__, __LINE__)
     #define STUB_VIRTUAL { STUB("It should be pure virtual and implemented in derived classes according to their specific interpretation."); }
 
 

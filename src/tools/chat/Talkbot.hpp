@@ -62,13 +62,17 @@ namespace tools::chat {
             throw ERROR("Talkbots does not support full completion resonse.");
         }
 
-        // ----- serialization -----
+        // ----- JSON serialization -----
 
-        void fromJSON(const JSON& json) override {
-            DEBUG("Talkbot::fromJSON called");
-            Chatbot::fromJSON(json); // Call base class implementation
-            DEBUG("Talkbot::fromJSON finished");
-        }
+        // void fromJSON(const JSON& json) override {
+        //     DEBUG("Talkbot::fromJSON called");
+        //     Chatbot::fromJSON(json); // Call base class implementation
+        //     DEBUG("Talkbot::fromJSON finished");
+        // }
+
+        // JSON toJSON() const override {
+        //     return Chatbot::toJSON();
+        // }
     
     private:
         SentenceStream& sentences;

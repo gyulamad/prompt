@@ -17,14 +17,15 @@ namespace tools::cmd {
     private:
         CommandLine& commandLine;
         vector<Command*>& commands;
+        string prefix;
         CompletionMatcher completionMatcher; // TODO: send it as a reference? (&)
         bool exiting = false;
 
     public:
-        Commander(CommandLine& commandLine, vector<Command*>& commands): 
-            commandLine(commandLine), commands(commands)
+        Commander(CommandLine& commandLine, vector<Command*>& commands, const string& prefix): 
+            commandLine(commandLine), commands(commands), prefix(prefix)
         {
-            setupCommands(/*commands*/);
+            setupCommands();
         }
 
         virtual ~Commander() {}
@@ -33,18 +34,21 @@ namespace tools::cmd {
             return commandLine;
         }
 
+        string getPrefix() { return prefix; }
+
         CompletionMatcher& getCompletionMatcherRef() {
             return completionMatcher;
+        }
+
+        virtual bool isPrefixed(const string& input) const {
+            return str_starts_with(input, prefix);
         }
 
         virtual bool isExiting() const {
             return exiting || commandLine.isExited();
         }
         
-        void setupCommands(/*const vector<Command*>& commands*/) {
-            // this->commands = commands;
-            
-            // update command patterns:
+        void setupCommands() {
             completionMatcher.commandPatterns = {};
             for (const Command* command : commands)
                 completionMatcher.commandPatterns = array_merge(
@@ -91,14 +95,14 @@ namespace tools::cmd {
                 if (commandFound) break;
             }
             if (!commandFound) cerr << "Command not found: " << cleanCommandName(inputParts[0]) << endl;
-            else if (!commandArgumentsMatches) cerr << "Invalid argument(s). Use '/help " + cleanCommandName(inputParts[0]) + "'..." << endl;
+            else if (!commandArgumentsMatches) cerr << "Invalid argument(s). Use '" + prefix + "help " + cleanCommandName(inputParts[0]) + "'..." << endl;
             return commandArgumentsMatches;
         }
 
     protected:
 
         string cleanCommandName(const string& inputParts0) const {
-            if (str_starts_with(inputParts0, "/")) return inputParts0.substr(1);
+            if (str_starts_with(inputParts0, prefix)) return inputParts0.substr(1);
             throw ERROR("Invalid command name: " + inputParts0);
         }
 
@@ -116,7 +120,7 @@ void test_Commander_isExiting_initial_state() {
     MockLineEditor editor;
     MockCommandLine cl(editor);
     vector<Command*> commands;
-    Commander commander(cl, commands);
+    Commander commander(cl, commands, "/");
     bool actual = commander.isExiting();
     assert(actual == false && "Commander should not be exiting initially");
 }
@@ -125,7 +129,7 @@ void test_Commander_isExiting_after_exit() {
     MockLineEditor editor;
     MockCommandLine cl(editor);
     vector<Command*> commands;
-    Commander commander(cl, commands);
+    Commander commander(cl, commands, "/");
     commander.exit();
     bool actual = commander.isExiting();
     assert(actual == true && "Commander should be exiting after exit() is called");
@@ -136,7 +140,7 @@ void test_Commander_isExiting_after_commandline_exit() {
     mock_editor.should_exit = true;
     CommandLine cl(mock_editor);
     vector<Command*> commands;
-    Commander commander(cl, commands); // Move the CommandLine into Commander
+    Commander commander(cl, commands, "/"); // Move the CommandLine into Commander
     commander.getCommandLineRef().readln(); // Call readln() on the Commander's CommandLine
     bool actual = commander.isExiting();
     assert(actual == true && "Commander should be exiting after CommandLine exits");
@@ -146,7 +150,7 @@ void test_Commander_getCommandLineRef_returns_reference() {
     MockLineEditor mock_editor;
     MockCommandLine cl(mock_editor);
     vector<Command*> commands;
-    Commander commander(cl, commands);
+    Commander commander(cl, commands, "/");
     CommandLine& actual = commander.getCommandLineRef();
     // Modify the CommandLine via the reference
     actual.setPromptSuffix("modified> ");
@@ -162,7 +166,7 @@ void test_Commander_set_commands_updates_patterns() {
     MockCommand command;
     command.patterns = {"test cmd", "test {param}"};
     vector<Command*> commands = { &command };
-    Commander commander(cl, commands);
+    Commander commander(cl, commands, "/");
     commander.setupCommands();
     const CompletionMatcher& cm = commander.getCompletionMatcherRef();
     vector<string> actual = cm.commandPatterns;
@@ -175,7 +179,7 @@ void test_Commander_runCommand_empty_input() {
     MockLineEditor editor;
     MockCommandLine cl(editor);
     vector<Command*> commands;
-    Commander commander(cl, commands);
+    Commander commander(cl, commands, "/");
     bool actual = commander.runCommand(nullptr, "");
     assert(actual == false && "runCommand should return false for empty input");
 }
@@ -187,9 +191,9 @@ void test_Commander_runCommand_unknown_command() {
         MockCommand command;
         command.patterns = {"known"};
         vector<Command*> commands = { &command };
-        Commander commander(cl, commands);
+        Commander commander(cl, commands, "/");
         commander.setupCommands();
-        bool actual = commander.runCommand(nullptr, "unknown");
+        bool actual = commander.runCommand(nullptr, "/unknown");
         assert(actual == false && "runCommand should return false for unknown command");
     });
     assert(str_contains(err, "Command not found: unknown") && "Should show the correct error");
@@ -201,10 +205,10 @@ void test_Commander_runCommand_invalid_arguments() {
         MockCommandLine cl(editor);
         MockCommand command;
         vector<Command*> commands = { &command };
-        command.patterns = {"test arg1"};
-        Commander commander(cl, commands);
+        command.patterns = {"/test arg1"};
+        Commander commander(cl, commands, "/");
         commander.setupCommands();
-        bool actual = commander.runCommand(nullptr, "test");
+        bool actual = commander.runCommand(nullptr, "/test");
         assert(actual == false && "runCommand should return false for invalid argument count");
     });
     assert(str_contains(err, "Invalid argument(s).") && "Should show the correct error");
@@ -216,7 +220,7 @@ void test_Commander_runCommand_successful_execution() {
     MockCommand command;
     command.patterns = {"test arg"};
     vector<Command*> commands = { &command };
-    Commander commander(cl, commands);
+    Commander commander(cl, commands, "/");
     commander.setupCommands();
     bool actual = commander.runCommand(nullptr, "test value");
     assert(actual == true && "runCommand should return true for valid command");

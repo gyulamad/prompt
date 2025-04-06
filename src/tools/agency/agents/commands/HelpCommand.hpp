@@ -59,7 +59,7 @@ namespace tools::agency::agents::commands {
             Agency<T>& agency = *(Agency<T>*)agency_void;
 
             // get user agent
-            UserAgent<T>& user = agency.template getWorkerRef<UserAgent<T>>("user");
+            UserAgent<T>& user = (UserAgent<T>&)agency.getWorkerRef("user");
 
             // get commander
             Commander& commander = user.getInterfaceRef().getCommanderRef();
@@ -68,7 +68,7 @@ namespace tools::agency::agents::commands {
 
             // vector<string> patterns;
             vector<const Command*> cmds;
-            string cmd = "/" + (args.size() >= 2 ? args[1] : "");
+            string cmd = commander.getPrefix() + (args.size() >= 2 ? args[1] : "");
             for (const Command* command: commands) {
                 NULLCHK(command);
                 vector<string> pttrns = command->getPatterns();

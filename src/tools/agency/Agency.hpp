@@ -6,6 +6,7 @@
 
 #include "Worker.hpp"
 #include "PackQueue.hpp"
+#include "AgentRoleMap.hpp"
 
 using namespace tools::utils;
 using namespace tools::chat;
@@ -23,12 +24,15 @@ namespace tools::agency {
         // using Worker<T>::Worker;
         Agency(
             Owns& owns,
-            PackQueue<T>& queue, 
-            const string& name,
-            vector<string> recipients
+            AgentRoleMap& roles,
+            PackQueue<T>& queue,
+            JSON& json 
+            // const string& name,
+            // vector<string> recipients
         ):
             owns(owns),
-            Worker<T>(owns, nullptr, queue, name, recipients)
+            roles(roles),
+            Worker<T>(owns, nullptr, queue, json/*, name, recipients*/)
         {}
 
         virtual ~Agency() {
@@ -40,6 +44,7 @@ namespace tools::agency {
             workers.clear();
         }
 
+        string type() const { return "agency"; }
 
         // void setVoiceOutput(bool state) { voice = state; }
 
@@ -61,26 +66,26 @@ namespace tools::agency {
 
             if (item == "list") {
                 cout << "Workers in the agency:" << endl;
-                for (Worker<T>* worker: workers) cout << worker->name << endl;
+                for (Worker<T>* worker: workers) cout << worker->getName() << endl;
             }
         }
         
         template<typename WorkerT, typename... Args>
-        WorkerT& spawn(Args&&... args) { // TODO: forward Args
+        WorkerT* spawn(Args&&... args) { // TODO: forward Args
             lock_guard<mutex> lock(workers_mtx);
             // WorkerT* worker = new WorkerT(forward<Args>(args)...); // Direct construction
             WorkerT* worker = owns.allocate<WorkerT>(forward<Args>(args)...);
             owns.reserve<void>(this, worker, FILELN);
             // WorkerT* worker = new WorkerT(/*this->queue, name, recipients,*/ forward<Args>(args)...);
             for (const Worker<T>* a: workers)
-                if (worker->name == a->name) {
+                if (worker->getName() == a->getName()) {
                     owns.release(this, worker); // delete worker;
-                    throw ERROR("Worker '" + a->name + "' already exists.");
+                    throw ERROR("Worker '" + a->getName() + "' already exists.");
                 }
             workers.push_back(worker);
             // worker->start();
-            this->send("Worker '" + worker->name + "' created as '" + worker->type() + "'.");
-            return *worker;
+            this->send("Worker '" + worker->getName() + "' created as '" + worker->type() + "'.");
+            return (WorkerT*)worker;
         }
 
         [[nodiscard]]
@@ -88,7 +93,7 @@ namespace tools::agency {
             lock_guard<mutex> lock(workers_mtx);
             bool found = false;   
             for (size_t i = 0; i < workers.size(); i++)
-                if (workers[i]->name == name) {
+                if (workers[i]->getName() == name) {
                     found = true;
                     //workers[i]->close();
                     owns.release(this, workers[i]); // delete workers[i];
@@ -106,21 +111,21 @@ namespace tools::agency {
                 else {
                     lock_guard<mutex> lock(workers_mtx);
                     for (Worker<T>* worker: workers)
-                        if (worker && worker->name == pack.recipient) worker->handle(pack.sender, pack.item);    
+                        if (worker && worker->getName() == pack.recipient) worker->handle(pack.sender, pack.item);    
                 }
             }
         }
 
         bool hasWorker(const string& name) const {
             for (Worker<T>* worker: workers)
-                if (worker->name == name) return true;
+                if (worker->getName() == name) return true;
             return false;
         }
 
-        template<typename WorkerT>
-        WorkerT& getWorkerRef(const string& name) const {
+        // template<typename WorkerT>
+        Worker<T>& getWorkerRef(const string& name) const {
             for (Worker<T>* worker: workers)
-                if (worker->name == name) return *(WorkerT*)worker;
+                if (safe(worker)->getName() == name) return *(Worker<T>*)worker;
             throw ERROR("Requested worker '" + name + "' is not found.");
         }
 
@@ -129,7 +134,7 @@ namespace tools::agency {
         vector<string> findWorkers(const string& keyword = "") const {
             vector<string> found;
             for (const Worker<T>* worker: workers) {
-                string name = safe(worker)->name;
+                string name = safe(worker)->getName();
                 if (keyword.empty() || str_contains(name, keyword))
                     found.push_back(name);
             };
@@ -139,14 +144,37 @@ namespace tools::agency {
         string dumpWorkers(const vector<string>& names) const {
             vector<string> dumps;
             for (const string& name: names) {
-                if (hasWorker(name)) dumps.push_back(getWorkerRef<Worker<T>>(name).dump());
+                if (hasWorker(name)) dumps.push_back(getWorkerRef(name).dump());
                 else dumps.push_back("Worker " + name + " is not exists!");
             };
             return implode("\n", dumps);
         }
 
+        // ---- serialization ----
+
+        void fromJSON(const JSON& json) override {
+            vector<JSON> jworkers = json.get<vector<JSON>>("workers");
+            for (const JSON& jworker: jworkers) {
+                roles[jworker.get<string>("role")](
+                    // jworker.get<string>("name"),
+                    // jworker.get<vector<string>>("recipients"),
+                    jworker
+                );
+            }
+        }
+
+        JSON toJSON() const override {
+            JSON json;
+            vector<JSON> jworkers;
+            for (const Worker<T>* worker: workers)
+                jworkers.push_back(safe(worker)->toJSON());
+            json.set("workers", jworkers);
+            return json;
+        }
+
     private:
         Owns& owns;
+        AgentRoleMap& roles;
         // bool voice = false;
         vector<Worker<T>*> workers; // TODO: Replace vector<Worker<T>*> with unordered_map<string, Worker<T>*>, O(1) lookup vs. O(n), huge win with many workers.
         

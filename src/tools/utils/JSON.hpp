@@ -413,7 +413,7 @@ namespace tools::utils {
                 if constexpr (is_same_v<T, JSON>) return JSON(j.at(ptr));
                 return j.at(ptr).get<T>();
             } catch (const exception& e) {
-                //DEBUG(j.dump());
+                DEBUG(j.dump());
                 throw ERROR("JSON Error at: " + jselector + ", reason: " + string(e.what()));
             }
         }
@@ -436,15 +436,15 @@ namespace tools::utils {
             }
         }
 
-        // ----- validation helpers -----
+        // // ----- validation helpers -----
 
-        void need(const string& field) const {
-            if (!has(field)) throw ERROR("JSON misses field: " + field);
-        }
+        // void need(const string& field) const {
+        //     if (!has(field)) throw ERROR("JSON misses field: " + field);
+        // }
 
-        void need(const vector<string>& fields) const {
-            for (const string& field: fields) need(field);                
-        }
+        // void need(const vector<string>& fields) const {
+        //     for (const string& field: fields) need(field);                
+        // }
 
     };
 

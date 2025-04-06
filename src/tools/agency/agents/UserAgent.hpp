@@ -33,12 +33,13 @@ namespace tools::agency::agents {
             Owns& owns,
             Worker<T>* agency,
             PackQueue<T>& queue,
-            const string& name, 
-            vector<string> recipients, // TODO: to config, and have to be able to change/see message package targets
+            const JSON& json,
+            // const string& name, 
+            // vector<string> recipients, // TODO: to config, and have to be able to change/see message package targets
             // Agency<T>& agency, 
             UserAgentInterface<T>& interface
         ): 
-            Agent<T>(owns, agency, queue, name, recipients), 
+            Agent<T>(owns, agency, queue, json/*, name, recipients*/), 
             interface(interface)
         {
             interface.setUser(this);
@@ -59,8 +60,9 @@ namespace tools::agency::agents {
             T input;
             if (interface.readln(input)) this->exit();
             if (trim(input).empty()) return;
-            else if (str_starts_with(input, "/")) { // TODO: add is_command(input) as a command matcher (regex or callback fn) instead just test for "/"
-                interface.getCommanderRef().runCommand(this->agency, input); 
+            Commander& commander = interface.getCommanderRef();
+            if (commander.isPrefixed(input)) { // TODO: add is_command(input) as a command matcher (regex or callback fn) instead just test for "/"
+                commander.runCommand(this->agency, input); 
             } else {
                 if (text_input_echo) {
                     interface.clearln();

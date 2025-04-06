@@ -26,16 +26,19 @@ namespace tools::agency {
             Owns& owns,
             Worker<T>* agency,
             PackQueue<T>& queue,
-            const string& name,
-            vector<string> recipients
+            const JSON& json
+            // const string& name,
+            // vector<string> recipients
         ): 
             owns(owns),
             agency(agency),
-            queue(queue),
-            name(name),
-            recipients(recipients),
+            queue(queue),            
+            // name(name),
+            // recipients(recipients),
             Closable()
-        {}
+        {
+            fromJSON(json);
+        }
 
         virtual ~Worker() {
             this->close();
@@ -49,8 +52,8 @@ namespace tools::agency {
         Owns& getOwnsRef() { return owns; }
         Worker<T>* getAgencyPtr() { return agency ? agency : this; }
         PackQueue<T>& getQueueRef() { return queue; }
-        string getName() { return name; }
-        vector<string> getRecipients() { return recipients; }
+        string getName() const { return name; }
+        vector<string> getRecipients() const { return recipients; }
 
 
         // -----------------------------------------------------------------
@@ -112,8 +115,6 @@ namespace tools::agency {
             return found;
         }
 
-        const string name;
-
         
         // -----------------------------------------------------------------
         // ---- view -------------------------------------------------------
@@ -130,6 +131,21 @@ namespace tools::agency {
             }, "Worker '{{name}}' is a(n) '{{type}}' worker, talking to {{recipients}}.");
         }
 
+        // ----- JSON serialization -----
+
+        void fromJSON(const JSON& json) override {
+            DEBUG(json.dump());
+            name = json.get<string>("name");
+            recipients = json.get<vector<string>>("recipients");
+        }
+
+        JSON toJSON() const override {
+            JSON json;
+            json.set("name", name);
+            json.set("recipients", recipients);
+            return json;
+        }
+
     protected:
 
         void send(const T& item) {
@@ -143,6 +159,7 @@ namespace tools::agency {
         Owns& owns;
         Worker<T>* agency = nullptr;
         PackQueue<T>& queue;
+        string name;
         vector<string> recipients;
 
     private:

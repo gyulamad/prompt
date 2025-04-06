@@ -74,7 +74,7 @@ namespace tools::agency::agents::commands {
             Agency<T>& agency = *(Agency<T>*)agency_void;
 
             // get user interface
-            UserAgent<T>& user = agency.template getWorkerRef<UserAgent<T>>("user");
+            UserAgent<T>& user = (UserAgent<T>&)agency.getWorkerRef("user");
             UserAgentInterface<T>& interface = user.getInterfaceRef();
 
             string thru = args[1];

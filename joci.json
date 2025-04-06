@@ -1,7 +1,0 @@
-{
-    "role": "talk",
-    "recipients": ["user"],
-    "prompt": "> ",
-    "use_start_token": false,
-    "messages": []
-}

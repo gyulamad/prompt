@@ -26,12 +26,13 @@ namespace tools::agency::agents {
             Owns& owns,
             Worker<T>* agency,
             PackQueue<T>& queue,
-            const string& name,
-            vector<string> recipients,
+            const JSON& json,
+            // const string& name,
+            // vector<string> recipients,
             void* chatbot,
             UserAgentInterface<T>& interface
         ): 
-            Agent<T>(owns, agency, queue, name, recipients),
+            Agent<T>(owns, agency, queue, json/*, name, recipients*/),
             chatbot(owns.reserve<Chatbot>(this, chatbot, FILELN)),
             interface(interface)
         {}

@@ -40,7 +40,8 @@ namespace tools::agency::agents::commands {
     private:
     
         void saveAgent(Agency<T>& agency, const string& name, const string& filename) {
-            // file_put_contents(filename, ((JSONSerializable&)agency.getWorkerRef()).toJSON().dump(), false, true);
+            agency.getWorkerRef(name)
+            file_put_contents(filename, agency.getWorkerRef(name).toJSON().dump(), false, true);
         }
 
         void saveAgency(Agency<T>& agency, const string& name, const string& filename) {

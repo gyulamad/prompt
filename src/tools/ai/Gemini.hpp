@@ -53,7 +53,7 @@ namespace tools::ai {
 
             string data = tpl_replace({
                 { "{{history}}", json_escape(history.toString()) }, 
-                { "{{start}}", json_escape(history.startToken(chatbot.name)) },
+                { "{{start}}", json_escape(history.startToken(chatbot.getName())) },
             }, R"({
                 "contents": [{
                     "parts": [{
@@ -87,14 +87,17 @@ namespace tools::ai {
                 interrupted = true;
             }
 
-            history.append(chatbot.name, chatbot.response(response));
-            if (interrupted) history.append(sender, "['" + chatbot.name + "' interrupted by '" + sender + "']");
+            history.append(chatbot.getName(), chatbot.response(response));
+            if (interrupted) history.append(sender, "['" + chatbot.getName() + "' interrupted by '" + sender + "']");
 
             return response;
         }
 
         // TODO: load with curl but no need to show (it's for internal conversations)
-        string respond(Chatbot& chatbot, const string& sender, const string& text) UNIMP_THROWS
+        string respond(Chatbot& chatbot, const string& sender, const string& text) {
+            STUB("Needs to be implemented");
+            throw ERROR("Unimplemented");
+        }
 
     private:
         string secret;

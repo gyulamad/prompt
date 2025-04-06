@@ -44,7 +44,7 @@ namespace tools::agency::agents::commands {
             NULLCHK(agency_void);
             Agency<T>& agency = *(Agency<T>*)agency_void;
 
-            agency.template getWorkerRef<UserAgent<T>>("user").exit();
+            agency.exit();
         }
     };
     

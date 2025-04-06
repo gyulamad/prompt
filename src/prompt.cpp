@@ -100,10 +100,15 @@ int safe_main(int argc, char* argv[]) {
             separator, 
             settings.get<size_t>("talkbot.sentences_max_buffer_size") // talkbot_sentences_max_buffer_size
         );
-
+        AgentRoleMap roles;
         PackQueue<PackT> queue;
 
-        Agency<PackT> agency(owns, queue, "agency", { "user" });
+        JSON jagency; // TODO: to config (or default agency json):
+        jagency.set("name", string("agency"));
+        jagency.set("recipients", vector<string>({ "user" })); 
+        jagency.set("workers", vector<JSON>({}));
+        Agency<PackT> agency(owns, roles, queue, jagency/*, "agency", { "user" }*/);
+        // agency.fromJSON(jagency);
 
         vector<Command*> commands;
         CommandFactory cfactory(commands);
@@ -135,7 +140,7 @@ int safe_main(int argc, char* argv[]) {
         );
         MicView micView;
 
-        Commander commander(cline, cfactory.getCommandsRef());
+        Commander commander(cline, cfactory.getCommandsRef(), settings.get<string>("prefix"));
 
         UserAgentInterface<PackT> interface(
             tts,
@@ -146,99 +151,81 @@ int safe_main(int argc, char* argv[]) {
         );
 
         // Map of role strings to factory functions
-        AgentRoleMap<PackT> roles = {
-            // // echo
-            // {   // TODO: this one we dont need here it's just an experimental example until we add more agent
-            //     "echo", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
-            //         return agency.template spawn<EchoAgent<PackT>>(name, recipients, *interface_ptr);
-            //     }
-            // },
-
-            // chat
-            {
-                "chat", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
-                    ChatHistory* history = owns.allocate<ChatHistory>(
-                        settings.get<string>("prompt"),
-                        settings.get<bool>("chatbot.use_start_token") // chatbot_use_start_token
-                    );
-                    GeminiChatbot* chatbot = owns.allocate<GeminiChatbot>(
-                        owns,
-                        settings.get<string>("gemini.secret"), // gemini_secret,
-                        settings.get<string>("gemini.variant"), // gemini_variant,
-                        settings.get<long>("gemini.timeout"), // gemini_timeout,
-                        "gemini",
-                        history,
-                        printer
-                    );
-                    return agency.template spawn<ChatbotAgent<PackT>>(
-                        owns,
-                        &agency,
-                        queue,
-                        name, 
-                        recipients, 
-                        chatbot,
-                        interface
-                    );
-                },
-
-            },
-
-            // talk
-            {
-                "talk", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
-                    ChatHistory* history = owns.allocate<ChatHistory>(
-                        settings.get<string>("prompt"),
-                        settings.get<bool>("talkbot.use_start_token") // talkbot_use_start_token
-                    );
-                    GeminiTalkbot* talkbot = owns.allocate<GeminiTalkbot>(
-                        owns,
-                        settings.get<string>("gemini.secret"), // gemini_secret,
-                        settings.get<string>("gemini.variant"), // gemini_variant,
-                        settings.get<long>("gemini.timeout"), // gemini_timeout,
-                        "gemini",
-                        history,
-                        printer,
-                        sentences, // TODO: create it, do not use the same sentences object at each chatbot!!
-                        tts // TODO: tts also should be separated. (different tone/speed or even different kind of speach syntheser)
-                    );
-                    return agency.template spawn<TalkbotAgent<PackT>>(
-                        owns,
-                        &agency,
-                        queue,
-                        name, 
-                        recipients, 
-                        talkbot,
-                        interface
-                    );
-                }
-            },
-
-            // decidor
-            {
-                "decidor", [&](Agency<PackT>& agency, const string& name, vector<string> recipients) -> Agent<PackT>& {
-                    ChatHistory* history = owns.allocate<ChatHistory>(
-                        settings.get<string>("prompt"),
-                        settings.get<bool>("chatbot.use_start_token") // chatbot_use_start_token
-                    );
-                    GeminiDecidorChatbot* decidorChatbot = owns.allocate<GeminiDecidorChatbot>(
-                        owns,
-                        settings.get<string>("gemini.secret"), // gemini_secret,
-                        settings.get<string>("gemini.variant"), // gemini_variant,
-                        settings.get<long>("gemini.timeout"), // gemini_timeout,
-                        "gemini",
-                        history,
-                        printer
-                    );
-                    return agency.template spawn<DecidorChatbotAgent<PackT>>(
-                        owns,
-                        &agency,
-                        queue,
-                        name, 
-                        recipients, 
-                        decidorChatbot
-                    );
-                }
-            },
+        roles["chat"] = [&](/*const string& name, vector<string> recipients,*/ const JSON& json = nullptr) {
+            ChatHistory* history = owns.allocate<ChatHistory>(
+                settings.get<string>("prompt"),
+                settings.get<bool>("chatbot.use_start_token") // chatbot_use_start_token
+            );
+            GeminiChatbot* chatbot = owns.allocate<GeminiChatbot>(
+                owns,
+                settings.get<string>("gemini.secret"), // gemini_secret,
+                settings.get<string>("gemini.variant"), // gemini_variant,
+                settings.get<long>("gemini.timeout"), // gemini_timeout,
+                "gemini",
+                history,
+                printer
+            );
+            agency.template spawn<ChatbotAgent<PackT>>(
+                owns,
+                &agency,
+                queue,
+                json,
+                // name, 
+                // recipients, 
+                chatbot,
+                interface
+            ); //->fromJSON(json);
+        };
+        roles["talk"] = [&](/*const string& name, vector<string> recipients,*/ const JSON& json = nullptr) {
+            ChatHistory* history = owns.allocate<ChatHistory>(
+                settings.get<string>("prompt"),
+                settings.get<bool>("talkbot.use_start_token") // talkbot_use_start_token
+            );
+            GeminiTalkbot* talkbot = owns.allocate<GeminiTalkbot>(
+                owns,
+                settings.get<string>("gemini.secret"), // gemini_secret,
+                settings.get<string>("gemini.variant"), // gemini_variant,
+                settings.get<long>("gemini.timeout"), // gemini_timeout,
+                "gemini",
+                history,
+                printer,
+                sentences, // TODO: create it, do not use the same sentences object at each chatbot!!
+                tts // TODO: tts also should be separated. (different tone/speed or even different kind of speach syntheser)
+            );
+            agency.template spawn<TalkbotAgent<PackT>>(
+                owns,
+                &agency,
+                queue,
+                json,
+                // name, 
+                // recipients, 
+                talkbot,
+                interface
+            );//->fromJSON(json);
+        };
+        roles["decidor"] = [&](/*const string& name, vector<string> recipients,*/ const JSON& json = nullptr) {
+            ChatHistory* history = owns.allocate<ChatHistory>(
+                settings.get<string>("prompt"),
+                settings.get<bool>("chatbot.use_start_token") // chatbot_use_start_token
+            );
+            GeminiDecidorChatbot* decidorChatbot = owns.allocate<GeminiDecidorChatbot>(
+                owns,
+                settings.get<string>("gemini.secret"), // gemini_secret,
+                settings.get<string>("gemini.variant"), // gemini_variant,
+                settings.get<long>("gemini.timeout"), // gemini_timeout,
+                "gemini",
+                history,
+                printer
+            );
+            agency.template spawn<DecidorChatbotAgent<PackT>>(
+                owns,
+                &agency,
+                queue,
+                json,
+                // name, 
+                // recipients, 
+                decidorChatbot
+            );//->fromJSON(json);
         };
         const vector<string> command_factory_commands = settings.get<vector<string>>("command_line.available_commands");
         if (in_array("help", command_factory_commands)) cfactory.withCommand<HelpCommand<PackT>>();
@@ -284,13 +271,17 @@ int safe_main(int argc, char* argv[]) {
 
         string uname = "user"; // TODO: to config
         vector<string> urecipients = { "talk" }; // TODO: to config
+        JSON juser;
+        juser.set("name", uname);
+        juser.set("recipients", urecipients);
         agency.template spawn<UserAgent<PackT>>(
             owns,
             &agency,
             queue,
-            uname, urecipients,
+            juser,
+            // uname, urecipients,
             interface
-        ).async();
+        )->async(); // TODO: revert spawn to return reference
 
         commander.getCommandLineRef().setPromptVisible(false);
         vector<string> batch = settings.get<vector<string>>("startup.batch");
@@ -315,7 +306,7 @@ int safe_main(int argc, char* argv[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-       //"test_TalkbotAgent_reserve"
+       //"test_Commander_runCommand_unknown_command"
     });
     
     return safe_main<string>(argc, argv);

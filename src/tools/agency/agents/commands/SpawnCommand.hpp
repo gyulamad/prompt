@@ -25,7 +25,7 @@ namespace tools::agency::agents::commands {
     public:
 
         SpawnCommand(
-            AgentRoleMap<T>& roles
+            AgentRoleMap& roles
         ): 
             Command(),
             roles(roles)
@@ -84,18 +84,22 @@ namespace tools::agency::agents::commands {
             string name = args.size() >= 3 ? trim(args[2]) : role;
             vector<string> recipients = args.size() >= 4 
                 ? parse_vector<string>(args[3]) 
-                : vector<string>({ agency.template getWorkerRef<UserAgent<T>>("user").name });
+                : vector<string>({ "user" }); // TODO: what's going on??? UserAgent("user").getName()??? what?? "user" is already the name, isn't it??
 
             if (!in_array(role, array_keys(roles))) {
                 throw ERROR("Invalid agent role: " + role + " - available roles are [" + implode(", ", array_keys(roles)) + "]");
             }
 
-            Agent<T>& agent = roles[role](agency, name, recipients);
+            // Agent<T>& agent = 
+            JSON json;
+            json.set("name", name);
+            json.set("recipients", recipients);
+            roles[role](/*name, recipients,*/ json); // TODO: json OR vars??
         }
         
         
     private:
-        AgentRoleMap<T>& roles;
+        AgentRoleMap& roles;
     };
     
 }
