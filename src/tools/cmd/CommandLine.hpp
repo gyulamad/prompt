@@ -144,9 +144,9 @@ namespace tools::cmd {
             }
             string line = "";
             exited = line_editor.readLine(line);
-            // line_editor.addHistory(line.c_str()); // TODO
+            line_editor.addHistory(line.c_str()); // Add the line to history
             if (!history_path.empty()) {
-                // line_editor.saveHistory(history_path.c_str()); TODO
+                line_editor.saveHistory(history_path.c_str()); // Save history if path is set
             }
             return line;
         }
