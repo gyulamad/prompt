@@ -5,6 +5,10 @@
                 {
                     "sender": "user",
                     "text": "hello, this is a memory test. act like a key-value database and please remember the word 'elephant', whenever I say 'milkyway' you have to answer with one and only word: 'elephant'."
+                },
+                {
+                    "sender": "user",
+                    "text": "do you remember what is the word when I say 'milkyway'? of so tell me the meaning."
                 }
             ]
         }

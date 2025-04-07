@@ -78,11 +78,11 @@
 
             // load back
             "/load agent chatbot1.json",
-            "do you remember what is the word when I say 'milkyway'?", // is it remembers?
+            "do you remember what is the word when I say 'milkyway'? of so tell me the meaning.", // is it remembers?
 
             // save again
             "/save agent chatbot1 chatbot1.json",
-            
+
             "/exit"
         ],
         

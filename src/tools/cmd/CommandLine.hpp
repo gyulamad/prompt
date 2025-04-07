@@ -31,7 +31,8 @@ namespace tools::cmd {
             const string& history_path = "",
             bool multi_line = true,
             size_t history_max_length = 0
-        ): line_editor(editor),
+        ): 
+            line_editor(editor),
             prompt_suffix(prompt_suffix),
             history_path(history_path),
             multi_line(multi_line),
@@ -67,7 +68,7 @@ namespace tools::cmd {
         // CommandLine(const CommandLine&) = delete;
         // CommandLine& operator=(const CommandLine&) = delete;
 
-        virtual ~CommandLine() = default;
+        virtual ~CommandLine() {}
 
         LineEditor& getEditorRef() { return line_editor; }
 

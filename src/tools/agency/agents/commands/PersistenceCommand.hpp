@@ -190,17 +190,17 @@ namespace tools::agency::agents::commands {
 
     protected:
 
-        void run(void* agency_void, const vector<string>& args) override {
-            NULLCHK(agency_void);
+        // void run(void* worker_void, const vector<string>& args) override {
+        //     NULLCHK(agency_void);
 
-            string typeName = args[1]; // "agent" or "agency"
-            string thingName = args[2]; // agentName or agencyName
-            string filename = (args.size() > 3) ? args[3] : thingName;
+        //     string typeName = args[1]; // "agent" or "agency"
+        //     string thingName = args[2]; // agentName or agencyName
+        //     string filename = (args.size() > 3) ? args[3] : thingName;
 
-            performAction(*(Agency<T>*)agency_void, getType(typeName), thingName, filename);
-        }
+        //     performAction(*(Agency<T>*)agency_void, getType(typeName), thingName, filename);
+        // }
 
-        virtual void performAction(Agency<T>& agency, Type type, const string& name, const string& filename) = 0;
+        // virtual void performAction(Agency<T>& agency, Type type, const string& name, const string& filename) = 0;
 
 
         vector<string> getTypeNames() const {

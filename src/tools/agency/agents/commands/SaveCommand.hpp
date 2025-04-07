@@ -20,10 +20,24 @@ namespace tools::agency::agents::commands {
         SaveCommand(const string& prefix): 
             PersistenceCommand<T>(prefix, PersistenceCommand<T>::SAVE) {}
         virtual ~SaveCommand() {}
+    
+        void run(void* worker_void, const vector<string>& args) override {
+            Worker<T>& worker = *safe((Worker<T>*)worker_void);
+            Agency<T>& agency = *safe((Agency<T>*)worker.getAgencyPtr());
+
+            string typeName = args[1]; // "agent" or "agency"
+            string thingName = args[2]; // agentName or agencyName
+            string filename = (args.size() > 3) ? args[3] : thingName;
+
+            if (!file_exists(filename)) filename = filename + ".json";
+            if (!file_exists(filename)) throw ERROR("File not found: " + filename);
+
+            performAction(agency, this->getType(typeName), thingName, filename);
+        }
 
     protected: 
     
-        void performAction(Agency<T>& agency, PersistenceCommand<T>::Type type, const string& name, const string& filename) override {
+        void performAction(Agency<T>& agency, PersistenceCommand<T>::Type type, const string& name, const string& filename) {
             switch (type) {
                 
                 case PersistenceCommand<T>::AGENT:

@@ -20,7 +20,7 @@ using namespace tools::agency::agents;
 namespace tools::agency::agents::commands {
 
     template<typename T>
-    class HelpCommand: public Command {
+    class HelpCommand: public Command { // TODO: help/exit can go back to cmd namespace?
     public:
 
         using Command::Command;
@@ -68,9 +68,9 @@ namespace tools::agency::agents::commands {
             }));
         }
     
-        void run(void* agency_void, const vector<string>& args) override {
-            NULLCHK(agency_void);
-            Agency<T>& agency = *(Agency<T>*)agency_void;
+        void run(void* worker_void, const vector<string>& args) override {
+            Worker<T>& worker = *safe((Worker<T>*)worker_void);
+            Agency<T>& agency = *safe((Agency<T>*)worker.getAgencyPtr());
 
             // get user agent
             UserAgent<T>& user = (UserAgent<T>&)agency.getWorkerRef("user");

@@ -62,6 +62,7 @@ namespace tools::agency {
 
         void exit() {
             this->send("agency", "exit");
+            this->close();
         }
 
         void start(long ms = 10, bool run_async = true) {

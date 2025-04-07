@@ -22,17 +22,31 @@ namespace tools::agency::agents::commands {
             PersistenceCommand<T>(prefix, PersistenceCommand<T>::LOAD), roles(roles) {}
         virtual ~LoadCommand() {}
 
+        void run(void* worker_void, const vector<string>& args) override {
+            Worker<T>& worker = *safe((Worker<T>*)worker_void);
+            Agency<T>& agency = *safe((Agency<T>*)worker.getAgencyPtr());
+
+            string typeName = args[1]; // "agent" or "agency"
+            string filename = args[2]; // agentName or agencyName
+            // string filename = (args.size() > 3) ? args[3] : thingName;
+
+            if (!file_exists(filename)) filename = filename + ".json";
+            if (!file_exists(filename)) throw ERROR("File not found: " + filename);
+
+            performAction(agency, this->getType(typeName), filename);
+        }
+
     protected:
 
-        void performAction(Agency<T>& agency, PersistenceCommand<T>::Type type, const string& name, const string& filename) override {
+        void performAction(Agency<T>& agency, PersistenceCommand<T>::Type type, const string& filename) {
             switch (type) {
                 
                 case PersistenceCommand<T>::AGENT:
-                    loadAgent(agency, name, filename);
+                    loadAgent(agency, filename);
                     break;
                 
                 case PersistenceCommand<T>::AGENCY:
-                    loadAgency(agency, name, filename);
+                    loadAgency(agency, filename);
                     break;
 
                 default:
@@ -46,7 +60,7 @@ namespace tools::agency::agents::commands {
                 // - in both cases if file not found by name it should retry with filename + ".json" if the extension is not set alread
                 // + help usages in the parent class have to be updatede
 
-        void loadAgent(Agency<T>& /*agency*/, const string& name, const string& filename) {
+        void loadAgent(Agency<T>& /*agency*/, const string& filename) {
             
             JSON json(file_get_contents(filename));
 
@@ -65,10 +79,10 @@ namespace tools::agency::agents::commands {
             // Agent<T>& agent = 
             // roles[role](json);
             // agent.fromJSON(json);
-            roles[role](name, json);
+            roles[role](json.get<string>("name"), json);
         }
 
-        void loadAgency(Agency<T>&/*agency*/, const string& /*name*/, const string& /*filename*/) {
+        void loadAgency(Agency<T>&/*agency*/, const string& /*filename*/) {
             STUB("implement this!");
             // ((JSONSerializable&)agency)
             //     .fromJSON(JSON(file_get_contents(filename)));

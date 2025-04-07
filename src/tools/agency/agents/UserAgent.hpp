@@ -51,22 +51,27 @@ namespace tools::agency::agents {
         string type() const override { return "user"; }
 
         void tick() override {
-            if (this->getAgencyPtr()->isClosing()) {
-                sleep_ms(100);
-                return;
-            }
+            if (this->isClosing() || this->agency->isClosing()) return;
             T input;
             if (!inputs.empty()) input = array_shift(inputs);
-            else if (interface.readln(input)) this->exit();
-            if (trim(input).empty()) return;
-            Commander& commander = interface.getCommanderRef();
-            if (commander.isPrefixed(input)) { // TODO: add is_command(input) as a command matcher (regex or callback fn) instead just test for "/"
-                commander.runCommand(this->agency, input); 
-            } else {
-                if (text_input_echo) {
-                    interface.clearln();
-                    interface.println(input);
+            else {
+                sleep_ms(100);
+                if (interface.readln(input)) {
+                    this->exit();
+                    return;
                 }
+                inputs.push_back(input);
+                return;
+            }
+            if (trim(input).empty()) return;
+            if (text_input_echo) {
+                interface.clearln();
+                interface.println(input);
+            }
+            Commander& commander = interface.getCommanderRef();
+            if (commander.isPrefixed(input)) {
+                commander.runCommand(this, input); 
+            } else {
                 onInput(input);
             }
         }

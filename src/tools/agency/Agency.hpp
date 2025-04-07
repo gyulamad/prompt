@@ -57,7 +57,7 @@ namespace tools::agency {
                 for (Worker<T>* worker: workers) worker->close();
                 this->close();
 
-                // emptying package queue
+                // swallowing packages from queue (TODO: perhaps we want to proceed all - with a timeout - before close)
                 while (this->queue.Consume(pack));
             }
 

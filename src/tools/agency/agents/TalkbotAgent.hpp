@@ -67,15 +67,6 @@ namespace tools::agency::agents {
             interface.getCommanderRef().getCommandLineRef().setPromptVisible(true);
         }
 
-        // void fromJSON(const JSON& json) override {
-        //     DEBUG("TalkbotAgent::fromJSON called");
-        //     safe(talkbot);
-        //     DEBUG("talkbot is safe");
-        //     DEBUG("json is: " + json.dump());
-        //     talkbot->fromJSON(json); // TODO !@# segfault here!!!
-        //     DEBUG("talkbot->fromJSON(json) is called");
-        // }
-
     private:
         Talkbot* talkbot = nullptr;
         UserAgentInterface<T>& interface;

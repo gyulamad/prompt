@@ -128,6 +128,7 @@ namespace tools::agency::agents {
         // ================================================================= 
 
         bool readln(T& input) override {
+            lock_guard<mutex> lock(this->imutex);
             CommandLine& cline = commander.getCommandLineRef();
             input = cline.readln();
             return cline.isExited();

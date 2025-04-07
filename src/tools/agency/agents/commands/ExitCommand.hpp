@@ -51,11 +51,10 @@ namespace tools::agency::agents::commands {
             }));
         }
     
-        void run(void* agency_void, const vector<string>&) override {
-            NULLCHK(agency_void);
-            Agency<T>& agency = *(Agency<T>*)agency_void;
+        void run(void* worker_void, const vector<string>&) override {
+            Worker<T>& worker = *safe((Worker<T>*)worker_void);
 
-            agency.exit();
+            worker.exit();
         }
     };
     
