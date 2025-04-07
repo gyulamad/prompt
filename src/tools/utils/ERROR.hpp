@@ -29,6 +29,8 @@ namespace tools::utils {
     }
 
     #define ERROR(msg) tools::utils::error(msg, __FILE__, __LINE__)
+    #define ERROR_UNIMP tools::utils::error("Unimplemented", __FILE__, __LINE__)
+    #define ERROR_INVALID(var) tools::utils::error("Invalid "#var, __FILE__, __LINE__)
 
     #define FILELN ANSI_FMT_FILE_LINE(__FILE__, __LINE__)
 
@@ -47,14 +49,15 @@ namespace tools::utils {
     #endif
 
     
-    #define UNIMP_NEED = 0;
-    #define UNIMP_SKIP { }
-    #define UNIMP_THROWS = 0; //{ throw ERROR("Unimplemented function: " + string(__FUNC__)); }
+    // #define UNIMP_NEED = 0;
+    // #define UNIMP_SKIP { }
+    // #define = 0;{ throw ERROR("Unimplemented function: " + string(__FUNC__)); }
     
 
     #define DEBUG(msg) tools::utils::debug(msg, __FILE__, __LINE__)
     #define STUB(msg) tools::utils::stub(msg, __FUNC__, __FILE__, __LINE__)
-    #define STUB_VIRTUAL { STUB("It should be pure virtual and implemented in derived classes according to their specific interpretation."); }
+    #define STUB_UNIMP STUB("Unimplemented")
+    #define STUB_VIRTUAL STUB("It should be pure virtual and implemented in derived classes according to their specific interpretation.")
 
 
     // Define a helper macro for the implementation details

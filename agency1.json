@@ -1,0 +1,11 @@
+{
+    "name": "agency",
+    "recipients": [
+        "user"
+    ],
+    "role": "agency",
+    "workers": [
+        "user.json",
+        "chatbot1.json"
+    ]
+}

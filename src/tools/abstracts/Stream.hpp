@@ -8,13 +8,13 @@ namespace tools::abstracts {
     class Stream {
     public:
         virtual void write(const T& data) = 0;
-        virtual bool available() UNIMP_THROWS
+        virtual bool available() = 0;
         virtual T read() = 0;
-        virtual T peek() UNIMP_THROWS
-        virtual void flush() UNIMP_THROWS
-        virtual bool eof() UNIMP_THROWS
-        virtual bool error() UNIMP_THROWS
-        virtual void close() UNIMP_THROWS
+        virtual T peek() = 0;
+        virtual void flush() = 0;
+        virtual bool eof() = 0;
+        virtual bool error() = 0;
+        virtual void close() = 0;
 
         virtual ~Stream() = default;
     };

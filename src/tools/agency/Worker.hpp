@@ -56,7 +56,7 @@ namespace tools::agency {
         // ---- working ----------------------------------------------------
         // -----------------------------------------------------------------
 
-        virtual void handle(const string& /*sender*/, const T& /*item*/) UNIMP_THROWS
+        virtual void handle(const string& /*sender*/, const T& /*item*/) = 0;
 
         virtual void tick() {}
 
@@ -117,7 +117,7 @@ namespace tools::agency {
         // ---- view -------------------------------------------------------
         // -----------------------------------------------------------------
 
-        virtual string type() const UNIMP_THROWS
+        virtual string type() const = 0;
 
         virtual string dump() const {
             string recipients = implode("', '", this->recipients);

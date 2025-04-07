@@ -15,10 +15,10 @@ namespace tools::cmd {
         Command(const string& prefix): prefix(prefix) {}
         virtual ~Command() {}
 
-        virtual vector<string> getPatterns() const UNIMP_THROWS
-        virtual string getName() const UNIMP_THROWS
-        virtual string getDescription() const UNIMP_THROWS
-        virtual string getUsage() const UNIMP_THROWS
+        virtual vector<string> getPatterns() const = 0;
+        virtual string getName() const = 0;
+        virtual string getDescription() const = 0;
+        virtual string getUsage() const = 0;
         
         virtual const vector<string>& validate(const vector<string>& args) {
             // Override if need validation and "throw ERROR(<validation failure message to the caller>);" on error
@@ -31,7 +31,7 @@ namespace tools::cmd {
          * @param user 
          * @param args 
          */
-        virtual void run(void*, const vector<string>&) UNIMP_THROWS
+        virtual void run(void*, const vector<string>&) = 0;
         
     protected:
         string prefix;

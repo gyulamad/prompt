@@ -10,8 +10,8 @@ namespace tools::abstracts {
     public:
         JSONSerializable() {}
         virtual ~JSONSerializable() {}
-        virtual JSON toJSON() const UNIMP_THROWS
-        virtual void fromJSON(const JSON& json) UNIMP_THROWS
+        virtual JSON toJSON() const = 0;
+        virtual void fromJSON(const JSON& json) = 0;
     };
 
 }

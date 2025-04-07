@@ -62,6 +62,8 @@
     },
     "startup": {
 
+        "_batch": [],
+
         // ========[ TEST SAVE/LOAD ]========
 
         "batch": [
@@ -80,8 +82,11 @@
             "/load agent chatbot1.json",
             "do you remember what is the word when I say 'milkyway'? of so tell me the meaning.", // is it remembers?
 
-            // save again
-            "/save agent chatbot1 chatbot1.json",
+            // save agancy
+            "/save agency agency1.json",
+            "/kill chatbot1",
+            "/load agency agency1.json",
+            "milkyway",
 
             "/exit"
         ],

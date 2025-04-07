@@ -236,7 +236,7 @@ int safe_main(int argc, char* argv[]) {
         if (in_array("voice", command_factory_commands)) cfactory.withCommand<VoiceCommand<PackT>>(commander.getPrefix());
         if (in_array("target", command_factory_commands)) cfactory.withCommand<TargetCommand<PackT>>(commander.getPrefix());
         if (in_array("load", command_factory_commands)) cfactory.withCommand<LoadCommand<PackT>>(commander.getPrefix(), roles);
-        if (in_array("save", command_factory_commands)) cfactory.withCommand<SaveCommand<PackT>>(commander.getPrefix());
+        if (in_array("save", command_factory_commands)) cfactory.withCommand<SaveCommand<PackT>>(commander.getPrefix(), roles);
         commander.setupCommands();
 
         string uname = "user"; // TODO: to config

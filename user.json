@@ -1,0 +1,7 @@
+{
+    "name": "user",
+    "recipients": [
+        "chatbot1"
+    ],
+    "role": "user"
+}

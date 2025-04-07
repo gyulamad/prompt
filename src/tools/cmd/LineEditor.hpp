@@ -18,20 +18,20 @@ namespace tools::cmd {
         using CompletionCallback = function<void(const char*, vector<string>&)>;
         // using KeypressCallback = function<void()>;
 
-        virtual void setCompletionCallback(CompletionCallback /*callback*/) UNIMP_THROWS
-        // virtual void setKeypressCallback(KeypressCallback /*callback*/) UNIMP_THROWS
-        virtual void setMultiLine(bool /*enable*/) UNIMP_THROWS
-        virtual void setHistoryMaxLen(size_t /*max_len*/) UNIMP_THROWS
-        virtual void loadHistory(const char* /*path*/) UNIMP_THROWS
-        virtual void saveHistory(const char* /*path*/) UNIMP_THROWS
-        virtual void addHistory(const char* /*line*/) UNIMP_THROWS // TODO: sometimes when I /exit: Worker 'user' error: Unimplemented function: addHistory
-        // virtual bool readLine(const char* /*prompt*/, string& /*line*/) UNIMP_THROWS // Returns true if exited (deprecated)
-        virtual bool readLine(string& /*line*/) UNIMP_THROWS // Returns true if exited
-        virtual void refreshLine() UNIMP_THROWS
-        virtual void wipeLine() UNIMP_THROWS
-        virtual void setPrompt(const char* /*prompt*/) UNIMP_THROWS
-        virtual void setPrompt(string& /*prompt*/) UNIMP_THROWS
-        // virtual string getPrompt() UNIMP_THROWS
+        virtual void setCompletionCallback(CompletionCallback /*callback*/) = 0;
+        // virtual void setKeypressCallback(KeypressCallback /*callback*/) = 0;
+        virtual void setMultiLine(bool /*enable*/) = 0;
+        virtual void setHistoryMaxLen(size_t /*max_len*/) = 0;
+        virtual void loadHistory(const char* /*path*/) = 0;
+        virtual void saveHistory(const char* /*path*/) = 0;
+        virtual void addHistory(const char* /*line*/) = 0; // TODO: sometimes when I /exit: Worker 'user' error: Unimplemented function: addHistory
+        // virtual bool readLine(const char* /*prompt*/, string& /*line*/) = 0; // Returns true if exited (deprecated)
+        virtual bool readLine(string& /*line*/) = 0; // Returns true if exited
+        virtual void refreshLine() = 0;
+        virtual void wipeLine() = 0;
+        virtual void setPrompt(const char* /*prompt*/) = 0;
+        virtual void setPrompt(string& /*prompt*/) = 0;
+        // virtual string getPrompt() = 0;
     };
 
 } // namespace tools::cmd
