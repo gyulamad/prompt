@@ -44,7 +44,8 @@ using namespace tools::chat;
 // Test constructor
 void test_Agent_constructor_basic() {
     default_test_agency_setup setup("test_agent");
-    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, setup.json);
+    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, setup.name);
+    agent.fromJSON(setup.json);
     auto actual_name = agent.getName();
     assert(actual_name == "test_agent" && "Agent name should be set correctly");
     // Can't directly test queue ref, but we'll use it in send tests
@@ -53,7 +54,8 @@ void test_Agent_constructor_basic() {
 // Test single send
 void test_Agent_send_single() {
     default_test_agency_setup setup("alice");
-    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, setup.json);
+    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, setup.name);
+    agent.fromJSON(setup.json);
     agent.testSend("bob", "hello");
     auto actual_contents = queue_to_vector(setup.queue);
     assert(actual_contents.size() == 1 && "Send should produce one pack");
@@ -65,7 +67,8 @@ void test_Agent_send_single() {
 // Test multiple sends
 void test_Agent_send_multiple() {
     default_test_agency_setup setup("alice");
-    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, setup.json);
+    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, setup.name);
+    agent.fromJSON(setup.json);
     vector<string> recipients = {"bob", "charlie"};
     agent.testSend(recipients, "hello");
     auto actual_contents = queue_to_vector(setup.queue);
@@ -81,7 +84,8 @@ void test_Agent_send_multiple() {
 // Test tick default does nothing
 void test_Agent_tick_default() {
     default_test_agency_setup setup("test_agent");
-    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, setup.json);
+    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, setup.name);
+    agent.fromJSON(setup.json);
     // No output or state to check, just ensure it runs without crashing
     agent.tick();
     // If we reach here, it’s fine—no assert needed for empty default
@@ -90,7 +94,8 @@ void test_Agent_tick_default() {
 // Test sync runs until closed
 void test_Agent_sync_basic() {
     default_test_agency_setup setup("test_agent");
-    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, setup.json);
+    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, setup.name);
+    agent.fromJSON(setup.json);
     agent.close(); // Set closing first
     agent.sync(1); // Should exit immediately
     auto actual_closed = agent.isClosing();
@@ -100,7 +105,8 @@ void test_Agent_sync_basic() {
 // Test async starts and stops
 void test_Agent_async_basic() {
     default_test_agency_setup setup("test_agent");
-    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, setup.json);
+    TestWorker<string> agent(setup.owns, setup.agency, setup.queue, setup.name);
+    agent.fromJSON(setup.json);
     agent.start(1, true); // Async with 1ms sleep
     sleep_ms(10); // Let it run briefly
     agent.close(); // Signal to stop

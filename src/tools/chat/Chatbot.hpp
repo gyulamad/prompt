@@ -9,7 +9,7 @@ using namespace std;
 
 namespace tools::chat {
 
-    class Chatbot { // : public JSONSerializable { //  TODO: refact: build up a correct abstraction hierarhy
+    class Chatbot { //: public JSONSerializable { //  TODO: refact: build up a correct abstraction hierarhy
     public:
 
         class cancel: public exception {};
@@ -54,22 +54,23 @@ namespace tools::chat {
         // ----- JSON serialization -----
 
         // void fromJSON(const JSON& json) override {
-        //     DEBUG("Chatbot::fromJSON called"); 
-        //     // Convert pointer to integer type for printing
-        //     uintptr_t history_addr = reinterpret_cast<uintptr_t>(history);
-        //     DEBUG("Checking history pointer address: " + to_string(history_addr)); 
-        //     safe(history); // Check history pointer before use
-        //     DEBUG("History pointer is safe"); 
-        //     history->fromJSON(json.get<JSON>("history")); // Call history's fromJSON
-        //     DEBUG("Called history->fromJSON"); 
+        // //     DEBUG("Chatbot::fromJSON called"); 
+        // //     // Convert pointer to integer type for printing
+        // //     uintptr_t history_addr = reinterpret_cast<uintptr_t>(history);
+        // //     DEBUG("Checking history pointer address: " + to_string(history_addr)); 
+        // //     safe(history); // Check history pointer before use
+        // //     DEBUG("History pointer is safe"); 
+        // //     history->fromJSON(json.get<JSON>("history")); // Call history's fromJSON
+        // //     DEBUG("Called history->fromJSON"); 
 
-        //     name = json.get<string>("name");
+        // //     name = json.get<string>("name");
+        //     safe(history)->fromJSON(json.get<JSON>("history"));
         // }
 
         // JSON toJSON() const override {
         //     JSON json;
         //     json.set("history", safe(history)->toJSON());
-        //     json.set("name", name);
+        // //     json.set("name", name);
         //     return json;
         // }
         

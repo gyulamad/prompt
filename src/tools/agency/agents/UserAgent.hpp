@@ -34,10 +34,10 @@ namespace tools::agency::agents {
             Owns& owns,
             Worker<T>* agency,
             PackQueue<T>& queue,
-            const JSON& json,
+            const string& name,
             UserAgentInterface<T>& interface
         ): 
-            Agent<T>(owns, agency, queue, json), 
+            Agent<T>(owns, agency, queue, name), 
             interface(interface)
         {
             interface.setUser(this);

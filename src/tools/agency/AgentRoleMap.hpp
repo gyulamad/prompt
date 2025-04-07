@@ -17,7 +17,7 @@ namespace tools::agency {
     // template<typename T>
     using AgentInstantiator = function<void(
         //void*, // agency // TODO PackQueue???
-        // const string&, // name
+        const string&, // name
         // const vector<string>&, // recipients
         const JSON& // json
     )>;

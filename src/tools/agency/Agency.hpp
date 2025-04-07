@@ -21,24 +21,21 @@ namespace tools::agency {
 
         static const string worker_list_tpl;
 
-        // using Worker<T>::Worker;
         Agency(
             Owns& owns,
             AgentRoleMap& roles,
             PackQueue<T>& queue,
-            JSON& json 
-            // const string& name,
-            // vector<string> recipients
+            const string& name
         ):
+            Worker<T>(owns, nullptr, queue, name),
             owns(owns),
-            roles(roles),
-            Worker<T>(owns, nullptr, queue, json/*, name, recipients*/)
+            roles(roles)
         {}
 
         virtual ~Agency() {
             lock_guard<mutex> lock(workers_mtx);
             for (Worker<T>* worker : workers) {
-                owns.release(this, worker); // delete worker;
+                owns.release(this, worker); // delete worker
                 worker = nullptr;
             }
             workers.clear();
@@ -155,18 +152,21 @@ namespace tools::agency {
         // ---- JSON serialization ----
 
         void fromJSON(const JSON& json) override {
-            vector<JSON> jworkers = json.get<vector<JSON>>("workers");
-            for (const JSON& jworker: jworkers) {
-                roles[jworker.get<string>("role")](
-                    // jworker.get<string>("name"),
-                    // jworker.get<vector<string>>("recipients"),
-                    jworker
-                );
+            Worker<T>::fromJSON(json);
+
+            if (json.has("workers")) {
+                vector<JSON> jworkers = json.get<vector<JSON>>("workers");
+                for (const JSON& jworker: jworkers)
+                    roles[jworker.get<string>("role")](
+                        jworker.get<string>("name"), 
+                        jworker
+                    );
             }
         }
 
         JSON toJSON() const override {
-            JSON json;
+            JSON json = Worker<T>::toJSON();
+
             vector<JSON> jworkers;
             for (const Worker<T>* worker: workers)
                 jworkers.push_back(safe(worker)->toJSON());
@@ -207,16 +207,18 @@ using namespace tools::agency;
 // Agency tests
 void test_Agency_constructor_basic() {
     default_test_agency_setup setup("agency");
-    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
     auto actual_name = agency.getName();
     assert(actual_name == "agency" && "Agency name should be 'agency'");
 }
 
 void test_Agency_handle_exit() {
     default_test_agency_setup setup("agency");
-    TestAgency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
-    setup.json.set("name", "test_worker");
-    TestWorker<string>& test_worker = agency.template spawn<TestWorker<string>>(setup.owns, setup.agency, setup.queue, setup.json);
+    TestAgency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    TestWorker<string>& test_worker = agency.template spawn<TestWorker<string>>(setup.owns, setup.agency, setup.queue, "test_worker");
+    test_worker.fromJSON(setup.json);
     auto actual_output = capture_cout([&]() { agency.handle("user", "exit"); });
     auto actual_closed = agency.isClosing();
     auto actual_worker_closed = test_worker.isClosing();
@@ -229,11 +231,12 @@ void test_Agency_handle_exit() {
 
 void test_Agency_handle_list() {
     default_test_agency_setup setup("agency");
-    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
-    setup.json.set("name", "worker1");
-    agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
-    setup.json.set("name", "worker2");
-    agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    TestWorker<string>& test_worker1 = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "worker1");
+    test_worker1.fromJSON(setup.json);
+    TestWorker<string>& test_worker2 = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "worker2");
+    test_worker2.fromJSON(setup.json);
     auto actual_output = capture_cout([&]() { agency.handle("user", "list"); });
     auto expected_output = "Workers in the agency:\nworker1\nworker2\n";
     assert(actual_output == expected_output && "List should output all worker names");
@@ -241,9 +244,10 @@ void test_Agency_handle_list() {
 
 void test_Agency_spawn_success() {
     default_test_agency_setup setup("agency");
-    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
-    setup.json.set("name", "test_worker");
-    auto& worker = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    auto& worker = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker");
+    worker.fromJSON(setup.json);
     auto actual_name = worker.getName();
     assert(actual_name == "test_worker" && "Spawned worker should have correct name");
     auto actual_output = capture_cout([&]() { agency.handle("user", "list"); });
@@ -252,12 +256,14 @@ void test_Agency_spawn_success() {
 
 void test_Agency_spawn_duplicate() {
     default_test_agency_setup setup("agency");
-    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
-    setup.json.set("name", "test_worker");
-    agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    TestWorker<string>& worker1 = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker");
+    worker1.fromJSON(setup.json);
     bool thrown = false;
     try {
-        agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
+        TestWorker<string>& worker2 = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker");
+        worker2.fromJSON(setup.json);
     } catch (exception& e) {
         thrown = true;
         string what = e.what();
@@ -268,9 +274,10 @@ void test_Agency_spawn_duplicate() {
 
 void test_Agency_kill_basic() {
     default_test_agency_setup setup("agency");
-    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
-    setup.json.set("name", "test_worker");
-    agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    TestWorker<string>& worker = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker");
+    worker.fromJSON(setup.json);
     setup.queue.Produce(Pack<string>("user", "test_worker", "hello"));
     agency.tick();  // Process the queue before killing
     assert(agency.kill("test_worker") && "Worker should be found");
@@ -282,9 +289,10 @@ void test_Agency_kill_basic() {
 
 void test_Agency_tick_dispatch() {
     default_test_agency_setup setup("agency");
-    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.json);
-    setup.json.set("name", "test_worker");
-    auto& test_worker = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, setup.json);
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    auto& test_worker = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker");
+    test_worker.fromJSON(setup.json);
     setup.queue.Produce(Pack<string>("user", "agency", "list"));
     setup.queue.Produce(Pack<string>("user", "test_worker", "hello"));
     auto actual_output = capture_cout([&]() { agency.tick(); });

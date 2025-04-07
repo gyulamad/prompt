@@ -13,7 +13,7 @@ using namespace tools::utils;
 
 namespace tools::chat {
 
-    class ChatHistory: public JSONSerializable {
+    class ChatHistory{ //: public JSONSerializable {
     public:
         ChatHistory(
             const string& prompt,
@@ -24,6 +24,8 @@ namespace tools::chat {
         {}
 
         virtual ~ChatHistory() {}
+
+        vector<ChatMessage> getMessages() const { return messages; }
     
         void append(const string& sender, const string& text) {        
             ChatMessage message(sender, text);
@@ -53,38 +55,38 @@ namespace tools::chat {
 
         // ---- JSON serialization ----
 
-        void fromJSON(const JSON& json) override {
-            DEBUG("ChatHistory::fromJSON called");
-            DEBUG("ChatHistory::fromJSON: json = " + json.dump());
-            // json.need({ "prompt", "use_start_token", "messages" });
+        // void fromJSON(const JSON& json) override {
+        //     // DEBUG("ChatHistory::fromJSON called");
+        //     // DEBUG("ChatHistory::fromJSON: json = " + json.dump());
+        //     // json.need({ "prompt", "use_start_token", "messages" });
 
-            prompt = json.get<string>("prompt");
-            use_start_token = json.get<bool>("use_start_token");
+        //     // prompt = json.get<string>("prompt");
+        //     // use_start_token = json.get<bool>("use_start_token");
             
-            // load messages
-            messages.clear();
-            vector<JSON> msgs = json.get<vector<JSON>>("messages");
-            for (JSON& msg: msgs) {
-                ChatMessage message;
-                message.fromJSON(msg);
-                messages.push_back(message);
-            }
-        }
+        //     // load messages
+        //     messages.clear();
+        //     vector<JSON> jmessages = json.get<vector<JSON>>("messages");
+        //     for (const JSON& jmessage: jmessages) {
+        //         ChatMessage message;
+        //         message.fromJSON(jmessage);
+        //         messages.push_back(message);
+        //     }
+        // }
 
-        JSON toJSON() const override {
-            JSON json;
+        // JSON toJSON() const override {
+        //     JSON json;
             
-            json.set("prompt", prompt);
-            json.set("use_start_token", use_start_token);
+        //     // json.set("prompt", prompt);
+        //     // json.set("use_start_token", use_start_token);
             
-            vector<JSON> jmessages;
-            for (const ChatMessage& message: messages) {
-                jmessages.push_back(message.toJSON());
-            }
-            json.set("messages", jmessages);
+        //     vector<JSON> jmessages;
+        //     for (const ChatMessage& message: messages) {
+        //         jmessages.push_back(message.toJSON());
+        //     }
+        //     json.set("messages", jmessages);
             
-            return json;
-        }
+        //     return json;
+        // }
     
     private:    
         string prompt;

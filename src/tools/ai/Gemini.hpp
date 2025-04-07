@@ -94,7 +94,7 @@ namespace tools::ai {
         }
 
         // TODO: load with curl but no need to show (it's for internal conversations)
-        string respond(Chatbot& chatbot, const string& sender, const string& text) {
+        string respond(Chatbot& /*chatbot*/, const string& /*sender*/, const string& /*text*/) {
             STUB("Needs to be implemented");
             throw ERROR("Unimplemented");
         }

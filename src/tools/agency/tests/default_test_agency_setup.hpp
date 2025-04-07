@@ -16,7 +16,7 @@ struct default_test_agency_setup {
     Worker<string>* agency = nullptr;
     string name;
     vector<string> recipients = {};
-    map<string, function<void(const JSON&)>> roles;
+    map<string, function<void(const string&, const JSON&)>> roles;
     JSON json;
     default_test_agency_setup(string name): name(name) {
         json.set("name", name);

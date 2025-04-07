@@ -86,9 +86,9 @@ namespace tools::agency::agents::commands {
             }));
         }
         
-        void run(void* agency_void, const vector<string>& args) override {
-            NULLCHK(agency_void);
-            Agency<T>& agency = *(Agency<T>*)agency_void;
+        void run(void* /*agency_void*/, const vector<string>& args) override {
+            // NULLCHK(agency_void);
+            // Agency<T>& agency = *(Agency<T>*)agency_void;
 
             if (args.size() < 2) throw ERROR("Missing argument(s): use: /spawn <role> [<name>] [<recipients>]");
             string role = trim(args[1]);
@@ -103,9 +103,9 @@ namespace tools::agency::agents::commands {
 
             // Agent<T>& agent = 
             JSON json;
-            json.set("name", name);
+            json.set("role", role);
             json.set("recipients", recipients);
-            roles[role](/*name, recipients,*/ json); // TODO: json OR vars??
+            roles[role](name, json); // TODO: json OR vars??
         }
         
         

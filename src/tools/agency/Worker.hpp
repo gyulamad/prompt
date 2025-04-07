@@ -26,15 +26,15 @@ namespace tools::agency {
             Owns& owns,
             Worker<T>* agency,
             PackQueue<T>& queue,
-            const JSON& json
+            const string& name
         ): 
+            Closable(),
+            JSONSerializable(),
             owns(owns),
             agency(agency),
             queue(queue),
-            Closable()
-        {
-            fromJSON(json);
-        }
+            name(name)
+        {}
 
         virtual ~Worker() {
             this->close();
@@ -45,7 +45,7 @@ namespace tools::agency {
         // ---- model ------------------------------------------------------
         // -----------------------------------------------------------------
 
-        Owns& getOwnsRef() { return owns; }
+        Owns& getOwnsRef() const { return owns; }
         Worker<T>* getAgencyPtr() { return agency ? agency : this; }
         PackQueue<T>& getQueueRef() { return queue; }
         string getName() const { return name; }
@@ -131,7 +131,6 @@ namespace tools::agency {
 
         void fromJSON(const JSON& json) override {
             // DEBUG(json.dump());
-            name = json.get<string>("name");
             recipients = json.get<vector<string>>("recipients");
         }
 

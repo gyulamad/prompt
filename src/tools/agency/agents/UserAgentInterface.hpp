@@ -237,7 +237,7 @@ namespace tools::agency::agents {
                     commander.getCommandLineRef().setPrompt(out + " ");
 
                     // interruption check starts...
-                    if (micView.getRecs() >= 1 || vol_pc > threshold_pc && tts.is_speaking()) {
+                    if (micView.getRecs() >= 1 || (vol_pc > threshold_pc && tts.is_speaking())) {
                         tts.speak_pause(3000);
                     }
 

@@ -28,7 +28,7 @@ namespace tools::chat {
         }
 
         // TODO: add chat/stream mode to the chatbot (avoid talkbot concept separation)
-        string chat(const string& sender, const string& text, bool& interrupted) override {
+        string chat(const string& /*sender*/, const string& /*text*/, bool& /*interrupted*/) override {
             throw ERROR("DecidorChatbot does not support chat stream resonse.");
         }
 
@@ -46,22 +46,22 @@ namespace tools::chat {
 
 
 
-        virtual bool confirm(const string& sender, const string& text) {
+        virtual bool confirm(const string& /*sender*/, const string& /*text*/) {
             STUB("Needs to be implemented");
             return false;
         }
 
-        virtual Decision decide(const string& sender, const string& text) {
+        virtual Decision decide(const string& /*sender*/, const string& /*text*/) {
             STUB("Needs to be implemented");
             return NO;
         }
 
-        virtual int choose(const string& sender, const string& text, const vector<string>& options, bool optional = false) {
+        virtual int choose(const string& /*sender*/, const string& /*text*/, const vector<string>& /*options*/, bool /*optional*/ = false) {
             STUB("Needs to be implemented");
             return -1;
         }
 
-        virtual vector<int> select(const string& sender, const string& text, const vector<string>& options, bool optional = false) {
+        virtual vector<int> select(const string& /*sender*/, const string& /*text*/, const vector<string>& /*options*/, bool /*optional*/ = false) {
             STUB("Needs to be implemented");
             return {};
         }

@@ -61,19 +61,36 @@
         }
     },
     "startup": {
+
+        // ========[ TEST SAVE/LOAD ]========
+
         "batch": [
+            // spin up chatbot1 that talks to the user
             "/spawn chat chatbot1 user",
             "/target set chatbot1",
+
+            // tell the memory
+            "hello, this is a memory test. act like a key-value database and please remember the word 'elephant', whenever I say 'milkyway' you have to answer with one and only word: 'elephant'.",
+
+            // save the chatbot1 and kill it
             "/save agent chatbot1 chatbot1.json",
             "/kill chatbot1",
+
+            // load back
             "/load agent chatbot1.json",
-            "hello"
+            "do you remember what is the word when I say 'milkyway'?", // is it remembers?
 
-            // "/load agent joci1 joci.json"
-
-            // -----------------
-            // "/voice input on" 
+            // save again
+            "/save agent chatbot1 chatbot1.json",
+            
+            "/exit"
         ],
-        "echo": true
+        
+
+        // ========[ VOICE MODE ]========
+
+        "_batch": [
+            "/voice input on" 
+        ]
     }
 }

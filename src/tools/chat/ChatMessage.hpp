@@ -10,9 +10,9 @@ using namespace tools::abstracts;
 
 namespace tools::chat {
 
-    class ChatMessage: public JSONSerializable {
+    class ChatMessage { //: public JSONSerializable {
     public:
-        using JSONSerializable::JSONSerializable;
+        // using JSONSerializable::JSONSerializable;
 
         ChatMessage(
             const string& sender,
@@ -27,19 +27,19 @@ namespace tools::chat {
         string getSender() const { return sender; }
         string getText() const { return text; }
 
-        // ----- serialization -----
+        // ----- JSON serialization -----
 
-        void fromJSON(const JSON& json) override {
-            sender = json.get<string>("sender");
-            text = json.get<string>("text");
-        }
+        // void fromJSON(const JSON& json) override {
+        //     sender = json.get<string>("sender");
+        //     text = json.get<string>("text");
+        // }
 
-        JSON toJSON() const override {
-            JSON json;
-            json.set("sender", sender);
-            json.set("text", text);
-            return json;
-        }
+        // JSON toJSON() const override {
+        //     JSON json;
+        //     json.set("sender", sender);
+        //     json.set("text", text);
+        //     return json;
+        // }
     
     protected:
         string sender;

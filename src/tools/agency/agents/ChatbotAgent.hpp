@@ -26,19 +26,20 @@ namespace tools::agency::agents {
             Owns& owns,
             Worker<T>* agency,
             PackQueue<T>& queue,
-            const JSON& json,
-            // const string& name,
-            // vector<string> recipients,
+            const string& name,
             void* chatbot,
+            void* history,
             UserAgentInterface<T>& interface
         ): 
-            Agent<T>(owns, agency, queue, json/*, name, recipients*/),
+            Agent<T>(owns, agency, queue, name),
             chatbot(owns.reserve<Chatbot>(this, chatbot, FILELN)),
+            history(owns.reserve<ChatHistory>(this, history, FILELN)),
             interface(interface)
         {}
 
         virtual ~ChatbotAgent() {
             this->owns.release(this, chatbot);
+            this->owns.release(this, history);
         }
 
         void* getChatbotPtr() { return chatbot; } // TODO: remove this
@@ -63,8 +64,50 @@ namespace tools::agency::agents {
             interface.getCommanderRef().getCommandLineRef().setPromptVisible(true);
         }
 
+        void fromJSON(const JSON& json) override {
+            Agent<T>::fromJSON(json);
+
+            // role
+            if (json.get<string>("role") != type()) // NOTE: We may don't need this check as this function can be extended and the type overrided in derived classes!
+                throw ERROR("Type missmatch '" + json.get<string>("role") + "' != '" + type() + "'");
+
+            // chatbot.history.messages
+            if (json.has("chatbot.history.messages")) {
+                safe(history);
+                vector<JSON> jmessages = json.get<vector<JSON>>("chatbot.history.messages");
+                for (const JSON& jmessage: jmessages) {
+                    history->append(
+                        jmessage.get<string>("sender"),
+                        jmessage.get<string>("text")
+                    );
+                }
+            }
+        } // TODO: !@# Save/Load for agencies + basepath for save/load
+
+        JSON toJSON() const override {
+            JSON json = Agent<T>::toJSON();
+
+            // role
+            json.set("role", this->type());
+            
+            // chatbot.history.messages
+            safe(history);
+            vector<ChatMessage> messages = history->getMessages();
+            vector<JSON> jmessages;
+            for (const ChatMessage& message: messages) {
+                JSON jmessage;
+                jmessage.set("sender", message.getSender());
+                jmessage.set("text", message.getText());
+                jmessages.push_back(jmessage);
+            }
+            json.set("chatbot.history.messages", jmessages);
+
+            return json;
+        }
+
     private:
         Chatbot* chatbot = nullptr;
+        ChatHistory* history = nullptr;
         UserAgentInterface<T>& interface;
     };
     

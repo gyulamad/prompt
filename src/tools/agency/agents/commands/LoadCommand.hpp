@@ -19,7 +19,7 @@ namespace tools::agency::agents::commands {
     public:
         // Constructor calling the base class constructor
         LoadCommand(const string& prefix, AgentRoleMap& roles): 
-            roles(roles), PersistenceCommand<T>(prefix, PersistenceCommand<T>::LOAD) {}
+            PersistenceCommand<T>(prefix, PersistenceCommand<T>::LOAD), roles(roles) {}
         virtual ~LoadCommand() {}
 
     protected:
@@ -40,9 +40,13 @@ namespace tools::agency::agents::commands {
             }
         }
 
-    private:
-    
-        void loadAgent(Agency<T>& agency, const string& name, const string& filename) {
+    private:    // TODO: !@# Load/save name/filename inconsistency, it should work like:
+                //  /save => name + (filename - optional, comes from name + ".json" if not set)
+                //  /load => filename + (name - optional, comes from the file data if not set)
+                // - in both cases if file not found by name it should retry with filename + ".json" if the extension is not set alread
+                // + help usages in the parent class have to be updatede
+
+        void loadAgent(Agency<T>& /*agency*/, const string& name, const string& filename) {
             
             JSON json(file_get_contents(filename));
 
@@ -59,11 +63,13 @@ namespace tools::agency::agents::commands {
             // vector<string> recipients = json.get<vector<string>>("recipients");
 
             // Agent<T>& agent = 
-            roles[role](json);
+            // roles[role](json);
             // agent.fromJSON(json);
+            roles[role](name, json);
         }
 
-        void loadAgency(Agency<T>& agency, const string& name, const string& filename) {
+        void loadAgency(Agency<T>&/*agency*/, const string& /*name*/, const string& /*filename*/) {
+            STUB("implement this!");
             // ((JSONSerializable&)agency)
             //     .fromJSON(JSON(file_get_contents(filename)));
         }

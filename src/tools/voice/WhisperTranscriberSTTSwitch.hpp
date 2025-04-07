@@ -25,6 +25,8 @@ namespace tools::voice {
             // for Switch
             SwitchState state = OFF
         ): 
+            // for Switch
+            STTSwitch(state),
 
             // for wishper transcriber
             whisper_model_path(whisper_model_path),
@@ -37,10 +39,7 @@ namespace tools::voice {
             stt_noise_monitor_threshold_pc(stt_noise_monitor_threshold_pc),
             stt_noise_monitor_rmax_decay_pc(stt_noise_monitor_rmax_decay_pc),
             stt_noise_monitor_window(stt_noise_monitor_window),
-            stt_poll_interval_ms(stt_poll_interval_ms),
-
-            // for Switch
-            STTSwitch(state)
+            stt_poll_interval_ms(stt_poll_interval_ms)
         {}
 
         void on() override {

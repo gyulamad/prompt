@@ -21,11 +21,11 @@ namespace tools::agency::agents {
             Owns& owns,
             Worker<T>* agency,
             PackQueue<T>& queue,
-            const JSON& json,
+            const string& name,
             void* talkbot,
             UserAgentInterface<T>& interface
         ): 
-            Agent<T>(owns, agency, queue, json),
+            Agent<T>(owns, agency, queue, name),
             talkbot(owns.reserve<Talkbot>(this, talkbot, FILELN)),
             interface(interface)
         {}
@@ -146,9 +146,9 @@ void test_TalkbotAgent_reserve() {
         interceptor
     );
     JSON json;
-    json.set("name", "name");
     json.set("recipients", vector<string>{});
-    TalkbotAgent<string> agent(owns, nullptr, queue, json, talkbot, interface);
+    TalkbotAgent<string> agent(owns, nullptr, queue, "name", talkbot, interface);
+    agent.fromJSON(json);
 }
 
 TEST(test_TalkbotAgent_reserve);

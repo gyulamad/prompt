@@ -1,1 +1,17 @@
-{"name":"chatbot1","recipients":["user"],"role":"chat"}
+{
+    "chatbot": {
+        "history": {
+            "messages": [
+                {
+                    "sender": "user",
+                    "text": "hello, this is a memory test. act like a key-value database and please remember the word 'elephant', whenever I say 'milkyway' you have to answer with one and only word: 'elephant'."
+                }
+            ]
+        }
+    },
+    "name": "chatbot1",
+    "recipients": [
+        "user"
+    ],
+    "role": "chat"
+}

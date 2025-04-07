@@ -57,7 +57,7 @@ namespace tools::chat {
             return tts.speak(text);
         }
 
-        string respond(const string& sender, const string& text) override {
+        string respond(const string& /*sender*/, const string& /*text*/) override {
             throw ERROR("Talkbots does not support full completion resonse.");
         }
 
