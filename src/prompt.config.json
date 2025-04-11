@@ -66,7 +66,7 @@
 
         // ========[ TEST SAVE/LOAD ]========
 
-        "batch": [
+        "test_batch": [
             // spin up chatbot1 that talks to the user
             "/spawn chat chatbot1 user",
             "/target set chatbot1",
@@ -94,7 +94,7 @@
 
         // ========[ VOICE MODE ]========
 
-        "_batch": [
+        "batch": [
             "/voice input on" 
         ]
     }

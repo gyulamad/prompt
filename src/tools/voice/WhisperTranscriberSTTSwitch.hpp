@@ -42,6 +42,10 @@ namespace tools::voice {
             stt_poll_interval_ms(stt_poll_interval_ms)
         {}
 
+        virtual ~WhisperTranscriberSTTSwitch() {
+            off();
+        }
+
         void on() override {
             if (STTSwitch::is_on()) return;
             if (!transcriber) transcriber = new WhisperTranscriberAdapter(whisper_model_path, whisper_lang.c_str());
@@ -60,6 +64,7 @@ namespace tools::voice {
         }
     
         void off() override {
+            if (STTSwitch::is_off()) return;
             STTSwitch::off();
             if (this->stt) {
                 this->stt->stop();
