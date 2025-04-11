@@ -74,7 +74,7 @@ namespace tools::voice {
 #include "../utils/Test.hpp"
 
 #include "tests/MockNoiseMonitor.hpp"
-#include "tests/MockSpeechListenerWithPublic_noise_cb"
+#include "tests/MockSpeechListenerWithPublic_noise_cb.hpp"
 
 using namespace tools::voice;
 
