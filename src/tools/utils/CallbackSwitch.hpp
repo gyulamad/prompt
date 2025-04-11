@@ -11,7 +11,7 @@ using namespace std;
 namespace tools::utils {
 
     template<typename DataT>
-    class CallbackSwitch: public Switch<DataT> {
+    class CallbackSwitch: public Switch<DataT> { // TODO: goes to abstract?
     public:
         using cb = function<void(CallbackSwitch& swtch, DataT* data)>;
         using Switch<DataT>::Switch;

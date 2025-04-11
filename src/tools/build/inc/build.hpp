@@ -52,11 +52,12 @@ namespace tools::build {
         string hash;
 
         build_config(Arguments& args, const string& fsuffix = "compile.json"): 
-            verbose(args.get<bool>("verbose")),
-            buildcache((args.has("buildcache") && parse<bool>(args.get<string>("buildcache"))) ? true : false)
+            verbose(args.get<bool>("verbose"))
         {
+            if (args.has("buildcache")) buildcache = parse<bool>(args.get<string>("buildcache"));
+
             if (verbose) cout << "Setup configuration..." << endl;
-            if (buildcache) cout << "(with buildcache)" << endl;
+            if (verbose && buildcache) cout << "(with buildcache)" << endl;
 
             if (!args.has(1)) throw ERROR("Input file argument is missing.");
             input_file = get_absolute_path(args.get<string>(1));

@@ -30,5 +30,50 @@ namespace tools::containers {
 
 using namespace tools::containers;
 
+// Test cases for array_key_exists with std::map
+void test_array_key_exists_map_exists() {
+    map<string, int> m = {{"one", 1}, {"two", 2}};
+    bool actual = array_key_exists("one", m);
+    assert(actual == true && "Key 'one' should exist in std::map");
+}
+
+void test_array_key_exists_map_not_exists() {
+    map<string, int> m = {{"one", 1}, {"two", 2}};
+    bool actual = array_key_exists("three", m);
+    assert(actual == false && "Key 'three' should not exist in std::map");
+}
+
+void test_array_key_exists_map_empty() {
+    map<string, int> m;
+    bool actual = array_key_exists("one", m);
+    assert(actual == false && "Key 'one' should not exist in empty std::map");
+}
+
+// Test cases for array_key_exists with std::unordered_map
+void test_array_key_exists_unordered_map_exists() {
+    unordered_map<string, int> m = {{"one", 1}, {"two", 2}};
+    bool actual = array_key_exists("two", m);
+    assert(actual == true && "Key 'two' should exist in std::unordered_map");
+}
+
+void test_array_key_exists_unordered_map_not_exists() {
+    unordered_map<string, int> m = {{"one", 1}, {"two", 2}};
+    bool actual = array_key_exists("three", m);
+    assert(actual == false && "Key 'three' should not exist in std::unordered_map");
+}
+
+void test_array_key_exists_unordered_map_empty() {
+    unordered_map<string, int> m;
+    bool actual = array_key_exists("one", m);
+    assert(actual == false && "Key 'one' should not exist in empty std::unordered_map");
+}
+
+// Register tests
+TEST(test_array_key_exists_map_exists);
+TEST(test_array_key_exists_map_not_exists);
+TEST(test_array_key_exists_map_empty);
+TEST(test_array_key_exists_unordered_map_exists);
+TEST(test_array_key_exists_unordered_map_not_exists);
+TEST(test_array_key_exists_unordered_map_empty);
 
 #endif
