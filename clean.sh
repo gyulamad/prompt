@@ -9,3 +9,6 @@ find . -type d -not -name "." -empty -delete
 
 # Print a confirmation message
 echo "Cleaned builds/ directory, preserving .gitkeep files"
+
+echo "Delete coverage infos..."
+rm -rf coverage && echo "OK"

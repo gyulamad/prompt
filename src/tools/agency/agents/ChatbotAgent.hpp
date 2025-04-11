@@ -82,7 +82,7 @@ namespace tools::agency::agents {
                     );
                 }
             }
-        } // TODO: !@# Save/Load for agencies + basepath for save/load
+        } // TODO: !@# basepath for save/load
 
         JSON toJSON() const override {
             JSON json = Agent<T>::toJSON();

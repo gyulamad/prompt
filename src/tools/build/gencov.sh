@@ -12,16 +12,19 @@
 # genhtml coverage.info --output-directory coverage --dark-mode && \
 # brave-browser coverage/index.html
 
-# Check if both source file and executable are provided
-if [ $# -ne 2 ]; then
-    echo "Usage: $0 <source_file> <executable>"
-    echo "Example: $0 tests/test.cpp builds/test"
+#!/bin/bash
+
+# Check if at least source file and executable are provided
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 <source_file> <executable> [<output_folder>] [<exclusions>]"
+    echo "Example: $0 tests/test.cpp builds/test coverage 'tests/*,third_party/*'"
     exit 1
 fi
 
 SOURCE_FILE="$1"
 EXECUTABLE="$2"
 OUTPUT_FOLDER="${3:-coverage}"  # Default to "coverage" if not provided
+EXCLUSIONS="${4}"  # Optional exclusions (comma-separated patterns)
 
 # Get the directory of this script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -65,28 +68,39 @@ lcov --capture --directory "$EXEC_DIR" --output-file "$OUTPUT_FOLDER/coverage.in
     exit 1
 }
 
-# Step 3: Fix coverage data using the script's directory for lcov-fixer.php
+# Step 3: Apply user-specified exclusions (if provided)
+if [ -n "$EXCLUSIONS" ]; then
+    echo "Applying exclusions: $EXCLUSIONS..."
+    # Convert comma-separated exclusions to space-separated for lcov
+    EXCLUDE_PATTERNS=$(echo "$EXCLUSIONS" | tr ',' ' ')
+    lcov --remove "$OUTPUT_FOLDER/coverage.info" $EXCLUDE_PATTERNS --output-file "$OUTPUT_FOLDER/coverage.info" || {
+        echo "lcov exclusion failed"
+        exit 1
+    }
+fi
+
+# Step 4: Fix coverage data using the script's directory for lcov-fixer.php
 echo "Fixing coverage data with lcov-fixer.php..."
 php "$SCRIPT_DIR/lcov-fixer.php" "$OUTPUT_FOLDER/coverage.info" || {
     echo "lcov-fixer.php failed"
     exit 1
 }
 
-# Step 4: Remove system paths
+# Step 5: Remove system paths
 echo "Filtering system paths from "$OUTPUT_FOLDER/coverage.info"..."
 lcov --remove "$OUTPUT_FOLDER/coverage.info" '/usr/*' '/opt/*' '/system/*' --output-file "$OUTPUT_FOLDER/coverage.info" || {
     echo "lcov remove failed"
     exit 1
 }
 
-# Step 5: Generate HTML report
+# Step 6: Generate HTML report
 echo "Generating HTML report with genhtml..."
 genhtml "$OUTPUT_FOLDER/coverage.info" --output-directory "$OUTPUT_FOLDER" --dark-mode || {
     echo "genhtml failed"
     exit 1
 }
 
-# Step 6: Open the report in Brave browser
+# Step 7: Open the report in Brave browser
 echo "Opening coverage report in Brave browser..."
 brave-browser "$OUTPUT_FOLDER/index.html" || {
     echo "Failed to open browser (report still generated in '$OUTPUT_FOLDER/')"

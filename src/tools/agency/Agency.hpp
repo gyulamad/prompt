@@ -156,11 +156,12 @@ namespace tools::agency {
 
             if (json.has("workers")) {
                 vector<JSON> jworkers = json.get<vector<JSON>>("workers");
-                for (const JSON& jworker: jworkers)
-                    roles[jworker.get<string>("role")](
-                        jworker.get<string>("name"), 
-                        jworker
-                    );
+                for (const JSON& jworker: jworkers) {
+                    string role = jworker.get<string>("role");
+                    string name = jworker.get<string>("name");
+                    AgentInstantiator maker = roles[role];
+                    maker(name, jworker);
+                }
             }
         }
 
@@ -168,8 +169,11 @@ namespace tools::agency {
             JSON json = Worker<T>::toJSON();
 
             vector<JSON> jworkers;
-            for (const Worker<T>* worker: workers)
-                jworkers.push_back(safe(worker)->toJSON());
+            for (const Worker<T>* worker: workers) {
+                safe(worker);
+                if (worker->getName() == "user") continue;
+                jworkers.push_back(worker->toJSON());
+            }
             json.set("workers", jworkers);
             return json;
         }

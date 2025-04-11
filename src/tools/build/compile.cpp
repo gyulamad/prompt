@@ -32,12 +32,16 @@ int safe_main(int argc, char* argv[]) {
             cout << "Input file ....: " << config.input_file << endl;
             cout << "Output file ...: " << config.output_file << endl;
             cout << "Hash ..........: " << config.hash << endl;
+            cout << "Build-cache ...: " << to_string(config.buildcache, "Yes", "No") << endl;
         }
 
         
         if (!file_exists(config.build_folder)) if (!mkdir(config.build_folder, true)) throw ERROR("Unable to create folder: " + config.build_folder);
 
-        string outpath_hash = config.build_folder + "/.buildcache-" + config.hash;
+        string outpath_hash;
+        if (config.buildcache) outpath_hash = config.build_folder + "/.buildcache-" + config.hash;
+        else outpath_hash = config.build_folder;
+        
         string outfname_hash = outpath_hash + "/" + remove_path(config.output_file);
         if (!file_exists(outpath_hash)) if (!mkdir(outpath_hash, true)) throw ERROR("Unable to create folder: " + outpath_hash);
         string depcachepath = outpath_hash + "/.depcache"; // TODO: to config

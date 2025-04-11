@@ -5,7 +5,6 @@
     ],
     "role": "agency",
     "workers": [
-        "user.json",
         "chatbot1.json"
     ]
 }

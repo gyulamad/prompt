@@ -1,0 +1,5 @@
+{
+    "flags": [
+        "-O0 -DTEST -DTEST_ONLY --coverage -fprofile-arcs -ftest-coverage"
+    ]
+}

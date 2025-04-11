@@ -32,7 +32,7 @@ namespace tools::agency::agents::commands {
         template<typename T>
         void proceed(Persistor persistor, const vector<string>& args) {
 
-            Typw type = getType(args[1]); // "agent" or "agency"
+            Type type = getType(args[1]); // "agent" or "agency"
             string thingName = args[2]; // agentName or agencyName
             string filename = (args.size() > 3) ? args[3] : thingName;
             if (!str_ends_with(filename, ".json")) filename =+ ".json";

@@ -62,7 +62,7 @@
     },
     "startup": {
 
-        "_batch": [],
+        "_2batch": [],
 
         // ========[ TEST SAVE/LOAD ]========
 

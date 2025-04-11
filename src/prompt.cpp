@@ -53,6 +53,7 @@ using namespace tools::agency::agents;
 using namespace tools::agency::agents::commands;
 using namespace tools::ai;
 
+// TODO: !@# add coverage -> test prompt -> cover more -> fix todo-s -> add response processing plugins -> add tool use plugins (add agency tool: spawn helpers for eg.; add terminal use; add browser use) -> ... -> add vision -> add visual tool use (computer use for e.g)
 
 template<typename PackT>
 int safe_main(int argc, char* argv[]) {

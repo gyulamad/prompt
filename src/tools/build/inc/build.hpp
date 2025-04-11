@@ -9,6 +9,8 @@
 #include "../../str/replace_extension.hpp"
 #include "../../str/remove_path.hpp"
 #include "../../str/str_replace.hpp"
+#include "../../str/explode.hpp"
+#include "../../str/parse.hpp"
 #include "../../regx/regx_match.hpp"
 #include "../../containers/array_keys.hpp"
 #include "../../containers/array_merge.hpp"
@@ -31,6 +33,7 @@ namespace tools::build {
 
     struct build_config {
         bool verbose = false;
+        bool buildcache = true;
         bool depcache = false;
         // bool make_temp_source = true;
         // string temp_source_extension = ".cpp";
@@ -48,8 +51,12 @@ namespace tools::build {
         string output_file;
         string hash;
 
-        build_config(Arguments& args, const string& fsuffix = "compile.json"): verbose(args.get<bool>("verbose")) {
+        build_config(Arguments& args, const string& fsuffix = "compile.json"): 
+            verbose(args.get<bool>("verbose")),
+            buildcache((args.has("buildcache") && parse<bool>(args.get<string>("buildcache"))) ? true : false)
+        {
             if (verbose) cout << "Setup configuration..." << endl;
+            if (buildcache) cout << "(with buildcache)" << endl;
 
             if (!args.has(1)) throw ERROR("Input file argument is missing.");
             input_file = get_absolute_path(args.get<string>(1));
@@ -65,11 +72,15 @@ namespace tools::build {
             apply_cfg(args, input_path + "/" + fsuffix);
             apply_cfg(args, replace_extension(input_file, "." + fsuffix));
             if (args.has("config")) {
-                string cfgfile = args.get<string>("config");
-                apply_cfg(args, cfgfile);
-                apply_cfg(args, cfgfile + "." + fsuffix);
-                apply_cfg(args, replace_extension(input_file, "." + cfgfile + "." + fsuffix));
+                vector<string> cfgfiles = explode(",", args.get<string>("config"));
+                for (const string& cfgfile: cfgfiles) {
+                    apply_cfg(args, cfgfile);
+                    apply_cfg(args, cfgfile + "." + fsuffix);
+                    apply_cfg(args, replace_extension(input_file, "." + cfgfile + "." + fsuffix));
+                }
             }
+
+            // if (coverage) flags = array_merge(flags, {"--coverage", "-fprofile-arcs", "-ftest-coverage"}); // TODO: make it configurable
 
             string outfname = replace_extension(remove_path(input_file), output_extension);
             output_file = get_absolute_path(build_folder + "/" + outfname);
@@ -82,6 +93,10 @@ namespace tools::build {
             if (verbose) cout << "Looking for configuration candidate at file: " + cfgfile + " ..." << flush;
             if (!file_exists(cfgfile)) {
                 if (verbose) cout << " [not found]" << endl;
+                return;
+            }
+            if (is_dir(cfgfile)) {
+                if (verbose) cout << " [not found] - (it's a directory)" << endl;
                 return;
             }
             

@@ -65,6 +65,36 @@
             // "internalConsoleOptions": "openOnSessionStart"
         },
         {
+            "name": "DBG+TEST+COV:prompt.cpp",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build-tests-coverage.sh", //"${workspaceFolder}/builds/prompt", // Update this path if needed
+            "args": [  //  && ${workspaceFolder}src/tools/build/gencov.sh ${workspaceFolder}/src/prompt.cpp ${workspaceFolder}/builds/prompt\"
+                //"--voice", 
+                //"--model", "test7"
+            ], // Add program arguments if necessary
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                // {
+                //     "name": "LSAN_OPTIONS",
+                //     "value": "verbosity=1:log_threads=1"
+                // }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb", // Path to GDB
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false //true
+                }
+            ],
+            // "preLaunchTask": "build-debug-prompt-with-tests-and-coverage", // Matches a task defined in tasks.json
+            // "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
             "name": "FAST+TEST:prompt.cpp",
             "type": "cppdbg",
             "request": "launch",
@@ -101,7 +131,9 @@
             "program": "${workspaceFolder}/builds/compile", // Update this path if needed
             "args": [
                 "src/prompt.cpp",
-                "--config=test"
+                "--config=coverage",
+                "--buildcache=false"
+                // "--config=test"
             ], // Add program arguments if necessary
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
