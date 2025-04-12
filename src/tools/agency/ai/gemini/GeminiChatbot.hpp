@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../str/json_escape.hpp"
+#include "../../../str/str_starts_with.hpp"
 #include "../../../utils/Curl.hpp"
 #include "../../chat/Chatbot.hpp"
 
@@ -67,16 +68,18 @@ namespace tools::agency::ai {
             
             history->append(sender, text);
 
-            string data = tpl_replace({
-                { "{{history}}", json_escape(history->toString()) }, 
-                { "{{start}}", json_escape(history->startToken(name)) },
-            }, R"({
-                "contents": [{
-                    "parts": [{
-                        "text": "{{history}}{{start}}"
-                    }]
-                }]
-            })");
+            // string data = tpl_replace({
+            //     { "{{history}}", json_escape(history->toString()) }, 
+            //     { "{{start}}", json_escape(history->startToken(name)) },
+            // }, R"({
+            //     "contents": [{
+            //         "parts": [{
+            //             "text": "{{history}}{{start}}"
+            //         }]
+            //     }]
+            // })");
+            string data = getProtocolData();
+            DEBUG(data);
             
             // TODO: if error happens because the rate limit, check all the variant (from API endpoint), and pick the next suitable
             string response;
@@ -117,6 +120,15 @@ namespace tools::agency::ai {
         
         string response(const string& response) override {
             return response; 
+        }
+
+    protected:
+        string getProtocolData() const {
+            string data;
+            for (const ChatMessage& message: history->getMessages()) {
+                // TODO ....
+            }
+            return data;
         }
 
     private:
