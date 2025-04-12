@@ -28,7 +28,7 @@ namespace tools::agency::agents {
     public:
 
         // TODO: make configurable:
-        atomic<bool> text_input_echo = true;
+        atomic<bool> text_input_echo = false;
 
         UserAgent(
             Owns& owns,
@@ -86,9 +86,9 @@ namespace tools::agency::agents {
             this->send(input);
         }
 
-        void handle(const string& sender, const T& item) override {
+        void handle(const string& /*sender*/, const T& /*item*/) override {
             // DEBUG("Incoming message from '" + sender + "'");
-            interface.println(sender + ": " + item);
+            //interface.println(sender + ": " + item);
             // interface.getCommanderRef().getCommandLineRef().setPromptVisible(true); // TODO: not here but here: [[[---STOP---]]]
         }
 

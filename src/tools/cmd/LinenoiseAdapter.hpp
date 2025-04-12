@@ -52,15 +52,15 @@ namespace tools::cmd {
         }
 
         void setPrompt(const char* prompt) override {
-            wipeLine();
+            //wipeLine();
             l.SetPrompt(prompt);
-            refreshLine();
+            //refreshLine();
         }
 
         void setPrompt(string& prompt) override {
-            wipeLine();
+            //wipeLine();
             l.SetPrompt(prompt);
-            refreshLine();
+            //refreshLine();
         }
 
     protected:

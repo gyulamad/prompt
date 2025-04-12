@@ -11,6 +11,8 @@ namespace tools::voice {
         WhisperTranscriberSTTSwitch(
             // for wishper transcriber
             const string& whisper_model_path,
+            const string& whisper_warmup_audio_path,
+            size_t whisper_warmup_audio_max_length,
             const string& whisper_lang,
 
             // for STT
@@ -30,6 +32,8 @@ namespace tools::voice {
 
             // for wishper transcriber
             whisper_model_path(whisper_model_path),
+            whisper_warmup_audio_path(whisper_warmup_audio_path),
+            whisper_warmup_audio_max_length(whisper_warmup_audio_max_length),
             whisper_lang(whisper_lang),
 
             // for STT
@@ -48,7 +52,12 @@ namespace tools::voice {
 
         void on() override {
             if (STTSwitch::is_on()) return;
-            if (!transcriber) transcriber = new WhisperTranscriberAdapter(whisper_model_path, whisper_lang.c_str());
+            if (!transcriber) transcriber = new WhisperTranscriberAdapter(
+                whisper_model_path, 
+                whisper_warmup_audio_path,
+                whisper_warmup_audio_max_length,
+                whisper_lang.c_str()
+            );
             if (!this->stt) this->stt = new STT(
                 *transcriber,
                 stt_voice_recorder_sample_rate,
@@ -77,6 +86,8 @@ namespace tools::voice {
 
         // for wishper transcriber
         const string whisper_model_path;
+        const string whisper_warmup_audio_path;
+        size_t whisper_warmup_audio_max_length;
         const string whisper_lang;
 
         // for STT

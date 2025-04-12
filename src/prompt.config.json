@@ -22,7 +22,9 @@
         ]
     },
     "whisper": {
-        "model_path": "libs/ggerganov/whisper.cpp/models/ggml-base-q8_0.bin"
+        "model_path": "libs/ggerganov/whisper.cpp/models/ggml-base-q8_0.bin",
+        "warmup_audio_path": "whisper_warmup_audio.bin",
+        "warmup_audio_max_length": 128000
     },
     "stt": {
         "voice_recorder": {
@@ -38,10 +40,11 @@
         "poll_interval_ms": 30
     },
     "chatbot": {
-        "use_start_token": false
-    },
-    "talkbot": {
         "use_start_token": false,
+        "talks": true,
+    // },
+    // "talkbot": {
+        // "use_start_token": false,
         "sentence_separators": [".", "!", "?", "\n"],
         "sentences_max_buffer_size": 1048576
     },
@@ -62,40 +65,53 @@
     },
     "startup": {
 
-        "_2batch": [],
+        "batch": "text_mode_batch",
 
-        // ========[ TEST SAVE/LOAD ]========
+        "batches": {
 
-        "test_batch": [
-            // spin up chatbot1 that talks to the user
-            "/spawn chat chatbot1 user",
-            "/target set chatbot1",
+            // ========[ TEXT MODE ]========
 
-            // tell the memory
-            "hello, this is a memory test. act like a key-value database and please remember the word 'elephant', whenever I say 'milkyway' you have to answer with one and only word: 'elephant'.",
+            "text_mode_batch": [
+                "/spawn chat chatbot1",
+                "/target set chatbot1"
+            ],
 
-            // save the chatbot1 and kill it
-            "/save agent chatbot1 chatbot1.json",
-            "/kill chatbot1",
 
-            // load back
-            "/load agent chatbot1.json",
-            "do you remember what is the word when I say 'milkyway'? of so tell me the meaning.", // is it remembers?
+            // ========[ VOICE MODE ]========
 
-            // save agancy
-            "/save agency agency1.json",
-            "/kill chatbot1",
-            "/load agency agency1.json",
-            "milkyway",
+            "voice_mode_batch": [
+                "/spawn chat chatbot1",
+                "/target set chatbot1",
+                "/voice input on"
+            ],
 
-            "/exit"
-        ],
-        
 
-        // ========[ VOICE MODE ]========
+            // ========[ TEST SAVE/LOAD ]========
 
-        "batch": [
-            "/voice input on" 
-        ]
+            "test_save_load_batch": [
+                // spin up chatbot1 that talks to the user
+                "/spawn chat chatbot1 user",
+                "/target set chatbot1",
+
+                // tell the memory
+                "hello, this is a memory test. act like a key-value database and please remember the word 'elephant', whenever I say 'milkyway' you have to answer with one and only word: 'elephant'.",
+
+                // save the chatbot1 and kill it
+                "/save agent chatbot1 chatbot1.json",
+                "/kill chatbot1",
+
+                // load back
+                "/load agent chatbot1.json",
+                "do you remember what is the word when I say 'milkyway'? of so tell me the meaning.", // is it remembers?
+
+                // save agancy
+                "/save agency agency1.json",
+                "/kill chatbot1",
+                "/load agency agency1.json",
+                "milkyway",
+
+                "/exit"
+            ]            
+        }
     }
 }

@@ -11,9 +11,14 @@ namespace tools::agency::chat {
             Owns& owns,
             const string& name, // TODO: do we need name here?
             void* history, 
-            Printer& printer
+            Printer& printer,
+
+            // talkbot:
+            bool talks,
+            SentenceStream& sentences,
+            TTS& tts
         ):
-            Chatbot(owns, name, history, printer)
+            Chatbot(owns, name, history, printer, talks, sentences, tts)
         {}
 
         virtual ~DecidorChatbot() {}

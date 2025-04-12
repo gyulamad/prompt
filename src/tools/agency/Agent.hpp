@@ -39,8 +39,8 @@ namespace tools::agency {
 
 using namespace tools::agency;
 using namespace tools::str;
-using namespace tools::chat;
-
+using namespace tools::agency::chat;
+// TODO: these tests should be worker tests
 // Test constructor
 void test_Agent_constructor_basic() {
     default_test_agency_setup setup("test_agent");

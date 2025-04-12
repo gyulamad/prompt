@@ -82,7 +82,10 @@ namespace tools::cmd {
             // if (this->promptVisible == promptVisible) return;
             this->promptVisible = promptVisible;
             if (promptVisible) setPrompt(prompt);
-            else line_editor.setPrompt("");
+            else {
+                line_editor.setPrompt("");
+                //line_editor.refreshLine();
+            }
         }
 
         void setPrompt(const string& prompt) {

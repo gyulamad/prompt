@@ -4,18 +4,11 @@
 
 #include "../../voice/TTS.hpp"
 #include "../Agent.hpp"
-// #include "UserAgent.hpp"
 #include "../chat/Chatbot.hpp"
-// #include "../../abstracts/JSONSerializable.hpp"
 #include "UserAgentInterface.hpp"
 
 using namespace std;
-
-// using namespace tools::abstracts;
-// using namespace tools::voice;
-// using namespace tools::agency;
 using namespace tools::agency::chat;
-// using namespace tools::abstracts;
 
 namespace tools::agency::agents {
     
@@ -49,19 +42,25 @@ namespace tools::agency::agents {
 
         void handle(const string& sender, const T& item) override {
 
-            interface.getCommanderRef().getCommandLineRef().setPromptVisible(false);
+            CommandLine& cline = interface.getCommanderRef().getCommandLineRef();
+            cline.setPromptVisible(false);
+            if (chatbot->isTalks()) cline.getEditorRef().wipeLine();
 
+            interface.println();
             bool interrupted;
             string response = safe(chatbot)->chat(sender, item, interrupted);
+            interface.println();
 
-            if (interrupted) {
-                DEBUG("[[[---CHAT INTERRUPTED BY USER---]]] (DBG)"); // TODO interrupt next, now
-            }
+            // if (interrupted) {
+                //DEBUG("[[[---CHAT INTERRUPTED BY USER---]]] (DBG)"); // TODO interrupt next, now
+            // }
 
-            this->addRecipients({ sender });
-            this->send(response);
+            // if (!chatbot->isTalks()) {
+                this->addRecipients({ sender });
+                this->send(response);
+            // }
 
-            interface.getCommanderRef().getCommandLineRef().setPromptVisible(true);
+            cline.setPromptVisible(true);
         }
 
         void fromJSON(const JSON& json) override {

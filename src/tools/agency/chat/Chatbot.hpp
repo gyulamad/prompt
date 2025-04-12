@@ -3,9 +3,12 @@
 #include <string>
 
 #include "../../utils/Printer.hpp"
+#include "../../voice/TTS.hpp"
+#include "../../voice/SentenceStream.hpp"
 #include "ChatHistory.hpp"
 
 using namespace std;
+using namespace tools::voice;
 
 namespace tools::agency::chat {
 
@@ -18,37 +21,83 @@ namespace tools::agency::chat {
             Owns& owns,
             const string& name,
             void* history, 
-            Printer& printer
+            Printer& printer,
+
+            // talkbot:
+            bool talks,
+            SentenceStream& sentences,
+            TTS& tts
         ):
             // JSONSerializable(),
             owns(owns),
             name(name),
             history(owns.reserve<ChatHistory>(this, history, FILELN)),
-            printer(printer)
+            printer(printer),
+
+            // talkbot:
+            talks(talks),
+            sentences(sentences),
+            tts(tts)
         {}
 
         virtual ~Chatbot() {
-            // cout << "Chatbot (" + this->name + ") destruction..." << endl; 
-            // histories.release(this, history);
             owns.release(this, history);
+
+            // talkbot:
+            tts.speak_stop();
         }
 
         string getName() const { return name; }
 
         void* getHistoryPtr() { return history; } // TODO: remove this
 
+        virtual bool isTalks() const { return talks; }
+
 
         // prompt completion call
-        virtual string respond(const string& sender, const string& text) = 0;
+        virtual string respond(const string& /*sender*/, const string& /*text*/) {
+            if (talks) throw ERROR("Talkbots does not support full completion resonse.");
+            else throw ERROR("Chatbots respond needs to be implemented.");
+        }
 
         // stream chat
         virtual string chat(const string& sender, const string& text, bool& interrupted) = 0;
 
         // on stream chunk recieved
-        virtual string chunk(const string& chunk) = 0;
+        virtual string chunk(const string& chunk) {
+            if (talks) { // talkbot:
+                sentences.write(chunk);
+                bool interrupted = tts.is_speaking();
+                string told = "";
+                string sentence = "***";
+                while (!(sentence).empty()) {
+                    sentence = sentences.read();
+                    if (interrupted) continue; 
+                    this->printer.print(sentence);          
+                    interrupted = !tell(sentence);
+                    if (interrupted) continue;
+                    told += sentence;
+                };
+                if (interrupted) throw cancel();
+                // return chunk;
+                return told;
+            }
+            throw ERROR("Chatbots chunk needs to be implemented.");
+        }
 
         // on full response recieved
-        virtual string response(const string& response) = 0;
+        virtual string response(const string& response) {
+            if (talks) {
+                sentences.flush();
+                tell(sentences.read());
+            }
+            return response;
+        }
+
+        // talkbot:
+        bool tell(const string& text) {
+            return tts.speak(text);
+        }
 
 
         // ----- JSON serialization -----
@@ -80,6 +129,11 @@ namespace tools::agency::chat {
         string name; //  TODO: remove this!
         ChatHistory* history = nullptr;
         Printer& printer;
+    
+        // talkbot:
+        bool talks = true;
+        SentenceStream& sentences;
+        TTS& tts;
     };
 
     

@@ -10,3 +10,5 @@ ctags.json
 coverage/
 
 !example.*
+
+whisper_warmup_audio.bin

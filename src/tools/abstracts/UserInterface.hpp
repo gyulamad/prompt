@@ -33,8 +33,16 @@ namespace tools::abstracts {
             cout << output << flush;
         }
         
+        virtual void print() {
+            print("");
+        }
+        
         virtual void println(const T& output) {
             print(output + "\n");
+        }
+
+        virtual void println() {
+            println("");
         }
         
 

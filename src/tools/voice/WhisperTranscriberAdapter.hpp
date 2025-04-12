@@ -1,6 +1,10 @@
 #pragma once
 
+#include "../containers/vector_save.hpp"
+#include "../containers/vector_load.hpp"
 #include "STT.hpp"
+
+using namespace tools::containers;
 
 namespace tools::voice {
 
@@ -8,9 +12,19 @@ namespace tools::voice {
     private:
         whisper_full_params params;
         whisper_context* ctx = nullptr;
-
+        string warmup_audio_path;
+        vector<float> warmup_audio;
+        size_t warmup_audio_max_length;
     public:
-        WhisperTranscriberAdapter(const string& model_path, const char* lang = nullptr): Transcriber() 
+        WhisperTranscriberAdapter(
+            const string& model_path,
+            const string& warmup_audio_path,
+            size_t warmup_audio_max_length,
+            const char* lang = nullptr
+        ): 
+            Transcriber(),
+            warmup_audio_path(warmup_audio_path),
+            warmup_audio_max_length(warmup_audio_max_length)
         {
             // whisper_sampling_strategy strategy(WHISPER_SAMPLING_BEAM_SEARCH);
             whisper_sampling_strategy strategy(WHISPER_SAMPLING_BEAM_SEARCH);
@@ -31,6 +45,17 @@ namespace tools::voice {
             //     params.detect_language = false;
             //     params.language = lang.c_str();
             // }
+
+            if (file_exists(warmup_audio_path)) {
+                vector_load<float>(warmup_audio, warmup_audio_path);
+                _transcribe(warmup_audio);
+            }
+        }
+
+        virtual ~WhisperTranscriberAdapter() {
+            if (ctx) whisper_free(ctx);
+            ctx = nullptr;
+            vector_save<float>(warmup_audio, warmup_audio_path);
         }
 
         string transcribe(const vector<float>& audio_data) override {
@@ -41,6 +66,19 @@ namespace tools::voice {
 
             preTranscribe();
 
+            string transcription = _transcribe(audio_data);
+
+            for (float data: audio_data) 
+                warmup_audio.push_back(data);
+            if (warmup_audio.size() > warmup_audio_max_length)
+                warmup_audio.resize(warmup_audio.size() - warmup_audio_max_length);
+
+            postTranscribe();
+
+            return transcription;
+        }
+    protected:
+        string _transcribe(vector<float> audio_data) {
             if (whisper_full(ctx, params, audio_data.data(), audio_data.size()) != 0) {
                 throw ERROR("Whisper transcription failed");
             }
@@ -52,14 +90,7 @@ namespace tools::voice {
                 transcription += segment;
             }
 
-            postTranscribe();
-
             return transcription;
-        }
-
-        ~WhisperTranscriberAdapter() {
-            if (ctx) whisper_free(ctx);
-            ctx = nullptr;
         }
     };
 

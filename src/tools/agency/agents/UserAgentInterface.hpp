@@ -23,7 +23,7 @@ namespace tools::agency::agents {
     class UserAgentInterface: public UserInterface<T> { // TODO: public UserInterface (abstract)
     public:
         // TODO: make configurable:
-        atomic<bool> voice_input_echo = true;
+        atomic<bool> voice_input_echo = false;
 
         // TODO: make configurable:
         const vector<string> speech_ignores_rgxs = { // TODO: in config
