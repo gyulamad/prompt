@@ -39,9 +39,9 @@
 #include "tools/agency/agents/commands/LoadCommand.hpp"
 #include "tools/agency/agents/commands/SaveCommand.hpp"
 
-#include "tools/ai/GeminiChatbot.hpp"
-#include "tools/ai/GeminiTalkbot.hpp"
-#include "tools/ai/GeminiDecidorChatbot.hpp"
+#include "tools/agency/ai/gemini/GeminiChatbot.hpp"
+#include "tools/agency/ai/gemini/GeminiTalkbot.hpp"
+#include "tools/agency/ai/gemini/GeminiDecidorChatbot.hpp"
 
 using namespace std;
 using namespace tools::utils;
@@ -51,7 +51,7 @@ using namespace tools::cmd;
 using namespace tools::agency;
 using namespace tools::agency::agents;
 using namespace tools::agency::agents::commands;
-using namespace tools::ai;
+using namespace tools::agency::ai;
 
 // TODO: !@# add coverage -> test prompt -> cover more -> fix todo-s -> add response processing plugins -> add tool use plugins (add agency tool: spawn helpers for eg.; add terminal use; add browser use) -> ... -> add vision -> add visual tool use (computer use for e.g)
 

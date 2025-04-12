@@ -7,19 +7,19 @@
 
 // using namespace std;
 
-#include "../str/explode.hpp"
-#include "../str/trim.hpp"
-#include "../str/str_starts_with.hpp"
-#include "../str/json_escape.hpp"
-#include "../utils/Curl.hpp"
-#include "../utils/JSON.hpp"
-#include "../chat/Talkbot.hpp"
+#include "../../../str/explode.hpp"
+#include "../../../str/trim.hpp"
+#include "../../../str/str_starts_with.hpp"
+#include "../../../str/json_escape.hpp"
+#include "../../../utils/Curl.hpp"
+#include "../../../utils/JSON.hpp"
+#include "../../chat/Talkbot.hpp"
 
 using namespace tools::str;
 using namespace tools::utils;
-using namespace tools::chat;
+using namespace tools::agency::chat;
 
-namespace tools::ai {
+namespace tools::agency::ai {
 
     class Gemini {
     public:

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../chat/DecidorChatbot.hpp"
+#include "../chat/DecidorChatbot.hpp"
 
 namespace tools::agency::agents {
 

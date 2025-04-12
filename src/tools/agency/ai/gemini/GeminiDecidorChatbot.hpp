@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../chat/DecidorChatbot.hpp"
+#include "../../chat/DecidorChatbot.hpp"
 
 #include "Gemini.hpp"
 
-using namespace tools::chat;
+using namespace tools::agency::chat;
 
-namespace tools::ai {
+namespace tools::agency::ai {
 
     class GeminiDecidorChatbot: public Gemini, public DecidorChatbot {
     public:

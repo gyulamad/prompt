@@ -2,7 +2,7 @@
 
 #include "Chatbot.hpp"
 
-namespace tools::chat {
+namespace tools::agency::chat {
 
     class DecidorChatbot: public Chatbot {
     public:

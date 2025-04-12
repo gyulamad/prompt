@@ -2,12 +2,12 @@
 
 #include <string>
 
-#include "../utils/Printer.hpp"
+#include "../../utils/Printer.hpp"
 #include "ChatHistory.hpp"
 
 using namespace std;
 
-namespace tools::chat {
+namespace tools::agency::chat {
 
     class Chatbot { //: public JSONSerializable { //  TODO: refact: build up a correct abstraction hierarhy
     public:

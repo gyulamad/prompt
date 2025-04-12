@@ -3,12 +3,12 @@
 #include <string>
 
 #include "../Agent.hpp"
-#include "../../chat/Talkbot.hpp"
+#include "../chat/Talkbot.hpp"
 // #include "../../abstracts/UserInterface.hpp"
 #include "UserAgentInterface.hpp"
 
 using namespace std;
-using namespace tools::chat;
+using namespace tools::agency::chat;
 using namespace tools::abstracts;
 
 namespace tools::agency::agents {

@@ -5,7 +5,7 @@
 #include "../../voice/TTS.hpp"
 #include "../Agent.hpp"
 // #include "UserAgent.hpp"
-#include "../../chat/Chatbot.hpp"
+#include "../chat/Chatbot.hpp"
 // #include "../../abstracts/JSONSerializable.hpp"
 #include "UserAgentInterface.hpp"
 
@@ -14,7 +14,7 @@ using namespace std;
 // using namespace tools::abstracts;
 // using namespace tools::voice;
 // using namespace tools::agency;
-using namespace tools::chat;
+using namespace tools::agency::chat;
 // using namespace tools::abstracts;
 
 namespace tools::agency::agents {

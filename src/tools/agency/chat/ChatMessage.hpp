@@ -2,13 +2,13 @@
 
 #include <string>
 
-#include "../abstracts/JSONSerializable.hpp"
+#include "../../abstracts/JSONSerializable.hpp"
 
 using namespace std;
 
 using namespace tools::abstracts;
 
-namespace tools::chat {
+namespace tools::agency::chat {
 
     class ChatMessage { //: public JSONSerializable {
     public:

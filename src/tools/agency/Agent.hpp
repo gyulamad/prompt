@@ -30,8 +30,8 @@ namespace tools::agency {
 #ifdef TEST
 
 #include "../str/str_contains.hpp"
-#include "../chat/Chatbot.hpp"
-#include "../chat/ChatHistory.hpp"
+#include "chat/Chatbot.hpp"
+#include "chat/ChatHistory.hpp"
 #include "tests/helpers.hpp"
 #include "tests/TestWorker.hpp"
 #include "tests/default_test_agency_setup.hpp"

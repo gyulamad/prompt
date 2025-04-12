@@ -1,16 +1,16 @@
 #pragma once
 
 #include "../utils/Streamable.hpp"
-#include "../chat/Chatbot.hpp"
-#include "../chat/Talkbot.hpp"
+#include "chat/Chatbot.hpp"
+#include "chat/Talkbot.hpp"
 
 #include "Worker.hpp"
 #include "PackQueue.hpp"
 #include "AgentRoleMap.hpp"
 
 using namespace tools::utils;
-using namespace tools::chat;
 using namespace tools::agency;
+using namespace tools::agency::chat;
 
 namespace tools::agency {
 

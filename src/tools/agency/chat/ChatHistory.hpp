@@ -2,16 +2,16 @@
 
 #include <string>
 
-#include "../str/tpl_replace.hpp"
-#include "../utils/foreach.hpp"
-#include "../utils/Owns.hpp"
+#include "../../str/tpl_replace.hpp"
+#include "../../utils/foreach.hpp"
+#include "../../utils/Owns.hpp"
 
 #include "ChatMessage.hpp"
 
 using namespace std;
 using namespace tools::utils;
 
-namespace tools::chat {
+namespace tools::agency::chat {
 
     class ChatHistory{ //: public JSONSerializable {
     public:

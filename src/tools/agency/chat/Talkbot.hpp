@@ -1,13 +1,13 @@
 #pragma once 
 
-#include "../voice/TTS.hpp"
-#include "../voice/SentenceStream.hpp"
+#include "../../voice/TTS.hpp"
+#include "../../voice/SentenceStream.hpp"
 
 #include "Chatbot.hpp"
 
 using namespace tools::voice;
 
-namespace tools::chat {
+namespace tools::agency::chat {
 
     class Talkbot: public Chatbot {
     public:
