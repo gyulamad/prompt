@@ -1,12 +1,19 @@
 #pragma once
 
+#include <vector> // Added for vector
+#include <sstream> // Added for ostringstream
+
 #include "../../../str/json_escape.hpp"
 #include "../../../str/str_starts_with.hpp"
+#include "../../../str/tpl_replace.hpp" // Added for tpl_replace
 #include "../../../utils/Curl.hpp"
+#include "../../../utils/foreach.hpp" // Added for foreach
 #include "../../chat/Chatbot.hpp"
+#include "../../chat/ChatMessage.hpp" // Added for ChatMessage
 
 // #include "Gemini.hpp"
 
+using namespace std;
 using namespace tools::str;
 using namespace tools::utils;
 using namespace tools::agency::chat;
@@ -79,7 +86,7 @@ namespace tools::agency::ai {
             //     }]
             // })");
             string data = getProtocolData();
-            DEBUG(data);
+            // DEBUG(data);
             
             // TODO: if error happens because the rate limit, check all the variant (from API endpoint), and pick the next suitable
             string response;
@@ -124,11 +131,38 @@ namespace tools::agency::ai {
 
     protected:
         string getProtocolData() const {
-            string data;
-            for (const ChatMessage& message: history->getMessages()) {
-                // TODO ....
-            }
-            return data;
+            ostringstream oss;
+            oss << "{\n  \"contents\": [\n";
+
+            vector<ChatMessage> messages = history->getMessages();
+            bool first = true;
+            for (const ChatMessage& message: messages) {
+                string sender = message.getSender();
+                if (sender.empty()) continue;
+                string text = message.getText();
+                if (text.empty()) continue;
+
+                if (!first) oss << ",\n";
+                
+                string role = (sender == name) ? "model" : "user";
+                string escaped_text = json_escape(text);
+
+                oss << tpl_replace({
+                    { "{{role}}", role },
+                    { "{{text}}", escaped_text }
+                }, R"(    {
+      "role": "{{role}}",
+      "parts": [
+        {
+          "text": "{{text}}"
+        }
+      ]
+    })");
+                first = false;
+            };
+
+            oss << "\n  ]\n}";
+            return oss.str();
         }
 
     private:

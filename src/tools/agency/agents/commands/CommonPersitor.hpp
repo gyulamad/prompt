@@ -35,11 +35,12 @@ namespace tools::agency::agents::commands {
             Type type = getType(args[1]); // "agent" or "agency"
             string thingName = args[2]; // agentName or agencyName
             string filename = (args.size() > 3) ? args[3] : thingName;
-            if (!str_ends_with(filename, ".json")) filename =+ ".json";
+            if (!str_ends_with(filename, ".json")) filename += ".json";
             
             switch (persistor) {
                 case LOAD:
-                    if (!file_exists(filename)) throw ERROR("File not found: " + filename);
+                    if (!file_exists(filename))
+                        throw ERROR("File not found: " + filename);
                     performLoad(type, filename);
                     break;
                 case SAVE: 
