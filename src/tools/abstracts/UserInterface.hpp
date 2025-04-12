@@ -12,7 +12,7 @@ namespace tools::abstracts {
     class UserInterface { // TODO: extend Printer (and maybe create a Reader too)
     public:
         virtual bool readln(T& input) {
-            lock_guard<mutex> lock(imutex);
+            lock_guard<mutex> lock(input_mutex);
             getline(cin, input);
             return false;
         }
@@ -53,7 +53,7 @@ namespace tools::abstracts {
         // virtual bool is_prompt_hidden() const { return !prompt_visible; }
 
     protected:
-        mutex imutex;
+        mutex input_mutex;
         mutex output_mutex;
 
         // atomic<bool> prompt_visible = true;
