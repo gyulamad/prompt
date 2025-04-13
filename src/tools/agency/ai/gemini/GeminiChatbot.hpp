@@ -73,7 +73,6 @@ namespace tools::agency::ai {
             history->append(sender, text);
 
             string data = getProtocolData();
-            DEBUG(data);
             
             // TODO: if error happens because the rate limit, check all the variant (from API endpoint), and pick the next suitable
             string response;

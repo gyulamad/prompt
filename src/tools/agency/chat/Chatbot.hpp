@@ -61,6 +61,8 @@ namespace tools::agency::chat {
 
         virtual bool isTalks() const { return talks; }
 
+        virtual void setTalks(bool talks) { this->talks = talks; }
+
 
         // prompt completion call
         virtual string respond(const string& /*sender*/, const string& /*text*/) {

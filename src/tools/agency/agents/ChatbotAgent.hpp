@@ -44,6 +44,10 @@ namespace tools::agency::agents {
 
         string type() const override { return "chat"; }
 
+        void setTalks(bool talks) {
+            safe(chatbot)->setTalks(talks);
+        }
+
         void handle(const string& sender, const T& item) override {
 
             CommandLine& cline = interface.getCommanderRef().getCommandLineRef();
@@ -74,6 +78,10 @@ namespace tools::agency::agents {
             if (json.get<string>("role") != type()) // NOTE: We may don't need this check as this function can be extended and the type overrided in derived classes!
                 throw ERROR("Type missmatch '" + json.get<string>("role") + "' != '" + type() + "'");
 
+            // talks
+            if (json.has("talks"))
+                chatbot->setTalks(json.get<bool>("chatbot.talks"));
+
             // instructions
             if (json.has("chatbot.instructions"))
                 chatbot->setInstructions(json.get<string>("chatbot.instructions"));
@@ -97,6 +105,9 @@ namespace tools::agency::agents {
 
             // role
             json.set("role", this->type());
+
+            // talks
+            json.set("talks", chatbot->isTalks());
 
             // instructions
             json.set("instructions", chatbot->getInstructions());

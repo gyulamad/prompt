@@ -29,7 +29,8 @@ namespace tools::agency::agents::commands {
         virtual ~VoiceCommand() {}
     
         vector<string> getPatterns() const override {
-            return { 
+            return {
+                this->prefix + "voice output {switch} {agent_name}", // Added agent_name
                 this->prefix + "voice output {switch}",
                 this->prefix + "voice input {switch}",
                 this->prefix + "voice input mute",
@@ -60,11 +61,17 @@ namespace tools::agency::agents::commands {
                             string("action"), // name
                             bool(false), // optional
                             string("Action to perform (on|off|mute|unmute)") // help
+                        },
+                        {
+                            string("agent_name"), // name
+                            bool(true), // optional
+                            string("Optional agent name to target (only for 'output' direction). If omitted, applies to all agents.") // help
                         }
                     }),
                     vector<pair<string, string>>({ // examples
-                        make_pair(this->prefix + "voice output on", "Enable text-to-speech"),
-                        make_pair(this->prefix + "voice output off", "Disable text-to-speech"),
+                        make_pair(this->prefix + "voice output on", "Enable text-to-speech for all agents"),
+                        make_pair(this->prefix + "voice output off", "Disable text-to-speech for all agents"),
+                        make_pair(this->prefix + "voice output on assistant", "Enable text-to-speech for 'assistant' agent"),
                         make_pair(this->prefix + "voice input on", "Enable speech-to-text"),
                         make_pair(this->prefix + "voice input off", "Disable speech-to-text"), 
                         make_pair(this->prefix + "voice input mute", "Mute voice input monitoring"),
@@ -73,8 +80,9 @@ namespace tools::agency::agents::commands {
                     vector<string>({ // notes
                         string("Requires valid user agent"),
                         string("'mute'/'unmute' actions only available for input direction"),
-                        string("'on'/'off' toggle the entire voice feature"),
-                        string("'mute'/'unmute' only affect input monitoring")
+                        string("'on'/'off' toggle the entire voice feature or for a specific agent (output only)"),
+                        string("'mute'/'unmute' only affect input monitoring"),
+                        string("If {agent_name} is omitted for 'output', the setting applies to all agents.")
                     })
                 }).to_string()
             }));
@@ -89,21 +97,53 @@ namespace tools::agency::agents::commands {
             UserAgentInterface<T>& interface = user.getInterfaceRef();
 
             string thru = args[1];
-            if (thru == "output") {                
-                if (args[2] == "mute") {
-                    
+            if (thru == "output") {
+                string action = args[2];
+                if (action == "mute" || action == "unmute") {
+                    interface.println("Mute/unmute actions are not supported for voice output.");
                     return;
                 }
-                if (args[2] == "unmute") {
-                    
-                    return;
+
+                bool state = parse<bool>(action);
+                string agent_name = ""; // Default: apply to all
+
+                if (args.size() > 3) {
+                    agent_name = args[3]; // Agent name provided
                 }
-                
-                bool state = parse<bool>(args[2]);
-                
-                // interface.setVoiceOutput(state); //  TODO ...
-                interface.println("[STUB] Text to speech voice mode output is " + string(state ? "ON" : "OFF"));
-                // cout << "Text to speech voice mode output is " + string(state ? "ON" : "OFF") << endl;
+
+                if (!agent_name.empty()) {
+                    // Apply to specific agent
+                    try {
+                        Worker<T>& target_worker = agency.getWorkerRef(agent_name);
+                        if (target_worker.type() == "chat") {
+                            ChatbotAgent<T>& chat_agent = dynamic_cast<ChatbotAgent<T>&>(target_worker);
+                            chat_agent.setTalks(state);
+                            interface.println("Voice output for agent '" + agent_name + "' set to " + string(state ? "ON" : "OFF") + ".");
+                        } else {
+                            interface.println("Agent '" + agent_name + "' is not a chat agent and does not support voice output control.");
+                        }
+                    } catch (const exception& e) {
+                        interface.println("Error: Agent '" + agent_name + "' not found.");
+                    }
+                } else {
+                    // Apply to all chat agents
+                    vector<string> worker_names = agency.findWorkers();
+                    int applied_count = 0;
+                    for (const string& name : worker_names) {
+                        try {
+                            Worker<T>& target_worker = agency.getWorkerRef(name);
+                            if (target_worker.type() == "chat") {
+                                ChatbotAgent<T>& chat_agent = dynamic_cast<ChatbotAgent<T>&>(target_worker);
+                                chat_agent.setTalks(state);
+                                applied_count++;
+                            }
+                        } catch (const exception& e) {
+                            // Should not happen if findWorkers is correct, but handle defensively
+                            interface.println("Error accessing agent '" + name + "': " + e.what());
+                        }
+                    }
+                    interface.println("Voice output set to " + string(state ? "ON" : "OFF") + " for " + to_string(applied_count) + " chat agent(s).");
+                }
                 return;
             }
             if (thru == "input") {
