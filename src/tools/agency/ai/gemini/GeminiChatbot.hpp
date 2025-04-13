@@ -1,13 +1,9 @@
 #pragma once
 
 #include <vector> // Added for vector
-#include <sstream> // Added for ostringstream
-
-#include "../../../str/json_escape.hpp"
 #include "../../../str/str_starts_with.hpp"
-#include "../../../str/tpl_replace.hpp" // Added for tpl_replace
 #include "../../../utils/Curl.hpp"
-#include "../../../utils/foreach.hpp" // Added for foreach
+#include "../../../utils/JSON.hpp" // Added for JSON
 #include "../../chat/Chatbot.hpp"
 #include "../../chat/ChatMessage.hpp" // Added for ChatMessage
 
@@ -117,56 +113,39 @@ namespace tools::agency::ai {
         }
         
         string response(const string& response) override {
-            return response; 
+            return response;
         }
 
     protected:
         string getProtocolData() const {
-            ostringstream oss;
-            oss << "{";
+            JSON data; // Create JSON object
 
-            // string instructions = this->getInstructions();
+            // Add system instruction if provided
             if (!instructions.empty()) {
-                oss << "\n  \"system_instruction\": {\n";
-                oss << "    \"parts\": [\n";
-                oss << "      {\n";
-                oss << "        \"text\": \"" << json_escape(instructions) << "\"\n";
-                oss << "      }\n";
-                oss << "    ]\n";
-                oss << "  },";
+                data.set(".system_instruction.parts[0].text", instructions);
             }
 
-            oss << "\n  \"contents\": [\n";
-
+            // Add message history to contents
             vector<ChatMessage> messages = history->getMessages();
-            bool first = true;
+            int content_idx = 0;
             for (const ChatMessage& message: messages) {
                 string sender = message.getSender();
                 if (sender.empty()) continue;
                 string text = message.getText();
                 if (text.empty()) continue;
 
-                if (!first) oss << ",\n";
-                
                 string role = (sender == name) ? "model" : "user";
-                string escaped_text = json_escape(text);
+                
+                // Use index for array elements
+                string base_selector = ".contents[" + to_string(content_idx) + "]";
+                data.set(base_selector + ".role", role);
+                data.set(base_selector + ".parts[0].text", text); // No need to escape, JSON class handles it
 
-                oss << tpl_replace({
-                    { "{{role}}", role },
-                    { "{{text}}", escaped_text }
-                }, R"(    {
-      "role": "{{role}}",
-      "parts": [
-        {
-          "text": "{{text}}"
-        }
-      ]
-    })");
-                first = false;
-            };
+                content_idx++;
+            }
 
-            oss << "\n  ]\n}";
-            return oss.str();
+            // Return formatted JSON string
+            return data.dump(4);
         }
 
     private:
