@@ -28,13 +28,16 @@ namespace tools::agency::ai {
             ChatHistory* history,
             Printer& printer,
 
+            // plugins:
+            ChatPlugins& plugins,
+
             // talkbot:
             bool talks,
             SentenceStream& sentences,
             TTS& tts
         ):
             // Gemini(secret, variant, timeout),
-            Chatbot(owns, name, instructions, history, printer, talks, sentences, tts),
+            Chatbot(owns, name, instructions, history, printer, plugins, talks, sentences, tts),
             secret(secret),
             variant(variant),
             timeout(timeout)
@@ -73,6 +76,7 @@ namespace tools::agency::ai {
             history->append(sender, text);
 
             string data = getProtocolData();
+            // DEBUG(data);
             
             // TODO: if error happens because the rate limit, check all the variant (from API endpoint), and pick the next suitable
             string response;
@@ -116,10 +120,11 @@ namespace tools::agency::ai {
         }
 
     protected:
-        string getProtocolData() const {
+        string getProtocolData() {
             JSON data; // Create JSON object
 
             // Add system instruction if provided
+            string instructions = getInstructions();
             if (!instructions.empty()) {
                 data.set(".system_instruction.parts[0].text", instructions);
             }

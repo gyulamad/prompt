@@ -10,6 +10,7 @@
 #include "tools/utils/JSON.hpp"
 #include "tools/str/get_absolute_path.hpp"
 #include "tools/str/get_filename_only.hpp"
+#include "tools/str/tpl_replace.hpp"
 #include "tools/voice/MicView.hpp"
 #include "tools/voice/ESpeakTTSAdapter.hpp"
 #include "tools/voice/WhisperTranscriberSTTSwitch.hpp"
@@ -43,6 +44,8 @@
 // #include "tools/agency/ai/gemini/GeminiTalkbot.hpp"
 // #include "tools/agency/ai/gemini/GeminiDecidorChatbot.hpp"
 
+#include "tools/agency/agents/plugins/ChatInstructChatPlugin.hpp"
+
 using namespace std;
 using namespace tools::utils;
 using namespace tools::str;
@@ -51,9 +54,11 @@ using namespace tools::cmd;
 using namespace tools::agency;
 using namespace tools::agency::agents;
 using namespace tools::agency::agents::commands;
+using namespace tools::agency::agents::plugins;
 using namespace tools::agency::ai;
 
 // TODO: !@# add coverage -> test prompt -> cover more -> fix todo-s -> add response processing plugins -> add tool use plugins (add agency tool: spawn helpers for eg.; add terminal use; add browser use) -> ... -> add vision -> add visual tool use (computer use for e.g)
+
 
 template<typename PackT>
 int safe_main(int argc, char* argv[]) {
@@ -152,6 +157,18 @@ int safe_main(int argc, char* argv[]) {
             interceptor
         );
 
+
+        ChatPlugins plugins;
+        ChatInstructChatPlugin<PackT> chatInstructChatPlugin(
+            settings.get<string>("lang"),
+            settings.get<string>("chatbot.instruct_persona"),
+            settings.get<string>("chatbot.instruct_stt"),
+            settings.get<string>("chatbot.instruct_tts"),
+            settings.get<string>("chatbot.instruct_lang"),
+            interface
+        );
+        plugins[ChatPlugType::INSTRUCT].push_back(&chatInstructChatPlugin);
+
         // Map of role strings to factory functions
         roles["chat"] = [&](const string& name, /*vector<string> recipients,*/ const JSON& json = nullptr) {
             ChatHistory* history = owns.allocate<ChatHistory>(
@@ -167,6 +184,7 @@ int safe_main(int argc, char* argv[]) {
                 settings.get<string>("chatbot.instructions"),
                 history,
                 printer,
+                plugins,
                 settings.get<bool>("chatbot.talks"), 
                 sentences, 
                 tts

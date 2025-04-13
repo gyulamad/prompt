@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
         "You are taking into account that the user's responses are being read at loud by a text-to-speech program "
         "that can be interrupted by background noise or by the user itself."
         "Repeated interruption changes how you act, "
-        "your responses are becaming more consise and short when you interupted more often recently "
+        "your responses are becaming more consise and short when you interrupted more often recently "
         "but you can put more context otherwise if it's necessary, tune your response style accordingly. "
     ) : "";
     

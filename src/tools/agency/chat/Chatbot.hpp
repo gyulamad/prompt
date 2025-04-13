@@ -6,6 +6,7 @@
 #include "../../voice/TTS.hpp"
 #include "../../voice/SentenceStream.hpp"
 #include "ChatHistory.hpp"
+#include "ChatPlugin.hpp"
 
 using namespace std;
 using namespace tools::voice;
@@ -24,6 +25,9 @@ namespace tools::agency::chat {
             void* history, 
             Printer& printer,
 
+            // plugins:
+            ChatPlugins& plugins,
+
             // talkbot:
             bool talks,
             SentenceStream& sentences,
@@ -35,6 +39,9 @@ namespace tools::agency::chat {
             instructions(instructions),
             history(owns.reserve<ChatHistory>(this, history, FILELN)),
             printer(printer),
+
+            // plugins:
+            plugins(plugins),
 
             // talkbot:
             talks(talks),
@@ -51,7 +58,13 @@ namespace tools::agency::chat {
 
         string getName() const { return name; }
 
-        string getInstructions() { return instructions; } // TODO: remove this
+        string getInstructions() { 
+            string instructions = this->instructions;
+            for (ChatPlugin* plugin: plugins[ChatPlugType::INSTRUCT]) {
+                instructions = safe(plugin)->process(this, instructions);
+            }
+            return instructions; 
+        }
 
         void setInstructions(const string& instructions) {
             this->instructions = instructions;
@@ -140,6 +153,9 @@ namespace tools::agency::chat {
         string instructions;
         ChatHistory* history = nullptr;
         Printer& printer;
+
+        // plugins:
+        ChatPlugins& plugins;
     
         // talkbot:
         bool talks = true;
