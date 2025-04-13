@@ -13,7 +13,7 @@ using namespace tools::utils;
 
 namespace tools::agency::chat {
 
-    class ChatHistory{ //: public JSONSerializable {
+    class ChatHistory { //: public JSONSerializable {
     public:
         ChatHistory(
             const string& prompt,

@@ -41,6 +41,8 @@
     },
     "chatbot": {
         "use_start_token": false,
+        "instructions": "Dadogj!",
+        // "instructions": "No instructions. Please ask for more information!",
         "talks": true,
     // },
     // "talkbot": {
@@ -66,8 +68,15 @@
     "startup": {
 
         "batch": "text_mode_batch",
+        // "batch": "test_batch",
 
         "batches": {
+
+            "test_batch": [
+                "/spawn chat chatbot1 chatbot2",
+                "/spawn chat chatbot2 chatbot1",
+                "/target set chatbot1"
+            ],
 
             // ========[ TEXT MODE ]========
 

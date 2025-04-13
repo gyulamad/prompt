@@ -28,6 +28,7 @@ namespace tools::agency::ai {
             const string& variant,
             long timeout,
             const string& name,  // TODO: remove it
+            const string& instructions,
             ChatHistory* history,
             Printer& printer,
 
@@ -37,7 +38,7 @@ namespace tools::agency::ai {
             TTS& tts
         ):
             // Gemini(secret, variant, timeout),
-            Chatbot(owns, name, history, printer, talks, sentences, tts),
+            Chatbot(owns, name, instructions, history, printer, talks, sentences, tts),
             secret(secret),
             variant(variant),
             timeout(timeout)
@@ -75,18 +76,8 @@ namespace tools::agency::ai {
             
             history->append(sender, text);
 
-            // string data = tpl_replace({
-            //     { "{{history}}", json_escape(history->toString()) }, 
-            //     { "{{start}}", json_escape(history->startToken(name)) },
-            // }, R"({
-            //     "contents": [{
-            //         "parts": [{
-            //             "text": "{{history}}{{start}}"
-            //         }]
-            //     }]
-            // })");
             string data = getProtocolData();
-            // DEBUG(data);
+            DEBUG(data);
             
             // TODO: if error happens because the rate limit, check all the variant (from API endpoint), and pick the next suitable
             string response;
@@ -132,7 +123,20 @@ namespace tools::agency::ai {
     protected:
         string getProtocolData() const {
             ostringstream oss;
-            oss << "{\n  \"contents\": [\n";
+            oss << "{";
+
+            // string instructions = this->getInstructions();
+            if (!instructions.empty()) {
+                oss << "\n  \"system_instruction\": {\n";
+                oss << "    \"parts\": [\n";
+                oss << "      {\n";
+                oss << "        \"text\": \"" << json_escape(instructions) << "\"\n";
+                oss << "      }\n";
+                oss << "    ]\n";
+                oss << "  },";
+            }
+
+            oss << "\n  \"contents\": [\n";
 
             vector<ChatMessage> messages = history->getMessages();
             bool first = true;

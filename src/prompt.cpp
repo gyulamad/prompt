@@ -163,7 +163,8 @@ int safe_main(int argc, char* argv[]) {
                 settings.get<string>("gemini.secret"), // gemini_secret,
                 settings.get<string>("gemini.variant"), // gemini_variant,
                 settings.get<long>("gemini.timeout"), // gemini_timeout,
-                "gemini",
+                name,
+                settings.get<string>("chatbot.instructions"),
                 history,
                 printer,
                 settings.get<bool>("chatbot.talks"), 
@@ -176,7 +177,8 @@ int safe_main(int argc, char* argv[]) {
                 queue,
                 name,
                 chatbot,
-                history,
+                // instructions,
+                // history,
                 interface
             );
             agent.fromJSON(json);

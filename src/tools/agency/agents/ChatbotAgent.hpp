@@ -5,6 +5,7 @@
 #include "../../voice/TTS.hpp"
 #include "../Agent.hpp"
 #include "../chat/Chatbot.hpp"
+#include "../chat/ChatHistory.hpp"
 #include "UserAgentInterface.hpp"
 
 using namespace std;
@@ -21,18 +22,21 @@ namespace tools::agency::agents {
             PackQueue<T>& queue,
             const string& name,
             void* chatbot,
-            void* history,
+            // void* instructions,
+            // void* history,
             UserAgentInterface<T>& interface
         ): 
             Agent<T>(owns, agency, queue, name),
             chatbot(owns.reserve<Chatbot>(this, chatbot, FILELN)),
-            history(owns.reserve<ChatHistory>(this, history, FILELN)),
+            // instructions(owns.reserve<string>(this, instructions, FILELN)),
+            // history(owns.reserve<ChatHistory>(this, history, FILELN)),
             interface(interface)
         {}
 
         virtual ~ChatbotAgent() {
             this->owns.release(this, chatbot);
-            this->owns.release(this, history);
+            // this->owns.release(this, instructions);
+            // this->owns.release(this, history);
         }
 
         void* getChatbotPtr() { return chatbot; } // TODO: remove this
@@ -70,7 +74,12 @@ namespace tools::agency::agents {
             if (json.get<string>("role") != type()) // NOTE: We may don't need this check as this function can be extended and the type overrided in derived classes!
                 throw ERROR("Type missmatch '" + json.get<string>("role") + "' != '" + type() + "'");
 
+            // instructions
+            if (json.has("chatbot.instructions"))
+                chatbot->setInstructions(json.get<string>("chatbot.instructions"));
+
             // chatbot.history.messages
+            ChatHistory* history = (ChatHistory*)safe(chatbot->getHistoryPtr());
             if (json.has("chatbot.history.messages")) {
                 safe(history);
                 vector<JSON> jmessages = json.get<vector<JSON>>("chatbot.history.messages");
@@ -88,9 +97,12 @@ namespace tools::agency::agents {
 
             // role
             json.set("role", this->type());
+
+            // instructions
+            json.set("instructions", chatbot->getInstructions());
             
             // chatbot.history.messages
-            safe(history);
+            ChatHistory* history = (ChatHistory*)safe(chatbot->getHistoryPtr());
             vector<ChatMessage> messages = history->getMessages();
             vector<JSON> jmessages;
             for (const ChatMessage& message: messages) {
@@ -106,7 +118,8 @@ namespace tools::agency::agents {
 
     private:
         Chatbot* chatbot = nullptr;
-        ChatHistory* history = nullptr;
+        // string* instructions = nullptr;
+        // ChatHistory* history = nullptr;
         UserAgentInterface<T>& interface;
     };
     

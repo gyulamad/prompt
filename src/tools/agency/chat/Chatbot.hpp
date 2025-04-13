@@ -20,6 +20,7 @@ namespace tools::agency::chat {
         Chatbot(
             Owns& owns,
             const string& name,
+            const string& instructions,
             void* history, 
             Printer& printer,
 
@@ -31,6 +32,7 @@ namespace tools::agency::chat {
             // JSONSerializable(),
             owns(owns),
             name(name),
+            instructions(instructions),
             history(owns.reserve<ChatHistory>(this, history, FILELN)),
             printer(printer),
 
@@ -48,6 +50,12 @@ namespace tools::agency::chat {
         }
 
         string getName() const { return name; }
+
+        string getInstructions() { return instructions; } // TODO: remove this
+
+        void setInstructions(const string& instructions) {
+            this->instructions = instructions;
+        }
 
         void* getHistoryPtr() { return history; } // TODO: remove this
 
@@ -127,6 +135,7 @@ namespace tools::agency::chat {
     protected:
         Owns& owns;
         string name; //  TODO: remove this!
+        string instructions;
         ChatHistory* history = nullptr;
         Printer& printer;
     

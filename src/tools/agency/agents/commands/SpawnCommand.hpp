@@ -105,7 +105,8 @@ namespace tools::agency::agents::commands {
             JSON json;
             json.set("role", role);
             json.set("recipients", recipients);
-            roles[role](name, json); // TODO: json OR vars??
+            // json.set("instructions", instructions[role]); // TODO: add system instructions
+            roles[role](name, json);
         }
         
         
