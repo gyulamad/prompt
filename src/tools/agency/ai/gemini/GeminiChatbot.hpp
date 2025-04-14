@@ -16,6 +16,7 @@ using namespace tools::agency::chat;
 
 namespace tools::agency::ai {
 
+    template<typename T>
     class GeminiChatbot: /*public Gemini,*/ public Chatbot {
     public:
         GeminiChatbot(
@@ -24,23 +25,25 @@ namespace tools::agency::ai {
             const string& variant,
             long timeout,
             const string& name,  // TODO: remove it
-            const string& instructions,
+            // const string& instructions,
             ChatHistory* history,
-            Printer& printer,
+            // Printer& printer,
+            // UserAgentInterface<T>& interface,
 
             // plugins:
-            ChatPlugins& plugins,
+            ChatPlugins* plugins,
 
             // talkbot:
-            bool talks,
-            SentenceStream& sentences,
-            TTS& tts
+            bool talks
+            // SentenceStream& sentences,
+            // TTS& tts
         ):
             // Gemini(secret, variant, timeout),
-            Chatbot(owns, name, instructions, history, printer, plugins, talks, sentences, tts),
+            Chatbot(owns, name, history, plugins, talks),
             secret(secret),
             variant(variant),
             timeout(timeout)
+            // interface(interface)
         {}
 
         virtual ~GeminiChatbot() {
@@ -51,10 +54,10 @@ namespace tools::agency::ai {
         //     return Gemini::respond(*this, sender, text);
         // }
         // TODO: load with curl but no need to show (it's for internal conversations)
-        string respond(const string& /*sender*/, const string& /*text*/) override {
-            STUB("Needs to be implemented");
-            throw ERROR("Unimplemented");
-        }
+        // string respond(const string& /*sender*/, const string& /*text*/) override {
+        //     STUB("Needs to be implemented");
+        //     throw ERROR("Unimplemented");
+        // }
         
         // string chat(const string& sender, const string& text, bool& interrupted) override {
         //     return Gemini::chat(*this, sender, text, interrupted);
@@ -96,7 +99,9 @@ namespace tools::agency::ai {
                         if (!json.isDefined("candidates[0].content.parts[0].text")) throw ERROR("Gemini error: text is not defined: " + json.dump());
                         string text = json.get<string>("candidates[0].content.parts[0].text");
         
-                        response += this->chunk(text);
+                        string output = this->chunk(text);
+                        // interface.print(output);
+                        response += output;
                     }
                 }, data)) throw ERROR("Error requesting Gemini API"); 
             } catch (Chatbot::cancel&) {
@@ -109,15 +114,15 @@ namespace tools::agency::ai {
             return response;
         }
 
-        string chunk(const string& chunk) override {
-            if (this->talks) Chatbot::chunk(chunk);
-            else printer.print(chunk);
-            return chunk;
-        }
+        // string chunk(const string& chunk) override {
+        //     if (this->talks) Chatbot::chunk(chunk);
+        //     else printer.print(chunk);
+        //     return chunk;
+        // }
         
-        string response(const string& response) override {
-            return response;
-        }
+        // string response(const string& response) override {
+        //     return response;
+        // }
 
     protected:
         string getProtocolData() {
@@ -156,6 +161,8 @@ namespace tools::agency::ai {
         string secret;
         string variant;
         long timeout;
+
+        // UserAgentInterface<T>& interface;
     };    
 
 }

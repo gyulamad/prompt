@@ -82,9 +82,9 @@ namespace tools::agency::agents {
             if (json.has("talks"))
                 chatbot->setTalks(json.get<bool>("chatbot.talks"));
 
-            // instructions
-            if (json.has("chatbot.instructions"))
-                chatbot->setInstructions(json.get<string>("chatbot.instructions"));
+            // // instructions
+            // if (json.has("chatbot.instructions"))
+            //     chatbot->setInstructions(json.get<string>("chatbot.instructions"));
 
             // chatbot.history.messages
             ChatHistory* history = (ChatHistory*)safe(chatbot->getHistoryPtr());

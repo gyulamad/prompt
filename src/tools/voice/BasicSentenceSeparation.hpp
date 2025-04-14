@@ -13,6 +13,8 @@ namespace tools::voice {
     public:
         BasicSentenceSeparation(const vector<string>& separators): SentenceSeparation(separators) {}
 
+        virtual ~BasicSentenceSeparation() {}
+
         // size_t findSentenceEnd(const string& text, size_t start_pos) const override {
         //     size_t len = text.length();
         //     for (size_t i = start_pos; i < len; ++i) {

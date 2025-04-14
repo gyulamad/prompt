@@ -18,13 +18,21 @@ namespace tools::voice {
     class SentenceStream: public Stream<string> {
     public:
         SentenceStream(
-            SentenceSeparation& separator, 
+            Owns& owns,
+            // SentenceSeparation& separator, 
+            void* separator,
             size_t max_buffer_size // = 1024 * 1024
         ):
-            separator(separator), 
+            owns(owns),
+            // separator(separator), 
+            separator(owns.reserve<SentenceSeparation>(this, separator, FILELN)),
             buffer(), sentences(), current_pos(0),
             max_buffer_size(max_buffer_size)
         {}
+
+        virtual ~SentenceStream() {
+            owns.release(this, separator);
+        }
         
         void write(const string& data) override {
             if (buffer.size() + data.size() > max_buffer_size) {
@@ -74,7 +82,8 @@ namespace tools::voice {
         }
 
     private:
-        SentenceSeparation& separator;
+        Owns& owns;
+        SentenceSeparation* separator = nullptr;
         string buffer;
         vector<string> sentences;
         size_t current_pos;
@@ -84,7 +93,7 @@ namespace tools::voice {
             size_t last_pos = 0; // Always start from the beginning
         
             while (true) {
-                size_t end_pos = separator.findSentenceEnd(buffer, last_pos);
+                size_t end_pos = safe(separator)->findSentenceEnd(buffer, last_pos);
                 if (end_pos == string::npos) break;
                 string sentence = buffer.substr(last_pos, end_pos - last_pos + 1);
                 trim(sentence);

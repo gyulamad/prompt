@@ -42,7 +42,7 @@ namespace tools::utils {
             if (!managed(pointer))
                 throw ERROR("Cannot reserve unallocated pointer: " + dbgnfo);
             reserves[pointer].owners.insert(owner);
-            reserves[pointer].dbgnfos.push_back(dbgnfo);
+            reserves[pointer].dbgnfos.push_back("Reserved at " + dbgnfo);
             return (T*)pointer;
         }
 
@@ -75,11 +75,11 @@ namespace tools::utils {
     protected:
         void cleanup() {
             for (auto& [ptr, data] : reserves) {
+                string nfo = "Unrelesed pointer by " 
+                    + to_string(data.owners.size()) 
+                    + " owner(s) detected:\n";
                 if (!data.owners.empty())
-                    cerr << "Unrelesed pointer by " 
-                        + to_string(data.owners.size()) 
-                        + " owner(s) detected:\n" 
-                        + implode("\n", data.dbgnfos) << endl;
+                    cerr << ERROR(nfo + implode("\n", data.dbgnfos)).what() << endl;
                 else data.deleter(ptr);
             }
             reserves.clear();

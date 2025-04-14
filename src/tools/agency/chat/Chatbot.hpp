@@ -2,9 +2,9 @@
 
 #include <string>
 
-#include "../../utils/Printer.hpp"
-#include "../../voice/TTS.hpp"
-#include "../../voice/SentenceStream.hpp"
+// #include "../../utils/Printer.hpp"
+// #include "../../voice/TTS.hpp"
+// #include "../../voice/SentenceStream.hpp"
 #include "ChatHistory.hpp"
 #include "ChatPlugin.hpp"
 
@@ -21,54 +21,54 @@ namespace tools::agency::chat {
         Chatbot(
             Owns& owns,
             const string& name,
-            const string& instructions,
+            // const string& instructions,
             void* history, 
-            Printer& printer,
+            // Printer& printer,
 
             // plugins:
-            ChatPlugins& plugins,
+            void* plugins,
 
             // talkbot:
-            bool talks,
-            SentenceStream& sentences,
-            TTS& tts
+            bool talks
+            // SentenceStream& sentences,
+            // TTS& tts
         ):
             // JSONSerializable(),
             owns(owns),
             name(name),
-            instructions(instructions),
+            // instructions(instructions),
             history(owns.reserve<ChatHistory>(this, history, FILELN)),
-            printer(printer),
+            // printer(printer),
 
             // plugins:
-            plugins(plugins),
+            plugins(owns.reserve<ChatPlugins>(this, plugins, FILELN)),
 
             // talkbot:
-            talks(talks),
-            sentences(sentences),
-            tts(tts)
+            talks(talks)
+            // sentences(sentences),
+            // tts(tts)
         {}
 
         virtual ~Chatbot() {
             owns.release(this, history);
+            owns.release(this, plugins);
 
-            // talkbot:
-            tts.speak_stop();
+            // // talkbot:
+            // tts.speak_stop();
         }
 
         string getName() const { return name; }
 
         string getInstructions() { 
-            string instructions = this->instructions;
-            for (ChatPlugin* plugin: plugins[ChatPlugType::INSTRUCT]) {
-                instructions = safe(plugin)->process(this, instructions);
-            }
-            return instructions; 
+            string proceed = "";// this->instructions;
+            for (void* plugin: plugins->getPlugs())
+                proceed = ((ChatPlugin*)safe(plugin))->processInstructions(this, proceed);
+            return proceed; 
         }
 
-        void setInstructions(const string& instructions) {
-            this->instructions = instructions;
-        }
+        // void setInstructions(const string& instructions) {
+        //     this->instructions = instructions;
+        // }
 
         void* getHistoryPtr() { return history; } // TODO: remove this
 
@@ -78,9 +78,14 @@ namespace tools::agency::chat {
 
 
         // prompt completion call
-        virtual string respond(const string& /*sender*/, const string& /*text*/) {
-            if (talks) throw ERROR("Talkbots does not support full completion resonse.");
-            else throw ERROR("Chatbots respond needs to be implemented.");
+        virtual string respond(const string& sender, const string& text) {
+            string proceed = text;
+            for (void* plugin: plugins->getPlugs())
+                proceed = ((ChatPlugin*)safe(plugin))->processRespond(this, sender, proceed);
+            return proceed; 
+
+            // if (talks) throw ERROR("Talkbots does not support full completion resonse.");
+            // else throw ERROR("Chatbots respond needs to be implemented.");
         }
 
         // stream chat
@@ -88,39 +93,49 @@ namespace tools::agency::chat {
 
         // on stream chunk recieved
         virtual string chunk(const string& chunk) {
-            if (talks) { // talkbot:
-                sentences.write(chunk);
-                bool interrupted = tts.is_speaking();
-                string told = "";
-                string sentence = "***";
-                while (!(sentence).empty()) {
-                    sentence = sentences.read();
-                    if (interrupted) continue; 
-                    this->printer.print(sentence);          
-                    interrupted = !tell(sentence);
-                    if (interrupted) continue;
-                    told += sentence;
-                };
-                if (interrupted) throw cancel();
-                // return chunk;
-                return told;
-            }
-            throw ERROR("Chatbots chunk needs to be implemented.");
+            string proceed = chunk;
+            for (void* plugin: plugins->getPlugs())
+                proceed = ((ChatPlugin*)safe(plugin))->processChunk(this, proceed);
+            return proceed; 
+
+            // if (talks) { // talkbot:
+            //     sentences.write(chunk);
+            //     bool interrupted = tts.is_speaking();
+            //     string told = "";
+            //     string sentence = "***";
+            //     while (!(sentence).empty()) {
+            //         sentence = sentences.read();
+            //         if (interrupted) continue; 
+            //         this->printer.print(sentence);          
+            //         interrupted = !tell(sentence);
+            //         if (interrupted) continue;
+            //         told += sentence;
+            //     };
+            //     if (interrupted) throw cancel();
+            //     // return chunk;
+            //     return told;
+            // }
+            // throw ERROR("Chatbots chunk needs to be implemented.");
         }
 
         // on full response recieved
         virtual string response(const string& response) {
-            if (talks) {
-                sentences.flush();
-                tell(sentences.read());
-            }
-            return response;
+            string proceed = response;
+            for (void* plugin: plugins->getPlugs())
+                proceed = ((ChatPlugin*)safe(plugin))->processResponse(this, proceed);
+            return proceed; 
+
+            // if (talks) {
+            //     sentences.flush();
+            //     tell(sentences.read());
+            // }
+            // return response;
         }
 
-        // talkbot:
-        bool tell(const string& text) {
-            return tts.speak(text);
-        }
+        // // talkbot:
+        // bool tell(const string& text) {
+        //     return tts.speak(text);
+        // }
 
 
         // ----- JSON serialization -----
@@ -150,17 +165,17 @@ namespace tools::agency::chat {
     protected:
         Owns& owns;
         string name; //  TODO: remove this!
-        string instructions;
+        // string instructions;
         ChatHistory* history = nullptr;
-        Printer& printer;
+        // Printer& printer;
 
         // plugins:
-        ChatPlugins& plugins;
+        ChatPlugins* plugins = nullptr;
     
         // talkbot:
         bool talks = true;
-        SentenceStream& sentences;
-        TTS& tts;
+        // SentenceStream& sentences;
+        // TTS& tts;
     };
 
     

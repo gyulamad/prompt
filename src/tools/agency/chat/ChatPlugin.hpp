@@ -15,11 +15,32 @@ namespace tools::agency::chat {
         ChatPlugin() {}
         virtual ~ChatPlugin() {}
 
-        virtual string process(Chatbot* /*chatbot*/, const string&) = 0;
+        virtual string processInstructions(Chatbot* /*chatbot*/, const string&) = 0;
+        virtual string processChunk(Chatbot* /*chatbot*/, const string&) = 0;
+        virtual string processResponse(Chatbot* /*chatbot*/, const string&) = 0;
+        virtual string processRespond(Chatbot* /*chatbot*/, const string& /*sender*/, const string& /*text*/) = 0;
     };
 
-    enum ChatPlugType { INSTRUCT };
+    class ChatPlugins {
+    public:
+        ChatPlugins(Owns& owns): owns(owns) {}
+        
+        virtual ~ChatPlugins() {
+            for (void* plug: plugs)
+                owns.release(this, plug);
+        }
 
-    using ChatPlugins = map<ChatPlugType, vector<ChatPlugin*>>;
+        vector<void*> getPlugs() const { return plugs; }
+
+        template<typename T>
+        void push(void* plug) {
+            owns.reserve<T>(this, plug, FILELN);
+            this->plugs.push_back(plug);
+        }
+
+    private:
+        Owns& owns;
+        vector<void*> plugs;
+    };
 
 } // namespace tools::agency::chat;

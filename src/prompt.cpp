@@ -44,7 +44,8 @@
 // #include "tools/agency/ai/gemini/GeminiTalkbot.hpp"
 // #include "tools/agency/ai/gemini/GeminiDecidorChatbot.hpp"
 
-#include "tools/agency/agents/plugins/ChatInstructChatPlugin.hpp"
+#include "tools/agency/agents/plugins/ChatbotPlugin.hpp"
+#include "tools/agency/agents/plugins/TalkbotPlugin.hpp"
 
 using namespace std;
 using namespace tools::utils;
@@ -97,15 +98,15 @@ int safe_main(int argc, char* argv[]) {
             &process //Process* process = nullptr
         );
 
-        Printer printer;
+        // Printer printer;
         
-        BasicSentenceSeparation separator(
-            settings.get<vector<string>>("chatbot.sentence_separators") // talkbot_sentence_separators
-        );
-        SentenceStream sentences(
-            separator, 
-            settings.get<size_t>("chatbot.sentences_max_buffer_size") // talkbot_sentences_max_buffer_size
-        );
+        // BasicSentenceSeparation separator(
+        //     settings.get<vector<string>>("chatbot.sentence_separators") // talkbot_sentence_separators
+        // );
+        // SentenceStream sentences(
+        //     separator, 
+        //     settings.get<size_t>("chatbot.sentences_max_buffer_size") // talkbot_sentences_max_buffer_size
+        // );
         AgentRoleMap roles;
         PackQueue<PackT> queue;
 
@@ -158,16 +159,18 @@ int safe_main(int argc, char* argv[]) {
         );
 
 
-        ChatPlugins plugins;
-        ChatInstructChatPlugin<PackT> chatInstructChatPlugin(
-            settings.get<string>("lang"),
-            settings.get<string>("chatbot.instruct_persona"),
-            settings.get<string>("chatbot.instruct_stt"),
-            settings.get<string>("chatbot.instruct_tts"),
-            settings.get<string>("chatbot.instruct_lang"),
-            interface
-        );
-        plugins[ChatPlugType::INSTRUCT].push_back(&chatInstructChatPlugin);
+        // ChatPlugins plugins;
+        // ChatbotPlugin<PackT> chatInstructChatPlugin(
+        //     settings.get<string>("lang"),
+        //     settings.get<string>("chatbot.instruct_persona"),
+        //     settings.get<string>("chatbot.instruct_stt"),
+        //     settings.get<string>("chatbot.instruct_tts"),
+        //     settings.get<string>("chatbot.instruct_lang"),
+        //     interface,
+        //     sentences,
+        //     tts
+        // );
+        // plugins.push_back(&chatInstructChatPlugin);
 
         // Map of role strings to factory functions
         roles["chat"] = [&](const string& name, /*vector<string> recipients,*/ const JSON& json = nullptr) {
@@ -175,19 +178,56 @@ int safe_main(int argc, char* argv[]) {
                 settings.get<string>("prompt"),
                 settings.get<bool>("chatbot.use_start_token") // chatbot_use_start_token
             );
-            GeminiChatbot* chatbot = owns.allocate<GeminiChatbot>(
+
+            ChatbotPlugin<PackT>* chatPlugin = owns.allocate<ChatbotPlugin<PackT>>(
+                owns,
+                settings.get<string>("lang"),
+                settings.get<string>("chatbot.instruct_persona"),
+                settings.get<string>("chatbot.instruct_stt"),
+                // settings.get<string>("chatbot.instruct_tts"),
+                settings.get<string>("chatbot.instruct_lang"),
+                interface
+                // sentences,
+                // tts
+            );
+
+            BasicSentenceSeparation* separator = owns.allocate<BasicSentenceSeparation>(
+                settings.get<vector<string>>("chatbot.sentence_separators") // talkbot_sentence_separators
+            );
+            SentenceStream* sentences = owns.allocate<SentenceStream>(
+                owns,
+                separator, 
+                settings.get<size_t>("chatbot.sentences_max_buffer_size") // talkbot_sentences_max_buffer_size
+            );
+            TalkbotPlugin<PackT>* talkPlugin = owns.allocate<TalkbotPlugin<PackT>>(
+                owns,
+                // settings.get<string>("lang"),
+                // settings.get<string>("chatbot.instruct_persona"),
+                // settings.get<string>("chatbot.instruct_stt"),
+                settings.get<string>("chatbot.instruct_tts"),
+                // settings.get<string>("chatbot.instruct_lang"),
+                interface,
+                sentences,
+                tts
+            );
+            ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+            plugins->push<ChatbotPlugin<PackT>>(chatPlugin);
+            plugins->push<TalkbotPlugin<PackT>>(talkPlugin);
+
+            GeminiChatbot<PackT>* chatbot = owns.allocate<GeminiChatbot<PackT>>(
                 owns,
                 settings.get<string>("gemini.secret"), // gemini_secret,
                 settings.get<string>("gemini.variant"), // gemini_variant,
                 settings.get<long>("gemini.timeout"), // gemini_timeout,
                 name,
-                settings.get<string>("chatbot.instructions"),
+                // settings.get<string>("chatbot.instructions"),
                 history,
-                printer,
+                // interface,
+                // printer,
                 plugins,
-                settings.get<bool>("chatbot.talks"), 
-                sentences, 
-                tts
+                settings.get<bool>("chatbot.talks")
+                // sentences, 
+                // tts
             );
             ChatbotAgent<PackT>& agent = agency.template spawn<ChatbotAgent<PackT>>(
                 owns,
