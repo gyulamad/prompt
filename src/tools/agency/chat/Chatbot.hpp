@@ -88,7 +88,7 @@ namespace tools::agency::chat {
             // else throw ERROR("Chatbots respond needs to be implemented.");
         }
 
-        // stream chat
+        // stream chat // TODO: add as plugins!! <- gemini/request for chunks stream plugin can be used
         virtual string chat(const string& sender, const string& text, bool& interrupted) = 0;
 
         // on stream chunk recieved
