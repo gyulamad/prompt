@@ -53,9 +53,11 @@ namespace tools::agency::agents::plugins {
             // when the tooluse stop received, call the processFunctionCall(string tooluse-content)
             // the returned chunk should not contains the tooluse outputs from the AI
 
-            return parser.parse(chunk, tooluse_start_token, tooluse_stop_token, [this](const string& inner) {
+            parser.parse(chunk, tooluse_start_token, tooluse_stop_token, [this](const string& inner) {
                 processFunctionCall(inner);
             });
+
+            return chunk;
         }
         
         string processResponse(Chatbot* /*chatbot*/, const string& response) override {

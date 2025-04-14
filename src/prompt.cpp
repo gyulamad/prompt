@@ -371,7 +371,7 @@ int safe_main(int argc, char* argv[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-       //"test_Agency_spawn_duplicate"
+       "test_FrameTokenParser"
     });
     
     return safe_main<string>(argc, argv);
