@@ -266,3 +266,219 @@ namespace tools::agency::agents::commands {
     };
 
 }
+
+
+#ifdef TEST
+
+#include "../../../utils/Test.hpp" // Include your testing framework header
+#include "../../../utils/str_contains.hpp" // For checking exception messages
+
+using namespace tools::agency::agents::commands;
+using namespace tools::utils; // For Test.hpp helpers like str_contains
+
+// Define a dummy type for the template
+using DummyType = int; 
+
+// --- Test Cases ---
+
+void test_PersistenceCommand_Constructor_Load() {
+    PersistenceCommand<DummyType> cmd("myprefix", PersistenceCommand<DummyType>::LOAD, "filearg", "File Description");
+    assert(cmd.getName() == "myprefixload" && "Constructor Load: Name check failed");
+    // Add more checks if internal state needs verification, though members are protected
+}
+
+void test_PersistenceCommand_Constructor_Save() {
+    PersistenceCommand<DummyType> cmd("myprefix", PersistenceCommand<DummyType>::SAVE, "outputfile", "Output File");
+    assert(cmd.getName() == "myprefixsave" && "Constructor Save: Name check failed");
+}
+
+void test_PersistenceCommand_GetName_Load() {
+    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    string actual = cmd.getName();
+    assert(actual == "load" && "GetName Load: Name mismatch");
+}
+
+void test_PersistenceCommand_GetName_Save() {
+    PersistenceCommand<DummyType> cmd("cmd_", PersistenceCommand<DummyType>::SAVE);
+    string actual = cmd.getName();
+    assert(actual == "cmd_save" && "GetName Save: Name mismatch");
+}
+
+void test_PersistenceCommand_GetPatterns() {
+    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    vector<string> expected = {
+        "load agent {string}",
+        "load agent {string} [{string}]",
+        "load agency {string}",
+        "load agency {string} [{string}]"
+    };
+    vector<string> actual = cmd.getPatterns();
+    assert(vector_equal(actual, expected) && "GetPatterns: Pattern mismatch");
+}
+
+void test_PersistenceCommand_GetDescription_Load() {
+    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD, "filename", "file");
+    string expected = "Load an agent or agency from a file.";
+    string actual = cmd.getDescription();
+    assert(actual == expected && "GetDescription Load: Description mismatch");
+}
+
+void test_PersistenceCommand_GetDescription_Save() {
+    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::SAVE, "filename", "file");
+    string expected = "Save an agent or agency to a file.";
+    string actual = cmd.getDescription();
+    assert(actual == expected && "GetDescription Save: Description mismatch");
+}
+
+// Usage test might be complex, maybe just check for key parts
+void test_PersistenceCommand_GetUsage_Load() {
+    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD, "inputfile", "input file");
+    string actual = cmd.getUsage();
+    assert(str_contains(actual, "load agent my_agent") && "GetUsage Load: Missing agent example");
+    assert(str_contains(actual, "load agency my_agency my_agency_file") && "GetUsage Load: Missing agency example with file");
+    assert(str_contains(actual, "If inputfile is not provided") && "GetUsage Load: Missing default filename note");
+    assert(str_contains(actual, "Type of the agent or agency to load.") && "GetUsage Load: Missing type parameter description");
+}
+
+void test_PersistenceCommand_Validate_Success_MinArgs() {
+    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    vector<string> args = {"load", "agent", "my_agent"};
+    bool thrown = false;
+    try {
+        cmd.validate(args);
+    } catch (const exception& e) {
+        thrown = true;
+    }
+    assert(!thrown && "Validate Success MinArgs: Should not throw");
+}
+
+void test_PersistenceCommand_Validate_Success_WithFilename() {
+    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::SAVE);
+    vector<string> args = {"save", "agency", "my_agency", "my_file.json"};
+     bool thrown = false;
+    try {
+        cmd.validate(args);
+    } catch (const exception& e) {
+        thrown = true;
+    }
+    assert(!thrown && "Validate Success WithFilename: Should not throw");
+}
+
+void test_PersistenceCommand_Validate_Fail_TooFewArgs() {
+    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    vector<string> args = {"load", "agent"};
+    bool thrown = false;
+    try {
+        cmd.validate(args);
+    } catch (const runtime_error& e) {
+        thrown = true;
+        string what = e.what();
+        assert(str_contains(what, "Usage: load agent|agency {name} [filename]") && "Validate Fail TooFewArgs: Incorrect error message");
+    } catch (...) {
+        // Catch any other exception type
+         assert(false && "Validate Fail TooFewArgs: Caught unexpected exception type");
+    }
+    assert(thrown && "Validate Fail TooFewArgs: Should have thrown runtime_error");
+}
+
+void test_PersistenceCommand_GetType_Success() {
+    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    auto type_agent = cmd.getType("agent");
+    assert(type_agent == PersistenceCommand<DummyType>::AGENT && "GetType Success: Agent type mismatch");
+    auto type_agency = cmd.getType("agency");
+    assert(type_agency == PersistenceCommand<DummyType>::AGENCY && "GetType Success: Agency type mismatch");
+}
+
+void test_PersistenceCommand_GetType_Fail_Invalid() {
+    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    bool thrown = false;
+    try {
+        cmd.getType("invalid_type");
+    } catch (const runtime_error& e) {
+        thrown = true;
+        string what = e.what();
+        assert(str_contains(what, "Invalid type given (invalid_type)") && "GetType Fail Invalid: Incorrect error message");
+        assert(str_contains(what, "possible types are: agent|agency") && "GetType Fail Invalid: Missing possible types");
+    } catch (...) {
+         assert(false && "GetType Fail Invalid: Caught unexpected exception type");
+    }
+    assert(thrown && "GetType Fail Invalid: Should have thrown runtime_error");
+}
+
+void test_PersistenceCommand_GetTypeName_Success() {
+     PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+     string name_agent = cmd.getTypeName(PersistenceCommand<DummyType>::AGENT);
+     assert(name_agent == "agent" && "GetTypeName Success: Agent name mismatch");
+     string name_agency = cmd.getTypeName(PersistenceCommand<DummyType>::AGENCY);
+     assert(name_agency == "agency" && "GetTypeName Success: Agency name mismatch");
+}
+
+void test_PersistenceCommand_GetTypeName_Fail_Invalid() {
+    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    bool thrown = false;
+    try {
+        // Cast an invalid integer to the enum type
+        cmd.getTypeName(static_cast<PersistenceCommand<DummyType>::Type>(99)); 
+    } catch (const runtime_error& e) {
+        thrown = true;
+        string what = e.what();
+        // The specific integer value might vary depending on enum underlying type, check for core message
+        assert(str_contains(what, "Invalid type given (99)") && "GetTypeName Fail Invalid: Incorrect error message"); 
+        assert(str_contains(what, "possible types are: agent|agency") && "GetTypeName Fail Invalid: Missing possible types");
+    } catch (...) {
+         assert(false && "GetTypeName Fail Invalid: Caught unexpected exception type");
+    }
+    assert(thrown && "GetTypeName Fail Invalid: Should have thrown runtime_error");
+}
+
+void test_PersistenceCommand_execute_SaveSuccess() {
+    // Test successful save execution
+    PersistenceCommand cmd;
+    auto result = cmd.execute("save testdata");
+    assert(result.status == CommandStatus::SUCCESS);
+}
+
+void test_PersistenceCommand_execute_SaveInvalidPath() {
+    // Test save with invalid path
+    PersistenceCommand cmd;
+    auto result = cmd.execute("save invalid/../path");
+    assert(result.status == CommandStatus::ERROR);
+}
+
+void test_PersistenceCommand_execute_LoadSuccess() {
+    // Test successful load execution
+    PersistenceCommand cmd;
+    auto result = cmd.execute("load valid_data");
+    assert(result.status == CommandStatus::SUCCESS);
+}
+
+void test_PersistenceCommand_execute_LoadFailure() {
+    // Test load of non-existent data
+    PersistenceCommand cmd;
+    auto result = cmd.execute("load missing_data");
+    assert(result.status == CommandStatus::ERROR);
+}
+
+
+// --- Register Tests ---
+TEST(test_PersistenceCommand_Constructor_Load);
+TEST(test_PersistenceCommand_Constructor_Save);
+TEST(test_PersistenceCommand_GetName_Load);
+TEST(test_PersistenceCommand_GetName_Save);
+TEST(test_PersistenceCommand_GetPatterns);
+TEST(test_PersistenceCommand_GetDescription_Load);
+TEST(test_PersistenceCommand_GetDescription_Save);
+TEST(test_PersistenceCommand_GetUsage_Load); // Basic check for usage
+TEST(test_PersistenceCommand_Validate_Success_MinArgs);
+TEST(test_PersistenceCommand_Validate_Success_WithFilename);
+TEST(test_PersistenceCommand_Validate_Fail_TooFewArgs);
+TEST(test_PersistenceCommand_GetType_Success);
+TEST(test_PersistenceCommand_GetType_Fail_Invalid);
+TEST(test_PersistenceCommand_GetTypeName_Success);
+TEST(test_PersistenceCommand_GetTypeName_Fail_Invalid);
+TEST(test_PersistenceCommand_execute_SaveSuccess);
+TEST(test_PersistenceCommand_execute_SaveInvalidPath);
+TEST(test_PersistenceCommand_execute_LoadSuccess);
+TEST(test_PersistenceCommand_execute_LoadFailure);
+
+#endif // TEST
