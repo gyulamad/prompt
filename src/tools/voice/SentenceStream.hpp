@@ -111,10 +111,13 @@ namespace tools::voice {
 #ifdef TEST
 
 using namespace tools::voice;
+using namespace tools::utils; // Need Owns
 
 void test_SentenceStream_write_basic_sentence() {
-    BasicSentenceSeparation sep({"."});
-    SentenceStream stream(sep, 1024);
+    Owns owns_instance;
+    // Allocate the separator using Owns, passing only constructor args for BasicSentenceSeparation
+    auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
+    SentenceStream stream(owns_instance, sep_ptr, 1024);
     stream.write("Hello world.");
     bool actual_available = stream.available();
     string actual_sentence = stream.read();
@@ -123,8 +126,9 @@ void test_SentenceStream_write_basic_sentence() {
 }
 
 void test_SentenceStream_write_multiple_sentences() {
-    BasicSentenceSeparation sep({"."});
-    SentenceStream stream(sep, 1024);
+    Owns owns_instance;
+    auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
+    SentenceStream stream(owns_instance, sep_ptr, 1024);
     stream.write("First. Second.");
     string actual_first = stream.read();
     string actual_second = stream.read();
@@ -133,8 +137,9 @@ void test_SentenceStream_write_multiple_sentences() {
 }
 
 void test_SentenceStream_write_partial_then_complete() {
-    BasicSentenceSeparation sep({"."});
-    SentenceStream stream(sep, 1024);
+    Owns owns_instance;
+    auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
+    SentenceStream stream(owns_instance, sep_ptr, 1024);
     stream.write("Hello ");
     bool actual_available1 = stream.available();
     stream.write("world.");
@@ -146,8 +151,9 @@ void test_SentenceStream_write_partial_then_complete() {
 }
 
 void test_SentenceStream_peek_does_not_remove() {
-    BasicSentenceSeparation sep({"."});
-    SentenceStream stream(sep, 1024);
+    Owns owns_instance;
+    auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
+    SentenceStream stream(owns_instance, sep_ptr, 1024);
     stream.write("Test.");
     string actual_peek = stream.peek();
     string actual_read = stream.read();
@@ -156,8 +162,9 @@ void test_SentenceStream_peek_does_not_remove() {
 }
 
 void test_SentenceStream_flush_partial_buffer() {
-    BasicSentenceSeparation sep({"."});
-    SentenceStream stream(sep, 1024);
+    Owns owns_instance;
+    auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
+    SentenceStream stream(owns_instance, sep_ptr, 1024);
     stream.write("Partial text");
     stream.flush();
     string actual_sentence = stream.read();
@@ -165,8 +172,9 @@ void test_SentenceStream_flush_partial_buffer() {
 }
 
 void test_SentenceStream_buffer_overflow() {
-    BasicSentenceSeparation sep({"."});
-    SentenceStream stream(sep, 10);
+    Owns owns_instance;
+    auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
+    SentenceStream stream(owns_instance, sep_ptr, 10);
     bool thrown = false;
     try {
         stream.write("This is too long for buffer.");
@@ -181,15 +189,17 @@ void test_SentenceStream_buffer_overflow() {
 }
 
 void test_SentenceStream_eof_empty() {
-    BasicSentenceSeparation sep({"."});
-    SentenceStream stream(sep, 1024);
+    Owns owns_instance;
+    auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
+    SentenceStream stream(owns_instance, sep_ptr, 1024);
     bool actual_eof = stream.eof();
     assert(actual_eof && "Should be EOF when empty");
 }
 
 void test_SentenceStream_eof_after_read() {
-    BasicSentenceSeparation sep({"."});
-    SentenceStream stream(sep, 1024);
+    Owns owns_instance;
+    auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
+    SentenceStream stream(owns_instance, sep_ptr, 1024);
     stream.write("Done.");
     stream.read();
     bool actual_eof = stream.eof();
@@ -197,8 +207,9 @@ void test_SentenceStream_eof_after_read() {
 }
 
 void test_SentenceStream_close_clears_state() {
-    BasicSentenceSeparation sep({"."});
-    SentenceStream stream(sep, 1024);
+    Owns owns_instance;
+    auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
+    SentenceStream stream(owns_instance, sep_ptr, 1024);
     stream.write("Leftover text");
     stream.close();
     bool actual_available = stream.available();
@@ -208,8 +219,9 @@ void test_SentenceStream_close_clears_state() {
 }
 
 void test_SentenceStream_write_no_separator() {
-    BasicSentenceSeparation sep({"."});
-    SentenceStream stream(sep, 1024);
+    Owns owns_instance;
+    auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
+    SentenceStream stream(owns_instance, sep_ptr, 1024);
     stream.write("Hello world");
     bool actual_available = stream.available();
     string actual_sentence = stream.read();
@@ -218,8 +230,9 @@ void test_SentenceStream_write_no_separator() {
 }
 
 void test_SentenceStream_write_not_ending_with_separator() {
-    BasicSentenceSeparation sep({"."});
-    SentenceStream stream(sep, 1024);
+    Owns owns_instance;
+    auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
+    SentenceStream stream(owns_instance, sep_ptr, 1024);
     stream.write("First. Second");
     string actual_first = stream.read();
     bool actual_available_after = stream.available();
@@ -235,8 +248,9 @@ void test_SentenceStream_write_not_ending_with_separator() {
 }
 
 void test_SentenceStream_flush_last_chunk_unfinished() {
-    BasicSentenceSeparation sep({"."});
-    SentenceStream stream(sep, 1024);
+    Owns owns_instance;
+    auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
+    SentenceStream stream(owns_instance, sep_ptr, 1024);
     stream.write("First. Last chunk");
     string actual_first = stream.read();
     assert(actual_first == "First." && "Should read complete sentence");

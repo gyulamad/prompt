@@ -194,6 +194,13 @@ int safe_main(int argc, char* argv[]) {
             );
             plugins->push<GeminiApiPlugin>(geminiPlugin);
 
+            ToolusePlugin* toolusePlugin = owns.allocate<ToolusePlugin>(
+                settings.get<string>("chatbot.instruct_tooluse"),
+                settings.get<string>("chatbot.instruct_tooluse_start_token"),
+                settings.get<string>("chatbot.instruct_tooluse_stop_token")
+            );
+            plugins->push<ToolusePlugin>(toolusePlugin);
+            
             ChatbotPlugin<PackT>* chatPlugin = owns.allocate<ChatbotPlugin<PackT>>(
                 owns,
                 settings.get<string>("lang"),
@@ -244,12 +251,6 @@ int safe_main(int argc, char* argv[]) {
             //     // tts
             // );
 
-            ToolusePlugin* toolusePlugin = owns.allocate<ToolusePlugin>(
-                settings.get<string>("chatbot.instruct_tooluse"),
-                settings.get<string>("chatbot.instruct_tooluse_start_token"),
-                settings.get<string>("chatbot.instruct_tooluse_stop_token")
-            );
-            plugins->push<ToolusePlugin>(toolusePlugin);
 
             Chatbot* chatbot = owns.allocate<Chatbot>(
                 owns,

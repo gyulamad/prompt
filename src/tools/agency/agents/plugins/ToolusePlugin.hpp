@@ -14,7 +14,6 @@ using namespace tools::agency::chat;
 namespace tools::agency::agents::plugins {
 
     class ToolusePlugin: public ChatPlugin {
-        vector<Tool*> tools;
     public:
         ToolusePlugin(
             const string& instruct_tooluse,
@@ -38,7 +37,7 @@ namespace tools::agency::agents::plugins {
         }
         
         string processChunk(Chatbot* /*chatbot*/, const string& chunk) override {
-            // TODO: the processChunk proceeds an AI inference stream output.
+            // TODO: !@# the processChunk proceeds an AI inference stream output.
             // task: we have to puffer the chunks and cut the chunk where it contains a tooluse start token, store afterwards,
             // until a tooluse stop token reached in the chunk (or later recieved chunks)
             // when the tooluse stop received, call the processFunctionCall(string tooluse-content)
@@ -60,9 +59,11 @@ namespace tools::agency::agents::plugins {
 
         virtual void processFunctionCall(const string& functionCall) {// = 0;
             DEBUG(functionCall);
+            // TODO: Implement actual tool execution logic here based on functionCall content
         }
         
     private:
+        vector<Tool*> tools;
         string instruct_tooluse;
         string tooluse_start_token;
         string tooluse_stop_token;
