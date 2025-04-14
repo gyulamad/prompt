@@ -18,48 +18,91 @@ namespace tools::str {
             const string& stop_token,
             function<void(const string&)> cb
         ) {
-            string clean = "";
-            for (size_t i = 0; i < chunk.size(); i++) {
-                buffer += chunk[i];
-                if (in_tokens) inner += chunk[i];
+            string guaranteed_clean = "";
+            // Index in the main buffer where a potential start token sequence begins.
+            size_t potential_token_start_index = string::npos;
 
-                bool in_start_token = false;
-                for (size_t i = 1; i <= start_token.size(); i++)
-                    if (buffer.ends_with(start_token.substr(0, i))) {
-                        in_start_token = true;
-                        break;
-                    }
-                bool in_stop_token = false;
-                for (size_t i = 1; i <= stop_token.size(); i++)
-                    if (buffer.ends_with(stop_token.substr(0, i))) {
-                        in_stop_token = true;
-                        break;
-                    }
-                if (!in_start_token && !in_stop_token && !in_tokens) clean += chunk[i];
+            for (size_t i = 0; i < chunk.size(); ++i) {
+                char current_char = chunk[i];
+                buffer += current_char;
 
-                if (buffer.ends_with(start_token)) {
-                    in_tokens = true;
-                    inner = ""; // Reset inner buffer when start token is found
-                }
-                if (buffer.ends_with(stop_token)) {
-                    in_tokens = false;
-                    cb(inner.substr(0, inner.size() - stop_token.size()));
-                    // clean += start_token + inner;
-                    inner = "";
+                if (in_tokens) {
+                    // --- Inside a frame ---
+                    inner += current_char;
+                    if (!stop_token.empty() && buffer.ends_with(stop_token)) {
+                        // Frame ended
+                        in_tokens = false;
+                        if (inner.size() >= stop_token.size()) {
+                            cb(inner.substr(0, inner.size() - stop_token.size()));
+                        } else {
+                            cb(""); // Should not happen if stop_token is not empty
+                        }
+                        inner = "";
+                        potential_token_start_index = string::npos; // Reset potential start
+                    }
+                    // Characters inside the frame are not added to clean output
+                } else {
+                    // --- Outside a frame ---
+                    if (!start_token.empty() && buffer.ends_with(start_token)) {
+                        // Frame started
+                        in_tokens = true;
+                        inner = "";
+                        // Discard characters that formed the start token (they were never added to guaranteed_clean).
+                        potential_token_start_index = string::npos; // Reset potential start
+                    } else {
+                        // Not a full start token match. Check for partial match.
+                        bool is_potential = false;
+                        size_t match_len = 0;
+                        if (!start_token.empty()) {
+                            for (size_t len = 1; len <= start_token.size() && len <= buffer.size(); ++len) {
+                                if (buffer.substr(buffer.size() - len) == start_token.substr(0, len)) {
+                                    is_potential = true;
+                                    match_len = len;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (is_potential) {
+                            // Part of a potential start token sequence.
+                            if (match_len == 1) {
+                                // First character of potential match, record its index in the main buffer.
+                                potential_token_start_index = buffer.size() - 1;
+                            }
+                            // Hold back the character - do not add to guaranteed_clean yet.
+                        } else {
+                            // Not part of any potential start token sequence.
+                            if (potential_token_start_index != string::npos) {
+                                // A potential sequence just broke. Flush the held-back characters.
+                                // Characters from index potential_token_start_index up to (but not including) current character.
+                                guaranteed_clean += buffer.substr(potential_token_start_index, (buffer.size() - 1) - potential_token_start_index);
+                                potential_token_start_index = string::npos; // Reset
+                            }
+                            // Add the current character as it's definitely clean.
+                            guaranteed_clean += current_char;
+                        }
+                    }
                 }
             }
-            return clean;
+            // Characters potentially part of a start token at the end of the chunk
+            // remain in the buffer and are not included in the returned guaranteed_clean.
+            return guaranteed_clean;
         }
+
 
         void reset() {
             buffer = "";
             in_tokens = false;
             inner = "";
+            // Reset potential_token_start_index? It's not a member variable currently.
+            // It's recalculated each call based on buffer state, which is reset. So, okay.
         }
 
+        // Member variables store state across calls
         string buffer;
         bool in_tokens;
         string inner;
+        // potential_token_start_index is local to parse() call
     };
     
 }
@@ -270,6 +313,98 @@ void test_FrameTokenParser_parse_empty_tokens() {
     assert(clean_output == chunk && "Empty Tokens: Clean output expected to be original chunk");
 }
 
+void test_FrameTokenParser_parse_start_at_beginning() {
+    FrameTokenParser parser;
+    string extracted_content;
+    auto callback = [&](const string& content) { extracted_content = content; };
+    string start_token = "START";
+    string stop_token = "END";
+
+    string chunk = "STARTdataEND trailing";
+    string clean_output = parser.parse(chunk, start_token, stop_token, callback);
+
+    assert(extracted_content == "data" && "Start At Beginning: Extracted content mismatch");
+    // Clean output should only contain text after the frame
+    assert(clean_output == " trailing" && "Start At Beginning: Clean output mismatch");
+    assert(!parser.in_tokens && "Start At Beginning: Should not be in tokens state");
+}
+
+void test_FrameTokenParser_parse_stop_at_end() {
+    FrameTokenParser parser;
+    string extracted_content;
+    auto callback = [&](const string& content) { extracted_content = content; };
+    string start_token = "START";
+    string stop_token = "END";
+
+    string chunk = "leading STARTdataEND";
+    string clean_output = parser.parse(chunk, start_token, stop_token, callback);
+
+    assert(extracted_content == "data" && "Stop At End: Extracted content mismatch");
+    // Clean output should only contain text before the frame
+    assert(clean_output == "leading " && "Stop At End: Clean output mismatch");
+    assert(!parser.in_tokens && "Stop At End: Should not be in tokens state");
+}
+
+void test_FrameTokenParser_parse_frame_at_boundaries() {
+    FrameTokenParser parser;
+    string extracted_content;
+    auto callback = [&](const string& content) { extracted_content = content; };
+    string start_token = "START";
+    string stop_token = "END";
+
+    string chunk = "STARTdataEND";
+    string clean_output = parser.parse(chunk, start_token, stop_token, callback);
+
+    assert(extracted_content == "data" && "Boundaries: Extracted content mismatch");
+    // Clean output should be empty as the frame covers the whole chunk
+    assert(clean_output == "" && "Boundaries: Clean output mismatch");
+    assert(!parser.in_tokens && "Boundaries: Should not be in tokens state");
+}
+
+void test_FrameTokenParser_parse_fake_start_token() {
+    FrameTokenParser parser;
+    string extracted_content = "initial"; // Check if callback is wrongly called
+    auto callback = [&](const string& content) { extracted_content = content; };
+    string start_token = "<start-token>";
+    string stop_token = "<stop-token>";
+
+    // Contains something that looks like the start token but isn't quite
+    string chunk = "Some text <start-not-token> data <stop-token>";
+    string clean_output = parser.parse(chunk, start_token, stop_token, callback);
+
+    assert(extracted_content == "initial" && "Fake Start: Callback should not be called");
+    // The parser should treat the fake token as regular text
+    assert(clean_output == chunk && "Fake Start: Clean output should be the original chunk");
+    assert(!parser.in_tokens && "Fake Start: Should not be in tokens state");
+}
+
+void test_FrameTokenParser_parse_fake_stop_token() {
+    FrameTokenParser parser;
+    string extracted_content;
+    auto callback = [&](const string& content) { extracted_content = content; };
+    string start_token = "<start>";
+    string stop_token = "<stop>";
+
+    // Contains the real start token but a fake stop token
+    string chunk = "Text <start> data <stop-it>";
+    string clean_output = parser.parse(chunk, start_token, stop_token, callback);
+
+    assert(extracted_content.empty() && "Fake Stop: Callback should not be called yet");
+    // Clean output should stop at the real start token
+    assert(clean_output == "Text " && "Fake Stop: Clean output mismatch");
+    // Should remain in tokens state because the real stop token wasn't found
+    assert(parser.in_tokens == true && "Fake Stop: Should be in tokens state");
+    assert(parser.inner == " data <stop-it>" && "Fake Stop: Inner buffer mismatch");
+
+    // Now provide the real stop token
+    string chunk2 = " more data <stop>";
+    string clean_output2 = parser.parse(chunk2, start_token, stop_token, callback);
+
+    assert(extracted_content == " data <stop-it> more data " && "Fake Stop 2: Extracted content mismatch");
+    assert(clean_output2 == "" && "Fake Stop 2: Clean output mismatch");
+    assert(!parser.in_tokens && "Fake Stop 2: Should be out of tokens state");
+}
+
 
 // Register tests
 TEST(test_FrameTokenParser_parse_basic);
@@ -281,6 +416,11 @@ TEST(test_FrameTokenParser_parse_multiple_frames);
 TEST(test_FrameTokenParser_reset);
 TEST(test_FrameTokenParser_parse_empty_chunk);
 TEST(test_FrameTokenParser_parse_empty_tokens);
+TEST(test_FrameTokenParser_parse_start_at_beginning);
+TEST(test_FrameTokenParser_parse_stop_at_end);
+TEST(test_FrameTokenParser_parse_frame_at_boundaries);
+TEST(test_FrameTokenParser_parse_fake_start_token);
+TEST(test_FrameTokenParser_parse_fake_stop_token);
 
 
 #endif // TEST
