@@ -221,7 +221,7 @@ When you need to perform a real-world action (like searching the web), you MUST 
         "You can use the following function calls to perform 'real-life' actions:"
         "\n\n{{model_tools}}\n\n"
         "Note:\n"
-        "**Avoid triple quotes (```json...```) when using function calls.**\n"
+        "**Avoid triple quotes (```json...```) when using function calls json in your output.**\n"
         "**Always double-check the JSON syntax for errors.**\n"
     );
 

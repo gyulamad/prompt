@@ -47,6 +47,7 @@
 #include "tools/agency/agents/plugins/GeminiApiPlugin.hpp"
 #include "tools/agency/agents/plugins/ChatbotPlugin.hpp"
 #include "tools/agency/agents/plugins/TalkbotPlugin.hpp"
+#include "tools/agency/agents/plugins/ToolusePlugin.hpp"
 
 using namespace std;
 using namespace tools::utils;
@@ -183,13 +184,13 @@ int safe_main(int argc, char* argv[]) {
             ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
 
             GeminiApiPlugin* geminiPlugin = owns.allocate<GeminiApiPlugin>(
-                    settings.get<string>("gemini.url"),
-                    settings.get<string>("gemini.secret"), // gemini_secret,
-                    settings.get<string>("gemini.variant"), // gemini_variant,
-                    settings.get<vector<string>>("gemini.headers"),
-                    settings.get<long>("gemini.timeout"), // gemini_timeout,
-                    settings.get<bool>("gemini.verify_ssl"),
-                    settings.get<string>("gemini.interruption_feedback")
+                settings.get<string>("gemini.url"),
+                settings.get<string>("gemini.secret"), // gemini_secret,
+                settings.get<string>("gemini.variant"), // gemini_variant,
+                settings.get<vector<string>>("gemini.headers"),
+                settings.get<long>("gemini.timeout"), // gemini_timeout,
+                settings.get<bool>("gemini.verify_ssl"),
+                settings.get<string>("gemini.interruption_feedback")
             );
             plugins->push<GeminiApiPlugin>(geminiPlugin);
 
@@ -242,6 +243,14 @@ int safe_main(int argc, char* argv[]) {
             //     // sentences, 
             //     // tts
             // );
+
+            ToolusePlugin* toolusePlugin = owns.allocate<ToolusePlugin>(
+                settings.get<string>("chatbot.instruct_tooluse"),
+                settings.get<string>("chatbot.instruct_tooluse_start_token"),
+                settings.get<string>("chatbot.instruct_tooluse_stop_token")
+            );
+            plugins->push<ToolusePlugin>(toolusePlugin);
+
             Chatbot* chatbot = owns.allocate<Chatbot>(
                 owns,
                 name,
