@@ -3,6 +3,7 @@
 #include <string>
 
 #include "../../../str/tpl_replace.hpp"
+#include "../../../str/FrameTokenParser.hpp"
 #include "../../chat/ChatPlugin.hpp"
 
 #include "Tool.hpp"
@@ -35,6 +36,15 @@ namespace tools::agency::agents::plugins {
                 { "{{tooluse_stop_token}}", tooluse_stop_token},
             }, instruct_tooluse);
         }
+
+        string buffer;
+        bool in_tokens;
+        string inner;
+        void reset() {
+            buffer = "";
+            in_tokens = false;
+            inner = "";
+        }
         
         string processChunk(Chatbot* /*chatbot*/, const string& chunk) override {
             // TODO: !@# the processChunk proceeds an AI inference stream output.
@@ -42,7 +52,10 @@ namespace tools::agency::agents::plugins {
             // until a tooluse stop token reached in the chunk (or later recieved chunks)
             // when the tooluse stop received, call the processFunctionCall(string tooluse-content)
             // the returned chunk should not contains the tooluse outputs from the AI
-            return chunk;
+
+            return parser.parse(chunk, tooluse_start_token, tooluse_stop_token, [this](const string& inner) {
+                processFunctionCall(inner);
+            });
         }
         
         string processResponse(Chatbot* /*chatbot*/, const string& response) override {
@@ -54,6 +67,7 @@ namespace tools::agency::agents::plugins {
         }
         
         string processChat(Chatbot* /*chatbot*/, const string& /*sender*/, const string& text, bool& /*interrupted*/) override {
+            parser.reset();
             return text;
         }
 
@@ -67,6 +81,8 @@ namespace tools::agency::agents::plugins {
         string instruct_tooluse;
         string tooluse_start_token;
         string tooluse_stop_token;
+
+        FrameTokenParser parser;
     };
 
 }
