@@ -371,7 +371,7 @@ int safe_main(int argc, char* argv[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-    //    "test_FrameTokenParser"
+    //    "test_LoadCommand_Validate_Fail_TooFewArgs"
     });
     
     return safe_main<string>(argc, argv);

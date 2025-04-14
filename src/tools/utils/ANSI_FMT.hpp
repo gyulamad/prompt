@@ -47,7 +47,7 @@
 
 #define ANSI_FMT(fmt, txt) (std::string(ANSI_FMT_RESET) + (fmt) + (txt) + ANSI_FMT_RESET)
 #define ANSI_FMT_FILE_LINE(file, line) ANSI_FMT(ANSI_FMT_FILE, (std::string(file)) + ":" + std::to_string(line))
-#define ANSI_FMT_CALL(func, file, line) ANSI_FMT(ANSI_FMT_FUNC, (func) + "()" + ANSI_FMT_RESET + " at " + ANSI_FMT_FILE_LINE((file), (line)))
+#define ANSI_FMT_CALL(func, file, line) ANSI_FMT(ANSI_FMT_FUNC, (std::string(func)) + "()" + ANSI_FMT_RESET + " at " + ANSI_FMT_FILE_LINE((file), (line)))
 
 using namespace std;
 

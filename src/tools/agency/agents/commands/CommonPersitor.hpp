@@ -22,7 +22,7 @@ namespace tools::agency::agents::commands {
     // + help usages in the parent class have to be updatede
 
     class CommonPersistor {
-    protected:
+    public:
 
         enum Persistor { LOAD, SAVE };
 
