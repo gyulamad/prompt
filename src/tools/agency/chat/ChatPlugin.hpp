@@ -19,6 +19,7 @@ namespace tools::agency::chat {
         virtual string processChunk(Chatbot* /*chatbot*/, const string&) = 0;
         virtual string processResponse(Chatbot* /*chatbot*/, const string&) = 0;
         virtual string processRespond(Chatbot* /*chatbot*/, const string& /*sender*/, const string& /*text*/) = 0;
+        virtual string processChat(Chatbot* /*chatbot*/, const string& /*sender*/, const string& /*text*/, bool& /*interrupted*/) = 0;
     };
 
     class ChatPlugins {

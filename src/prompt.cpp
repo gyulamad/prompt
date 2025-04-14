@@ -40,10 +40,11 @@
 #include "tools/agency/agents/commands/LoadCommand.hpp"
 #include "tools/agency/agents/commands/SaveCommand.hpp"
 
-#include "tools/agency/ai/gemini/GeminiChatbot.hpp"
+// #include "tools/agency/ai/gemini/GeminiChatbot.hpp"
 // #include "tools/agency/ai/gemini/GeminiTalkbot.hpp"
 // #include "tools/agency/ai/gemini/GeminiDecidorChatbot.hpp"
 
+#include "tools/agency/agents/plugins/GeminiApiPlugin.hpp"
 #include "tools/agency/agents/plugins/ChatbotPlugin.hpp"
 #include "tools/agency/agents/plugins/TalkbotPlugin.hpp"
 
@@ -56,7 +57,7 @@ using namespace tools::agency;
 using namespace tools::agency::agents;
 using namespace tools::agency::agents::commands;
 using namespace tools::agency::agents::plugins;
-using namespace tools::agency::ai;
+// using namespace tools::agency::ai;
 
 // TODO: !@# add coverage -> test prompt -> cover more -> fix todo-s -> add response processing plugins -> add tool use plugins (add agency tool: spawn helpers for eg.; add terminal use; add browser use) -> ... -> add vision -> add visual tool use (computer use for e.g)
 
@@ -179,6 +180,19 @@ int safe_main(int argc, char* argv[]) {
                 settings.get<bool>("chatbot.use_start_token") // chatbot_use_start_token
             );
 
+            ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+
+            GeminiApiPlugin* geminiPlugin = owns.allocate<GeminiApiPlugin>(
+                    settings.get<string>("gemini.url"),
+                    settings.get<string>("gemini.secret"), // gemini_secret,
+                    settings.get<string>("gemini.variant"), // gemini_variant,
+                    settings.get<vector<string>>("gemini.headers"),
+                    settings.get<long>("gemini.timeout"), // gemini_timeout,
+                    settings.get<bool>("gemini.verify_ssl"),
+                    settings.get<string>("gemini.interruption_feedback")
+            );
+            plugins->push<GeminiApiPlugin>(geminiPlugin);
+
             ChatbotPlugin<PackT>* chatPlugin = owns.allocate<ChatbotPlugin<PackT>>(
                 owns,
                 settings.get<string>("lang"),
@@ -190,6 +204,7 @@ int safe_main(int argc, char* argv[]) {
                 // sentences,
                 // tts
             );
+            plugins->push<ChatbotPlugin<PackT>>(chatPlugin);
 
             BasicSentenceSeparation* separator = owns.allocate<BasicSentenceSeparation>(
                 settings.get<vector<string>>("chatbot.sentence_separators") // talkbot_sentence_separators
@@ -210,24 +225,29 @@ int safe_main(int argc, char* argv[]) {
                 sentences,
                 tts
             );
-            ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
-            plugins->push<ChatbotPlugin<PackT>>(chatPlugin);
             plugins->push<TalkbotPlugin<PackT>>(talkPlugin);
 
-            GeminiChatbot<PackT>* chatbot = owns.allocate<GeminiChatbot<PackT>>(
+            // GeminiChatbot<PackT>* chatbot = owns.allocate<GeminiChatbot<PackT>>(
+            //     owns,
+            //     settings.get<string>("gemini.secret"), // gemini_secret,
+            //     settings.get<string>("gemini.variant"), // gemini_variant,
+            //     settings.get<long>("gemini.timeout"), // gemini_timeout,
+            //     name,
+            //     // settings.get<string>("chatbot.instructions"),
+            //     history,
+            //     // interface,
+            //     // printer,
+            //     plugins,
+            //     settings.get<bool>("chatbot.talks")
+            //     // sentences, 
+            //     // tts
+            // );
+            Chatbot* chatbot = owns.allocate<Chatbot>(
                 owns,
-                settings.get<string>("gemini.secret"), // gemini_secret,
-                settings.get<string>("gemini.variant"), // gemini_variant,
-                settings.get<long>("gemini.timeout"), // gemini_timeout,
                 name,
-                // settings.get<string>("chatbot.instructions"),
-                history,
-                // interface,
-                // printer,
+                history, 
                 plugins,
                 settings.get<bool>("chatbot.talks")
-                // sentences, 
-                // tts
             );
             ChatbotAgent<PackT>& agent = agency.template spawn<ChatbotAgent<PackT>>(
                 owns,

@@ -95,6 +95,10 @@ namespace tools::agency::agents::plugins {
                 throw ERROR("Talkbots does not support full completion resonse.");
             return text;
         }
+        
+        string processChat(Chatbot* /*chatbot*/, const string& /*sender*/, const string& text, bool& /*interrupted*/) override {
+            return text;
+        }
 
     protected:
 

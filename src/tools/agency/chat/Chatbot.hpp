@@ -70,7 +70,7 @@ namespace tools::agency::chat {
         //     this->instructions = instructions;
         // }
 
-        void* getHistoryPtr() { return history; } // TODO: remove this
+        void* getHistoryPtr() { return safe(history); } // TODO: remove this
 
         virtual bool isTalks() const { return talks; }
 
@@ -89,7 +89,12 @@ namespace tools::agency::chat {
         }
 
         // stream chat // TODO: add as plugins!! <- gemini/request for chunks stream plugin can be used
-        virtual string chat(const string& sender, const string& text, bool& interrupted) = 0;
+        virtual string chat(const string& sender, const string& text, bool& interrupted) {
+            string proceed = text;
+            for (void* plugin: plugins->getPlugs())
+                proceed = ((ChatPlugin*)safe(plugin))->processChat(this, sender, proceed, interrupted);
+            return proceed; 
+        }
 
         // on stream chunk recieved
         virtual string chunk(const string& chunk) {

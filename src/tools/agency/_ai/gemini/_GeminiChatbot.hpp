@@ -17,9 +17,9 @@ using namespace tools::agency::chat;
 namespace tools::agency::ai {
 
     template<typename T>
-    class GeminiChatbot: /*public Gemini,*/ public Chatbot {
+    class _GeminiChatbot: /*public Gemini,*/ public Chatbot {
     public:
-        GeminiChatbot(
+        _GeminiChatbot(
             Owns& owns,
             const string& secret, 
             const string& variant,
@@ -46,7 +46,7 @@ namespace tools::agency::ai {
             // interface(interface)
         {}
 
-        virtual ~GeminiChatbot() {
+        virtual ~_GeminiChatbot() {
             // cout << "GeminiChatbot (" + this->name + ") destruction..." << endl;
         }
 
