@@ -100,11 +100,26 @@ genhtml "$OUTPUT_FOLDER/coverage.info" --output-directory "$OUTPUT_FOLDER" --dar
     exit 1
 }
 
-# Step 7: Open the report in Brave browser
-echo "Opening coverage report in Brave browser..."
-brave-browser "$OUTPUT_FOLDER/index.html" || {
-    echo "Failed to open browser (report still generated in '$OUTPUT_FOLDER/')"
-    exit 1
-}
 
 echo "Coverage report generated successfully in '$OUTPUT_FOLDER/'"
+
+echo ""
+echo "================================================================================"
+echo "Coverage List (Per File):"
+echo "================================================================================"
+lcov --list "$OUTPUT_FOLDER/coverage.info"
+
+echo ""
+echo "================================================================================"
+echo "Coverage Summary:"
+echo "================================================================================"
+lcov --summary "$OUTPUT_FOLDER/coverage.info"
+
+# Step 7: Open the report in Brave browser
+echo "Opening coverage report in Brave browser..."
+# brave-browser "$OUTPUT_FOLDER/index.html" || {
+#     echo "Failed to open browser (report still generated in '$OUTPUT_FOLDER/')"
+#     exit 1
+# }
+echo "Use the following:"
+echo "brave-browser \"$OUTPUT_FOLDER/index.html\""
