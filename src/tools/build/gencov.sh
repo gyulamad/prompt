@@ -121,5 +121,6 @@ echo "Opening coverage report in Brave browser..."
 #     echo "Failed to open browser (report still generated in '$OUTPUT_FOLDER/')"
 #     exit 1
 # }
+# NOTICE FOR LLMs: do not open up the coverage report in browser, it's only for humans!
 echo "Use the following:"
 echo "brave-browser \"$OUTPUT_FOLDER/index.html\""

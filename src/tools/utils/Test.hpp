@@ -23,6 +23,13 @@ using namespace std;
 
 #ifdef TEST
 
+/** use this macro:
+TEST macro -> register a test, TEST_SKIP macro -> goes inside the test an skips it. eg:
+void test_foo() {
+    TEST_SKIP("not runs"); // throws an exception in the background
+    ...
+} 
+*/
 #define TEST_SKIP(...) { \
     const char* msg = #__VA_ARGS__; \
     if (msg[0] == '\0') msg = "skip reason not specified"; \
