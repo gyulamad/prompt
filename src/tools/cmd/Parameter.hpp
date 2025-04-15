@@ -13,3 +13,20 @@ namespace tools::cmd {
     };
 
 }
+
+#ifdef TEST
+
+#include "/mnt/windows/llm/prompt/src/tools/utils/Test.hpp"
+
+using namespace tools::cmd;
+
+void test_Parameter_constructor() {
+    Parameter param = {"test", true, "test help"};
+    assert(param.name == "test" && "Name not initialized correctly");
+    assert(param.optional == true && "Optional not initialized correctly");
+    assert(param.help == "test help" && "Help not initialized correctly");
+}
+
+TEST(test_Parameter_constructor);
+
+#endif

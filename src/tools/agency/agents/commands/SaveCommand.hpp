@@ -151,3 +151,58 @@ namespace tools::agency::agents::commands {
     };
 
 }
+
+#ifdef TEST
+
+#include "../../../utils/Test.hpp"
+#include "../../../agency/AgentRoleMap.hpp"
+#include "../../../containers/vector_equal.hpp"
+
+using namespace tools::agency::agents::commands;
+using namespace tools::utils;
+
+// Define a dummy type for the template
+using DummyType = string;
+
+void test_SaveCommand_Constructor_Save() {
+    // Corrected constructor call with two arguments
+    AgentRoleMap dummyRoles;
+    SaveCommand<DummyType> cmd("myprefix", dummyRoles);
+    assert(cmd.getName() == "myprefixsave" && "Constructor Save: Name check failed");
+}
+
+void test_SaveCommand_GetName_Save() {
+    AgentRoleMap dummyRoles;
+    SaveCommand<DummyType> cmd("", dummyRoles);
+    string actual = cmd.getName();
+    assert(actual == "save" && "GetName Save: Name mismatch");
+}
+
+void test_SaveCommand_GetDescription_Save() {
+    AgentRoleMap dummyRoles;
+    SaveCommand<DummyType> cmd("", dummyRoles);
+    string expected = "Save an agent or agency to a file.";
+    string actual = cmd.getDescription();
+    assert(actual == expected && "GetDescription Save: Description mismatch");
+}
+
+void test_SaveCommand_GetPatterns() {
+    AgentRoleMap dummyRoles;
+    SaveCommand<DummyType> cmd("", dummyRoles);
+    vector<string> expected = {
+        "save agent {string}",
+        "save agent {string} [{string}]",
+        "save agency {string}",
+        "save agency {string} [{string}]"
+    };
+    vector<string> actual = cmd.getPatterns();
+    assert(vector_equal(actual, expected) && "GetPatterns: Pattern mismatch");
+}
+
+// --- Register Tests ---
+TEST(test_SaveCommand_Constructor_Save);
+TEST(test_SaveCommand_GetName_Save);
+TEST(test_SaveCommand_GetDescription_Save);
+TEST(test_SaveCommand_GetPatterns);
+
+#endif

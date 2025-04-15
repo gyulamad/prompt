@@ -114,3 +114,48 @@ namespace tools::agency::agents::commands {
     };
     
 }
+
+#ifdef TEST
+
+#include "/mnt/windows/llm/prompt/src/tools/utils/Test.hpp"
+#include "/mnt/windows/llm/prompt/src/tools/agency/AgentRoleMap.hpp"
+#include "/mnt/windows/llm/prompt/src/tools/containers/vector_equal.hpp"
+
+using namespace tools::agency::agents::commands;
+using namespace tools::utils;
+using namespace tools::cmd;
+
+// Define a dummy type for the template
+using DummyType = string;
+
+void test_HelpCommand_GetName_Help() {
+    AgentRoleMap dummyRoles;
+    HelpCommand<DummyType> cmd("");
+    string actual = cmd.getName();
+    assert(actual == "help" && "GetName Help: Name mismatch");
+}
+
+void test_HelpCommand_GetPatterns() {
+    AgentRoleMap dummyRoles;
+    HelpCommand<DummyType> cmd("");
+    vector<string> expected = {
+        "help",
+        "help {string}"
+    };
+    vector<string> actual = cmd.getPatterns();
+    assert(vector_equal(actual, expected) && "GetPatterns: Pattern mismatch");
+}
+
+void test_HelpCommand_GetDescription_Help() {
+    AgentRoleMap dummyRoles;
+    HelpCommand<DummyType> cmd("");
+    string actual = cmd.getDescription();
+    assert(actual == "Displays available commands or detailed help for a specific command." && "GetDescription Help: Description mismatch");
+}
+
+// --- Register Tests ---
+TEST(test_HelpCommand_GetName_Help);
+TEST(test_HelpCommand_GetDescription_Help);
+TEST(test_HelpCommand_GetPatterns);
+
+#endif

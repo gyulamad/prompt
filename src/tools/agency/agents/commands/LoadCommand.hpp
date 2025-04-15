@@ -146,7 +146,7 @@ using namespace tools::agency::agents::commands;
 using namespace tools::utils; // For Test.hpp helpers like str_contains
 
 // Define a dummy type for the template
-using DummyType = int; 
+using DummyType = string;
 
 // --- Test Cases ---
 
