@@ -59,7 +59,7 @@ namespace tools::agency::chat {
 
         string getName() const { return name; }
 
-        string getInstructions() { 
+        virtual string getInstructions() { 
             string proceed = "";// this->instructions;
             for (void* plugin: plugins->getPlugs())
                 proceed = ((ChatPlugin*)safe(plugin))->processInstructions(this, proceed);

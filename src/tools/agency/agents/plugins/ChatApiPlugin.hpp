@@ -28,6 +28,7 @@ namespace tools::agency::agents::plugins {
         string processChat(Chatbot* chatbot, const string& sender, const string& text, bool& interrupted) override {
             if (interrupted) return text;
 
+            // TODO: Move history appending logic to HistoryPlugin
             ChatHistory* history = safe((ChatHistory*)chatbot->getHistoryPtr());
             history->append(sender, text);
 

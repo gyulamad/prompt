@@ -7,6 +7,7 @@
 #include "../chat/Chatbot.hpp"
 #include "../chat/ChatHistory.hpp"
 #include "UserAgentInterface.hpp"
+#include "plugins/HistoryPlugin.hpp" // Add this line
 
 using namespace std;
 using namespace tools::agency::chat;
@@ -140,12 +141,15 @@ namespace tools::agency::agents {
 
 #include "../../utils/Test.hpp" //  TODO: fix paths everywhere AI hardcode absulutes
 #include "../../cmd/LinenoiseAdapter.hpp"
+#include "plugins/HistoryPlugin.hpp"
+#include "../tests/MockChatbot.hpp"
 
 using namespace std;
 using namespace tools::voice;
 using namespace tools::cmd;
 using namespace tools::utils;
 using namespace tools::agency::agents;
+using namespace tools::agency::agents::plugins;
 
 void test_ChatbotAgent_constructor() {
     Owns owns;
@@ -223,8 +227,57 @@ void test_ChatbotAgent_setTalks() {
     assert(safe(chatbot)->isTalks() == false && "setTalks(false) should set talks to false");
 }
 
+void test_ChatbotAgent_handle() {
+    Owns owns;
+    PackQueue<string> queue;
+    string name = "test_agent";
+    string instructions = "test_instructions";
+    string chatbotName = "test_chatbot";
+    string sender = "test_sender";
+    string item = "test_item";
+    string chatbotResponse = "test_response";
+
+    ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
+    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    HistoryPlugin* historyPlugin = owns.allocate<HistoryPlugin>(owns);
+    plugins->push<HistoryPlugin>(historyPlugin);
+    MockChatbot* chatbot = owns.allocate<MockChatbot>(owns, chatbotName, chatbotResponse, history, plugins, false);
+    //Chatbot* chatbot = owns.allocate<Chatbot>(owns, chatbotName, history, plugins, false);
+    TTS tts("", 0, 0, "", "", {});
+    STTSwitch sttSwitch;
+    MicView micView;
+    LinenoiseAdapter lineEditor("> ");
+    CommandLine commandLine(lineEditor, "", "", false, 10);
+    vector<Command*> commands;
+    Commander commander(commandLine, commands, "");
+    InputPipeInterceptor inputPipeInterceptor;
+    UserAgentInterface<string> interface(tts, sttSwitch, micView, commander, inputPipeInterceptor);
+
+    ChatbotAgent<string> agent(
+        owns, 
+        nullptr, 
+        queue, 
+        name, 
+        chatbot, 
+        interface
+    );
+
+    agent.handle(sender, item);
+
+    // Verify that the chatbot's chat function was called and the response was sent
+    ChatHistory* chatHistory = (ChatHistory*)safe(chatbot->getHistoryPtr());
+    vector<ChatMessage> messages = chatHistory->getMessages();
+    assert(messages.size() == 2 && "Chatbot should have two messages in history");
+    assert(messages[0].getSender() == sender && "Sender should match");
+    assert(messages[0].getText() == item && "First message should be the user's message");
+    assert(messages[1].getSender() == chatbotName && "Second sender should be the chatbot");
+    assert(messages[1].getText() == chatbotResponse && "Second message should be the chatbot's response");
+}
+
+
 TEST(test_ChatbotAgent_constructor);
 TEST(test_ChatbotAgent_type);
 TEST(test_ChatbotAgent_setTalks);
+TEST(test_ChatbotAgent_handle);
 
 #endif

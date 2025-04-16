@@ -378,7 +378,7 @@ int safe_main(int argc, char* argv[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-    //    "test_Worker_start_sync"
+    //    "test_ChatbotAgent_"
     });
     
     return safe_main<string>(argc, argv);
