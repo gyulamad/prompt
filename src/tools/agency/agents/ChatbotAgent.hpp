@@ -135,3 +135,68 @@ namespace tools::agency::agents {
     };
     
 }
+
+#ifdef TEST
+
+#include "../../utils/Test.hpp" //  TODO: fix paths everywhere AI hardcode absulutes
+#include "../../cmd/LinenoiseAdapter.hpp"
+
+using namespace std;
+using namespace tools::voice;
+using namespace tools::cmd;
+using namespace tools::utils;
+using namespace tools::agency::agents;
+
+void test_ChatbotAgent_constructor() {
+    Owns owns;
+    PackQueue<string> queue;
+    string name = "test_agent";
+    string instructions = "test_instructions";
+    ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
+    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false);
+    TTS tts("", 0, 0, "", "", {});
+    STTSwitch sttSwitch;
+    MicView micView;
+    LinenoiseAdapter lineEditor("> ");
+    CommandLine commandLine(lineEditor, "", "", false, 10);
+    vector<Command*> commands;
+    Commander commander(commandLine, commands, "");
+    InputPipeInterceptor inputPipeInterceptor;
+    UserAgentInterface<string> interface(tts, sttSwitch, micView, commander, inputPipeInterceptor);
+
+    ChatbotAgent<string> agent(owns, nullptr, queue, name, chatbot, interface);
+
+    assert(agent.getName() == name && "Agent name should be initialized correctly");
+    assert(agent.type() == "chat" && "Agent type should be 'chat'");
+    assert(agent.getChatbotPtr() == chatbot && "Chatbot pointer should be initialized correctly");
+}
+
+void test_ChatbotAgent_type() {
+    Owns owns;
+    PackQueue<string> queue;
+    string name = "test_agent";
+    string instructions = "test_instructions";
+    ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
+    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false);
+    TTS tts("", 0, 0, "", "", {});
+    STTSwitch sttSwitch;
+    MicView micView;
+    LinenoiseAdapter lineEditor("> ");
+    CommandLine commandLine(lineEditor, "", "", false, 10);
+    vector<Command*> commands;
+    Commander commander(commandLine, commands, "");
+    InputPipeInterceptor inputPipeInterceptor;
+    UserAgentInterface<string> interface(tts, sttSwitch, micView, commander, inputPipeInterceptor);
+
+    ChatbotAgent<string> agent(owns, nullptr, queue, name, chatbot, interface);
+
+    string type = agent.type();
+    assert(type == "chat" && "Agent type should be 'chat'");
+}
+
+TEST(test_ChatbotAgent_constructor);
+TEST(test_ChatbotAgent_type);
+
+#endif

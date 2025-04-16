@@ -117,3 +117,37 @@ namespace tools::agency::agents {
     };
     
 }
+
+#ifdef TEST
+
+#include "../../utils/Test.hpp" //  TODO: fix paths everywhere AI hardcode absulutes
+#include "../../cmd/LinenoiseAdapter.hpp"
+
+using namespace std;
+using namespace tools::voice;
+using namespace tools::cmd;
+using namespace tools::utils;
+using namespace tools::agency::agents;
+
+void test_UserAgent_type() {
+    Owns owns;
+    PackQueue<string> queue;
+    string name = "test_agent";
+    TTS tts("", 0, 0, "", "", {});
+    STTSwitch sttSwitch;
+    MicView micView;
+    LinenoiseAdapter lineEditor("> ");
+    CommandLine commandLine(lineEditor, "", "", false, 10);
+    vector<Command*> commands;
+    Commander commander(commandLine, commands, "");
+    InputPipeInterceptor inputPipeInterceptor;
+    UserAgentInterface<string> interface(tts, sttSwitch, micView, commander, inputPipeInterceptor);
+
+    UserAgent<string> agent(owns, nullptr, queue, name, interface);
+
+    assert(agent.type() == "user" && "Agent type should be 'user'");
+}
+
+TEST(test_UserAgent_type);
+
+#endif

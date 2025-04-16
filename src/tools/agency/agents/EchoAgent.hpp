@@ -39,3 +39,38 @@ namespace tools::agency::agents {
     };
     
 }
+
+#ifdef TEST
+
+#include "../../utils/Test.hpp" //  TODO: fix paths everywhere AI hardcode absulutes
+#include "../../cmd/LinenoiseAdapter.hpp"
+
+using namespace std;
+using namespace tools::voice;
+using namespace tools::cmd;
+using namespace tools::utils;
+using namespace tools::agency::agents;
+
+void test_EchoAgent_type() {
+    Owns owns;
+    PackQueue<string> queue;
+    string name = "test_agent";
+    vector<string> recipients;
+    TTS tts("", 0, 0, "", "", {});
+    STTSwitch sttSwitch;
+    MicView micView;
+    LinenoiseAdapter lineEditor("> ");
+    CommandLine commandLine(lineEditor, "", "", false, 10);
+    vector<Command*> commands;
+    Commander commander(commandLine, commands, "");
+    InputPipeInterceptor inputPipeInterceptor;
+    UserAgentInterface<string> interface(tts, sttSwitch, micView, commander, inputPipeInterceptor);
+
+    EchoAgent<string> agent(queue, name, recipients, interface);
+
+    assert(agent.type() == "echo" && "Agent type should be 'echo'");
+}
+
+TEST(test_EchoAgent_type);
+
+#endif

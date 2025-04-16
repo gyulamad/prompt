@@ -1,5 +1,5 @@
 // to get coverage: 
-// Executing task: g++ -std=c++20 /mnt/windows/llm/prompt/src/tools/build/compile.cpp -o /mnt/windows/llm/prompt/builds/compile -g -O0 -fsanitize=address -DTEST --coverage -fprofile-arcs -ftest-coverage -pedantic-errors -Werror -Wall -Wextra -Wunused -fno-elide-constructors 
+// Executing task: g++ -std=c++20 ./src/tools/build/compile.cpp -o ./builds/compile -g -O0 -fsanitize=address -DTEST --coverage -fprofile-arcs -ftest-coverage -pedantic-errors -Werror -Wall -Wextra -Wunused -fno-elide-constructors 
 // then: $ ./src/tools/build/gencov.sh ./src/tools/build/compile.cpp ./builds/compile
 
 #include <mutex>

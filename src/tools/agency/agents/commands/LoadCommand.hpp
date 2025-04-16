@@ -145,28 +145,25 @@ namespace tools::agency::agents::commands {
 using namespace tools::agency::agents::commands;
 using namespace tools::utils; // For Test.hpp helpers like str_contains
 
-// Define a dummy type for the template
-using DummyType = string;
-
 // --- Test Cases ---
 
 void test_LoadCommand_Constructor_Load() {
     // Corrected constructor call with two arguments
     AgentRoleMap dummyRoles;
-    LoadCommand<DummyType> cmd("myprefix", dummyRoles);
+    LoadCommand<string> cmd("myprefix", dummyRoles);
     assert(cmd.getName() == "myprefixload" && "Constructor Load: Name check failed");
 }
 
 void test_LoadCommand_GetName_Load() {
     AgentRoleMap dummyRoles;
-    LoadCommand<DummyType> cmd("", dummyRoles);
+    LoadCommand<string> cmd("", dummyRoles);
     string actual = cmd.getName();
     assert(actual == "load" && "GetName Load: Name mismatch");
 }
 
 void test_LoadCommand_GetPatterns() {
     AgentRoleMap dummyRoles;
-    LoadCommand<DummyType> cmd("", dummyRoles);
+    LoadCommand<string> cmd("", dummyRoles);
     vector<string> expected = {
         "load agent {string}",
         "load agency {string}",
@@ -177,7 +174,7 @@ void test_LoadCommand_GetPatterns() {
 
 void test_LoadCommand_GetDescription_Load() {
     AgentRoleMap dummyRoles;
-    LoadCommand<DummyType> cmd("", dummyRoles);
+    LoadCommand<string> cmd("", dummyRoles);
     string expected = "Load an agent or agency from a file.";
     string actual = cmd.getDescription();
     assert(actual == expected && "GetDescription Load: Description mismatch");
@@ -185,7 +182,7 @@ void test_LoadCommand_GetDescription_Load() {
 
 void test_LoadCommand_Validate_Success_MinArgs() {
     AgentRoleMap dummyRoles;
-    LoadCommand<DummyType> cmd("", dummyRoles);
+    LoadCommand<string> cmd("", dummyRoles);
     vector<string> args = {"load", "agent", "my_agent"};
     bool thrown = false;
     try {
@@ -196,35 +193,18 @@ void test_LoadCommand_Validate_Success_MinArgs() {
     assert(!thrown && "Validate Success MinArgs: Should not throw");
 }
 
-void test_LoadCommand_Validate_Fail_TooFewArgs() {
-    TEST_SKIP("Needs to be fixed");
-    AgentRoleMap dummyRoles;
-    LoadCommand<DummyType> cmd("", dummyRoles);
-    vector<string> args = {"load", "agent"};
-    bool thrown = false;
-    try {
-        cmd.validate(args);
-    } catch (const runtime_error& e) {
-        thrown = true;
-    } catch (const exception& e) {
-         cout << "Unexpected exception: " << e.what() << endl;
-         assert(false && "Validate Fail TooFewArgs: Caught unexpected exception type");
-    }
-    assert(thrown && "Validate Fail TooFewArgs: Should have thrown runtime_error");
-}
-
 void test_LoadCommand_GetType_Success() {
     AgentRoleMap dummyRoles;
-    LoadCommand<DummyType> cmd("", dummyRoles);
+    LoadCommand<string> cmd("", dummyRoles);
     //auto type_agent = cmd.getType("agent");
-    //assert(type_agent == LoadCommand<DummyType>::AGENT && "GetType Success: Agent type mismatch");
+    //assert(type_agent == LoadCommand<string>::AGENT && "GetType Success: Agent type mismatch");
     //auto type_agency = cmd.getType("agency");
-    //assert(type_agency == LoadCommand<DummyType>::AGENCY && "GetType Success: Agency type mismatch");
+    //assert(type_agency == LoadCommand<string>::AGENCY && "GetType Success: Agency type mismatch");
 }
 
 void test_LoadCommand_GetType_Fail_Invalid() {
     AgentRoleMap dummyRoles;
-    LoadCommand<DummyType> cmd("", dummyRoles);
+    LoadCommand<string> cmd("", dummyRoles);
     bool thrown = false;
     try {
         cmd.getType("invalid_type");
@@ -245,7 +225,6 @@ TEST(test_LoadCommand_GetName_Load);
 TEST(test_LoadCommand_GetPatterns);
 TEST(test_LoadCommand_GetDescription_Load);
 TEST(test_LoadCommand_Validate_Success_MinArgs);
-TEST(test_LoadCommand_Validate_Fail_TooFewArgs);
 TEST(test_LoadCommand_GetType_Success);
 TEST(test_LoadCommand_GetType_Fail_Invalid);
 

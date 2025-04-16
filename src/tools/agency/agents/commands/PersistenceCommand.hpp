@@ -276,36 +276,33 @@ namespace tools::agency::agents::commands {
 using namespace tools::agency::agents::commands;
 using namespace tools::utils; // For Test.hpp helpers like str_contains
 
-// Define a dummy type for the template
-using DummyType = int; 
-
 // --- Test Cases ---
 
 void test_PersistenceCommand_Constructor_Load() {
-    PersistenceCommand<DummyType> cmd("myprefix", PersistenceCommand<DummyType>::LOAD, "filearg", "File Description");
+    PersistenceCommand<string> cmd("myprefix", PersistenceCommand<string>::LOAD, "filearg", "File Description");
     assert(cmd.getName() == "myprefixload" && "Constructor Load: Name check failed");
     // Add more checks if internal state needs verification, though members are protected
 }
 
 void test_PersistenceCommand_Constructor_Save() {
-    PersistenceCommand<DummyType> cmd("myprefix", PersistenceCommand<DummyType>::SAVE, "outputfile", "Output File");
+    PersistenceCommand<string> cmd("myprefix", PersistenceCommand<string>::SAVE, "outputfile", "Output File");
     assert(cmd.getName() == "myprefixsave" && "Constructor Save: Name check failed");
 }
 
 void test_PersistenceCommand_GetName_Load() {
-    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    PersistenceCommand<string> cmd("", PersistenceCommand<string>::LOAD);
     string actual = cmd.getName();
     assert(actual == "load" && "GetName Load: Name mismatch");
 }
 
 void test_PersistenceCommand_GetName_Save() {
-    PersistenceCommand<DummyType> cmd("cmd_", PersistenceCommand<DummyType>::SAVE);
+    PersistenceCommand<string> cmd("cmd_", PersistenceCommand<string>::SAVE);
     string actual = cmd.getName();
     assert(actual == "cmd_save" && "GetName Save: Name mismatch");
 }
 
 void test_PersistenceCommand_GetPatterns() {
-    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    PersistenceCommand<string> cmd("", PersistenceCommand<string>::LOAD);
     vector<string> expected = {
         "load agent {string}",
         "load agent {string} [{string}]",
@@ -317,14 +314,14 @@ void test_PersistenceCommand_GetPatterns() {
 }
 
 void test_PersistenceCommand_GetDescription_Load() {
-    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD, "filename", "file");
+    PersistenceCommand<string> cmd("", PersistenceCommand<string>::LOAD, "filename", "file");
     string expected = "Load an agent or agency from a file.";
     string actual = cmd.getDescription();
     assert(actual == expected && "GetDescription Load: Description mismatch");
 }
 
 void test_PersistenceCommand_GetDescription_Save() {
-    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::SAVE, "filename", "file");
+    PersistenceCommand<string> cmd("", PersistenceCommand<string>::SAVE, "filename", "file");
     string expected = "Save an agent or agency to a file.";
     string actual = cmd.getDescription();
     assert(actual == expected && "GetDescription Save: Description mismatch");
@@ -332,7 +329,7 @@ void test_PersistenceCommand_GetDescription_Save() {
 
 // Usage test might be complex, maybe just check for key parts
 void test_PersistenceCommand_GetUsage_Load() {
-    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD, "inputfile", "input file");
+    PersistenceCommand<string> cmd("", PersistenceCommand<string>::LOAD, "inputfile", "input file");
     string actual = cmd.getUsage();
     assert(str_contains(actual, "load agent my_agent") && "GetUsage Load: Missing agent example");
     assert(str_contains(actual, "load agency my_agency my_agency_file") && "GetUsage Load: Missing agency example with file");
@@ -341,7 +338,7 @@ void test_PersistenceCommand_GetUsage_Load() {
 }
 
 void test_PersistenceCommand_Validate_Success_MinArgs() {
-    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    PersistenceCommand<string> cmd("", PersistenceCommand<string>::LOAD);
     vector<string> args = {"load", "agent", "my_agent"};
     bool thrown = false;
     try {
@@ -353,7 +350,7 @@ void test_PersistenceCommand_Validate_Success_MinArgs() {
 }
 
 void test_PersistenceCommand_Validate_Success_WithFilename() {
-    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::SAVE);
+    PersistenceCommand<string> cmd("", PersistenceCommand<string>::SAVE);
     vector<string> args = {"save", "agency", "my_agency", "my_file.json"};
      bool thrown = false;
     try {
@@ -365,7 +362,7 @@ void test_PersistenceCommand_Validate_Success_WithFilename() {
 }
 
 void test_PersistenceCommand_Validate_Fail_TooFewArgs() {
-    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    PersistenceCommand<string> cmd("", PersistenceCommand<string>::LOAD);
     vector<string> args = {"load", "agent"};
     bool thrown = false;
     try {
@@ -382,15 +379,15 @@ void test_PersistenceCommand_Validate_Fail_TooFewArgs() {
 }
 
 void test_PersistenceCommand_GetType_Success() {
-    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    PersistenceCommand<string> cmd("", PersistenceCommand<string>::LOAD);
     auto type_agent = cmd.getType("agent");
-    assert(type_agent == PersistenceCommand<DummyType>::AGENT && "GetType Success: Agent type mismatch");
+    assert(type_agent == PersistenceCommand<string>::AGENT && "GetType Success: Agent type mismatch");
     auto type_agency = cmd.getType("agency");
-    assert(type_agency == PersistenceCommand<DummyType>::AGENCY && "GetType Success: Agency type mismatch");
+    assert(type_agency == PersistenceCommand<string>::AGENCY && "GetType Success: Agency type mismatch");
 }
 
 void test_PersistenceCommand_GetType_Fail_Invalid() {
-    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    PersistenceCommand<string> cmd("", PersistenceCommand<string>::LOAD);
     bool thrown = false;
     try {
         cmd.getType("invalid_type");
@@ -406,19 +403,19 @@ void test_PersistenceCommand_GetType_Fail_Invalid() {
 }
 
 void test_PersistenceCommand_GetTypeName_Success() {
-     PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
-     string name_agent = cmd.getTypeName(PersistenceCommand<DummyType>::AGENT);
+     PersistenceCommand<string> cmd("", PersistenceCommand<string>::LOAD);
+     string name_agent = cmd.getTypeName(PersistenceCommand<string>::AGENT);
      assert(name_agent == "agent" && "GetTypeName Success: Agent name mismatch");
-     string name_agency = cmd.getTypeName(PersistenceCommand<DummyType>::AGENCY);
+     string name_agency = cmd.getTypeName(PersistenceCommand<string>::AGENCY);
      assert(name_agency == "agency" && "GetTypeName Success: Agency name mismatch");
 }
 
 void test_PersistenceCommand_GetTypeName_Fail_Invalid() {
-    PersistenceCommand<DummyType> cmd("", PersistenceCommand<DummyType>::LOAD);
+    PersistenceCommand<string> cmd("", PersistenceCommand<string>::LOAD);
     bool thrown = false;
     try {
         // Cast an invalid integer to the enum type
-        cmd.getTypeName(static_cast<PersistenceCommand<DummyType>::Type>(99)); 
+        cmd.getTypeName(static_cast<PersistenceCommand<string>::Type>(99)); 
     } catch (const runtime_error& e) {
         thrown = true;
         string what = e.what();

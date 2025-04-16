@@ -3,8 +3,9 @@
 #include <string>
 
 #include "../../utils/Owns.hpp"
+#include "../../utils/JSON.hpp"
+#include "../../utils/ERROR.hpp"
 #include "../PackQueue.hpp"
-#include "../Worker.hpp"
 
 using namespace std;
 using namespace tools::utils;
@@ -16,7 +17,7 @@ struct default_test_agency_setup {
     Worker<string>* agency = nullptr;
     string name;
     vector<string> recipients = {};
-    map<string, function<void(const string&, const JSON&)>> roles;
+    map<string, function<void(const string& name, const JSON&)>> roles;
     JSON json;
     default_test_agency_setup(string name): name(name) {
         json.set("name", name);

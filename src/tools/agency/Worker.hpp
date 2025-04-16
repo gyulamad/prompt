@@ -175,3 +175,132 @@ namespace tools::agency {
     };
 
 }
+
+#ifdef TEST
+
+#include "../str/str_contains.hpp"
+#include "chat/Chatbot.hpp"
+#include "chat/ChatHistory.hpp"
+#include "tests/helpers.hpp"
+#include "tests/TestWorker.hpp"
+#include "tests/MockWorker.hpp"
+#include "tests/default_test_agency_setup.hpp"
+#include "PackQueue.hpp" // Needed for queue operations
+
+using namespace tools::agency;
+using namespace tools::str;
+using namespace tools::agency::chat;
+
+// Test constructor
+void test_Worker_constructor_basic() {
+    default_test_agency_setup setup("test_worker");
+    TestWorker<string> worker(setup.owns, setup.agency, setup.queue, setup.name);
+    worker.fromJSON(setup.json);
+    auto actual_name = worker.getName();
+    assert(actual_name == "test_worker" && "Agent name should be set correctly");
+    // Can't directly test queue ref, but we'll use it in send tests
+}
+
+// Test single send
+void test_Worker_send_single() {
+    default_test_agency_setup setup("alice");
+    TestWorker<string> worker(setup.owns, setup.agency, setup.queue, setup.name);
+    worker.fromJSON(setup.json);
+    worker.testSend("bob", "hello");
+    auto actual_contents = queue_to_vector(setup.queue);
+    assert(actual_contents.size() == 1 && "Send should produce one pack");
+    assert(actual_contents[0].sender == "alice" && "Sender should be 'alice'");
+    assert(actual_contents[0].recipient == "bob" && "Recipient should be 'bob'");
+    assert(actual_contents[0].item == "hello" && "Item should be 'hello'");
+}
+
+// Test multiple sends
+void test_Worker_send_multiple() {
+    default_test_agency_setup setup("alice");
+    TestWorker<string> worker(setup.owns, setup.agency, setup.queue, setup.name);
+    worker.fromJSON(setup.json);
+    vector<string> recipients = {"bob", "charlie"};
+    worker.testSend(recipients, "hello");
+    auto actual_contents = queue_to_vector(setup.queue);
+    assert(actual_contents.size() == 2 && "Send should produce two packs");
+    assert(actual_contents[0].sender == "alice" && "First sender should be 'alice'");
+    assert(actual_contents[0].recipient == "bob" && "First recipient should be 'bob'");
+    assert(actual_contents[0].item == "hello" && "First item should be 'hello'");
+    assert(actual_contents[1].sender == "alice" && "Second sender should be 'alice'");
+    assert(actual_contents[1].recipient == "charlie" && "Second recipient should be 'charlie'");
+    assert(actual_contents[1].item == "hello" && "Second item should be 'hello'");
+}
+
+// Test tick default does nothing
+void test_Worker_tick_default() {
+    default_test_agency_setup setup("test_worker");
+    TestWorker<string> worker(setup.owns, setup.agency, setup.queue, setup.name);
+    worker.fromJSON(setup.json);
+    // No output or state to check, just ensure it runs without crashing
+    worker.tick();
+    // If we reach here, it’s fine—no assert needed for empty default
+}
+
+// Test sync runs until closed
+void test_Worker_sync_basic() {
+    default_test_agency_setup setup("test_worker");
+    TestWorker<string> worker(setup.owns, setup.agency, setup.queue, setup.name);
+    worker.fromJSON(setup.json);
+    worker.close(); // Set closing first
+    worker.sync(1); // Should exit immediately
+    auto actual_closed = worker.isClosing();
+    assert(actual_closed && "Agent should remain closed after sync");
+}
+
+// Test async starts and stops
+void test_Worker_async_basic() {
+    default_test_agency_setup setup("test_worker");
+    TestWorker<string> worker(setup.owns, setup.agency, setup.queue, setup.name);
+    worker.fromJSON(setup.json);
+    worker.start(1, true); // Async with 1ms sleep
+    sleep_ms(10); // Let it run briefly
+    worker.close(); // Signal to stop
+    // Destructor joins thread, so if it exits cleanly, test passes
+}
+
+void test_Worker_getAgencyPtr_agency_is_this() {
+    default_test_agency_setup setup("test_worker");
+    TestWorker<string> worker(setup.owns, &worker, setup.queue, setup.name);
+    worker.fromJSON(setup.json);
+    Worker<string>* agencyPtr = worker.getAgencyPtr();
+    assert(agencyPtr == &worker && "Agency pointer should be the same as this when agency is this");
+}
+
+// Test exit
+void test_Worker_exit_basic() {
+    default_test_agency_setup setup("test_worker");
+    TestWorker<string> worker(setup.owns, setup.agency, setup.queue, setup.name);
+    worker.fromJSON(setup.json);
+    worker.exit();
+    auto actual_closed = worker.isClosing();
+    assert(actual_closed && "Agent should be closed after exit");
+}
+
+void test_Worker_start_sync() {
+    default_test_agency_setup setup("test_worker");
+    MockWorker worker(setup.owns, setup.agency, setup.queue, setup.name);
+    worker.fromJSON(setup.json);
+    worker.throwInTick = true;
+    worker.start(1, false);
+    assert(worker.hoopsCalled);
+    assert(str_contains(worker.hoopsErrorMessage, "Worker 'test_worker' error"));
+    assert(str_contains(worker.hoopsErrorMessage, "Tick failed"));
+}
+
+// Register tests
+TEST(test_Worker_constructor_basic);
+TEST(test_Worker_send_single);
+TEST(test_Worker_send_multiple);
+TEST(test_Worker_tick_default);
+TEST(test_Worker_sync_basic);
+TEST(test_Worker_async_basic);
+TEST(test_Worker_getAgencyPtr_agency_is_this);
+TEST(test_Worker_exit_basic);
+TEST(test_Worker_start_sync);
+
+#endif

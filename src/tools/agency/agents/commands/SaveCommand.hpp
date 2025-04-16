@@ -161,26 +161,23 @@ namespace tools::agency::agents::commands {
 using namespace tools::agency::agents::commands;
 using namespace tools::utils;
 
-// Define a dummy type for the template
-using DummyType = string;
-
 void test_SaveCommand_Constructor_Save() {
     // Corrected constructor call with two arguments
     AgentRoleMap dummyRoles;
-    SaveCommand<DummyType> cmd("myprefix", dummyRoles);
+    SaveCommand<string> cmd("myprefix", dummyRoles);
     assert(cmd.getName() == "myprefixsave" && "Constructor Save: Name check failed");
 }
 
 void test_SaveCommand_GetName_Save() {
     AgentRoleMap dummyRoles;
-    SaveCommand<DummyType> cmd("", dummyRoles);
+    SaveCommand<string> cmd("", dummyRoles);
     string actual = cmd.getName();
     assert(actual == "save" && "GetName Save: Name mismatch");
 }
 
 void test_SaveCommand_GetDescription_Save() {
     AgentRoleMap dummyRoles;
-    SaveCommand<DummyType> cmd("", dummyRoles);
+    SaveCommand<string> cmd("", dummyRoles);
     string expected = "Save an agent or agency to a file.";
     string actual = cmd.getDescription();
     assert(actual == expected && "GetDescription Save: Description mismatch");
@@ -188,7 +185,7 @@ void test_SaveCommand_GetDescription_Save() {
 
 void test_SaveCommand_GetPatterns() {
     AgentRoleMap dummyRoles;
-    SaveCommand<DummyType> cmd("", dummyRoles);
+    SaveCommand<string> cmd("", dummyRoles);
     vector<string> expected = {
         "save agent {string}",
         "save agent {string} [{string}]",

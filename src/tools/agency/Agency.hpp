@@ -1,21 +1,22 @@
 #pragma once
 
-#include "../utils/Streamable.hpp"
-#include "chat/Chatbot.hpp"
-// #include "chat/Talkbot.hpp"
+#include "../containers/array_key_exists.hpp"
+// #include "../utils/Streamable.hpp"
+// #include "chat/Chatbot.hpp"
+// // #include "chat/Talkbot.hpp"
 
 #include "Worker.hpp"
-#include "PackQueue.hpp"
+// #include "PackQueue.hpp"
 #include "AgentRoleMap.hpp"
 
 using namespace tools::utils;
-using namespace tools::agency;
-using namespace tools::agency::chat;
+// using namespace tools::agency;
+// using namespace tools::agency::chat;
 
 namespace tools::agency {
 
     template<typename T>
-    class Agency: public Worker<T>/*: public Worker<T>*/ {
+    class Agency: public Worker<T> {
         static_assert(Streamable<T>, "T must support ostream output for dump()");
     public:
 
@@ -159,6 +160,8 @@ namespace tools::agency {
                 for (const JSON& jworker: jworkers) {
                     string role = jworker.get<string>("role");
                     string name = jworker.get<string>("name");
+                    if (!array_key_exists(role, roles))
+                        throw ERROR("Role not exists: " + role);
                     AgentInstantiator maker = roles[role];
                     maker(name, jworker);
                 }
@@ -196,15 +199,6 @@ namespace tools::agency {
 }
 
 #ifdef TEST
-
-#include "../utils/Test.hpp"
-#include "tests/TestWorker.hpp"
-#include "tests/default_test_agency_setup.hpp"
-#include "PackQueue.hpp"
-
-// Previous helpers (e.g., queue_to_vector) ...
-
-using namespace tools::agency;
 
 #include "tests/TestAgency.hpp"
 
@@ -266,8 +260,7 @@ void test_Agency_spawn_duplicate() {
     worker1.fromJSON(setup.json);
     bool thrown = false;
     try {
-        TestWorker<string>& worker2 = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker");
-        worker2.fromJSON(setup.json);
+        agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker");
     } catch (exception& e) {
         thrown = true;
         string what = e.what();
@@ -304,6 +297,198 @@ void test_Agency_tick_dispatch() {
     assert(test_worker.handled && "Tick should dispatch to worker");
 }
 
+void test_Agency_type() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    auto actual_type = agency.type();
+    assert(actual_type == "agency" && "Agency::type() should return 'agency'");
+}
+
+void test_Agency_hasWorker_existing() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    TestWorker<string>& worker = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker");
+    worker.fromJSON(setup.json);
+    bool actual = agency.hasWorker("test_worker");
+    assert(actual && "Agency should have the worker");
+}
+
+void test_Agency_hasWorker_nonExisting() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    bool actual = agency.hasWorker("non_existing_worker");
+    assert(!actual && "Agency should not have the worker");
+}
+
+void test_Agency_getWorkerRef_existing() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    TestWorker<string>& worker = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker");
+    worker.fromJSON(setup.json);
+    Worker<string>& actual_worker = agency.getWorkerRef("test_worker");
+    assert(actual_worker.getName() == "test_worker" && "Should return the correct worker");
+}
+
+void test_Agency_getWorkerRef_nonExisting() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    bool thrown = false;
+    try {
+        agency.getWorkerRef("non_existing_worker");
+    } catch (exception& e) {
+        thrown = true;
+        string what = e.what();
+        assert(str_contains(what, "Requested worker 'non_existing_worker' is not found.") && "Exception should indicate worker not found");
+    }
+    assert(thrown && "Should throw an exception when worker is not found");
+}
+
+void test_Agency_findWorkers_empty() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    vector<string> actual = agency.findWorkers();
+    assert(actual.empty() && "Should return empty vector when no workers are present");
+}
+
+void test_Agency_findWorkers_withWorkers() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    TestWorker<string>& worker1 = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker1");
+    worker1.fromJSON(setup.json);
+    TestWorker<string>& worker2 = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker2");
+    worker2.fromJSON(setup.json);
+    vector<string> actual = agency.findWorkers();
+    assert(actual.size() == 2 && "Should return vector with all worker names");
+    assert(actual[0] == "test_worker1" && "First worker name should be correct");
+    assert(actual[1] == "test_worker2" && "Second worker name should be correct");
+}
+
+void test_Agency_findWorkers_withKeyword() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    TestWorker<string>& worker1 = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker1");
+    worker1.fromJSON(setup.json);
+    TestWorker<string>& worker2 = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "another_worker");
+    worker2.fromJSON(setup.json);
+    vector<string> actual = agency.findWorkers("test");
+    assert(actual.size() == 1 && "Should return vector with matching worker names");
+    assert(actual[0] == "test_worker1" && "Worker name should be correct");
+}
+
+void test_Agency_dumpWorkers_empty() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    vector<string> names;
+    string actual = agency.dumpWorkers(names);
+    assert(actual.empty() && "Should return empty string when no names are provided");
+}
+
+void test_Agency_dumpWorkers_withWorkers() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    TestWorker<string>& worker1 = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker1");
+    worker1.fromJSON(setup.json);
+    TestWorker<string>& worker2 = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker2");
+    worker2.fromJSON(setup.json);
+    vector<string> names = {"test_worker1", "test_worker2"};
+    string actual = agency.dumpWorkers(names);
+    assert(str_contains(actual, "test_worker1") && "Should contain dump of worker1");
+    assert(str_contains(actual, "test_worker2") && "Should contain dump of worker2");
+}
+
+void test_Agency_dumpWorkers_nonExisting() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    vector<string> names = {"non_existing_worker"};
+    string actual = agency.dumpWorkers(names);
+    assert(str_contains(actual, "Worker non_existing_worker is not exists!") && "Should indicate worker not found");
+}
+
+void test_Agency_fromJSON_workers() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    setup.agency = &agency;
+    setup.roles = {{ "chat", [&](const string& name, const JSON&) { agency.spawn<TestWorker<string>>(setup.owns, setup.agency, setup.queue, name); } }};
+    setup.json.set("workers", JSON(R"(
+        [
+            {
+                "role": "chat",
+                "name": "talkbot"
+            }
+        ]
+    )"));
+    agency.fromJSON(setup.json);
+    assert(agency.hasWorker("talkbot") && "Agency should have talkbot after fromJSON");
+}
+
+void test_Agency_toJSON_workers() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    agency.fromJSON(setup.json);
+    TestWorker<string>& worker = agency.spawn<TestWorker<string>>(setup.owns, &agency, setup.queue, "test_worker");
+    worker.fromJSON(setup.json);
+    JSON json = agency.toJSON();
+    assert(json.has("workers") && "toJSON should contain workers");
+    vector<JSON> workers = json.get<vector<JSON>>("workers");
+    bool found = false;
+    for (const JSON& w : workers) {
+        if (w.get<string>("name") == "test_worker") {
+            found = true;
+            break;
+        }
+    }
+    assert(found && "toJSON should contain test_worker");
+}
+
+void test_Agency_fromJSON_throws_on_invalid_role() {
+    default_test_agency_setup setup("agency");
+    Agency<string> agency(setup.owns, setup.roles, setup.queue, setup.name);
+    setup.agency = &agency;
+    setup.roles = {{ "chat", [&](const string& name, const JSON&) { agency.spawn<TestWorker<string>>(setup.owns, setup.agency, setup.queue, name); } }};
+    const string json_str = R"(
+        {
+            "name": "TestAgency", 
+            "workers": [{"name": "TestAgent", "role": "NonExistentRole"}],
+            "recipients": []
+        }
+    )";
+    bool thrown = false;
+    try {
+        agency.fromJSON(json_str);
+    } catch (const runtime_error& e) {
+        thrown = true;
+        string what = e.what();
+        assert(str_contains(what, "Role not exists: NonExistentRole") && "Exception message is incorrect");
+    }
+    assert(thrown && "Should have thrown an exception");
+}
+
+void test_Agency_getAgencyPtr_agency_is_not_this() {
+    Owns owns;
+    default_test_agency_setup setup("test_worker");
+    setup.agency = owns.allocate<Agency<string>>(
+        owns,
+        setup.roles,
+        setup.queue,
+        "test_agency"
+    );
+    TestWorker<string> worker(setup.owns, setup.agency, setup.queue, setup.name);
+    worker.fromJSON(setup.json);
+    Worker<string>* agencyPtr = worker.getAgencyPtr();
+    assert(agencyPtr == setup.agency && "Agency pointer should be the same as agency when agency is not this");
+}
+
 // Register tests
 TEST(test_Agency_constructor_basic);
 TEST(test_Agency_handle_exit);
@@ -312,6 +497,21 @@ TEST(test_Agency_spawn_success);
 TEST(test_Agency_spawn_duplicate);
 TEST(test_Agency_kill_basic);
 TEST(test_Agency_tick_dispatch);
+TEST(test_Agency_type);
+TEST(test_Agency_hasWorker_existing);
+TEST(test_Agency_hasWorker_nonExisting);
+TEST(test_Agency_getWorkerRef_existing);
+TEST(test_Agency_getWorkerRef_nonExisting);
+TEST(test_Agency_findWorkers_empty);
+TEST(test_Agency_findWorkers_withWorkers);
+TEST(test_Agency_findWorkers_withKeyword);
+TEST(test_Agency_dumpWorkers_empty);
+TEST(test_Agency_dumpWorkers_withWorkers);
+TEST(test_Agency_dumpWorkers_nonExisting);
+TEST(test_Agency_fromJSON_workers);
+TEST(test_Agency_toJSON_workers);
+TEST(test_Agency_fromJSON_throws_on_invalid_role);
+TEST(test_Agency_getAgencyPtr_agency_is_not_this);
 
 // TODO:
 // Memory Management: Ensure ~Agency doesn’t double-delete if kill is called before destruction (current code is safe, but worth a double-check).
