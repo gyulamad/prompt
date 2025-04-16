@@ -149,9 +149,11 @@ namespace tools::agency {
             send(recipients, item);
         }
         
+        // LCOV_EXCL_START
         virtual void hoops(const string& errmsg = "") {
             cerr << errmsg << endl;
         }
+        // LCOV_EXCL_STOP
 
         Owns& owns;
         Worker<T>* agency = nullptr;
@@ -292,6 +294,71 @@ void test_Worker_start_sync() {
     assert(str_contains(worker.hoopsErrorMessage, "Tick failed"));
 }
 
+void test_Worker_addRecipients_basic() {
+    default_test_agency_setup setup("test_worker");
+    MockWorker worker(setup.owns, setup.agency, setup.queue, setup.name);
+    
+    vector<string> recipients = {"bob", "charlie"};
+    worker.addRecipients(recipients);
+    
+    vector<string> expected = {"bob", "charlie"};
+    vector<string> actual = worker.getRecipients();
+    
+    assert(vector_equal(actual, expected) && "addRecipients should add the given recipients to the worker");
+}
+
+void test_Worker_setRecipients_basic() {
+    default_test_agency_setup setup("test_worker");
+    MockWorker worker(setup.owns, setup.agency, setup.queue, setup.name);
+    
+    vector<string> recipients = {"bob", "charlie"};
+    worker.setRecipients(recipients);
+    
+    vector<string> expected = {"bob", "charlie"};
+    vector<string> actual = worker.getRecipients();
+    
+    assert(vector_equal(actual, expected) && "setRecipients should set the recipients to the given recipients");
+}
+
+void test_Worker_removeRecipients_basic() {
+    default_test_agency_setup setup("test_worker");
+    TestWorker<string> worker(setup.owns, setup.agency, setup.queue, setup.name);
+    
+    worker.addRecipients({"bob", "charlie", "david"});
+    
+    vector<string> recipientsToRemove = {"bob", "charlie"};
+    worker.removeRecipients(recipientsToRemove);
+    
+    vector<string> expected = {"david"};
+    vector<string> actual = worker.getRecipients();
+    
+    assert(vector_equal(actual, expected) && "removeRecipients should remove the given recipients from the worker");
+}
+
+void test_Worker_findRecipients_basic() {
+    default_test_agency_setup setup("test_worker");
+    TestWorker<string> worker(setup.owns, setup.agency, setup.queue, setup.name);
+    
+    worker.addRecipients({"bob", "charlie", "david"});
+    
+    vector<string> expected = {"charlie"};
+    vector<string> actual = worker.findRecipients("charlie");
+    
+    assert(vector_equal(actual, expected) && "findRecipients should find the recipients that contain the given keyword");
+}
+
+void test_Worker_findRecipients_emptyKeyword() {
+    default_test_agency_setup setup("test_worker");
+    TestWorker<string> worker(setup.owns, setup.agency, setup.queue, setup.name);
+    
+    worker.addRecipients({"bob", "charlie", "david"});
+    
+    vector<string> expected = {"bob", "charlie", "david"};
+    vector<string> actual = worker.findRecipients();
+    
+    assert(vector_equal(actual, expected) && "findRecipients should return all recipients when the keyword is empty");
+}
+
 // Register tests
 TEST(test_Worker_constructor_basic);
 TEST(test_Worker_send_single);
@@ -302,5 +369,10 @@ TEST(test_Worker_async_basic);
 TEST(test_Worker_getAgencyPtr_agency_is_this);
 TEST(test_Worker_exit_basic);
 TEST(test_Worker_start_sync);
+TEST(test_Worker_addRecipients_basic);
+TEST(test_Worker_setRecipients_basic);
+TEST(test_Worker_removeRecipients_basic);
+TEST(test_Worker_findRecipients_basic);
+TEST(test_Worker_findRecipients_emptyKeyword);
 
 #endif
