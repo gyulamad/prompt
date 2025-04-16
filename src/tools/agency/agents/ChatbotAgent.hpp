@@ -196,7 +196,35 @@ void test_ChatbotAgent_type() {
     assert(type == "chat" && "Agent type should be 'chat'");
 }
 
+void test_ChatbotAgent_setTalks() {
+    Owns owns;
+    PackQueue<string> queue;
+    string name = "test_agent";
+    string instructions = "test_instructions";
+    ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
+    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false);
+    TTS tts("", 0, 0, "", "", {});
+    STTSwitch sttSwitch;
+    MicView micView;
+    LinenoiseAdapter lineEditor("> ");
+    CommandLine commandLine(lineEditor, "", "", false, 10);
+    vector<Command*> commands;
+    Commander commander(commandLine, commands, "");
+    InputPipeInterceptor inputPipeInterceptor;
+    UserAgentInterface<string> interface(tts, sttSwitch, micView, commander, inputPipeInterceptor);
+
+    ChatbotAgent<string> agent(owns, nullptr, queue, name, chatbot, interface);
+
+    agent.setTalks(true);
+    assert(safe(chatbot)->isTalks() == true && "setTalks(true) should set talks to true");
+
+    agent.setTalks(false);
+    assert(safe(chatbot)->isTalks() == false && "setTalks(false) should set talks to false");
+}
+
 TEST(test_ChatbotAgent_constructor);
 TEST(test_ChatbotAgent_type);
+TEST(test_ChatbotAgent_setTalks);
 
 #endif
