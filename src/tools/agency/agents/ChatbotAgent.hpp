@@ -260,9 +260,12 @@ void test_ChatbotAgent_handle() {
         name, 
         chatbot, 
         interface
-    );
+     );
 
-    agent.handle(sender, item);
+    // Capture and discard output to prevent test warnings
+    capture_cout_cerr([&]() {
+        agent.handle(sender, item);
+    });
 
     // Verify that the chatbot's chat function was called and the response was sent
     ChatHistory* chatHistory = (ChatHistory*)safe(chatbot->getHistoryPtr());
@@ -516,6 +519,107 @@ void test_ChatbotAgent_fromJSON_incorrect_role() {
     assert(thrown && "Incorrect Role: Exception should have been thrown");
 }
 
+void test_ChatbotAgent_toJSON_basic() {
+    Owns owns;
+    PackQueue<string> queue;
+    string name = "test_agent_to_json";
+    string instructions = "test_instructions";
+    ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
+    history->append("user1", "Hello bot");
+    history->append("bot1", "Hello user");
+    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, true); // talks = true
+    TTS tts("", 0, 0, "", "", {});
+    STTSwitch sttSwitch;
+    MicView micView;
+    LinenoiseAdapter lineEditor("> ");
+    CommandLine commandLine(lineEditor, "", "", false, 10);
+    vector<Command*> commands;
+    Commander commander(commandLine, commands, "");
+    InputPipeInterceptor inputPipeInterceptor;
+    UserAgentInterface<string> interface(tts, sttSwitch, micView, commander, inputPipeInterceptor);
+
+    ChatbotAgent<string> agent(owns, nullptr, queue, name, chatbot, interface);
+    agent.addRecipients({"recipient1"}); // Add recipient for base class serialization test
+
+    JSON json = agent.toJSON();
+
+    assert(json.get<string>("role") == "chat" && "toJSON Basic: Role should be 'chat'");
+    assert(json.get<bool>("chatbot.talks") == true && "toJSON Basic: Talks should be true");
+
+    vector<JSON> jmessages = json.get<vector<JSON>>("chatbot.history.messages");
+    assert(jmessages.size() == 2 && "toJSON Basic: History should have 2 messages");
+    assert(jmessages[0].get<string>("sender") == "user1" && jmessages[0].get<string>("text") == "Hello bot" && "toJSON Basic: First message mismatch");
+    assert(jmessages[1].get<string>("sender") == "bot1" && jmessages[1].get<string>("text") == "Hello user" && "toJSON Basic: Second message mismatch");
+
+    // Check base class field (assuming Agent::toJSON serializes recipients)
+    vector<string> recipients = json.get<vector<string>>("recipients");
+    assert(recipients.size() == 1 && recipients[0] == "recipient1" && "toJSON Basic: Recipients mismatch");
+}
+
+void test_ChatbotAgent_toJSON_empty_history() {
+    Owns owns;
+    PackQueue<string> queue;
+    string name = "empty_history_to_json";
+    string instructions = "test_instructions";
+    ChatHistory* history = owns.allocate<ChatHistory>("> ", false); // Empty history
+    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false); // talks = false
+    TTS tts("", 0, 0, "", "", {});
+    STTSwitch sttSwitch;
+    MicView micView;
+    LinenoiseAdapter lineEditor("> ");
+    CommandLine commandLine(lineEditor, "", "", false, 10);
+    vector<Command*> commands;
+    Commander commander(commandLine, commands, "");
+    InputPipeInterceptor inputPipeInterceptor;
+    UserAgentInterface<string> interface(tts, sttSwitch, micView, commander, inputPipeInterceptor);
+
+    ChatbotAgent<string> agent(owns, nullptr, queue, name, chatbot, interface);
+
+    JSON json = agent.toJSON();
+
+    assert(json.get<string>("role") == "chat" && "toJSON Empty History: Role should be 'chat'");
+    assert(json.get<bool>("chatbot.talks") == false && "toJSON Empty History: Talks should be false");
+
+    vector<JSON> jmessages = json.get<vector<JSON>>("chatbot.history.messages");
+    assert(jmessages.empty() && "toJSON Empty History: History should be empty");
+
+    vector<string> recipients = json.get<vector<string>>("recipients");
+    assert(recipients.empty() && "toJSON Empty History: Recipients should be empty");
+}
+
+void test_ChatbotAgent_toJSON_talks_false() {
+    Owns owns;
+    PackQueue<string> queue;
+    string name = "talks_false_to_json";
+    string instructions = "test_instructions";
+    ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
+    history->append("user1", "Test message");
+    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false); // talks = false
+    TTS tts("", 0, 0, "", "", {});
+    STTSwitch sttSwitch;
+    MicView micView;
+    LinenoiseAdapter lineEditor("> ");
+    CommandLine commandLine(lineEditor, "", "", false, 10);
+    vector<Command*> commands;
+    Commander commander(commandLine, commands, "");
+    InputPipeInterceptor inputPipeInterceptor;
+    UserAgentInterface<string> interface(tts, sttSwitch, micView, commander, inputPipeInterceptor);
+
+    ChatbotAgent<string> agent(owns, nullptr, queue, name, chatbot, interface);
+
+    JSON json = agent.toJSON();
+
+    assert(json.get<string>("role") == "chat" && "toJSON Talks False: Role should be 'chat'");
+    assert(json.get<bool>("chatbot.talks") == false && "toJSON Talks False: Talks should be false");
+
+    vector<JSON> jmessages = json.get<vector<JSON>>("chatbot.history.messages");
+    assert(jmessages.size() == 1 && "toJSON Talks False: History should have 1 message");
+    assert(jmessages[0].get<string>("sender") == "user1" && jmessages[0].get<string>("text") == "Test message" && "toJSON Talks False: Message mismatch");
+}
+
 
 TEST(test_ChatbotAgent_constructor);
 TEST(test_ChatbotAgent_type);
@@ -527,5 +631,8 @@ TEST(test_ChatbotAgent_fromJSON_talks_false);
 TEST(test_ChatbotAgent_fromJSON_empty_history);
 TEST(test_ChatbotAgent_fromJSON_missing_optional);
 TEST(test_ChatbotAgent_fromJSON_incorrect_role);
+TEST(test_ChatbotAgent_toJSON_basic);
+TEST(test_ChatbotAgent_toJSON_empty_history);
+TEST(test_ChatbotAgent_toJSON_talks_false);
 
 #endif
