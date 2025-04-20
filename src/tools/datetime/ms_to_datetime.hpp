@@ -33,9 +33,9 @@ using namespace tools::datetime;
 
 void test_ms_to_datetime() {
     // Mock get_time_ms for testing purposes
-    time_t mock_get_time_ms() {
+    auto mock_get_time_ms = []() -> time_t {
         return 1696516245123LL; // Example timestamp: "2023-10-05 14:30:45.123"
-    }
+    };
 
     // Mock current time
     auto original_get_time_ms = get_time_ms;
