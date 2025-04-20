@@ -24,7 +24,7 @@ using namespace tools::str;
 
 namespace fs = filesystem; // Alias for convenience
 
-namespace tools::utils {
+namespace tools::utils { //  TODO: break down this function into a files namespace
     
     /**
      * Mimics PHP's file_exists function.

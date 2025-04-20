@@ -148,6 +148,28 @@ namespace tools::agency::agents {
             cline.getEditorRef().refreshLine();
         }
 
+        bool toggleMute() {
+            STT* stt = sttSwitch.getSttPtr();
+            if (!stt) return true;
+            NoiseMonitor* monitor = stt->getMonitorPtr();
+            if (!monitor) return true;
+            bool mute = !monitor->isMuted();
+            monitor->setMuted(mute);
+            clearln();
+            this->println(mute 
+                ? "🎤 " ANSI_FMT_C_RED "✖" ANSI_FMT_RESET " STT muted"
+                : "🎤 " ANSI_FMT_C_GREEN "✔" ANSI_FMT_RESET " STT unmuted"
+            );
+            return monitor->isMuted();
+        }
+
+        bool isMuted() {
+            STT* stt = sttSwitch.getSttPtr();
+            if (!stt) return true;
+            NoiseMonitor* monitor = stt->getMonitorPtr();
+            if (!monitor) return true;
+            return monitor->isMuted();
+        }
 
     private:
 
@@ -162,17 +184,7 @@ namespace tools::agency::agents {
                     return;
                 }
                 if (stt_voice_input && sequence.size() == 1 &&  sequence[0] == 27) { // TODO: ESC key - to config
-                    STT* stt = sttSwitch.getSttPtr();
-                    if (!stt) return;
-                    NoiseMonitor* monitor = stt->getMonitorPtr();
-                    if (!monitor) return;
-                    bool mute = !monitor->isMuted();
-                    monitor->setMuted(mute);
-                    clearln();
-                    this->println(mute 
-                        ? "🎤 " ANSI_FMT_C_RED "✖" ANSI_FMT_RESET " STT muted"
-                        : "🎤 " ANSI_FMT_C_GREEN "✔" ANSI_FMT_RESET " STT unmuted"
-                    );
+                    toggleMute();
                     return;
                 }
             });

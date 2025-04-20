@@ -39,7 +39,7 @@ namespace tools::agency::agents::plugins {
             return response;
         }
         
-        string processRespond(Chatbot* /*chatbot*/, const string& /*sender*/, const string& text) override {
+        string processCompletion(Chatbot* /*chatbot*/, const string& /*sender*/, const string& text) override {
             return text;
         }
 

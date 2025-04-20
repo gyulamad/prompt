@@ -90,7 +90,7 @@ namespace tools::agency::agents::plugins {
             return response;
         }
 
-        string processRespond(Chatbot* chatbot, const string& /*sender*/, const string& text) override {
+        string processCompletion(Chatbot* chatbot, const string& /*sender*/, const string& text) override {
             if (safe(chatbot)->isTalks()) 
                 throw ERROR("Talkbots does not support full completion resonse.");
             return text;

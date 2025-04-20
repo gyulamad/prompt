@@ -41,7 +41,7 @@ namespace tools::agency::chat {
             // printer(printer),
 
             // plugins:
-            plugins(owns.reserve<ChatPlugins>(this, plugins, FILELN)),
+            plugins(owns.reserve<OList>(this, plugins, FILELN)),
 
             // talkbot:
             talks(talks)
@@ -78,14 +78,14 @@ namespace tools::agency::chat {
 
 
         // prompt completion call
-        virtual string respond(const string& sender, const string& text) {
+        virtual string completion(const string& sender, const string& text) {
             string proceed = text;
             for (void* plugin: plugins->getPlugs())
-                proceed = ((ChatPlugin*)safe(plugin))->processRespond(this, sender, proceed);
+                proceed = ((ChatPlugin*)safe(plugin))->processCompletion(this, sender, proceed);
             return proceed; 
 
             // if (talks) throw ERROR("Talkbots does not support full completion resonse.");
-            // else throw ERROR("Chatbots respond needs to be implemented.");
+            // else throw ERROR("Chatbots completion needs to be implemented.");
         }
 
         // stream chat // TODO: add as plugins!! <- gemini/request for chunks stream plugin can be used
@@ -175,7 +175,7 @@ namespace tools::agency::chat {
         // Printer& printer;
 
         // plugins:
-        ChatPlugins* plugins = nullptr;
+        OList* plugins = nullptr;
     
         // talkbot:
         bool talks = true;

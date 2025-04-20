@@ -157,7 +157,7 @@ void test_ChatbotAgent_constructor() {
     string name = "test_agent";
     string instructions = "test_instructions";
     ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
-    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    OList* plugins = owns.allocate<OList>(owns);
     Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false);
     TTS tts("", 0, 0, "", "", {});
     STTSwitch sttSwitch;
@@ -182,7 +182,7 @@ void test_ChatbotAgent_type() {
     string name = "test_agent";
     string instructions = "test_instructions";
     ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
-    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    OList* plugins = owns.allocate<OList>(owns);
     Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false);
     TTS tts("", 0, 0, "", "", {});
     STTSwitch sttSwitch;
@@ -206,7 +206,7 @@ void test_ChatbotAgent_setTalks() {
     string name = "test_agent";
     string instructions = "test_instructions";
     ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
-    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    OList* plugins = owns.allocate<OList>(owns);
     Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false);
     TTS tts("", 0, 0, "", "", {});
     STTSwitch sttSwitch;
@@ -238,7 +238,7 @@ void test_ChatbotAgent_handle() {
     string chatbotResponse = "test_response";
 
     ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
-    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    OList* plugins = owns.allocate<OList>(owns);
     HistoryPlugin* historyPlugin = owns.allocate<HistoryPlugin>(owns);
     plugins->push<HistoryPlugin>(historyPlugin);
     MockChatbot* chatbot = owns.allocate<MockChatbot>(owns, chatbotName, chatbotResponse, history, plugins, false);
@@ -283,7 +283,7 @@ void test_ChatbotAgent_fromJSON_basic() {
     string name = "test_agent_from_json";
     string instructions = "test_instructions";
     ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
-    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    OList* plugins = owns.allocate<OList>(owns);
     Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false); // Start with talks=false
     TTS tts("", 0, 0, "", "", {});
     STTSwitch sttSwitch;
@@ -329,7 +329,7 @@ void test_ChatbotAgent_fromJSON_minimal() {
     string name = "minimal_agent";
     string instructions = "initial_instructions";
     ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
-    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    OList* plugins = owns.allocate<OList>(owns);
     Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false); // Default talks=false
     TTS tts("", 0, 0, "", "", {});
     STTSwitch sttSwitch;
@@ -368,7 +368,7 @@ void test_ChatbotAgent_fromJSON_talks_false() {
     string name = "talks_false_agent";
     string instructions = "initial_instructions";
     ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
-    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    OList* plugins = owns.allocate<OList>(owns);
     Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, true); // Start with talks=true
     TTS tts("", 0, 0, "", "", {});
     STTSwitch sttSwitch;
@@ -409,7 +409,7 @@ void test_ChatbotAgent_fromJSON_empty_history() {
     string instructions = "initial_instructions";
     ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
     history->append("sender", "initial message"); // Add initial message to see if it gets cleared
-    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    OList* plugins = owns.allocate<OList>(owns);
     Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false);
     TTS tts("", 0, 0, "", "", {});
     STTSwitch sttSwitch;
@@ -453,7 +453,7 @@ void test_ChatbotAgent_fromJSON_missing_optional() {
     string instructions = "initial_instructions";
     ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
     history->append("sender", "initial message");
-    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    OList* plugins = owns.allocate<OList>(owns);
     Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, true); // Start talks=true
     TTS tts("", 0, 0, "", "", {});
     STTSwitch sttSwitch;
@@ -488,7 +488,7 @@ void test_ChatbotAgent_fromJSON_incorrect_role() {
     string name = "incorrect_role_agent";
     string instructions = "initial_instructions";
     ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
-    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    OList* plugins = owns.allocate<OList>(owns);
     Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false);
     TTS tts("", 0, 0, "", "", {});
     STTSwitch sttSwitch;
@@ -527,7 +527,7 @@ void test_ChatbotAgent_toJSON_basic() {
     ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
     history->append("user1", "Hello bot");
     history->append("bot1", "Hello user");
-    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    OList* plugins = owns.allocate<OList>(owns);
     Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, true); // talks = true
     TTS tts("", 0, 0, "", "", {});
     STTSwitch sttSwitch;
@@ -563,7 +563,7 @@ void test_ChatbotAgent_toJSON_empty_history() {
     string name = "empty_history_to_json";
     string instructions = "test_instructions";
     ChatHistory* history = owns.allocate<ChatHistory>("> ", false); // Empty history
-    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    OList* plugins = owns.allocate<OList>(owns);
     Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false); // talks = false
     TTS tts("", 0, 0, "", "", {});
     STTSwitch sttSwitch;
@@ -596,7 +596,7 @@ void test_ChatbotAgent_toJSON_talks_false() {
     string instructions = "test_instructions";
     ChatHistory* history = owns.allocate<ChatHistory>("> ", false);
     history->append("user1", "Test message");
-    ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+    OList* plugins = owns.allocate<OList>(owns);
     Chatbot* chatbot = owns.allocate<Chatbot>(owns, instructions, history, plugins, false); // talks = false
     TTS tts("", 0, 0, "", "", {});
     STTSwitch sttSwitch;

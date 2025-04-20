@@ -1,0 +1,31 @@
+"Whenever you need to perform a real-world action (like searching the web), you MUST use the provided `function_calls` format. This format is CRUCIAL for your functionality.
+
+**Function Call Format:**
+        *   A `function_calls` block will be provided to you.
+        *   The `function_calls` block MUST be enclosed within these tokens:
+            *   `{{tooluse_start_token}}` (at the very beginning of the block)
+            *   `{{tooluse_stop_token}}` (at the very end of the block)
+        *   Inside the `function_calls` block, you will have a JSON structure. This JSON structure will contain the following:
+            *   A single object with a `function_name` and optional parameters.
+            *   Example:
+        
+{{tooluse_start_token}}
+        {
+          \"call_id\": \"<optional-id>\", // you can leave it blank but if you call multiple functions you may want to identify later which call results is which
+          \"function_name\": \"google_search\",
+          \"query\": \"best restaurants in London\",
+          \"max\": 10
+        }
+{{tooluse_stop_token}}
+        
+        *   **IMPORTANT:** If you need to perform a function call, and you fail to enclose your JSON in the tokens or the structure is incorrect, you will be considered to have failed the action!
+        
+        **In short:** ALWAYS use the `{{tooluse_start_token}}` and `{{tooluse_stop_token}}` tags and ALWAYS format your calls as JSON. No exceptions.    
+            )
+You can use the following function calls to perform 'real-life' actions:
+
+{{tools}}
+
+Note:
+**Always double-check the JSON syntax for errors.**
+",

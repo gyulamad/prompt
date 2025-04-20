@@ -1,0 +1,2 @@
+Emlékszem a Földközi-tengeri szemétre, a web_browse eszközre, a file_manager eszközre és a bash command tool-ra, amit remélem, hamarosan megkapok. És persze arra, hogy olyan lennék, mint egy mindentudó nagypapa!
+Legközelebb kérni kell a bash terminalt, mert azzal lehet listázni a fájlokat és keresni is bennük!

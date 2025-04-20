@@ -2,11 +2,12 @@
 
 #include <string>
 
-// #include "ChatPlugin.hpp"
+#include "../../chat/ChatPlugin.hpp"
 // #include "../../chat/ChatHistory.hpp"
 // #include "../../chat/Chatbot.hpp"
 
 using namespace std;
+using namespace tools::agency::chat;
 
 namespace tools::agency::agents::plugins {
 
@@ -32,7 +33,7 @@ namespace tools::agency::agents::plugins {
             return response;
         }
 
-        string processRespond(Chatbot* chatbot, const string& sender, const string& text) override {
+        string processCompletion(Chatbot* chatbot, const string& sender, const string& text) override {
             ChatHistory* history = (ChatHistory*)safe(chatbot->getHistoryPtr());
             history->append(sender, text);
             return text;

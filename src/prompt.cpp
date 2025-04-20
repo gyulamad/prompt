@@ -56,6 +56,11 @@ ask and confirm a human before you edit this file!!
 #include "tools/agency/agents/plugins/TalkbotPlugin.hpp"
 #include "tools/agency/agents/plugins/ToolusePlugin.hpp"
 
+#include "tools/agency/agents/plugins/ai_tools/DateTimeTool.hpp"
+#include "tools/agency/agents/plugins/ai_tools/GoogleSearchTool.hpp"
+#include "tools/agency/agents/plugins/ai_tools/WebBrowserTool.hpp"
+#include "tools/agency/agents/plugins/ai_tools/FileManagerTool.hpp"
+
 using namespace std;
 using namespace tools::utils;
 using namespace tools::str;
@@ -65,6 +70,7 @@ using namespace tools::agency;
 using namespace tools::agency::agents;
 using namespace tools::agency::agents::commands;
 using namespace tools::agency::agents::plugins;
+using namespace tools::agency::agents::plugins::ai_tools;
 // using namespace tools::agency::ai;
 
 // TODO: !@# add coverage -> test prompt -> cover more -> fix todo-s -> add response processing plugins -> add tool use plugins (add agency tool: spawn helpers for eg.; add terminal use; add browser use) -> ... -> add vision -> add visual tool use (computer use for e.g)
@@ -188,7 +194,8 @@ int safe_main(int argc, char* argv[]) {
                 settings.get<bool>("chatbot.use_start_token") // chatbot_use_start_token
             );
 
-            ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+            // ChatPlugins* plugins = owns.allocate<ChatPlugins>(owns);
+            OList* plugins = owns.allocate<OList>(owns);
 
             GeminiApiPlugin* geminiPlugin = owns.allocate<GeminiApiPlugin>(
                 settings.get<string>("gemini.url"),
@@ -201,12 +208,40 @@ int safe_main(int argc, char* argv[]) {
             );
             plugins->push<GeminiApiPlugin>(geminiPlugin);
 
-            ToolusePlugin* toolusePlugin = owns.allocate<ToolusePlugin>(
-                settings.get<string>("chatbot.instruct_tooluse"),
+            OList* tools = owns.allocate<OList>(owns);
+
+            UserAgent<PackT>& user = (UserAgent<PackT>&)agency.getWorkerRef("user");
+
+            DateTimeTool<PackT>* dateTimeTool = owns.allocate<DateTimeTool<PackT>>(
+                user,
+                settings.get<string>("chatbot.tooluse.datetime.date_format"),
+                settings.get<bool>("chatbot.tooluse.datetime.millis"),
+                settings.get<bool>("chatbot.tooluse.datetime.local")
+            );
+            tools->push<DateTimeTool<PackT>>(dateTimeTool);
+
+            GoogleSearchTool<PackT>* googleSearchTool = owns.allocate<GoogleSearchTool<PackT>>(user);
+            tools->push<GoogleSearchTool<PackT>>(googleSearchTool);
+
+            WebBrowserTool<PackT>* webBrowserTool = owns.allocate<WebBrowserTool<PackT>>(user);
+            tools->push<WebBrowserTool<PackT>>(webBrowserTool);
+
+            FileManagerTool<PackT>* fileManagerTool = owns.allocate<FileManagerTool<PackT>>(
+                user,
+                settings.get<string>("chatbot.tooluse.file_manager.base")
+            );
+            tools->push<FileManagerTool<PackT>>(fileManagerTool);
+
+            ToolusePlugin<PackT>* toolusePlugin = owns.allocate<ToolusePlugin<PackT>>(
+                owns,
+                tools,
+                // &agency,
+                name,
+                file_get_contents(settings.get<string>("chatbot.instruct_tooluse")),
                 settings.get<string>("chatbot.instruct_tooluse_start_token"),
                 settings.get<string>("chatbot.instruct_tooluse_stop_token")
             );
-            plugins->push<ToolusePlugin>(toolusePlugin);
+            plugins->push<ToolusePlugin<PackT>>(toolusePlugin);
             
             ChatbotPlugin<PackT>* chatPlugin = owns.allocate<ChatbotPlugin<PackT>>(
                 owns,

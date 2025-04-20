@@ -8,6 +8,7 @@
 #include "../../voice/STTSwitch.hpp"
 #include "../../voice/WhisperTranscriberSTTSwitch.hpp"
 #include "../../utils/InputPipeInterceptor.hpp"
+#include "../../utils/io.hpp"
 #include "../../containers/array_shift.hpp"
 #include "../Agent.hpp"
 #include "../Agency.hpp"
@@ -111,6 +112,31 @@ namespace tools::agency::agents {
             
         }
 
+        bool confirm(const string& prmpt, char def = 'y') {
+            // bool was_mic_enabled = false;
+            // if (speech) {
+            //     was_mic_enabled = speech->is_mic_enabled();
+            //     speech->mic_disable();
+            // }
+            // bool confirmed = ::confirm(prmpt, def);
+            // if (was_mic_enabled && speech) 
+            //     speech->mic_enable();
+            // return confirmed;
+            bool do_unmute = false;
+            if (interface.getSttSwitchRef().is_on()) {
+                if (!interface.isMuted()) {
+                    interface.toggleMute();
+                    do_unmute = true;
+                }
+            }
+
+            bool confirmed = tools::utils::confirm(prmpt, def);
+
+            if (do_unmute) interface.toggleMute();
+
+            return confirmed;
+        }
+        
     private:
         UserAgentInterface<T>& interface;
         vector<string> inputs = {};
