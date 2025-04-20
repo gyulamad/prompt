@@ -3,6 +3,8 @@
 
 #include "../../../utils/Curl.hpp"
 #include "../../chat/ChatPlugin.hpp"
+#include "../../chat/ChatHistory.hpp"
+#include "../../chat/Chatbot.hpp"
 
 using namespace std;
 using namespace tools::utils;
@@ -29,7 +31,7 @@ namespace tools::agency::agents::plugins {
             if (interrupted) return text;
 
             // TODO: Move history appending logic to HistoryPlugin
-            ChatHistory* history = safe((ChatHistory*)chatbot->getHistoryPtr());
+            ChatHistory* history = (ChatHistory*)safe(chatbot->getHistoryPtr());
             history->append(sender, text);
 
             string response = stream(chatbot, interrupted);

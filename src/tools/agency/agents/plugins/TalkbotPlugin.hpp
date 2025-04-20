@@ -68,7 +68,11 @@ namespace tools::agency::agents::plugins {
                 while (!sentence.empty()) {
                     sentence = sentences->read();
                     if (interrupted) continue; 
-                    // this->printer.print(sentence);      
+                    // TODO: here we are printing and speaking suff sentence by sentence
+                    // this is correct, but when chatbot use tools or when the bot generates sourcecode
+                    // it prints out stuff that we dont want to show and tell 
+                    // so we have to use the FrameTokenParser with specific start/stop tokens
+                    // (see example usage in ToolusePlugin)
                     interface.print(sentence);    
                     interrupted = !tell(sentence);
                     if (interrupted) continue;

@@ -9,7 +9,7 @@
 #include "ChatPlugin.hpp"
 
 using namespace std;
-using namespace tools::voice;
+// using namespace tools::voice;
 
 namespace tools::agency::chat {
 
