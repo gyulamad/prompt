@@ -273,7 +273,11 @@ int safe_main(int argc, char* argv[]) {
                 // settings.get<string>("chatbot.instruct_lang"),
                 interface,
                 sentences,
-                tts
+                tts,
+                settings.get<string>("chatbot.instruct_tooluse_start_token"),
+                settings.get<string>("chatbot.instruct_tooluse_stop_token"),
+                settings.get<string>("chatbot.instruct_codeblock_start_token"),
+                settings.get<string>("chatbot.instruct_codeblock_stop_token")
             );
             plugins->push<TalkbotPlugin<PackT>>(talkPlugin);
 

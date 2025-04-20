@@ -49,6 +49,8 @@
         "instruct_tooluse": "instruct_tooluse.txt",
         "instruct_tooluse_start_token": "[AI_MAGIC_ABRAKADABRA]", //"<tooluse>",
         "instruct_tooluse_stop_token": "[AI_MAGIC_ALAKAZAM]", //"</tooluse>",
+        "instruct_codeblock_start_token": "```",
+        "instruct_codeblock_stop_token": "```",
         "talks": true,
     // },
     // "talkbot": {
