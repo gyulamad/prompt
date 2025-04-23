@@ -67,6 +67,22 @@ namespace tools::agency::agents::plugins::ai_tools {
                 "       that waits for user input to prevent them\n"
                 "       from being prematurely terminated when timeouts.\n" 
                 "\n"
+                "*   **list:**\n"
+                "    *   `keyword`: Optional. If provided, only files and folders containing the keyword in their names will be listed.\n"
+                "\n"
+                "*   **make_dir:**\n"
+                "    *   `dirname`: Required.\n"
+                "\n"
+                "*   **remove_dir:**\n"
+                "    *   `dirname`: Required.\n"
+                "\n"
+                "*   **rename_dir:**\n"
+                "    *   `old_dirname`: Required.\n"
+                "    *   `new_dirname`: Required.\n"
+                "\n"
+                "*   **search:**\n"
+                "    *   `keyword`: Required. Searches for the keyword in files.\n"
+                "\n"
             ),
             base_folder(base_folder)
         {}
@@ -299,6 +315,126 @@ namespace tools::agency::agents::plugins::ai_tools {
                 "\nOutput:\n" + (output.empty() ? "<empty>" : output);
         }
 
+        string search(const JSON& args) {
+            string errors = this->template get_required_error<string>(args, { "keyword" });
+            if (!errors.empty()) return errors;
+            
+            string keyword = args.get<string>("keyword");
+            string command = "grep -rn " + keyword + " " + base_folder;
+            string output = "";
+            try {
+                output = Process::execute(command.c_str());
+            } catch (const runtime_error& e) {
+                output = "Command execution failed: " + string(e.what());
+            }
+            cout << output << endl;
+            return output;
+        }
+
+        string list(const JSON& args) {
+            string keyword = args.has("keyword") ? args.get<string>("keyword") : "";
+            vector<string> files_and_folders;
+            for (const auto& entry : filesystem::directory_iterator(base_folder)) {
+                if (entry.is_directory() || entry.is_regular_file()) {
+                    string full_path = entry.path().string();
+                    string item_name = entry.path().filename().string();
+                    if (keyword.empty() || item_name.find(keyword) != string::npos) {
+                        files_and_folders.push_back(item_name);
+                    }
+                }
+            }
+
+            string output = "Files and folders in " + base_folder + (keyword.empty() ? "" : " (matching '" + keyword + "')") + ":\n";
+            for (const auto& item_name : files_and_folders) {
+                string full_path = base_folder + item_name;
+                string type_indicator = utils::is_dir(full_path) ? "[DIR] " : "[FILE] ";
+                output += type_indicator + item_name + "\n";
+            }
+            cout << output << flush;
+            return output;
+        }
+
+        string mkdir(const JSON& args) {
+            string errors = this->template get_required_error<string>(args, "dirname");
+            if (!errors.empty()) return errors;
+            string dirpath = base_folder + args.get<string>("dirname");
+            if (!is_valid_filepath(dirpath)) return "Dirname is invalid: " + dirpath;
+            if (file_exists(dirpath)) return "Dir already exists: " + dirpath;
+
+            errors += this->get_user_confirm_error(
+                [&](const string& prmpt) { 
+                    return this->user.confirm(prmpt); 
+                }, 
+                string("File manager tool wants to create dir: ") + dirpath
+                    + "\nDo you want to proceed?",
+                "User intercepted the file operation", dirpath
+            );
+            if (!errors.empty()) return errors;
+
+            if (!utils::mkdir(dirpath, true))
+                return "Dir create failed: " + dirpath; 
+
+            string ret = "Dir created: " + dirpath;
+            cout << ret << endl;
+            return ret;
+        }
+
+        string rmdir(const JSON& args) {
+            string errors = this->template get_required_error<string>(args, "dirname");
+            if (!errors.empty()) return errors;
+            string dirpath = base_folder + args.get<string>("dirname");
+            if (!is_valid_filepath(dirpath)) return "Dirname is invalid: " + dirpath;
+            if (!file_exists(dirpath)) return "Dir not exists: " + dirpath;
+            if (!utils::is_empty_dir(dirpath)) return "Dir is not empty: " + dirpath;
+
+            errors += this->get_user_confirm_error(
+                [&](const string& prmpt) { 
+                    return this->user.confirm(prmpt); 
+                }, 
+                string("File manager tool wants to delete dir: ") + dirpath
+                    + "\nDo you want to proceed?",
+                "User intercepted the file operation", dirpath
+            );
+            if (!errors.empty()) return errors;
+
+            if (!utils::remove(dirpath))
+                return "Dir remove failed: " + dirpath; 
+
+            string ret = "Dir removed: " + dirpath;
+            cout << ret << endl;
+            return ret;
+        }
+
+        string rndir(const JSON& args) {
+            string errors = this->template get_required_errors<string>(args, { "old_dirname", "new_dirname" });
+            if (!errors.empty()) return errors;
+            string old_dirpath = base_folder + args.get<string>("old_dirname");
+            if (!is_valid_filepath(old_dirpath)) return "Old dirname is invalid: " + old_dirpath;
+            string new_dirpath = base_folder + args.get<string>("new_dirname");
+            if (!is_valid_filepath(new_dirpath)) return "New dirname is invalid :" + new_dirpath;
+            if (old_dirpath == new_dirpath) return "Dirs can not be the same: " + old_dirpath;
+            if (!file_exists(old_dirpath)) return "Dir not exists: " + old_dirpath;
+            if (file_exists(new_dirpath)) return "Dir already exists: " + new_dirpath + "\nYou have to delete first!";
+
+            string to = old_dirpath + " to " + new_dirpath;
+            errors += this->get_user_confirm_error(
+                [&](const string& prmpt) { 
+                    return this->user.confirm(prmpt); 
+                }, 
+                string("File manager tool wants to rename dir: ") + to
+                    + "\nDo you want to proceed?",
+                "User intercepted the file operation", to
+            );
+            if (!errors.empty()) return errors;
+
+            if (!utils::rename(old_dirpath, new_dirpath, true))
+                return "Dir rename failed: " + to; 
+
+            string ret = "Dir renamed: " + to;
+            cout << ret << endl;
+            return ret;
+        }
+
         static string create_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {
             NULLCHK(tool_void);
             FileManagerTool* tool = (FileManagerTool*)tool_void;
@@ -341,6 +477,36 @@ namespace tools::agency::agents::plugins::ai_tools {
             return tool->exec(/*user_void,*/ args/*, conf*/);
         }
 
+        static string list_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {
+            NULLCHK(tool_void);
+            FileManagerTool* tool = (FileManagerTool*)tool_void;
+            return tool->list(args);
+        }
+
+        static string search_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {
+            NULLCHK(tool_void);
+            FileManagerTool* tool = (FileManagerTool*)tool_void;
+            return tool->search(args);
+        }
+
+        static string mkdir_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {
+            NULLCHK(tool_void);
+            FileManagerTool* tool = (FileManagerTool*)tool_void;
+            return tool->mkdir(args);
+        }
+
+        static string rmdir_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {
+            NULLCHK(tool_void);
+            FileManagerTool* tool = (FileManagerTool*)tool_void;
+            return tool->rmdir(args);
+        }
+
+        static string rndir_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {
+            NULLCHK(tool_void);
+            FileManagerTool* tool = (FileManagerTool*)tool_void;
+            return tool->rndir(args);
+        }
+
         string base_folder;
 
     };
@@ -353,7 +519,12 @@ namespace tools::agency::agents::plugins::ai_tools {
         { "rename", FileManagerTool<T>::rename_cb },
         { "view", FileManagerTool<T>::view_cb },
         { "edit", FileManagerTool<T>::edit_cb },
-        { "exec", FileManagerTool<T>::exec_cb }, // TODO: add directory and file list + search (or bash command??)
+        { "exec", FileManagerTool<T>::exec_cb },
+        { "list", FileManagerTool<T>::list_cb },
+        { "make_dir", FileManagerTool<T>::mkdir_cb}, // create directory
+        { "remove_dir", FileManagerTool<T>::rmdir_cb}, // delete directory (only if empty)
+        { "rename_dir", FileManagerTool<T>::rndir_cb}, // rename directory
+        { "search", FileManagerTool<T>::search_cb}, // search in files ("keyword" parameter is required, list all file:line where the keyword found - similar to grep (you can utilize the grep command using Process::execute))
     };
 
 }

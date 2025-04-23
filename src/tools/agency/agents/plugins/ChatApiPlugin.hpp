@@ -55,7 +55,6 @@ namespace tools::agency::agents::plugins {
             string url = getUrl();
 
             string data = getProtocolData(chatbot);
-            // DEBUG(data);
             
             // TODO: if error happens because the rate limit, check all the variant (from API endpoint), and pick the next suitable
             string response;
@@ -67,8 +66,8 @@ namespace tools::agency::agents::plugins {
                     for (const string& split : splits) {
                         string text = processSSEEvent(split);
                         if (!text.empty()) {
-                            string output = chatbot->chunk(text);
-                            response += output;
+                            chatbot->chunk(text);
+                            response += text;
                         }
                     }
                 }, data)) throw ERROR("Error requesting chat API"); 
