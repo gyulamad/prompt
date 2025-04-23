@@ -29,14 +29,21 @@ async function fetchGoogleResults(query, maxResults = 10) {
 
     try {
         const response = await axios.get(url, { params });
-        const results = response.data.items.map(item => ({
-            title: item.title,
-            link: item.link,
-            description: item.snippet,
-        }));
-        return results;
+        const items = response.data.items; // Új változó a items tárolására
+
+        if (items && Array.isArray(items)) { // Ellenőrizzük, hogy az items létezik és tömb-e
+            const results = items.map(item => ({
+                title: item.title,
+                link: item.link,
+                description: item.snippet,
+            }));
+            return results;
+        } else {
+            console.error("No items found in Google search results:", response);
+            return [];
+        }
     } catch (error) {
-        console.error("Failed to fetch Google results:", error.message);
+        console.error("Failed to fetch Google results:", error);
         return [];
     }
 }
