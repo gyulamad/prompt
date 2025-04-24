@@ -20,7 +20,7 @@ using namespace tools::containers;
 namespace tools::agency {
 
     template<typename T>
-    class Worker: public Closable, public JSONSerializable {
+    class Worker: public Closable, public JSONSerializable { // TODO: use JsonFileStorable instead of JSONSerializable
     public:
         Worker(
             Owns& owns,

@@ -54,6 +54,8 @@ namespace tools::agency {
             if (item == "exit") {
                 cout << "Exit indicated by worker '" + sender + "'..." << endl;
 
+                // TODO: save agency (or agents) on exit if it's autosave on                
+
                 // closing workers and the agency itself
                 for (Worker<T>* worker: workers) worker->close();
                 this->close();

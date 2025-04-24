@@ -64,7 +64,7 @@
                 "local": true
             },
             "file_manager": {
-                "base": ".prompt/"
+                "base": "./"
             }
         }
     },
@@ -85,7 +85,7 @@
     },
     "startup": {
 
-        "batch": "voice_mode_batch_load_chatbot1",
+        "batch": "text_mode_batch_load_chatbot1",
         // "batch": "test_batch",
 
         "batches": {
@@ -105,8 +105,9 @@
             ],
 
             "text_mode_batch_load_chatbot1": [
+                "/voice input off",
                 "/load agent chatbot1",
-                "/target set chatbot1",
+                "/target set chatbot1",                
                 "System information: Application reloaded, Please check the current date and time."
             ],
 
