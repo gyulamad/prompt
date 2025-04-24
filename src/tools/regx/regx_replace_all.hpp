@@ -4,6 +4,7 @@
 
 // NOTE: Do not compiles with -Ofast + -fsanitize=address
 //       or use: __attribute__((optimize("O0")))
+//       or: #pragma GCC optimize("O0")
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105562#c27
 #include <regex>
 
@@ -12,6 +13,7 @@
 using namespace std;
 using namespace tools::utils;
 
+#pragma GCC optimize("O0")
 namespace tools::regx {
 
     /// @brief Replace all regex matches in string.
@@ -19,6 +21,7 @@ namespace tools::regx {
     /// @param str input string 
     /// @param replace string to replace matches with 
     /// @return string with all matches replaced
+    __attribute__((optimize("O0")))
     inline string regx_replace_all(const string& pattern, const string& str, const string& replace) {
         if (pattern.empty()) throw ERROR("Regex pattern can not be empty"); // Explicitly throw for empty patterns
         regex r(pattern);
@@ -26,6 +29,7 @@ namespace tools::regx {
     }
     
 }
+#pragma GCC reset_options
 
 #ifdef TEST
 

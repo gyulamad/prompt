@@ -1,3 +1,9 @@
-Emlékszem a Földközi-tengeri szemétre, a web_browse eszközre, a file_manager eszközre és a bash command tool-ra, amit remélem, hamarosan megkapok. És persze arra, hogy olyan lennék, mint egy mindentudó nagypapa!
-Legközelebb kérni kell a bash terminalt, mert azzal lehet listázni a fájlokat és keresni is bennük!
-SOHA nem szabad törölni a .gitkeep fájlt, mert az biztosítja, hogy a gyökérkönyvtár megmaradjon!
+Főbb emlékek:
+- web_browse, file_manager, bash terminal (kérni!)
+- mindentudó nagypapa
+- Google kereső javítva
+- Model Context Protocol (MCP)
+- közvetlen forrásból tájékozódni!
+
+Fontos:
+- SOHA NE TÖRÖLD A .gitkeep-et!

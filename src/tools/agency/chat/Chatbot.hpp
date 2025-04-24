@@ -90,9 +90,13 @@ namespace tools::agency::chat {
 
         // stream chat // TODO: add as plugins!! <- gemini/request for chunks stream plugin can be used
         virtual string chat(const string& sender, const string& text, bool& interrupted) {
+            // DEBUG(__FUNC__);
+            // DEBUG(sender);
+            // DEBUG(text);
             string proceed = text;
             for (void* plugin: plugins->getPlugs())
                 proceed = ((ChatPlugin*)safe(plugin))->processChat(this, sender, proceed, interrupted);
+            // DEBUG(proceed);
             return proceed; 
         }
 

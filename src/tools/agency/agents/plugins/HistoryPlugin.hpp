@@ -16,6 +16,7 @@ namespace tools::agency::agents::plugins {
         HistoryPlugin(Owns& owns) : ChatPlugin(), owns(owns) {}
 
         string processChat(Chatbot* chatbot, const string& sender, const string& text, bool& /*interrupted*/) override {
+            DEBUG(__FUNC__);
             ChatHistory* history = (ChatHistory*)safe(chatbot->getHistoryPtr());
             history->append(sender, text);
             return text;

@@ -50,13 +50,15 @@ namespace tools::agency::agents {
         }
 
         void handle(const string& sender, const T& item) override {
-
+// DEBUG("ChatbotAgent::handle");
+// DEBUG(sender);
+// DEBUG(item);
             CommandLine& cline = interface.getCommanderRef().getCommandLineRef();
             cline.setPromptVisible(false);
             if (chatbot->isTalks()) cline.getEditorRef().wipeLine();
 
             interface.println();
-            bool interrupted;
+            bool interrupted = false;
             string response = safe(chatbot)->chat(sender, item, interrupted);
             interface.println();
 

@@ -28,19 +28,26 @@ namespace tools::agency::agents::plugins {
         virtual ~ChatApiPlugin() {}
 
         string processChat(Chatbot* chatbot, const string& sender, const string& text, bool& interrupted) override {
+            // DEBUG(__FUNC__);
+            // DEBUG(sender + ":" + text);
+            // DEBUG("interrupted? " + interrupted);
             if (interrupted) return text;
+            // DEBUG("not interrupted");
 
             // TODO: Move history appending logic to HistoryPlugin
             ChatHistory* history = (ChatHistory*)safe(chatbot->getHistoryPtr());
             history->append(sender, text);
 
+            // DEBUG("before stream");
             string response = stream(chatbot, interrupted);
+            // DEBUG("after stream:" + response);
 
             string name = chatbot->getName();
             response = chatbot->response(response);
             history->append(name, response);
             if (interrupted) history->append(sender, getInterruptionFeedback(name, sender));
 
+            // DEBUG(response);
             return response;
         }
 
@@ -55,6 +62,7 @@ namespace tools::agency::agents::plugins {
             string url = getUrl();
 
             string data = getProtocolData(chatbot);
+            // DEBUG(data);
             
             // TODO: if error happens because the rate limit, check all the variant (from API endpoint), and pick the next suitable
             string response;

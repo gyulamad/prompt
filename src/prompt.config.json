@@ -85,7 +85,7 @@
     },
     "startup": {
 
-        "batch": "text_mode_batch_load_chatbot1",
+        "batch": "voice_mode_batch_load_chatbot1",
         // "batch": "test_batch",
 
         "batches": {
@@ -100,7 +100,8 @@
 
             "text_mode_batch": [
                 "/spawn chat chatbot1",
-                "/target set chatbot1"
+                "/target set chatbot1",
+                "System information: Application reloaded, Please check the current date and time."
             ],
 
             "text_mode_batch_load_chatbot1": [
@@ -115,7 +116,15 @@
             "voice_mode_batch": [
                 "/spawn chat chatbot1",
                 "/target set chatbot1",
-                "/voice input on"
+                "/voice input on",
+                "System information: Application reloaded, Please check the current date and time."
+            ],
+
+            "voice_mode_batch_load_chatbot1": [
+                "/load agent chatbot1",
+                "/target set chatbot1",
+                "/voice input on",
+                "System information: Application reloaded, Please check the current date and time."
             ],
 
 

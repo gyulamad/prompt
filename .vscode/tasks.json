@@ -200,7 +200,7 @@
                 // "-pthread",
                 "${workspaceFolder}/src/prompt.cpp",
                 "-o", "${workspaceFolder}/builds/prompt.fast",
-                // "-g", "-O0", "-fsanitize=address", 
+                // "-g", "-O3", // "-fsanitize=address", 
                 "-Ofast",
                 "-DTEST", "-DTEST_FAILURE_DIES",
 
