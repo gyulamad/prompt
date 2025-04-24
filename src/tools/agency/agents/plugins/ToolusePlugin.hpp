@@ -85,7 +85,7 @@ namespace tools::agency::agents::plugins {
             return text;
         }
         
-        string processChat(Chatbot* chatbot, const string& sender, const string& text, bool& interrupted) override {
+        string processChat(Chatbot* chatbot, const string& /*sender*/, const string& text, bool& interrupted) override {
             // DEBUG(__FUNC__);
             // DEBUG(sender + ":" + text);
             if (!functionCalls.empty()) safe(chatbot)->chat("tool", callbackFunctionCalls(), interrupted);
