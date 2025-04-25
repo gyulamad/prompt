@@ -109,25 +109,26 @@ namespace tools::voice {
         void speak_pause(time_t ms = 0) {
             // Send SIGSTOP to pause the espeak process
             if (!speak_paused) {
-                cout << Process::execute("pkill -STOP espeak") << flush;
+                proc->writeln("pkill -STOP espeak"); // Now uses tts.proc
                 speak_paused = true;
             }
 
             //if (ms) cout << Process::execute("timeout " + to_string((float)ms / 1000) + "s pkill -CONT espeak") << flush;
-            pause_ends_at = get_time_ms() + ms;
+            pause_ends_at = ms ? (get_time_ms() + ms) : 0;
         }
 
         void speak_resume() {
             // Send SIGCONT to continue the espeak process
             if (speak_paused) { // TODO: thread safe pause!!
-                cout << Process::execute("pkill -CONT espeak") << flush;
+                proc->writeln("pkill -CONT espeak"); // Now uses tts.proc
                 speak_paused = false;
+                pause_ends_at = 0;
             }
         }
 
         //bool is_speak_paused() { return speak_paused; }
 
-        bool speak_paused;
+        bool speak_paused = false;
         time_t pause_ends_at = 0;
 
 
@@ -157,13 +158,11 @@ using namespace tools::voice;
 
 // TTS Tests
 void test_TTS_constructor_valid() {
-    try {
-        Suppressor suppressor(stderr);
-        map<string, string> replacements;
-        TTS tts("en", 150, 10, "beep", "think", replacements);
-    } catch (...) {
-        assert(false && "TTS constructor should initialize without crashing");
-    }
+    Suppressor suppressor(stderr);
+    map<string, string> replacements;
+    TTS tts("en", 150, 10, "beep", "think", replacements);
+    
+    assert(true && "TTS constructor should initialize without crashing");
 }
 
 void test_TTS_speak_basic() {
@@ -256,7 +255,7 @@ void test_TTS_beep() {
         TTS tts("en", 150, 10, "beep_cmd", "", {}, &mock_proc);
 
         tts.beep();
-        actual_output = MockProcess::execute("beep_cmd");
+        actual_output = mock_proc.execute("beep_cmd");
     }
     assert(actual_output == expected_output && "beep should execute beep command");
 }
@@ -290,9 +289,77 @@ void test_TTS_speak_stop() {
         TTS tts("en", 150, 10, "", "", {}, &mock_proc);
 
         tts.speak_stop();
-        actual_output = MockProcess::execute("pkill -9 espeak") + " " + MockProcess::execute("pkill -9 sox");
+        actual_output = mock_proc.execute("pkill -9 espeak") + " " + mock_proc.execute("pkill -9 sox");
     }
     assert(actual_output == expected_output && "speak_stop should execute kill commands");
+}
+
+void test_TTS_speak_pause() {
+    // Suppressor suppressor(stderr);
+    MockProcess mock_proc;
+    TTS tts("en", 150, 10, "", "", {}, &mock_proc);
+
+    // First pause (no ms)
+    tts.speak_pause();
+    assert(mock_proc.last_command == "pkill -STOP espeak\n" && 
+           "First pause must write SIGSTOP command"); // \n from writeln()
+    
+    tts.speak_resume();
+    // Reset and test with ms
+    mock_proc.last_command = "";
+    tts.speak_pause(5000);
+    assert(mock_proc.last_command == "pkill -STOP espeak\n" && 
+           "Subsequent pause still uses same command");
+    
+    // Check pause_ends_at
+    assert(tts.pause_ends_at > get_time_ms() && 
+           "Timer is set when ms is provided");
+}
+
+void test_TTS_speak_resume() {
+    MockProcess mock_proc;
+    TTS tts("en", 150, 10, "", "", {}, &mock_proc);
+
+    // First pause with timeout
+    tts.speak_pause(5000); // Sets pause_ends_at to future time
+    assert(tts.pause_ends_at > get_time_ms() && "Timer set correctly");
+
+    // Resume manually
+    tts.speak_resume();
+    assert(tts.pause_ends_at == 0 && "Timer reset to 0 after manual resume");
+    
+    // Edge case: Resuming an unpaused TTS (should do nothing)
+    tts.speak_resume(); // No assertion needed, just no crash
+}
+
+void test_TTS_speak_resume_with_timeout() {
+    // Suppressor suppressor(stderr);
+    MockProcess mock_proc;
+    TTS tts("en", 150, 10, "", "", {}, &mock_proc);
+
+    // Set a timer-based pause
+    tts.speak_pause(5000);
+    
+    // Allow time to pass
+    sleep_ms(6000);
+    
+    // Verify auto-resume happens
+    assert(!tts.speak_paused && "Should auto-resume after timeout");
+    
+    // Check that the timer was cleared
+    assert(tts.pause_ends_at == 0 && "Auto-resume should reset timer");
+}
+
+void test_TTS_speak_resume_unpaused() {
+    // Suppressor suppressor(stderr);
+    MockProcess mock_proc;
+    TTS tts("en", 150, 10, "", "", {}, &mock_proc);
+
+    // Verify no command when unpaused
+    mock_proc.last_command = "PREVIOUS_COMMAND";
+    tts.speak_resume();
+    assert(mock_proc.last_command == "PREVIOUS_COMMAND" && "Unnecessary resume doesn't send commands");
+    assert(!tts.speak_paused && "Unpaused should have flag unset");
 }
 
 // Register tests
@@ -305,5 +372,9 @@ TEST(test_TTS_speak_with_replacements);
 TEST(test_TTS_beep);
 TEST(test_TTS_is_speaking);
 TEST(test_TTS_speak_stop);
+TEST(test_TTS_speak_pause);
+TEST(test_TTS_speak_resume);
+TEST(test_TTS_speak_resume_with_timeout);
+TEST(test_TTS_speak_resume_unpaused);
 
 #endif

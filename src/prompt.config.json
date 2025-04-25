@@ -85,7 +85,8 @@
     },
     "startup": {
 
-        "batch": "text_mode_batch_load_chatbot1",
+        "batch": "voice_mode_batch_load_chatbot1",
+        // "batch": "text_mode_batch_load_chatbot1",
         // "batch": "test_batch",
 
         "batches": {

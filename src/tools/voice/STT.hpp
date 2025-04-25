@@ -57,6 +57,10 @@ namespace tools::voice {
             return monitor;
         }
 
+        SpeechRecogniser* getRecogniserPtr() {
+            return recogniser;
+        }
+
         const Transcriber& getTranscriberCRef() const {
             return transcriber;
         }
@@ -195,24 +199,22 @@ using namespace tools::voice;
 
 // STT Tests with MockTranscriber
 void test_STT_constructor_valid() {
-    try {
-        Suppressor supressor(stderr);
-        MockTranscriber transcriber;
-        STT stt(
-            transcriber,
-            16000.0,  // sample_rate
-            512,      // frames_per_buffer
-            5,        // buffer_seconds
-            0.1f,     // noise_monitor_threshold_pc
-            0.01f,    // noise_monitor_rmax_decay_pc
-            1024,     // noise_monitor_window
-            // "mock_model", // transcriber_model
-            // "en",     // transcriber_lang
-            10        // poll_interval_ms
-        );
-    } catch (...) {
-        assert(false && "STT constructor should initialize without crashing");
-    }
+    Suppressor supressor(stderr);
+    MockTranscriber transcriber;
+    STT stt(
+        transcriber,
+        16000.0,  // sample_rate
+        512,      // frames_per_buffer
+        5,        // buffer_seconds
+        0.1f,     // noise_monitor_threshold_pc
+        0.01f,    // noise_monitor_rmax_decay_pc
+        1024,     // noise_monitor_window
+        // "mock_model", // transcriber_model
+        // "en",     // transcriber_lang
+        10        // poll_interval_ms
+    );
+    assert(true && "STT constructor should initialize without crashing");
+    assert(&stt.getTranscriberCRef() == &transcriber && "STT uses transcriber");
 }
 
 void test_STT_start_basic() {
@@ -393,6 +395,24 @@ void test_STT_stop_without_speech() {
     assert(!transcribe_called && "Transcribe handler should not fire without speech");
 }
 
+void test_STT_recogniser_initialization() {
+    Suppressor supressor(stderr);
+    MockTranscriber transcriber;
+    STT stt(
+        transcriber,
+        16000.0,  // sample_rate
+        512,      // frames_per_buffer
+        5,        // buffer_seconds
+        0.1f,     // noise_monitor_threshold_pc
+        0.01f,    // noise_monitor_rmax_decay_pc
+        1024,     // noise_monitor_window
+        10        // poll_interval_ms
+    );
+    stt.start();
+    assert(stt.getMonitorPtr() != nullptr && "Noise monitor should be initialized");
+    assert(stt.getRecogniserPtr() != nullptr && "SpeechRecogniser should be initialized");
+}
+
 // Register tests
 TEST(test_STT_constructor_valid);
 TEST(test_STT_start_basic);
@@ -400,5 +420,6 @@ TEST(test_STT_empty_record);
 TEST(test_STT_callback_comprehensive);
 TEST(test_STT_muted_state);
 TEST(test_STT_stop_without_speech);
+TEST(test_STT_recogniser_initialization);
 
 #endif

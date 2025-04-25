@@ -262,6 +262,23 @@ void test_SentenceStream_flush_last_chunk_unfinished() {
     assert(actual_last == " Last chunk" && "Should read unfinished last chunk after flush");
 }
 
+void test_SentenceStream_error_unimplemented() {
+    Suppressor supressor(stderr);
+    Owns owns_instance;
+    auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
+    SentenceStream stream(owns_instance, sep_ptr, 1024);
+
+    bool thrown = false;
+    try {
+        stream.error(); // Trigger error() method
+    } catch (exception &e) {
+        thrown = true;
+        string what = e.what();
+        assert(str_contains(what, "Unimplemented") && "Error() should throw 'Unimplemented' exception");
+    }
+    assert(thrown && "Calling error() must throw an exception");
+}
+
 TEST(test_SentenceStream_write_basic_sentence);
 TEST(test_SentenceStream_write_multiple_sentences);
 TEST(test_SentenceStream_write_partial_then_complete);
@@ -274,6 +291,7 @@ TEST(test_SentenceStream_close_clears_state);
 TEST(test_SentenceStream_write_no_separator);
 TEST(test_SentenceStream_write_not_ending_with_separator);
 TEST(test_SentenceStream_flush_last_chunk_unfinished);
+TEST(test_SentenceStream_error_unimplemented);
 
 #endif
 

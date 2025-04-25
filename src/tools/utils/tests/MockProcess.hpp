@@ -10,7 +10,7 @@ using namespace tools::utils;
 // Mock Process class for testing TTS
 class MockProcess: public Process {
 public:
-    string last_command;
+    string last_command = "";
     string mock_output = "[SPEAK-DONE]";
     bool ready_flag = true;
 

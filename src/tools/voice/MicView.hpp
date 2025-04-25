@@ -74,3 +74,61 @@ namespace tools::voice {
     };    
 
 }
+
+#ifdef TEST
+
+using namespace tools::voice;
+
+void test_MicView_incDecRecs() {
+    MicView mv;
+    mv.incRecs();
+    assert(mv.getRecs() == 1 && "Increment test failed");
+    mv.decRecs();
+    assert(mv.getRecs() == 0 && "Decrement test failed");
+    mv.incRecs(); mv.incRecs();
+    assert(mv.getRecs() == 2 && "Two increments should reach 2");
+}
+
+void test_MicView_getView_muted() {
+    MicView mv;
+    string result = mv.getView(true, false, 0.5f, 0.3f, 0.0f, 0.0f, false);
+    assert(result.find("MUTE") != string::npos && "Muted view should contain 'MUTE'");
+    assert(result.find("VOL:50.00/30.00%") != string::npos && "Volume values incorrect");
+    assert(result.find(" | ") == string::npos && "Progress should not be present");
+}
+
+void test_MicView_getView_loud() {
+    MicView mv;
+    string result = mv.getView(false, true, 0.5f, 0.3f, 0.0f, 0.0f, false);
+    assert(result.find(ANSI_FMT(ANSI_FMT_C_RED, "●") + "REC" ) != string::npos && "Loud view should contain ●REC");
+    assert(result.find("VOL:50.00/30.00%") != string::npos && "Volume values incorrect");
+}
+
+void test_MicView_getView_progress() {
+    MicView mv;
+    mv.incRecs();
+    mv.incRecs();
+    string result = mv.getView(false, false, 0.5f, 0.3f, 0.0f, 0.0f, true);
+    assert(
+        (
+            result.find(" | 2") != string::npos || 
+            result.find(" / 2") != string::npos || 
+            result.find(" - 2") != string::npos || 
+            result.find(" \\ 2") != string::npos 
+        )
+        && "Progress indicator not found"
+    );
+}
+
+void test_MicView_getView_rms() {
+    MicView mv;
+    string result = mv.getView(false, false, 0.5f, 0.3f, 1.2f, 0.45f, false);
+    assert(result.find("RMS:1.20/0.45") != string::npos && "RMS values should be displayed");
+}
+
+TEST(test_MicView_incDecRecs);
+TEST(test_MicView_getView_muted);
+TEST(test_MicView_getView_loud);
+TEST(test_MicView_getView_progress);
+TEST(test_MicView_getView_rms);
+#endif

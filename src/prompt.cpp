@@ -417,7 +417,7 @@ int safe_main(int argc, char* argv[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-    //    "no need tests for now - TODO: remove this filter!"
+    //    "test_TTS"
     });
     
     return safe_main<string>(argc, argv);

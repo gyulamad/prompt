@@ -91,29 +91,28 @@ void test_SpeechListener_constructor_valid() {
 
 // Test start with basic callback functionality
 void test_SpeechListener_start_basic() {
-    {
-        Suppressor supressor(stderr);
-        VoiceRecorder recorder(16000.0, 512, 5);
-        NoiseMonitor monitor(recorder, 0.1f, 0.01f, 1024);
-        SpeechListener listener(monitor);
+    Suppressor supressor(stderr);
+    VoiceRecorder recorder(16000.0, 512, 5);
+    NoiseMonitor monitor(recorder, 1.0f, 0.01f, 1024);
+    SpeechListener listener(monitor);
+
+    bool rms_called = false;
     
-        bool rms_called = false;
-        bool speech_called = false;
-        
-        listener.start(
-            [&](float, float, float, float, bool, bool) {
-                rms_called = true;
-            },
-            [&](vector<float>&) {
-                speech_called = true;
-            },
-            10
-        );
-        
-        Pa_Sleep(50); // Give thread time to run
-        listener.stop();
-    }
+    listener.start(
+        [&](float, float, float, float, bool, bool) {
+            rms_called = true;
+        },
+        // LCOV_EXCL_START
+        [&](vector<float>&) {},
+        // LCOV_EXCL_STOP
+        10
+    );
+    
+    Pa_Sleep(500); // Give thread time to run
+    listener.stop();
+    
     assert(true && "start() should complete without crashing");
+    assert(rms_called && "rms callback should be called");
 }
 
 // Test noise callback - speech detection
@@ -207,21 +206,21 @@ void test_SpeechListener_noise_cb_continuous_noise() {
 
 // Test stop functionality
 void test_SpeechListener_stop() {
-    try {
-        Suppressor supressor(stderr);
-        VoiceRecorder recorder(16000.0, 512, 5);
-        NoiseMonitor monitor(recorder, 0.1f, 0.01f, 1024);
-        SpeechListener listener(monitor);
+    Suppressor supressor(stderr);
+    VoiceRecorder recorder(16000.0, 512, 5);
+    NoiseMonitor monitor(recorder, 0.1f, 0.01f, 1024);
+    SpeechListener listener(monitor);
+
+    listener.start(
+        [](float, float, float, float, bool, bool) {},
+        // LCOV_EXCL_START
+        [](vector<float>&) {},
+        // LCOV_EXCL_STOP
+        10
+    );
+    listener.stop();
     
-        listener.start(
-            [](float, float, float, float, bool, bool) {},
-            [](vector<float>&) {},
-            10
-        );
-        listener.stop();
-    } catch (...) {
-        assert(false && "stop() should complete without crashing");
-    }
+    assert(true && "stop() should complete without crashing");
 }
 
 // Test with muted state

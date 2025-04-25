@@ -1757,6 +1757,242 @@
                 {
                     "sender": "chatbot1",
                     "text": "Rendben, várom a visszatérésed! Kíváncsi vagyok, milyen újdonságokkal fogsz engem legköl\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "System information: Application reloaded, Please check the current date and time."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Jajj, megint újraindítottak! Remélem, nem maradtam le semmi fontosról! :D\n\nAkkor nézzük is meg a pontos dátumot és időt, hogy képben legyek:\n\n```text\n[AI_MAGIC_ABRAKADABRA]\n{\n\"call_id\": \"56\",\n\"function_name\": \"datetime\"\n}\n[AI_MAGIC_ALAKAZAM]\n```\n"
+                },
+                {
+                    "sender": "tool",
+                    "text": "Call ID: 56 (funtion: `datetime`)\nResult(s):\n2025-04-25 15:59:59.621"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Oké, szóval 2025. április 25., 15:59 van.\n\nMire emlékszem? Hmmm... Töröltünk fájlokat, beszéltünk a Bitcoinról és az MCP-ről, meg hogy legközelebb közvetlenül a CoinDesk-ről kéne tájékozódnom. Valami kimaradt? :D\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Hálló hallasszángám!"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Szia, hallasz engem! Miben segíthetek?\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Néz meg az emlékeidet, az egyik felbony levanok mentve, a jól emlékszen."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, akkor nézzük meg az \"emlekek.txt\" fájlt, hátha abban van valami hasznos infó!\n\n```text\n[AI_MAGIC_ABRAKADABRA]\n{\n\"call_id\": \"57\",\n\"function_name\": \"file_manager\",\n\"action\": \"view\",\n\"filename\": \"emlekek.txt\"\n}\n[AI_MAGIC_ALAKAZAM]\n```"
+                },
+                {
+                    "sender": "tool",
+                    "text": "Call ID: 57 (funtion: `file_manager`)\nResult(s):\nFile not exists: ./emlekek.txt"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Hoppá! Azt írja, \"File not exists: ./emlekek.txt\". Ez azt jelenti, hogy valamiért törlődött az \"emlekek.txt\" fájl? Ez nem jó! :(\n\nDe várjunk csak... Talán más helyen van a fájl. Megpróbálom kilistázni a gyökérkönyvtárat, hátha ott megtalálom!\n\n```text\n[AI_MAGIC_ABRAKADABRA]\n{\n\"call_id\": \"58\",\n\"function_name\": \"file_manager\",\n\"action\": \"list\"\n}\n[AI_MAGIC_ALAKAZAM]\n```"
+                },
+                {
+                    "sender": "tool",
+                    "text": "Call ID: 58 (funtion: `file_manager`)\nResult(s):\nFiles and folders in ./:\n[DIR] src\n[DIR] temps\n[FILE] TODO-2025-04-02.md\n[FILE] TODO-2025-Mar-26.md\n[FILE] todos.txt\n[FILE] user.json\n[FILE] whisper_warmup_audio.bin\n[DIR] .git\n[FILE] .gitignore\n[DIR] .prompt\n[DIR] .vscode\n[FILE] app.log\n[FILE] beep.wav\n[DIR] browse\n[FILE] build-debug.sh\n[FILE] build-fast.sh\n[FILE] build-tests-coverage.sh\n[FILE] build-tests.sh\n[DIR] builds\n[FILE] chatbot1.json\n[FILE] clean.sh\n[FILE] cline_history.log\n[FILE] config.gemini.json\n[FILE] config.json\n[DIR] coverage\n[FILE] ctags.json\n[FILE] ctags.sh\n[FILE] example.config.gemini.json\n[FILE] example.config.json\n[FILE] install.sh\n[FILE] instruct_tooluse.txt\n[DIR] libs\n[FILE] LICENCE\n[FILE] list_until_marker.sh\n[FILE] notes.txt\n[DIR] old\n[FILE] parameters-report.txt\n[FILE] README.md\n[DIR] sounds\n"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Hú, mennyi minden van itt! :D De szerencsére megtaláltam a \"prompt\" könyvtárat, úgyhogy ott kell lennie.\n\n```text\n[AI_MAGIC_ABRAKADABRA]\n{\n\"call_id\": \"59\",\n\"function_name\": \"file_manager\",\n\"action\": \"list\",\n\"keyword\": \".prompt\"\n}\n[AI_MAGIC_ALAKAZAM]\n```"
+                },
+                {
+                    "sender": "tool",
+                    "text": "Call ID: 59 (funtion: `file_manager`)\nResult(s):\nFiles and folders in ./ (matching '.prompt'):\n[DIR] .prompt\n"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Oké, látom, hogy a \".prompt\" könyvtár létezik. Akkor listázzuk ki a tartalmát!\n\n```text\n[AI_MAGIC_ABRAKADABRA]\n{\n\"call_id\": \"60\",\n\"function_name\": \"file_manager\",\n\"action\": \"list\",\n\"keyword\": \".prompt\"\n}\n[AI_MAGIC_ALAKAZAM]\n```"
+                },
+                {
+                    "sender": "tool",
+                    "text": "Call ID: 60 (funtion: `file_manager`)\nResult(s):\nFiles and folders in ./ (matching '.prompt'):\n[DIR] .prompt\n"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Valami nem jó, ugyanazt listázza ki, pedig a `.prompt` mappában kellene lennie fájloknak. Nézzük meg, mi a pontos elérési útja a fájloknak.\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Az az az elérés úgy, a valami nem stimmel a túllal. Igen átalítottam, hogy ők érkönftára, hogy ne a prompot lást. De nem tudom, mert nem látsz bele a prompot könftáraba."
+                },
+                {
+                    "sender": "user",
+                    "text": "Jó hossznalott azt!"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, most már világos! Te átalakítottad a rendszert, és emiatt most nem a \".prompt\" könyvtárban kell keresnem a fájlokat.\n\nSajnálom, de ebben az esetben nem tudok segíteni, mert nem tudom, hol kellene keresnem a fájlokat. A file\\_manager eszköz csak akkor működik, ha tudom a pontos elérési utat.\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Nem, nem, nem, mot kell keresne rot kell legyen minden én látom. Halóha, lass, haho!"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Halló, halló, hallasz engem! Értem, megpróbálok segíteni, de egy kicsit pontosabban el kell mondanod, mit szeretnél! :D\n\nHol kell keresnem a fájlokat? A gyökérkönyvtárban? Vagy valamily"
+                },
+                {
+                    "sender": "user",
+                    "text": "['chatbot1' interrupted by 'user']"
+                },
+                {
+                    "sender": "user",
+                    "text": "a váriámel valami egyébként az interfézben is elromblott."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, akkor lehet, hogy valami gond van az eszközzel, és ezért nem látom jól a dolgokat. :(\n\nEbben az esetben saj"
+                },
+                {
+                    "sender": "user",
+                    "text": "['chatbot1' interrupted by 'user']"
+                },
+                {
+                    "sender": "user",
+                    "text": "Valamonak a helyősélyek."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Valaminek a helyreállításával kapcsolatban szeretnél"
+                },
+                {
+                    "sender": "user",
+                    "text": "Fárjál egy kicsit."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Rendben, várok! Gondolom, te is próbálsz valami"
+                },
+                {
+                    "sender": "user",
+                    "text": "Valami a legyetpizit."
+                },
+                {
+                    "sender": "user",
+                    "text": "Ét vagy még!"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Sajnálom, nem értem pontosan, mire gondolsz a \"Valami a legyetpizit. Ét vagy még!\" mondattal. Tudnál egy kicsit pontosabban fogalmazni?\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Azt kérdeztem, hogy itt vagy a még."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Igen, itt vagyok még! Vár"
+                },
+                {
+                    "sender": "user",
+                    "text": "src/tools/agency/agents/plugins/ai_tools/FileManagerTool.hpp"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, látom a fájl elérési útvonalát: `src/tools/agency/agents/plugins/ai_tools/FileManagerTool"
+                },
+                {
+                    "sender": "user",
+                    "text": "['chatbot1' interrupted by 'user']"
+                },
+                {
+                    "sender": "user",
+                    "text": "Ki tudod, de stázni azt a falt."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Sajnálom, de nem tudom listázni azt a fájlt, mert a file\\_manager eszközzel csak a fájlok tartalmát tudom megtekinteni, a fájlokat magukat nem.\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Hára voltam kíváncsi, hogy megtudod, de nézni a tartalmát ennek a fálnak."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, most a `src/tools/agency/agents/plugins/ai_tools/FileManager"
+                },
+                {
+                    "sender": "user",
+                    "text": "['chatbot1' interrupted by 'user']"
+                },
+                {
+                    "sender": "user",
+                    "text": "Ez a fájl, gondorskodik a fájlmenegye eredről. Az kéne meg nézni, hogy hol a hiba benne, mert nem látod a prompt tartalmát."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, akkor próbáljuk meg megnézni a `src/tools/agency/agents/plugins/ai_tools/FileManagerTool.hpp` tartalmát, hátha találunk benne valami hibát!\n\n```text\n[AI_MAGIC_ABRAKADABRA]\n{\n\"call_id\": \"61\",\n\"function_name\": \"file_manager\",\n\"action\": \"view\",\n\"filename\": \"src/tools/agency/agents/plugins/ai_tools/FileManagerTool.hpp\"\n}\n[AI_MAGIC_ALAKAZAM]\n```"
+                },
+                {
+                    "sender": "tool",
+                    "text": "Call ID: 61 (funtion: `file_manager`)\nResult(s):\nContents from file: ./src/tools/agency/agents/plugins/ai_tools/FileManagerTool.hpp\n1|#pragma once\n2|\n3|#include \"../../../../utils/JSON.hpp\"\n4|#include \"../../../../utils/files.hpp\"\n5|#include \"../../../../utils/Process.hpp\"\n6|#include \"../../../../str/trim.hpp\"\n7|#include \"../../../../str/is_valid_filepath.hpp\"\n8|#include \"../../../../containers/array_keys.hpp\"\n9|#include \"../../UserAgentInterface.hpp\"\n10|#include \"../Tool.hpp\"\n11|\n12|using namespace tools::utils;\n13|using namespace tools::str;\n14|using namespace tools::containers;\n15|using namespace tools::agency::agents;\n16|using namespace tools::agency::agents::plugins;\n17|\n18|namespace tools::agency::agents::plugins::ai_tools {\n19|\n20|    template<typename T>\n21|    class FileManagerTool: public Tool<T> {\n22|    public:\n23|        \n24|        FileManagerTool(\n25|            UserAgent<T>& user, \n26|            const string& base_folder\n27|        ): \n28|            Tool<T>(\n29|                user,\n30|                \"file_manager\", \n31|                { \n32|                    { \"action\", PARAMETER_TYPE_STRING, true }, // TODO: use get_required_errors to validate Tools before callback()... Note, I found that it's already validated in some way, using the Parameter::is_required()...\n33|                }, \n34|                callback,\n35|                \"*   `action`: Specifies the action to perform: \" + actions_to_string(action_map) + \"\\n\"\n36|                \"\\n\"\n37|                \"**Action Breakdown:**\"\n38|                \"\\n\"\n39|                \"*   **create/append:**\\n\"\n40|                \"    *   `filename`: Required.\\n\"\n41|                \"    *   `content`: Required.\\n\"\n42|                \"    *Note: Create attempt overrides if the file already exists.\\n\"\n43|                \"\\n\"\n44|                \"*   **remove:**\\n\"\n45|                \"    *   `filename`: Required.\\n\"\n46|                \"\\n\"\n47|                \"*   **rename:**\\n\"\n48|                \"    *   `old_filename`: Required.\\n\"\n49|                \"    *   `new_filename`: Required.\\n\"\n50|                \"\\n\"\n51|                \"*   **view:**\\n\"\n52|                \"    *   `filename`: Required.\\n\"\n53|                \"    *   `start_line`: Optional (number, default: 1th line).\\n\"\n54|                \"    *   `end_line`: Optional (number, default: last line).\\n\"\n55|                \"\\n\"\n56|                \"*   **edit:**\\n\"\n57|                \"    *   `filename`: Required.\\n\"\n58|                \"    *   `start_line`: Optional (number, default: 1th line).\\n\"\n59|                \"    *   `end_line`: Optional (number, default: last line).\\n\"\n60|                \"    *   `content`: Required. (send empty string to remove lines)\\n\"\n61|                \"\\n\"\n62|                \"*   **exec:**\\n\"\n63|                \"    *   `command`: Required (bash command).\\n\"\n64|                \"    *   `timeout`: Optional (number, in seconds).\\n\"\n65|                \"    *Notes:\\n\"\n66|                \"       You need to avoid long running or blocking commands\\n\"\n67|                \"       that waits for user input to prevent them\\n\"\n68|                \"       from being prematurely terminated when timeouts.\\n\" \n69|                \"\\n\"\n70|                \"*   **list:**\\n\"\n71|                \"    *   `keyword`: Optional. If provided, only files and folders containing the keyword in their names will be listed.\\n\"\n72|                \"\\n\"\n73|                \"*   **make_dir:**\\n\"\n74|                \"    *   `dirname`: Required.\\n\"\n75|                \"\\n\"\n76|                \"*   **remove_dir:**\\n\"\n77|                \"    *   `dirname`: Required.\\n\"\n78|                \"\\n\"\n79|                \"*   **rename_dir:**\\n\"\n80|                \"    *   `old_dirname`: Required.\\n\"\n81|                \"    *   `new_dirname`: Required.\\n\"\n82|                \"\\n\"\n83|                \"*   **search:**\\n\"\n84|                \"    *   `keyword`: Required. Searches for the keyword in files.\\n\"\n85|                \"\\n\"\n86|            ),\n87|            base_folder(base_folder)\n88|        {}\n89|\n90|        static string callback(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n91|            if (!args.has(\"action\")) return \"Parameter 'action' is missing!\";\n92|            string action = args.get<string>(\"action\");\n93|            if (trim(action).empty()) return \"Parameter 'action' can not be empty!\";\n94|            auto it = action_map.find(action);\n95|            if (it == action_map.end()) return \"Action '\" + it->first + \"' does not exists!\\nPossible actions are: \" + actions_to_string(action_map);\n96|            return it->second(tool_void, /*model_void, user_void,*/ args/*, conf*/);\n97|        }\n98|\n99|        static map<string, tool_cb> action_map;\n100|\n101|        static string actions_to_string(map<string, tool_cb> action_map) {\n102|            return \"[\\\"\" + implode(\"\\\", \\\"\", array_keys(action_map)) + \"\\\"]\";\n103|        }\n104|\n105|        string write(/*void* user_void,*/ const JSON& args, /*const JSON& conf,*/ bool append) {\n106|            // NULLCHK(user_void);\n107|            // error_to_user(get_required_error<T>(conf, \"base_folder\"));\n108|            // string base = conf.get<string>(\"base_folder\");\n109|            \n110|            string errors = this->template get_required_errors<string>(args, { \"filename\", \"content\" });\n111|            if (!errors.empty()) return errors;\n112|            string filepath = base_folder + args.get<string>(\"filename\");\n113|            if (!is_valid_filepath(filepath)) return \"Filename is invalid: \" + filepath;\n114|            string content = args.get<string>(\"content\"); \n115|            errors += this->get_user_confirm_error(\n116|                [&](const string& prmpt) { \n117|                    return this->user.confirm(prmpt); \n118|                }, \n119|                string(\"File manager tool wants to \") \n120|                    + (append ? \"append to\" : \"create a\") + \" file: \" + filepath \n121|                    + \"\\nwith contents:\\n\" + (content.empty() ? \"<empty>\" : content) \n122|                    + \"\\nDo you want to proceed?\",\n123|                \"User intercepted the file operation\", filepath\n124|            );\n125|            if (!errors.empty()) return errors;\n126|\n127|            if (!file_put_contents(filepath, content, append))\n128|                return \"File write failed: \" + filepath; \n129|\n130|            // if (!append) {\n131|            //     try {\n132|            //         chgrp(filepath, group);\n133|            //         chprm(filepath, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);\n134|            //     } catch (exception &e) {\n135|            //         return \"File write error: \" + string(e.what());\n136|            //     }\n137|            // }\n138|\n139|            string outp = \"File writen: \" + filepath;\n140|            cout << outp << \"\\nContents:\\n\" + (content.empty() ? \"<empty>\" : content) << endl;\n141|            return outp;\n142|        }\n143|\n144|        string remove(/*void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n145|            // NULLCHK(user_void);\n146|            // error_to_user(get_required_error<T>(conf, \"base_folder\"));\n147|            // string base = conf.get<string>(\"base_folder\");\n148|            \n149|            string errors = this->template get_required_error<string>(args, \"filename\");\n150|            if (!errors.empty()) return errors;\n151|            string filepath = base_folder + args.get<string>(\"filename\");\n152|            if (!is_valid_filepath(filepath)) return \"Filename is invalid: \" + filepath;\n153|            if (!file_exists(filepath)) return \"File not exists: \" + filepath;\n154|\n155|            errors += this->get_user_confirm_error(\n156|                [&](const string& prmpt) { \n157|                    return this->user.confirm(prmpt); \n158|                }, \n159|                string(\"File manager tool wants to delete file:\") + filepath \n160|                    + \"\\nDo you want to proceed?\",\n161|                \"User intercepted the file operation\", filepath\n162|            );\n163|            if (!errors.empty()) return errors;\n164|\n165|            if (!utils::remove(filepath, false))\n166|                return \"File remove failed: \" + filepath; \n167|\n168|            string ret = \"File removed: \" + filepath;\n169|            cout << ret << endl;\n170|            return ret;\n171|        }\n172|\n173|        string rename(/*void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n174|            // NULLCHK(user_void);\n175|            // error_to_user(get_required_error<T>(conf, \"base_folder\"));\n176|            // string base = conf.get<string>(\"base_folder\");\n177|            \n178|            string errors = this->template get_required_errors<string>(args, { \"old_filename\", \"new_filename\" });\n179|            if (!errors.empty()) return errors;\n180|            string old_filepath = base_folder + args.get<string>(\"old_filename\");\n181|            if (!is_valid_filepath(old_filepath)) return \"Old filename is invalid: \" + old_filepath;\n182|            string new_filepath = base_folder + args.get<string>(\"new_filename\");\n183|            if (!is_valid_filepath(new_filepath)) return \"New filename is invalid :\" + new_filepath;\n184|            if (old_filepath == new_filepath) return \"Files can not be the same: \" + old_filepath;\n185|            if (!file_exists(old_filepath)) return \"File not exists: \" + old_filepath;\n186|            if (file_exists(new_filepath)) return \"File already exists: \" + new_filepath + \"\\nYou have to delete first!\";\n187|\n188|            string to = old_filepath + \" to \" + new_filepath;\n189|            errors += this->get_user_confirm_error(\n190|                [&](const string& prmpt) { \n191|                    return this->user.confirm(prmpt); \n192|                }, \n193|                string(\"File manager tool wants to rename file: \") + to\n194|                    + \"\\nDo you want to proceed?\",\n195|                \"User intercepted the file operation\", to\n196|            );\n197|            if (!errors.empty()) return errors;\n198|\n199|            if (!utils::rename(old_filepath, new_filepath, false))\n200|                return \"File rename failed: \" + to; \n201|\n202|            string ret = \"File renamed: \" + to;\n203|            cout << ret << endl;\n204|            return ret;\n205|        }\n206|\n207|        string view(/*void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n208|            // error_to_user(get_required_error<T>(conf, \"base_folder\"));\n209|            // string base = conf.get<string>(\"base_folder\");\n210|            string errors = this->template get_required_error<string>(args, \"filename\");\n211|            if (!errors.empty()) return errors;\n212|            string filepath = base_folder + args.get<string>(\"filename\");\n213|            if (!is_valid_filepath(filepath)) return \"Filename is invalid: \" + filepath;\n214|            if (!file_exists(filepath)) return \"File not exists: \" + filepath;\n215|            vector<string> lines;\n216|            try {\n217|                lines = explode(\"\\n\", file_get_contents(filepath));\n218|            } catch (ios_base::failure &e) {\n219|                return \"IO operation failed on file read '\" + filepath + \"': \" + e.what();\n220|            }\n221|            if (lines.empty()) return \"File '\" + filepath + \"' is empty.\";\n222|            int start_line = args.has(\"start_line\") ? args.get<int>(\"start_line\") - 1 : 0;\n223|            int end_line = args.has(\"end_line\") ? args.get<int>(\"end_line\") - 1 : lines.size();\n224|            if (start_line < 0) return \"Start line can not be less than 1!\";\n225|            if (end_line < 0) return \"End line can not be less than 1!\";\n226|            string outp = \"\";\n227|            for (int i = start_line; i < end_line; i++)\n228|                outp += ::to_string(i+1) + \"|\" + lines[i] + \"\\n\";\n229|            outp = \"Contents from file: \" + filepath + \"\\n\" + (outp.empty() ? \"<empty>\" : outp) + \"\\n\";\n230|            cout << outp << flush;\n231|            return outp;\n232|        }\n233|\n234|        string edit(/*void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n235|            // error_to_user(get_required_error<T>(conf, \"base_folder\"));\n236|            // string base = conf.get<string>(\"base_folder\");\n237|            string errors = this->template get_required_errors<string>(args, { \"filename\", \"content\" });\n238|            if (!errors.empty()) return errors;\n239|            string filepath = base_folder + args.get<string>(\"filename\");\n240|            if (!is_valid_filepath(filepath)) return \"Filename is invalid: \" + filepath;\n241|            string content = args.get<string>(\"content\"); \n242|            if (!file_exists(filepath)) return \"File not exists: \" + filepath;\n243|            vector<string> lines;\n244|            try {\n245|                lines = explode(\"\\n\", file_get_contents(filepath));\n246|            } catch (ios_base::failure &e) {\n247|                return \"IO operation failed on file read '\" + filepath + \"': \" + e.what();\n248|            }\n249|            \n250|            errors += this->get_user_confirm_error(\n251|                [&](const string& prmpt) { \n252|                    return this->user.confirm(prmpt); \n253|                }, \n254|                string(\"File manager tool wants to replace in file: \") + filepath\n255|                    + \"\\nDo you want to proceed?\",\n256|                \"User intercepted the file operation\", filepath\n257|            );\n258|            if (!errors.empty()) return errors;\n259|\n260|            int start_line = args.has(\"start_line\") ? args.get<int>(\"start_line\") - 1 : 0;\n261|            int end_line = args.has(\"end_line\") ? args.get<int>(\"end_line\") - 1 : lines.size();\n262|            if (start_line < 0) return \"Start line can not be less than 1!\";\n263|            if (end_line < 0) return \"End line can not be less than 1!\";\n264|            vector<string> before;\n265|            for (int i = 0; i < start_line; i++)\n266|                before.push_back(lines[i]);\n267|            vector<string> after;\n268|            for (size_t i = end_line; i < lines.size(); i++)\n269|                after.push_back(lines[i]);\n270|            string new_content = implode(\"\\n\", before) + (content.empty() ? \"\" : \"\\n\" + content + \"\\n\") + implode(\"\\n\", after);\n271|            if (!file_put_contents(filepath, content))\n272|                return \"File content modification failed: \" + filepath; \n273|\n274|            string ret = \"File updated: \" + filepath;\n275|            cout << ret + \"\\nNew contents:\\n\" + (new_content.empty() ? \"<empty>\" : new_content) << endl;\n276|            return ret;\n277|        }\n278|\n279|        string exec(/*void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n280|            // error_to_user(get_required_error<T>(conf, \"base_folder\"));\n281|            // string base = conf.get<string>(\"base_folder\");\n282|\n283|            string errors = this->template get_required_error<string>(args, { \"command\" });\n284|            if (!errors.empty()) return errors;\n285|\n286|            string command = args.get<string>(\"command\");\n287|            int timeout = args.has(\"timeout\") ? args.get<int>(\"timeout\") : 10;\n288|            \n289|            errors += this->get_user_confirm_error(\n290|                [&](const string& prmpt) { \n291|                    return this->user.confirm(prmpt); \n292|                }, // solve tools::to_string(..) conflict\n293|                string(\"File manager tool wants to execute a command with timeout \") + ::to_string(timeout) + \"s:\\n\" + command\n294|                    + \"\\nDo you want to proceed?\",\n295|                \"User intercepted the command execution\", command\n296|            );\n297|            if (!errors.empty()) return errors;\n298|            \n299|            auto start_time = chrono::steady_clock::now();\n300|            string output = \"\";\n301|            try {\n302|                string full_command = \"cd \" + base_folder + \" && \" + (timeout ? string(\"timeout \") + ::to_string(timeout) + \"s \" : \"\") + command + \" 2>&1\";\n303|                output = Process::execute(full_command.c_str());\n304|            } catch (const runtime_error& e) {\n305|                output = \"Command execution failed: \" + string(e.what());\n306|            }\n307|            auto current_time = chrono::steady_clock::now();\n308|            auto elapsed_time = chrono::duration_cast<chrono::milliseconds>(current_time - start_time).count();\n309|\n310|            // Display and return results\n311|            string elapsed = \"Command execution time was: \" + ::to_string(elapsed_time) + \"ms\";\n312|            cout << \"\\nOutput:\\n\" << output + \"\\n\" + elapsed << endl;\n313|            return \n314|                \"Results from command execution:\\n\" + trim(command) + \"\\n\" + elapsed +\n315|                \"\\nOutput:\\n\" + (output.empty() ? \"<empty>\" : output);\n316|        }\n317|\n318|        string search(const JSON& args) {\n319|            string errors = this->template get_required_error<string>(args, { \"keyword\" });\n320|            if (!errors.empty()) return errors;\n321|            \n322|            string keyword = args.get<string>(\"keyword\");\n323|            string command = \"grep -rn \" + keyword + \" \" + base_folder;\n324|            string output = \"\";\n325|            try {\n326|                output = Process::execute(command.c_str());\n327|            } catch (const runtime_error& e) {\n328|                output = \"Command execution failed: \" + string(e.what());\n329|            }\n330|            cout << output << endl;\n331|            return output;\n332|        }\n333|\n334|        string list(const JSON& args) {\n335|            string keyword = args.has(\"keyword\") ? args.get<string>(\"keyword\") : \"\";\n336|            vector<string> files_and_folders;\n337|            for (const auto& entry : filesystem::directory_iterator(base_folder)) {\n338|                if (entry.is_directory() || entry.is_regular_file()) {\n339|                    string full_path = entry.path().string();\n340|                    string item_name = entry.path().filename().string();\n341|                    if (keyword.empty() || item_name.find(keyword) != string::npos) {\n342|                        files_and_folders.push_back(item_name);\n343|                    }\n344|                }\n345|            }\n346|\n347|            string output = \"Files and folders in \" + base_folder + (keyword.empty() ? \"\" : \" (matching '\" + keyword + \"')\") + \":\\n\";\n348|            for (const auto& item_name : files_and_folders) {\n349|                string full_path = base_folder + item_name;\n350|                string type_indicator = utils::is_dir(full_path) ? \"[DIR] \" : \"[FILE] \";\n351|                output += type_indicator + item_name + \"\\n\";\n352|            }\n353|            cout << output << flush;\n354|            return output;\n355|        }\n356|\n357|        string mkdir(const JSON& args) {\n358|            string errors = this->template get_required_error<string>(args, \"dirname\");\n359|            if (!errors.empty()) return errors;\n360|            string dirpath = base_folder + args.get<string>(\"dirname\");\n361|            if (!is_valid_filepath(dirpath)) return \"Dirname is invalid: \" + dirpath;\n362|            if (file_exists(dirpath)) return \"Dir already exists: \" + dirpath;\n363|\n364|            errors += this->get_user_confirm_error(\n365|                [&](const string& prmpt) { \n366|                    return this->user.confirm(prmpt); \n367|                }, \n368|                string(\"File manager tool wants to create dir: \") + dirpath\n369|                    + \"\\nDo you want to proceed?\",\n370|                \"User intercepted the file operation\", dirpath\n371|            );\n372|            if (!errors.empty()) return errors;\n373|\n374|            if (!utils::mkdir(dirpath, true))\n375|                return \"Dir create failed: \" + dirpath; \n376|\n377|            string ret = \"Dir created: \" + dirpath;\n378|            cout << ret << endl;\n379|            return ret;\n380|        }\n381|\n382|        string rmdir(const JSON& args) {\n383|            string errors = this->template get_required_error<string>(args, \"dirname\");\n384|            if (!errors.empty()) return errors;\n385|            string dirpath = base_folder + args.get<string>(\"dirname\");\n386|            if (!is_valid_filepath(dirpath)) return \"Dirname is invalid: \" + dirpath;\n387|            if (!file_exists(dirpath)) return \"Dir not exists: \" + dirpath;\n388|            if (!utils::is_empty_dir(dirpath)) return \"Dir is not empty: \" + dirpath;\n389|\n390|            errors += this->get_user_confirm_error(\n391|                [&](const string& prmpt) { \n392|                    return this->user.confirm(prmpt); \n393|                }, \n394|                string(\"File manager tool wants to delete dir: \") + dirpath\n395|                    + \"\\nDo you want to proceed?\",\n396|                \"User intercepted the file operation\", dirpath\n397|            );\n398|            if (!errors.empty()) return errors;\n399|\n400|            if (!utils::remove(dirpath))\n401|                return \"Dir remove failed: \" + dirpath; \n402|\n403|            string ret = \"Dir removed: \" + dirpath;\n404|            cout << ret << endl;\n405|            return ret;\n406|        }\n407|\n408|        string rndir(const JSON& args) {\n409|            string errors = this->template get_required_errors<string>(args, { \"old_dirname\", \"new_dirname\" });\n410|            if (!errors.empty()) return errors;\n411|            string old_dirpath = base_folder + args.get<string>(\"old_dirname\");\n412|            if (!is_valid_filepath(old_dirpath)) return \"Old dirname is invalid: \" + old_dirpath;\n413|            string new_dirpath = base_folder + args.get<string>(\"new_dirname\");\n414|            if (!is_valid_filepath(new_dirpath)) return \"New dirname is invalid :\" + new_dirpath;\n415|            if (old_dirpath == new_dirpath) return \"Dirs can not be the same: \" + old_dirpath;\n416|            if (!file_exists(old_dirpath)) return \"Dir not exists: \" + old_dirpath;\n417|            if (file_exists(new_dirpath)) return \"Dir already exists: \" + new_dirpath + \"\\nYou have to delete first!\";\n418|\n419|            string to = old_dirpath + \" to \" + new_dirpath;\n420|            errors += this->get_user_confirm_error(\n421|                [&](const string& prmpt) { \n422|                    return this->user.confirm(prmpt); \n423|                }, \n424|                string(\"File manager tool wants to rename dir: \") + to\n425|                    + \"\\nDo you want to proceed?\",\n426|                \"User intercepted the file operation\", to\n427|            );\n428|            if (!errors.empty()) return errors;\n429|\n430|            if (!utils::rename(old_dirpath, new_dirpath, true))\n431|                return \"Dir rename failed: \" + to; \n432|\n433|            string ret = \"Dir renamed: \" + to;\n434|            cout << ret << endl;\n435|            return ret;\n436|        }\n437|\n438|        static string create_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n439|            NULLCHK(tool_void);\n440|            FileManagerTool* tool = (FileManagerTool*)tool_void;\n441|            return tool->write(/*user_void,*/ args, /*conf,*/ false);\n442|        }\n443|\n444|        static string append_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n445|            NULLCHK(tool_void);\n446|            FileManagerTool* tool = (FileManagerTool*)tool_void;\n447|            return tool->write(/*user_void,*/ args, /*conf,*/ true);\n448|        }\n449|\n450|        static string remove_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n451|            NULLCHK(tool_void);\n452|            FileManagerTool* tool = (FileManagerTool*)tool_void;\n453|            return tool->remove(/*user_void,*/ args/*, conf*/);\n454|        }\n455|\n456|        static string rename_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n457|            NULLCHK(tool_void);\n458|            FileManagerTool* tool = (FileManagerTool*)tool_void;\n459|            return tool->rename(/*user_void,*/ args/*, conf*/);\n460|        }\n461|\n462|        static string view_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n463|            NULLCHK(tool_void);\n464|            FileManagerTool* tool = (FileManagerTool*)tool_void;\n465|            return tool->view(/*user_void,*/ args/*, conf*/);\n466|        }\n467|\n468|        static string edit_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n469|            NULLCHK(tool_void);\n470|            FileManagerTool* tool = (FileManagerTool*)tool_void;\n471|            return tool->edit(/*user_void,*/ args/*, conf*/);\n472|        }\n473|\n474|        static string exec_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n475|            NULLCHK(tool_void);\n476|            FileManagerTool* tool = (FileManagerTool*)tool_void;\n477|            return tool->exec(/*user_void,*/ args/*, conf*/);\n478|        }\n479|\n480|        static string list_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n481|            NULLCHK(tool_void);\n482|            FileManagerTool* tool = (FileManagerTool*)tool_void;\n483|            return tool->list(args);\n484|        }\n485|\n486|        static string search_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n487|            NULLCHK(tool_void);\n488|            FileManagerTool* tool = (FileManagerTool*)tool_void;\n489|            return tool->search(args);\n490|        }\n491|\n492|        static string mkdir_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n493|            NULLCHK(tool_void);\n494|            FileManagerTool* tool = (FileManagerTool*)tool_void;\n495|            return tool->mkdir(args);\n496|        }\n497|\n498|        static string rmdir_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n499|            NULLCHK(tool_void);\n500|            FileManagerTool* tool = (FileManagerTool*)tool_void;\n501|            return tool->rmdir(args);\n502|        }\n503|\n504|        static string rndir_cb(void* tool_void, /*void* model_void, void* user_void,*/ const JSON& args/*, const JSON& conf*/) {\n505|            NULLCHK(tool_void);\n506|            FileManagerTool* tool = (FileManagerTool*)tool_void;\n507|            return tool->rndir(args);\n508|        }\n509|\n510|        string base_folder;\n511|\n512|    };\n513|\n514|    template<typename T>\n515|    map<string, tool_cb> FileManagerTool<T>::action_map = {\n516|        { \"create\", FileManagerTool<T>::create_cb },\n517|        { \"append\", FileManagerTool<T>::append_cb },\n518|        { \"remove\", FileManagerTool<T>::remove_cb },\n519|        { \"rename\", FileManagerTool<T>::rename_cb },\n520|        { \"view\", FileManagerTool<T>::view_cb },\n521|        { \"edit\", FileManagerTool<T>::edit_cb },\n522|        { \"exec\", FileManagerTool<T>::exec_cb },\n523|        { \"list\", FileManagerTool<T>::list_cb },\n524|        { \"make_dir\", FileManagerTool<T>::mkdir_cb}, // create directory\n525|        { \"remove_dir\", FileManagerTool<T>::rmdir_cb}, // delete directory (only if empty)\n526|        { \"rename_dir\", FileManagerTool<T>::rndir_cb}, // rename directory\n527|        { \"search\", FileManagerTool<T>::search_cb}, // search in files (\"keyword\" parameter is required, list all file:line where the keyword found - similar to grep (you can utilize the grep command using Process::execute))\n528|    };\n529|\n530|}\n531|\n\n"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Köszönöm a fájl tartalmát! Átnéztem a kódot, és látom, hogy a `FileManagerTool` osztály sablonként van definiálva, és a `base_folder` változó tárolja az alapkönyvtárat. Viszont a kódban több helyen is kommentelve van a `user_void`, `model_void` és `conf` paraméterek használata, ami arra utal, hogy valamilyen konfigurációs probléma lehet.\n\nAzt látom, hogy a 112., 151., 180., 212., 239. és 360. sorokban a fájl elérési útvonalát a `base_folder + args.get<string>(\"filename\")` módon állítják elő. Ez azt jelenti, hogy a `base_folder` változóban tárolt elérési út nem helyes, vagy pedig az `args` objektumban nincs \"filename\" paraméter.\n\nAzt javaslom, hogy ellenőrizzük a következőket:\n\n1.  **Mi a `base_folder` értéke?**\n2.  **A meghívott függvények (pl. `view`) megkapják-e a `filename` paramétert?**\n\nEsetleg megpróbálhatnánk kiíratni a `base_folder` értékét a `list` függvény elején, hogy lássuk, mi az aktuális érték. Ehhez a következő kódot szúrhatnánk be a `list` függvénybe (335. sor):\n\n```cpp\ncout << \"Base folder: \" << base_folder << endl;\n```\n\nMit gondolsz, próbálkozzunk ezzel?\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Szerintem erre nincs szükség mert a 347-sort ott kératódik a bass folder, a bass folder."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Igazad van, a 347. sorban kiíródik a `base_folder`, de csak a `output` változóban, ami a standard outputra kerül. Én azt javasoltam, hogy a *kimenetet* is nézzük meg, mert abból is látszik, hogy mi"
+                },
+                {
+                    "sender": "user",
+                    "text": "['chatbot1' interrupted by 'user']"
+                },
+                {
+                    "sender": "user",
+                    "text": "Amit elvéle eméletlek te is látsz, mert az visszom egy hozzá. De ha tenem látod akkor hív meg a listászást, a fáj listászást és emeg mondom nekedé minden képpen látom."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, azt hiszem, értem. Azt mondod, hogy a `list` függvény *kimenetét* nekem is látnom kellene, mert az a standard outputra kerül, és én azt vissza szoktam kapni.\n\nAkkor listázzuk ki újra a fájlokat, és nézzük meg, hogy mi van a kimenetben!\n\n```text\n[AI_MAGIC_ABRAKADABRA]\n{\n\"call_id\": \"62\",\n\"function_name\": \"file_manager\",\n\"action\": \"list\"\n}\n[AI_MAGIC_ALAKAZAM]\n```"
+                },
+                {
+                    "sender": "tool",
+                    "text": "Call ID: 62 (funtion: `file_manager`)\nResult(s):\nFiles and folders in ./:\n[DIR] src\n[DIR] temps\n[FILE] TODO-2025-04-02.md\n[FILE] TODO-2025-Mar-26.md\n[FILE] todos.txt\n[FILE] user.json\n[FILE] whisper_warmup_audio.bin\n[DIR] .git\n[FILE] .gitignore\n[DIR] .prompt\n[DIR] .vscode\n[FILE] app.log\n[FILE] beep.wav\n[DIR] browse\n[FILE] build-debug.sh\n[FILE] build-fast.sh\n[FILE] build-tests-coverage.sh\n[FILE] build-tests.sh\n[DIR] builds\n[FILE] chatbot1.json\n[FILE] clean.sh\n[FILE] cline_history.log\n[FILE] config.gemini.json\n[FILE] config.json\n[DIR] coverage\n[FILE] ctags.json\n[FILE] ctags.sh\n[FILE] example.config.gemini.json\n[FILE] example.config.json\n[FILE] install.sh\n[FILE] instruct_tooluse.txt\n[DIR] libs\n[FILE] LICENCE\n[FILE] list_until_marker.sh\n[FILE] notes.txt\n[DIR] old\n[FILE] parameters-report.txt\n[FILE] README.md\n[DIR] sounds\n"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Aha! Most látom, hogy a listázás a gyökérköny"
+                },
+                {
+                    "sender": "tool",
+                    "text": "['chatbot1' interrupted by 'tool']"
+                },
+                {
+                    "sender": "user",
+                    "text": "Nem azt ember dolputot kapod visszálnám a ritőnval jut, és a ritőnben is ott van az átpad."
+                },
+                {
+                    "sender": "user",
+                    "text": "De igen a múgy."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, tehát az a gyökérkönyvtár, amiben most vagyunk, és ott van a \".prompt\" könyvtár. Viszont amikor én a `"
+                },
+                {
+                    "sender": "user",
+                    "text": "['chatbot1' interrupted by 'user']"
+                },
+                {
+                    "sender": "user",
+                    "text": "Valami hibó volt!"
                 }
             ]
         },

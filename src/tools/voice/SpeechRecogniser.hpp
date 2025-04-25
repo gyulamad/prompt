@@ -117,10 +117,11 @@ namespace tools::voice {
         }
 
     protected:
+        // LCOV_EXCL_START
         SpeechListener::RMSCallback rms_cb = [](float /*vol_pc*/, float /*threshold_pc*/, float /*rmax*/, float /*rms*/, bool /*loud*/, bool /*muted*/) {};
         SpeechListener::SpeechCallback speech_cb = [](vector<float>& /*record*/) {};
         SpeechRecogniser::TranscribeCallback transcribe_cb = [](const vector<float>& /*record*/, const string& /*text*/) {};
-        
+        // LCOV_EXCL_STOP
     };
 
 }

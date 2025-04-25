@@ -207,22 +207,20 @@ void test_NoiseMonitor_setMuted_state() {
 
 // Test start and stop (basic functionality)
 void test_NoiseMonitor_start_stop() {
-    try {
-        Suppressor supressor(stderr);
-        VoiceRecorder recorder(16000.0, 512, 5);
-        NoiseMonitor monitor(recorder, 0.1f, 0.01f, 1024);
+    Suppressor supressor(stderr);
+    VoiceRecorder recorder(16000.0, 512, 5);
+    NoiseMonitor monitor(recorder, 0.1f, 0.01f, 1024);
+
+    bool called = false;
+    monitor.start(nullptr, [&](void*, float, float, float, float, bool, vector<float>&, bool) {
+        called = true;
+    }, 10);
     
-        bool called = false;
-        monitor.start(nullptr, [&](void*, float, float, float, float, bool, vector<float>&, bool) {
-            called = true;
-        }, 10);
-        
-        // Give some time for the thread to potentially process
-        Pa_Sleep(50);
-        monitor.stop();
-    } catch (...) {
-        assert(false && "start() and stop() should complete without crashing");
-    }
+    // Give some time for the thread to potentially process
+    Pa_Sleep(500);
+    monitor.stop();
+    
+    assert(called && "Noise callback should be called");
 }
 
 // Test callback behavior with simulated audio data
@@ -269,9 +267,11 @@ void test_NoiseMonitor_thread_safety_start_stop() {
         
         auto worker = [&monitor, &success_count]() {
             for (int i = 0; i < iterations; ++i) {
+                // LCOV_EXCL_START
                 bool started = monitor.start(nullptr, 
                     [](void*, float, float, float, float, bool, vector<float>&, bool) {}, 
                     1, false);
+                // LCOV_EXCL_STOP
                 if (started) {
                     Pa_Sleep(1);
                     monitor.stop();
@@ -297,22 +297,22 @@ void test_NoiseMonitor_thread_safety_start_stop() {
 // Additional test to verify throw behavior
 void test_NoiseMonitor_start_throws_when_running() {
     bool thrown = false;
+    Suppressor supressor(stderr);
+    MockVoiceRecorder recorder(16000.0, 512, 5);
+    NoiseMonitor monitor(recorder, 0.1f, 0.01f, 1024);
     try {
-        Suppressor supressor(stderr);
-        MockVoiceRecorder recorder(16000.0, 512, 5);
-        NoiseMonitor monitor(recorder, 0.1f, 0.01f, 1024);
 
         // Start the monitor
         monitor.start(nullptr, [](void*, float, float, float, float, bool, vector<float>&, bool) {}, 10);
         
         // Try to start again with throws = true
         monitor.start(nullptr, [](void*, float, float, float, float, bool, vector<float>&, bool) {}, 10, true);
-        monitor.stop();
     } catch (const runtime_error& e) {
         thrown = true;
         string what = e.what();
         assert(str_contains(what, "Monitor is already running") && "Exception message should indicate monitor is running");
     }
+    monitor.stop();
     assert(thrown && "start() should throw when already running with throws = true");
 }
 
@@ -346,11 +346,13 @@ void test_NoiseMonitor_start_empty_buffer() {
     
         recorder.set_available(0); // No data available
         
+        // LCOV_EXCL_START
         monitor.start(nullptr, [&](void*, float, float, float, float, bool, vector<float>&, bool) {
             callback_called = true;
         }, 10);
+        // LCOV_EXCL_STOP
         
-        Pa_Sleep(50);
+        Pa_Sleep(500);
         monitor.stop();
     }
     
