@@ -68,6 +68,7 @@ namespace tools::agency::agents::plugins::ai_tools {
                 "       from being prematurely terminated when timeouts.\n" 
                 "\n"
                 "*   **list:**\n"
+                "    *   `directory`: Required. Specifies the directory to list.\n"
                 "    *   `keyword`: Optional. If provided, only files and folders containing the keyword in their names will be listed.\n"
                 "\n"
                 "*   **make_dir:**\n"
@@ -81,6 +82,7 @@ namespace tools::agency::agents::plugins::ai_tools {
                 "    *   `new_dirname`: Required.\n"
                 "\n"
                 "*   **search:**\n"
+                "    *   `directory`: Required. Specifies the directory to list.\n" //  TODO
                 "    *   `keyword`: Required. Searches for the keyword in files.\n"
                 "\n"
             ),
@@ -265,10 +267,10 @@ namespace tools::agency::agents::plugins::ai_tools {
             for (int i = 0; i < start_line; i++)
                 before.push_back(lines[i]);
             vector<string> after;
-            for (size_t i = end_line; i < lines.size(); i++)
+            for (size_t i = end_line + 1; i < lines.size(); i++)
                 after.push_back(lines[i]);
             string new_content = implode("\n", before) + (content.empty() ? "" : "\n" + content + "\n") + implode("\n", after);
-            if (!file_put_contents(filepath, content))
+            if (!file_put_contents(filepath, new_content))
                 return "File content modification failed: " + filepath; 
 
             string ret = "File updated: " + filepath;
@@ -332,9 +334,10 @@ namespace tools::agency::agents::plugins::ai_tools {
         }
 
         string list(const JSON& args) {
+            string directory = args.has("directory") ? args.get<string>("directory") : "";
             string keyword = args.has("keyword") ? args.get<string>("keyword") : "";
             vector<string> files_and_folders;
-            for (const auto& entry : filesystem::directory_iterator(base_folder)) {
+            for (const auto& entry : filesystem::directory_iterator(base_folder + directory)) {
                 if (entry.is_directory() || entry.is_regular_file()) {
                     string full_path = entry.path().string();
                     string item_name = entry.path().filename().string();
@@ -344,9 +347,9 @@ namespace tools::agency::agents::plugins::ai_tools {
                 }
             }
 
-            string output = "Files and folders in " + base_folder + (keyword.empty() ? "" : " (matching '" + keyword + "')") + ":\n";
+            string output = "Files and folders in " + base_folder + directory + (keyword.empty() ? "" : " (matching '" + keyword + "')") + ":\n";
             for (const auto& item_name : files_and_folders) {
-                string full_path = base_folder + item_name;
+                string full_path = base_folder + directory + item_name;
                 string type_indicator = utils::is_dir(full_path) ? "[DIR] " : "[FILE] ";
                 output += type_indicator + item_name + "\n";
             }
