@@ -76,7 +76,7 @@ namespace tools::agency::agents::plugins {
                 string role = (sender == name) ? "model" : "user";
                 
                 // Use index for array elements
-                string base_selector = ".contents[" + to_string(content_idx) + "]";
+                string base_selector = ".contents[" + ::to_string(content_idx) + "]";
                 data.set(base_selector + ".role", role);
                 data.set(base_selector + ".parts[0].text", text); // No need to escape, JSON class handles it
 
