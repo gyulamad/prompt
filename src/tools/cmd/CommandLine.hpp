@@ -109,6 +109,7 @@ namespace tools::cmd {
 
         void setCompletionMatcher(CompletionMatcher& completion_matcher) {
             line_editor.setCompletionCallback([&](const char* input, vector<string>& completions) {
+                completions = {};
                 vector<string> all_completions = completion_matcher.get_completions(input);
                 if (all_completions.size() <= 1) {
                     string input_s(input ? input : "");
@@ -121,12 +122,14 @@ namespace tools::cmd {
                     if (!input_s.empty()) input_s += " ";
                     for (const string& elem : all_completions) {
                         completions.push_back(input_s + elem);
+                        cout << elem << endl;
                     }
                     return;
                 }
                 line_editor.wipeLine();
                 // cout << endl;
                 for (const string& elem : all_completions) {
+                    completions.push_back(elem);
                     cout << elem << endl;
                 }
                 line_editor.refreshLine();
@@ -165,9 +168,14 @@ namespace tools::cmd {
 
 #ifdef TEST
 
-#include "../utils/Test.hpp"
+// #include "../utils/Test.hpp"
 
 #include "tests/MockLineEditor.hpp"
+#include "tests/MockCompletionMatcher.hpp"
+
+#include "../containers/vector_equal.hpp"
+
+using namespace tools::containers;
 
 void test_CommandLine_is_exited_initial_state() {
     MockLineEditor mock;
@@ -262,6 +270,84 @@ void test_CommandLine_readln_saves_history() {
     // Fixed: Added mock_ptr to access saved_history_path after move
 }
 
+void test_CommandLine_getEditorRef() {
+    MockLineEditor mock;
+    CommandLine cl(mock);
+    MockLineEditor& editor_ref = (MockLineEditor&)cl.getEditorRef();
+
+    // Modify a testable property through the reference
+    editor_ref.multi_line_enabled = true; 
+
+    assert(mock.multi_line_enabled == true && 
+           "getEditorRef() did not return valid reference to LineEditor");
+}
+
+void test_CommandLine_setCompletionMatcher() {
+    MockLineEditor editor;
+    CommandLine cline(editor);
+    CompletionMatcher matcher;
+    matcher.commandPatterns = {"option1", "option2"};
+    cline.setCompletionMatcher(matcher);
+    string input = "opt[TAB]";
+    // LCOV_EXCL_START
+    string captured_output = capture_cout([&]() {
+        editor.readLine(input);
+    });
+    // LCOV_EXCL_STOP
+    assert((captured_output == "option1\noption2\n") && "Should find all matching completions");
+}
+
+void test_CommandLine_setCompletionMatcher_findsTheRightOne() {
+    MockLineEditor editor;
+    CommandLine cline(editor);
+    CompletionMatcher matcher;
+    matcher.commandPatterns = {"option1aaa", "option2bbb"};
+    cline.setCompletionMatcher(matcher);
+    string input = "option1[TAB]";
+    // LCOV_EXCL_START
+    string captured_output = capture_cout([&]() {
+        editor.readLine(input);
+    });
+    // LCOV_EXCL_STOP
+    assert((captured_output == "option1aaa\n") && "Should find all matching completions");
+}
+
+void test_CommandLine_setCompletionMatcher_findsNone() {
+    MockLineEditor editor;
+    CommandLine cline(editor);
+    CompletionMatcher matcher;
+    matcher.commandPatterns = {"option1aaa", "option2bbb"};
+    cline.setCompletionMatcher(matcher);
+    string input = "nooption[TAB]";
+    // LCOV_EXCL_START
+    string captured_output = capture_cout([&]() {
+        editor.readLine(input);
+    });
+    // LCOV_EXCL_STOP
+    assert((captured_output == "") && "Should find all matching completions");
+}
+
+void test_CommandLine_setCompletionMatcher_onlyOneOption() {
+    MockLineEditor editor;
+    CommandLine cline(editor);
+    CompletionMatcher matcher;
+    matcher.commandPatterns = {"option"};
+    cline.setCompletionMatcher(matcher);
+    string input = "opt[TAB]";
+    // LCOV_EXCL_START
+    string captured_output = capture_cout([&]() {
+        editor.readLine(input);
+    });
+    // LCOV_EXCL_STOP
+    assert((captured_output == "option\n") && "Should find all matching completions");
+}
+
+void test_CommandLine_clearln_wipesLine() {
+    MockLineEditor editor;
+    CommandLine cline(editor);
+    cline.clearln();
+    assert(editor.wiped && "clearln whould wipe line");
+}
 
 TEST(test_CommandLine_is_exited_initial_state);
 TEST(test_CommandLine_is_exited_after_readline_exit);
@@ -273,5 +359,11 @@ TEST(test_CommandLine_readln_sets_history_max_length);
 TEST(test_CommandLine_readln_loads_history);
 TEST(test_CommandLine_readln_adds_to_history);
 TEST(test_CommandLine_readln_saves_history);
+TEST(test_CommandLine_getEditorRef);
+TEST(test_CommandLine_setCompletionMatcher);
+TEST(test_CommandLine_setCompletionMatcher_findsTheRightOne);
+TEST(test_CommandLine_setCompletionMatcher_findsNone);
+TEST(test_CommandLine_setCompletionMatcher_onlyOneOption);
+TEST(test_CommandLine_clearln_wipesLine);
 
 #endif

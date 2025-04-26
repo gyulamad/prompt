@@ -143,6 +143,9 @@ namespace tools::cmd {
         }
 
     public:
+
+        CompletionMatcher() {}
+        virtual ~CompletionMatcher() {}
     
         // Add unique handlers if you need to
         const map<string, function<vector<string>(const string&)>> handlers = {
@@ -176,7 +179,7 @@ namespace tools::cmd {
         // Define a list of command patterns
         vector<string> commandPatterns = {};
 
-        vector<string> parse_input(const string& input, bool& has_trailing_space, bool quote_strings = true) {
+        virtual vector<string> parse_input(const string& input, bool& has_trailing_space, bool quote_strings = true) {
             vector<string> parts;
             string current_part;
             bool in_quotes = false;
@@ -229,7 +232,7 @@ namespace tools::cmd {
             return parts;
         }
 
-        vector<string> get_completions(const string& input) {
+        virtual vector<string> get_completions(const string& input) {
             if (input.empty() || input.back() == ' ') {
                 return get_completions_internal(input, commandPatterns);
             }

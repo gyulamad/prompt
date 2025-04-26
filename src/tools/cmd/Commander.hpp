@@ -185,6 +185,7 @@ void test_Commander_runCommand_empty_input() {
 }
 
 void test_Commander_runCommand_unknown_command() {
+    // LCOV_EXCL_START
     string err = capture_cerr([&]() {
         MockLineEditor editor;
         MockCommandLine cl(editor);
@@ -196,10 +197,12 @@ void test_Commander_runCommand_unknown_command() {
         bool actual = commander.runCommand(nullptr, "/unknown");
         assert(actual == false && "runCommand should return false for unknown command");
     });
+    // LCOV_EXCL_STOP
     assert(str_contains(err, "Command not found: unknown") && "Should show the correct error");
 }
 
 void test_Commander_runCommand_invalid_arguments() {
+    // LCOV_EXCL_START
     string err = capture_cerr([&]() {
         MockLineEditor editor;
         MockCommandLine cl(editor);
@@ -211,6 +214,7 @@ void test_Commander_runCommand_invalid_arguments() {
         bool actual = commander.runCommand(nullptr, "/test");
         assert(actual == false && "runCommand should return false for invalid argument count");
     });
+    // LCOV_EXCL_STOP
     assert(str_contains(err, "Invalid argument(s).") && "Should show the correct error");
 }
 

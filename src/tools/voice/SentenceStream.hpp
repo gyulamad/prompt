@@ -263,14 +263,16 @@ void test_SentenceStream_flush_last_chunk_unfinished() {
 }
 
 void test_SentenceStream_error_unimplemented() {
-    Suppressor supressor(stderr);
+    // Suppressor supressor(stdout);
     Owns owns_instance;
     auto sep_ptr = owns_instance.allocate<BasicSentenceSeparation>(vector<string>{"."});
     SentenceStream stream(owns_instance, sep_ptr, 1024);
 
     bool thrown = false;
     try {
-        stream.error(); // Trigger error() method
+        capture_cout([&](){
+            stream.error(); // Trigger error() method
+        });        
     } catch (exception &e) {
         thrown = true;
         string what = e.what();

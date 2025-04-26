@@ -417,7 +417,8 @@ int safe_main(int argc, char* argv[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-    //    "test_TTS"
+    //    "test_CommandLine_setCompletionMatcher_findsTheRightOne",
+    //    "test_CommandLine_"
     });
     
     return safe_main<string>(argc, argv);

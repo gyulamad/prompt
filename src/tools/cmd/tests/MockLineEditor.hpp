@@ -7,8 +7,12 @@
 #include "../LineEditor.hpp"
 // #include "../CommandLine.hpp"
 
+#include "../../str/str_ends_with.hpp"
+#include "../../str/explode.hpp"
+
 using namespace std;
 using namespace tools::cmd;
+using namespace tools::str;
 
 // MockLineEditor definition (simplified for testing)
 class MockLineEditor : public LineEditor {
@@ -20,17 +24,26 @@ public:
     size_t max_history_len = 0;
     string loaded_history_path;
     string saved_history_path;
+    CompletionCallback stored_cb;
+    vector<string> actual_completions;
+    bool wiped = false;
 
     using LineEditor::LineEditor;
     virtual ~MockLineEditor() {}
 
-    void setCompletionCallback(CompletionCallback) override {}
+    void setCompletionCallback(CompletionCallback cb) override { stored_cb = cb; }
     void setMultiLine(bool enable) override { multi_line_enabled = enable; }
     void setHistoryMaxLen(size_t len) override { max_history_len = len; }
     void loadHistory(const char* path) override { loaded_history_path = path; }
     void saveHistory(const char* path) override { saved_history_path = path; }
     void addHistory(const char* line) override { history.push_back(line); }
     bool readLine(string& line) override {
+        string input = line;
+        if (str_ends_with(input, "[TAB]")) {
+            actual_completions = {}; // ???
+            stored_cb(explode("[TAB]", input)[0].c_str(), actual_completions);
+            return false;
+        }
         line = "";
         if (useQueue) {
             if (inputs.empty()) return true;
@@ -56,6 +69,5 @@ private:
     bool useQueue = false;
     string prompt;
     queue<string> inputs;
-    bool wiped = false;
     bool refreshed = false;
 };
