@@ -2,7 +2,7 @@
 
 #include "ERROR.hpp"
 
-namespace tools::utils {
+namespace tools::utils { // TODO it should goes to the namespace tools::testing
 
 #ifdef TEST_CASSERT
 #include <cassert>

@@ -20,7 +20,7 @@
 
 using namespace std;
 
-
+ // TODO it should goes to the namespace tools::testing
 #ifdef TEST
 
 /** use this macro:

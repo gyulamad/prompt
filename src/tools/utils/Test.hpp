@@ -6,7 +6,7 @@
 
 using namespace std;
 
-namespace tools::utils {
+namespace tools::utils { // TODO it should goes to the namespace tools::testing
 
     struct Test {
         string name;
