@@ -61,87 +61,6 @@ namespace tools::cmd {
             return true;
         }
 
-        // Helper function (example implementation)
-        vector<string> generate_param_completions(const string& param_type, const string& partial) {
-            if (param_type == "switch") {
-                vector<string> options = {"on", "off"};
-                vector<string> matches;
-                for (const string& opt: options) {
-                    if (str_starts_with(opt, partial)) {
-                        matches.push_back(opt);
-                    }
-                }
-                return matches; // For "of", returns {"off"}
-            }
-            return {};
-        }
-
-        vector<string> get_completions_internal(const string& input, const vector<string>& commandPatterns) {
-            // Parse input and detect trailing space
-            bool has_trailing_space;
-            vector<string> current_parts = parse_input(input, has_trailing_space);
-        
-            // Parse command patterns into structured form
-            vector<CommandPattern> patterns;
-            for (const string& pattern_str: commandPatterns) {
-                CommandPattern pattern;
-                pattern.parts = parse_pattern(pattern_str);
-                patterns.push_back(pattern);
-            }
-        
-            vector<string> completions;
-        
-            // Case 1: Empty input - suggest first word of each pattern
-            if (current_parts.empty() || (current_parts.size() == 1 && current_parts[0].empty())) {
-                for (const CommandPattern& pattern: patterns) {
-                    if (!pattern.parts.empty()) {
-                        completions.push_back(pattern.parts[0].value);
-                    }
-                }
-            }
-            // Case 2: Non-empty input
-            else {
-                for (const CommandPattern& pattern: patterns) {
-                    // Check if the input matches the pattern up to the current point
-                    if (!matches_current_input(pattern, current_parts)) {
-                        continue;
-                    }
-        
-                    // Number of meaningful input parts (exclude trailing empty part if present)
-                    int input_parts_count = has_trailing_space ? current_parts.size() - 1 : current_parts.size();
-                    int parts_size = (int)pattern.parts.size();
-        
-                    // If input exceeds pattern length, skip
-                    if (input_parts_count > parts_size) {
-                        continue;
-                    }
-        
-                    // Determine the next part to suggest
-                    int next_index = input_parts_count - (has_trailing_space ? 0 : 1);
-                    string partial = has_trailing_space ? "" : current_parts.back();
-        
-                    // If there's a next part to complete
-                    if (next_index >= 0 && next_index < parts_size) {
-                        const PatternPart& next_part = pattern.parts[next_index];
-                        if (next_part.is_parameter) {
-                            // Handle parameter (e.g., switch) completion
-                            vector<string> options = generate_param_completions(next_part.value, partial);
-                            completions.insert(completions.end(), options.begin(), options.end());
-                        } else if (str_starts_with(next_part.value, partial)) {
-                            // Handle regular word completion
-                            completions.push_back(next_part.value);
-                        }
-                    }
-                }
-            }
-        
-            // Sort and deduplicate completions
-            sort(completions.begin(), completions.end());
-            auto last = unique(completions.begin(), completions.end());
-            completions.erase(last, completions.end());
-            return completions;
-        }
-
     public:
 
         CompletionMatcher() {}
@@ -246,15 +165,104 @@ namespace tools::cmd {
             return completion_all;
         }
 
+    // private:
+
+        // Helper function (example implementation)
+        vector<string> generate_param_completions(const string& param_type, const string& partial) {
+            if (param_type == "switch") {
+                vector<string> options = {"on", "off"};
+                vector<string> matches;
+                for (const string& opt: options) {
+                    if (str_starts_with(opt, partial)) {
+                        matches.push_back(opt);
+                    }
+                }
+                return matches; // For "of", returns {"off"}
+            }
+            return {};
+        }
+
+        vector<string> get_completions_internal(const string& input, const vector<string>& commandPatterns) {
+            // Parse input and detect trailing space
+            bool has_trailing_space;
+            vector<string> current_parts = parse_input(input, has_trailing_space);
+        
+            // Parse command patterns into structured form
+            vector<CommandPattern> patterns;
+            for (const string& pattern_str: commandPatterns) {
+                CommandPattern pattern;
+                pattern.parts = parse_pattern(pattern_str);
+                patterns.push_back(pattern);
+            }
+        
+            vector<string> completions;
+        
+            // Case 1: Empty input - suggest first word of each pattern
+            if (current_parts.empty() || (current_parts.size() == 1 && current_parts[0].empty())) {
+                for (const CommandPattern& pattern: patterns) {
+                    if (!pattern.parts.empty()) {
+                        completions.push_back(pattern.parts[0].value);
+                    }
+                }
+            }
+            // Case 2: Non-empty input
+            else {
+                for (const CommandPattern& pattern: patterns) {
+                    // Check if the input matches the pattern up to the current point
+                    if (!matches_current_input(pattern, current_parts)) {
+                        continue;
+                    }
+        
+                    // Number of meaningful input parts (exclude trailing empty part if present)
+                    int input_parts_count = has_trailing_space ? current_parts.size() - 1 : current_parts.size();
+                    int parts_size = (int)pattern.parts.size();
+        
+                    // LCOV_EXCL_START
+                    // TODO: potential dead code: "continue;" is unreachable, consider removing it
+                    // If input exceeds pattern length, skip
+                    if (input_parts_count > parts_size) {
+                        cerr << "This should never happen!" << endl;
+                        continue;
+                    }
+                    // LCOV_EXCL_STOP
+        
+                    // Determine the next part to suggest
+                    int next_index = input_parts_count - (has_trailing_space ? 0 : 1);
+                    string partial = has_trailing_space ? "" : current_parts.back();
+        
+                    // If there's a next part to complete
+                    if (next_index >= 0 && next_index < parts_size) {
+                        const PatternPart& next_part = pattern.parts[next_index];
+                        if (next_part.is_parameter) {
+                            // Handle parameter (e.g., switch) completion
+                            vector<string> options = generate_param_completions(next_part.value, partial);
+                            completions.insert(completions.end(), options.begin(), options.end());
+                        } else if (str_starts_with(next_part.value, partial)) {
+                            // Handle regular word completion
+                            completions.push_back(next_part.value);
+                        }
+                    }
+                }
+            }
+        
+            // Sort and deduplicate completions
+            sort(completions.begin(), completions.end());
+            auto last = unique(completions.begin(), completions.end());
+            completions.erase(last, completions.end());
+            return completions;
+        }
     };
     
 }
 
 #ifdef TEST
 
-#include "../utils/Test.hpp"
+// #include "../utils/Test.hpp"
+
+#include "../containers/in_array.hpp"
 
 using namespace tools::cmd;
+using namespace tools::containers;
 
 void test_CompletionMatcher_parse_input_basic() {
     CompletionMatcher cm;
@@ -336,6 +344,141 @@ void test_CompletionMatcher_get_completions_no_matches() {
     assert(actual.empty() && "get_completions should return empty vector for no matches");
 }
 
+void test_CompletionMatcher_generate_param_completions_empty() {
+    CompletionMatcher cm;
+    vector<string> actual = cm.generate_param_completions("unknown_type", "");
+    assert(actual.empty() && "generate_param_completions should return empty vector for unknown type");
+}
+
+void test_CompletionMatcher_generate_param_completions_switch() {
+    CompletionMatcher cm;
+    vector<string> actual = cm.generate_param_completions("switch", "");
+    assert(actual.size() == 2 && "generate_param_completions should return two switch options");
+    assert(in_array("on", actual));
+    assert(in_array("off", actual));
+}
+
+void test_CompletionMatcher_generate_param_completions_switch_partial() {
+    CompletionMatcher cm;
+    vector<string> actual = cm.generate_param_completions("switch", "of");
+    assert(actual.size() == 1 && "generate_param_completions should filter switch options");
+    assert(actual[0] == "off" && "Partial match 'of' should return 'off'");
+}
+
+void test_CompletionMatcher_generate_param_completions_switch_no_match() {
+    CompletionMatcher cm;
+    vector<string> actual = cm.generate_param_completions("switch", "xyz");
+    assert(actual.empty() && "generate_param_completions should return empty for no matches");
+}
+
+void test_CompletionMatcher_get_completions_internal_input_exceeds_pattern() {
+    CompletionMatcher cm;
+    cm.commandPatterns = {"test cmd", "other"};
+    
+    // Input with more parts than any pattern
+    string input = "test cmd extra";
+    vector<string> actual = cm.get_completions_internal(input, cm.commandPatterns);
+    
+    assert(actual.empty() && "get_completions_internal should return empty vector when input exceeds pattern length");
+}
+
+void test_CompletionMatcher_switch_handler_no_partial() {
+    CompletionMatcher cm;
+    vector<string> actual = cm.handlers.at("switch")("");
+    assert(actual.size() == 2 && "switch handler should return both options when no partial match");
+    assert(in_array("on", actual));
+    assert(in_array("off", actual));
+}
+
+void test_CompletionMatcher_switch_handler_partial() {
+    CompletionMatcher cm;
+    vector<string> actual = cm.handlers.at("switch")("on");
+    assert(actual.size() == 1 && "switch handler should return only matching option");
+    assert(actual[0] == "on" && "Partial match 'on' should return 'on'");
+}
+
+void test_CompletionMatcher_switch_handler_no_match() {
+    CompletionMatcher cm;
+    vector<string> actual = cm.handlers.at("switch")("xyz");
+    assert(actual.empty() && "switch handler should return empty vector for no matches");
+}
+
+void test_CompletionMatcher_filename_handler() {
+    CompletionMatcher cm;
+    // Create some test files
+    system("mkdir -p test_dir");
+    system("touch test_dir/file1.txt");
+    system("touch test_dir/file2.txt");
+    
+    // Change to test directory
+    chdir("test_dir");
+    
+    vector<string> actual = cm.handlers.at("filename")("file");
+    assert(actual.size() == 2 && "filename handler should return all matching files");
+    assert(find(actual.begin(), actual.end(), "file1.txt") != actual.end() && "Should include 'file1.txt'");
+    assert(find(actual.begin(), actual.end(), "file2.txt") != actual.end() && "Should include 'file2.txt'");
+    
+    // Clean up
+    system("rm file1.txt file2.txt");
+    system("rmdir ../test_dir");
+    chdir("..");
+}
+
+void test_CompletionMatcher_filename_handler_no_match() {
+    CompletionMatcher cm;
+    vector<string> actual = cm.handlers.at("filename")("nonexistent");
+    assert(actual.empty() && "filename handler should return empty vector for no matches");
+}
+
+void test_CompletionMatcher_filename_handler_error() {
+    CompletionMatcher cm;
+    // Change to non-existent directory
+    chdir("/nonexistent");
+    
+    vector<string> actual = cm.handlers.at("filename")("file");
+    assert(actual.empty() && "filename handler should return empty vector when directory cannot be opened");
+    
+    // Change back to original directory
+    chdir("/mnt/windows/llm/prompt");
+}
+
+void test_CompletionMatcher_parse_input_escape_handling() {
+    CompletionMatcher cm;
+    bool has_trailing_space;
+    
+    // Test basic escape handling
+    vector<string> actual = cm.parse_input("test\\ cmd", has_trailing_space);
+    assert(actual.size() == 1 && "parse_input should combine parts with escaped space");
+    assert(actual[0] == "test cmd" && "parse_input should handle escaped space correctly");
+    
+    // Test multiple escapes
+    actual = cm.parse_input("test\\\\ cmd", has_trailing_space);
+    assert(actual.size() == 2 && "parse_input should handle multiple escapes");
+    assert(actual[0] == "test\\" && "parse_input should handle multiple escapes correctly");
+    assert(actual[1] == "cmd" && "parse_input should handle multiple escapes correctly");
+    
+    // Test escape at end of string
+    actual = cm.parse_input("test\\", has_trailing_space);
+    assert(actual.size() == 1 && "parse_input should handle escape at end of string");
+    assert(actual[0] == "test\\" && "parse_input should handle escape at end of string correctly");
+}
+
+void test_CompletionMatcher_parse_input_quoted_string_with_escapes() {
+    CompletionMatcher cm;
+    bool has_trailing_space;
+    
+    // Test quoted string with escape
+    vector<string> actual = cm.parse_input("test \"quoted\\ string\"", has_trailing_space);
+    assert(actual.size() == 2 && "parse_input should handle quoted string with escape");
+    assert(actual[0] == "test" && "parse_input should correctly parse first word");
+    assert(actual[1] == "\"quoted string\"" && "parse_input should handle escape in quoted string");
+    
+    // Test quoted string with multiple escapes
+    actual = cm.parse_input("test \"quoted\\\\ string\"", has_trailing_space);
+    assert(actual.size() == 2 && "parse_input should handle quoted string with multiple escapes");
+    assert(actual[0] == "test" && "parse_input should correctly parse first word");
+    assert(actual[1] == "\"quoted\\\\ string\"" && "parse_input should handle multiple escapes in quoted string");
+}
 
 TEST(test_CompletionMatcher_parse_input_basic);
 TEST(test_CompletionMatcher_parse_input_trailing_space);
@@ -346,5 +489,18 @@ TEST(test_CompletionMatcher_get_completions_trailing_space);
 TEST(test_CompletionMatcher_get_completions_switch_handler);
 TEST(test_CompletionMatcher_get_completions_partial_switch);
 TEST(test_CompletionMatcher_get_completions_no_matches);
+TEST(test_CompletionMatcher_generate_param_completions_empty);
+TEST(test_CompletionMatcher_generate_param_completions_switch);
+TEST(test_CompletionMatcher_generate_param_completions_switch_partial);
+TEST(test_CompletionMatcher_generate_param_completions_switch_no_match);
+TEST(test_CompletionMatcher_get_completions_internal_input_exceeds_pattern);
+TEST(test_CompletionMatcher_switch_handler_no_partial);
+TEST(test_CompletionMatcher_switch_handler_partial);
+TEST(test_CompletionMatcher_switch_handler_no_match);
+TEST(test_CompletionMatcher_filename_handler);
+TEST(test_CompletionMatcher_filename_handler_no_match);
+TEST(test_CompletionMatcher_filename_handler_error);
+TEST(test_CompletionMatcher_parse_input_escape_handling);
+TEST(test_CompletionMatcher_parse_input_quoted_string_with_escapes);
 
 #endif

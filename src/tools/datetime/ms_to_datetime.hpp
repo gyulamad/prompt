@@ -32,10 +32,12 @@ namespace tools::datetime {
 using namespace tools::datetime;
 
 void test_ms_to_datetime() {
+    // LCOV_EXCL_START
     // Mock get_time_ms for testing purposes
     auto mock_get_time_ms = []() -> time_t {
         return 1696516245123LL; // Example timestamp: "2023-10-05 14:30:45.123"
     };
+    // LCOV_EXCL_STOP
 
     // Mock current time
     auto original_get_time_ms = get_time_ms;

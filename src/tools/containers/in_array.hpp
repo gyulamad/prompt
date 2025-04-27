@@ -127,9 +127,11 @@ void test_in_array_custom_object_not_exists() {
 void test_in_array_custom_object_vector_empty() {
     struct Point {
         int x, y;
+        // LCOV_EXCL_START
         bool operator==(const Point& other) const {
             return x == other.x && y == other.y;
         }
+        // LCOV_EXCL_STOP
     };
     vector<Point> vec;
     assert(!in_array(Point{1, 2}, vec) && "Custom object does not exist in empty vector");

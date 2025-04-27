@@ -128,7 +128,7 @@ namespace tools::voice {
 
 #ifdef TEST
 
-#include "../utils/Test.hpp"
+// #include "../utils/Test.hpp"
 
 #include "tests/MockVoiceRecorder.hpp"
 #include "tests/MockNoiseMonitor.hpp"

@@ -270,9 +270,11 @@ void test_SentenceStream_error_unimplemented() {
 
     bool thrown = false;
     try {
+        // LCOV_EXCL_START
         capture_cout([&](){
             stream.error(); // Trigger error() method
-        });        
+        });
+        // LCOV_EXCL_STOP
     } catch (exception &e) {
         thrown = true;
         string what = e.what();

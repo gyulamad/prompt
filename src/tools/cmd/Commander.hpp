@@ -99,7 +99,7 @@ namespace tools::cmd {
             return commandArgumentsMatches;
         }
 
-    protected:
+    // protected:
 
         string cleanCommandName(const string& inputParts0) const {
             if (str_starts_with(inputParts0, prefix)) return inputParts0.substr(1);
@@ -112,7 +112,7 @@ namespace tools::cmd {
 
 #ifdef TEST
 
-#include "../utils/Test.hpp"
+// #include "../utils/Test.hpp"
 
 #include "tests/MockCommand.hpp"
 
@@ -233,6 +233,131 @@ void test_Commander_runCommand_successful_execution() {
     assert(command.last_args[1] == "value" && "runCommand should pass argument");
 }
 
+void test_Commander_getPrefix_returns_correct_value() {
+    MockLineEditor editor;
+    MockCommandLine cl(editor);
+    vector<Command*> commands;
+    string expected_prefix = "/test";
+    Commander commander(cl, commands, expected_prefix);
+    string actual = commander.getPrefix();
+    assert(actual == expected_prefix && "getPrefix should return the set prefix");
+}
+
+void test_Commander_isPrefixed_returns_true() {
+    MockLineEditor editor;
+    MockCommandLine cl(editor);
+    vector<Command*> commands;
+    string prefix = "/";
+    Commander commander(cl, commands, prefix);
+    assert(commander.isPrefixed("/test") && "Input with prefix should return true");
+    assert(commander.isPrefixed(prefix) && "Exact prefix match should return true");
+}
+
+void test_Commander_isPrefixed_returns_false() {
+    MockLineEditor editor;
+    MockCommandLine cl(editor);
+    vector<Command*> commands;
+    Commander commander(cl, commands, "/");
+    assert(!commander.isPrefixed("test") && "Input without prefix should return false");
+}
+
+void test_Commander_isPrefixed_empty_input() {
+    MockLineEditor editor;
+    MockCommandLine cl(editor);
+    vector<Command*> commands;
+    Commander commander(cl, commands, "/");
+    assert(!commander.isPrefixed("") && "Empty input should return false");
+}
+
+void test_Commander_cleanCommandName_success() {
+    MockLineEditor editor;
+    MockCommandLine cl(editor);
+    vector<Command*> commands;
+    Commander commander(cl, commands, "/");
+    
+    string input = "/test";
+    string expected = "test";
+    string actual = commander.cleanCommandName(input);
+    
+    assert(actual == expected && "cleanCommandName should return the substring after prefix");
+}
+
+void test_Commander_cleanCommandName_error_case() {
+    MockLineEditor editor;
+    MockCommandLine cl(editor);
+    vector<Command*> commands;
+    Commander commander(cl, commands, "/");
+    
+    string input = "test";
+    string expected_error = "Invalid command name: test";
+    bool thrown = false;
+    string what;
+    
+    try {
+        commander.cleanCommandName(input);
+    } catch (exception &e) {
+        thrown = true;
+        what = e.what();
+    }
+    
+    assert(thrown && "cleanCommandName should throw an exception when input doesn't start with prefix");
+    assert(str_contains(what, expected_error) && "Exception message should match expected error");
+}
+
+void test_Commander_cleanCommandName_empty_input() {
+    MockLineEditor editor;
+    MockCommandLine cl(editor);
+    vector<Command*> commands;
+    Commander commander(cl, commands, "/");
+    
+    string input = "";
+    string expected_error = "Invalid command name: ";
+    bool thrown = false;
+    string what;
+    
+    try {
+        commander.cleanCommandName(input);
+    } catch (exception &e) {
+        thrown = true;
+        what = e.what();
+    }
+    
+    assert(thrown && "cleanCommandName should throw an exception for empty input");
+    assert(str_contains(what, expected_error) && "Exception message should match expected error");
+}
+
+void test_Commander_getCommandsRef_success() {
+    // Setup
+    MockLineEditor mock_editor;
+    MockCommandLine mock_cl(mock_editor);
+    MockCommand cmd1("/"); // Assuming MockCommand constructor takes prefix or similar
+    MockCommand cmd2("/");
+    cmd1.patterns = {"cmd1"}; // Give them distinct patterns for clarity if needed
+    cmd2.patterns = {"cmd2"};
+    vector<Command*> initial_commands = {&cmd1, &cmd2};
+    Commander commander(mock_cl, initial_commands, "/");
+
+    // Get Reference
+    vector<Command*>& commands_ref = commander.getCommandsRef();
+
+    // Assertions
+    size_t initial_size = initial_commands.size();
+    assert(commands_ref.size() == initial_size && "Reference should have the same size as the original vector initially");
+    assert(commands_ref[0] == &cmd1 && "Reference should contain the pointer to cmd1");
+    assert(commands_ref[1] == &cmd2 && "Reference should contain the pointer to cmd2");
+
+    // Test Reference Behavior (Modifying original vector)
+    MockCommand cmd3("/");
+    cmd3.patterns = {"cmd3"};
+    // LCOV_EXCL_START
+    initial_commands.push_back(&cmd3); // Modify the original vector
+    // LCOV_EXCL_STOP
+
+    size_t new_size = initial_commands.size();
+    assert(commands_ref.size() == new_size && "Change in original vector size should reflect in the reference");
+    assert(commands_ref.back() == &cmd3 && "New command added to original vector should be accessible via reference");
+    assert(new_size == initial_size + 1 && "Size should have increased by 1");
+}
 
 TEST(test_Commander_isExiting_initial_state);
 TEST(test_Commander_isExiting_after_exit);
@@ -243,5 +368,13 @@ TEST(test_Commander_runCommand_empty_input);
 TEST(test_Commander_runCommand_unknown_command);
 TEST(test_Commander_runCommand_invalid_arguments);
 TEST(test_Commander_runCommand_successful_execution);
+TEST(test_Commander_getPrefix_returns_correct_value);
+TEST(test_Commander_isPrefixed_returns_true);
+TEST(test_Commander_isPrefixed_returns_false);
+TEST(test_Commander_isPrefixed_empty_input);
+TEST(test_Commander_cleanCommandName_success);
+TEST(test_Commander_cleanCommandName_error_case);
+TEST(test_Commander_cleanCommandName_empty_input);
+TEST(test_Commander_getCommandsRef_success);
 
 #endif

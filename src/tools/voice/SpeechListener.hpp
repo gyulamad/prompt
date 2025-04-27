@@ -71,7 +71,7 @@ namespace tools::voice {
 
 #ifdef TEST
 
-#include "../utils/Test.hpp"
+// #include "../utils/Test.hpp"
 
 #include "tests/MockNoiseMonitor.hpp"
 #include "tests/MockSpeechListenerWithPublic_noise_cb.hpp"

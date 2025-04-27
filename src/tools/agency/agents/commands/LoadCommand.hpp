@@ -139,7 +139,7 @@ namespace tools::agency::agents::commands {
 
 #ifdef TEST
 
-#include "../../../utils/Test.hpp" // Include your testing framework header
+// #include "../../../utils/Test.hpp" // Include your testing framework header
 // #include "../../../utils/str_contains.hpp" // For checking exception messages
 
 using namespace tools::agency::agents::commands;

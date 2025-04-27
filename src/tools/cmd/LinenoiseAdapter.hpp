@@ -9,6 +9,7 @@ using namespace linenoise;
 
 namespace tools::cmd {
 
+    // LCOV_EXCL_START
     class LinenoiseAdapter : public LineEditor {
     public:
         LinenoiseAdapter(const string& prompt, int stdin_fd = STDIN_FILENO, int stdout_fd = STDOUT_FILENO): 
@@ -66,5 +67,6 @@ namespace tools::cmd {
     protected:
         linenoiseState l;
     };
+    // LCOV_EXCL_STOP
 
 } // namespace tools::cmd

@@ -10,7 +10,7 @@ ask and confirm a human before you edit this file!!
 #include <functional>
 
 #include "tools/utils/ERROR.hpp"
-#include "tools/utils/Test.hpp"
+#include "tools/utils/run_tests.hpp"
 #include "tools/utils/Owns.hpp"
 #include "tools/utils/files.hpp"
 #include "tools/utils/Settings.hpp"
@@ -417,8 +417,7 @@ int safe_main(int argc, char* argv[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-    //    "test_CommandLine_setCompletionMatcher_findsTheRightOne",
-    //    "test_CommandLine_"
+    //    "test_Arguments_get_bool_specialization_missing",
     });
     
     return safe_main<string>(argc, argv);

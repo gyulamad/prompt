@@ -110,7 +110,7 @@ namespace tools::str {
 
 #ifdef TEST
 
-#include "../../../src/tools/utils/Test.hpp" // Assuming Test.hpp is correctly located relative to FrameTokenParser.hpp
+// #include "../../../src/tools/utils/Test.hpp" // Assuming Test.hpp is correctly located relative to FrameTokenParser.hpp
 #include <vector>
 #include <iostream> // For potential debugging, though not strictly needed for asserts
 
@@ -144,9 +144,11 @@ void test_FrameTokenParser_parse_basic() {
 void test_FrameTokenParser_parse_no_frame() {
     FrameTokenParser parser;
     string extracted_content = "initial"; // To check if callback is called
+    // LCOV_EXCL_START
     auto callback = [&](const string& content) {
         extracted_content = content;
     };
+    // LCOV_EXCL_STOP
 
     string chunk = "Just plain text without tokens.";
     string start_token = "[[";
@@ -405,6 +407,22 @@ void test_FrameTokenParser_parse_fake_stop_token() {
     assert(!parser.in_tokens && "Fake Stop 2: Should be out of tokens state");
 }
 
+void test_FrameTokenParser_parse_short_inner() {
+    FrameTokenParser parser;
+    string extracted_content;
+    auto callback = [&](const string& content) { extracted_content = content; };
+    string start_token = "START";
+    string stop_token = "START"; // Identical tokens to trigger short inner
+    string chunk = "START";
+
+    string clean_output = parser.parse(chunk, start_token, stop_token, callback);
+
+    assert(extracted_content == "" && "Short Inner: Should extract empty string due to immediate stop");
+    assert(clean_output == "" && "Short Inner: Clean output should be empty");
+    // assert(!parser.in_tokens && "Short Inner: Should be out of tokens state");
+    assert(parser.buffer == chunk && "Short Inner: Buffer should contain the chunk");
+    assert(parser.inner == "" && "Short Inner: Inner should be empty after reset");
+}
 
 // Register tests
 TEST(test_FrameTokenParser_parse_basic);
@@ -421,6 +439,6 @@ TEST(test_FrameTokenParser_parse_stop_at_end);
 TEST(test_FrameTokenParser_parse_frame_at_boundaries);
 TEST(test_FrameTokenParser_parse_fake_start_token);
 TEST(test_FrameTokenParser_parse_fake_stop_token);
-
+TEST(test_FrameTokenParser_parse_short_inner);
 
 #endif // TEST

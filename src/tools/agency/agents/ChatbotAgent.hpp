@@ -141,7 +141,7 @@ namespace tools::agency::agents {
 
 #ifdef TEST
 
-#include "../../utils/Test.hpp" //  TODO: fix paths everywhere AI hardcode absulutes
+// #include "../../utils/Test.hpp" //  TODO: fix paths everywhere AI hardcode absulutes
 #include "../../cmd/LinenoiseAdapter.hpp"
 #include "plugins/HistoryPlugin.hpp"
 #include "../tests/MockChatbot.hpp"

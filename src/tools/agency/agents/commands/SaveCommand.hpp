@@ -154,7 +154,7 @@ namespace tools::agency::agents::commands {
 
 #ifdef TEST
 
-#include "../../../utils/Test.hpp"
+// #include "../../../utils/Test.hpp"
 #include "../../../agency/AgentRoleMap.hpp"
 #include "../../../containers/vector_equal.hpp"
 

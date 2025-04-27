@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "../../utils/OList.hpp"
 // #include "../../utils/Printer.hpp"
 // #include "../../voice/TTS.hpp"
 // #include "../../voice/SentenceStream.hpp"
@@ -9,6 +10,7 @@
 #include "ChatPlugin.hpp"
 
 using namespace std;
+using namespace tools::utils;
 // using namespace tools::voice;
 
 namespace tools::agency::chat {

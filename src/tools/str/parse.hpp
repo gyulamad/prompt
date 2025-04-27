@@ -120,6 +120,25 @@ void test_parse_large_number() {
     assert(actual == expected && "test_parse_large_number failed");
 }
 
+void test_parse_invalid_boolean() {
+    bool thrown = false;
+    string expectedError = "Invalid input string (not a boolean): ";
+    
+    try {
+        // Try to parse an invalid boolean string
+        parse<bool>("maybe");
+    } catch (const exception& e) {
+        thrown = true;
+        string what = e.what();
+        // Check if the error message contains the expected text
+        assert(str_contains(what, expectedError) && "Error message doesn't contain expected text");
+        // Check if the error message contains the input string
+        assert(str_contains(what, "maybe") && "Error message doesn't contain input string");
+    }
+    
+    assert(thrown && "test_parse_invalid_boolean failed - no exception was thrown");
+}
+
 
 TEST(test_parse_valid_integer);
 TEST(test_parse_valid_double);
@@ -132,4 +151,6 @@ TEST(test_parse_trailing_characters_negative);
 TEST(test_parse_floating_point_with_exponent);
 TEST(test_parse_zero);
 TEST(test_parse_large_number);
+TEST(test_parse_invalid_boolean);
+
 #endif

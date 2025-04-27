@@ -39,7 +39,7 @@ namespace tools::voice {
 
 #ifdef TEST
 
-#include "../utils/Test.hpp"
+// #include "../utils/Test.hpp"
 #include "../utils/Suppressor.hpp"
 
 #include "tests/MockTranscriber.hpp"
@@ -50,12 +50,9 @@ using namespace tools::voice;
 
 // Transcriber Tests
 void test_Transcriber_constructor_valid() {
-    try {
-        Suppressor suppressor(stderr);
-        MockTranscriber transcriber;
-    } catch (...) {
-        assert(false && "Transcriber constructor should initialize without crashing");
-    }
+    Suppressor suppressor(stderr);
+    MockTranscriber transcriber;
+    assert(true && "Transcriber constructor should initialize without crashing");
 }
 
 void test_Transcriber_isInProgress_initial_state() {

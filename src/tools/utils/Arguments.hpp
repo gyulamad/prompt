@@ -244,7 +244,7 @@ namespace tools::utils {
 
 #ifdef TEST
 
-#include "Test.hpp"
+// #include "Test.hpp"
 
 using namespace tools::utils;
 
@@ -493,6 +493,145 @@ void test_Arguments_get_int_short_and_long_flags() {
     assert(actual == 100 && "Long flag --count should take precedence over -c");
 }
 
+// Test get<string> with key=value format
+void test_Arguments_get_string_key_equals_value() {
+    Arguments args = createArgs({"program", "--file=data.txt"});
+    string actual = args.get<string>("file");
+    string expected = "data.txt";
+    assert(actual == expected && "get<string> should extract value after =");
+}
+
+// Test get<int> with key=value format
+void test_Arguments_get_int_key_equals_value() {
+    Arguments args = createArgs({"program", "--count=42"});
+    int actual = args.get<int>("count");
+    int expected = 42;
+    assert(actual == expected && "get<int> should extract integer value after =");
+}
+
+// Test get<string> with empty value after equals
+void test_Arguments_get_string_empty_value_after_equals() {
+    Arguments args = createArgs({"program", "--file="});
+    bool thrown = false;
+    string what;
+    try {
+        args.get<string>("file");
+    } catch (exception& e) {
+        thrown = true;
+        what = e.what();
+        assert(str_contains(what, "Missing value for argument: file") && "Exception message should indicate empty value");
+    }
+    assert(thrown && "get<string> with empty value after = should throw");
+}
+
+// Test get<int> with invalid integer value after equals
+void test_Arguments_get_int_invalid_value_after_equals() {
+    Arguments args = createArgs({"program", "--count=not_a_number"});
+    bool thrown = false;
+    string what;
+    try {
+        args.get<int>("count");
+    } catch (exception& e) {
+        thrown = true;
+        what = e.what();
+        assert(str_contains(what, "Invalid input string (not a number): not_a_number") 
+            && "Exception message should indicate invalid integer");
+    }
+    assert(thrown && "get<int> with invalid integer value after = should throw");
+}
+
+// Test get<T> with missing long and short flags
+void test_Arguments_get_missing_long_and_short_flags() {
+    Arguments args = createArgs({"program"});
+    bool thrown = false;
+    string what;
+    try {
+        args.get<int>(pair("count", "c"));
+    } catch (exception& e) {
+        thrown = true;
+        what = e.what();
+        assert(str_contains(what, "Missing argument: --count (or -c)") && "Exception message should indicate missing long and short flags");
+    }
+    assert(thrown && "get<int> with missing long and short flags should throw");
+}
+
+// Test get<T> with missing long and short flags for string type
+void test_Arguments_get_string_missing_long_and_short_flags() {
+    Arguments args = createArgs({"program"});
+    bool thrown = false;
+    string what;
+    try {
+        args.get<string>(pair("file", "f"));
+    } catch (exception& e) {
+        thrown = true;
+        what = e.what();
+        assert(str_contains(what, "Missing argument: --file (or -f)") && "Exception message should indicate missing long and short flags");
+    }
+    assert(thrown && "get<string> with missing long and short flags should throw");
+}
+
+// Test templated get<T> for positional lookup with valid integer
+void test_Arguments_get_template_int_positional_valid() {
+    vector<string> arg_strings = {"program", "42"};
+    vector<char*> argv;
+    for (string& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    int actual = args.get<int>(1);
+    int expected = 42;
+    assert(actual == expected && "Templated get<int> at position should return correct integer");
+}
+
+// Test templated get<T> for positional lookup with valid string
+void test_Arguments_get_template_string_positional_valid() {
+    vector<string> arg_strings = {"program", "test"};
+    vector<char*> argv;
+    for (string& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    string actual = args.get<string>(1);
+    string expected = "test";
+    assert(actual == expected && "Templated get<string> at position should return correct string");
+}
+
+// Test templated get<T> for positional lookup with out-of-bounds index
+void test_Arguments_get_template_positional_out_of_bounds() {
+    vector<string> arg_strings = {"program"};
+    vector<char*> argv;
+    for (string& str : arg_strings) {
+        argv.push_back(const_cast<char*>(str.c_str()));
+    }
+    Arguments args(static_cast<int>(argv.size()), argv.data());
+    bool thrown = false;
+    try {
+        args.get<int>(1);
+    } catch (const exception& e) {
+        thrown = true;
+        string actual = e.what();
+        string expected = "Missing argument at: 1";
+        assert(str_contains(actual, expected) && "Exception message should match for out-of-bounds");
+    }
+    assert(thrown && "Templated get<T> at out-of-bounds index should throw");
+}
+
+// Test get<bool> specialization with existing flag
+void test_Arguments_get_bool_specialization_existing() {
+    Arguments args = createArgs({"program", "--flag"});
+    bool actual = args.get<bool>("flag", "--");
+    bool expected = true;
+    assert(actual == expected && "get<bool> specialization should return true for existing flag");
+}
+
+// Test get<bool> specialization with missing flag
+void test_Arguments_get_bool_specialization_missing() {
+    Arguments args = createArgs({"program"});
+    bool actual = args.get<bool>("flag");
+    bool expected = false;
+    assert(actual == expected && "get<bool> specialization should return false for missing flag");
+}
+
 TEST(test_Arguments_has_found);
 TEST(test_Arguments_has_not_found);
 TEST(test_Arguments_indexOf_found);
@@ -514,5 +653,16 @@ TEST(test_Arguments_get_int_short_flag_missing_value);
 TEST(test_Arguments_get_string_short_flag_value);
 TEST(test_Arguments_get_int_short_flag_default);
 TEST(test_Arguments_get_int_short_and_long_flags);
+TEST(test_Arguments_get_string_key_equals_value);
+TEST(test_Arguments_get_int_key_equals_value);
+TEST(test_Arguments_get_string_empty_value_after_equals);
+TEST(test_Arguments_get_int_invalid_value_after_equals);
+TEST(test_Arguments_get_missing_long_and_short_flags);
+TEST(test_Arguments_get_string_missing_long_and_short_flags);
+TEST(test_Arguments_get_template_int_positional_valid);
+TEST(test_Arguments_get_template_string_positional_valid);
+TEST(test_Arguments_get_template_positional_out_of_bounds);
+TEST(test_Arguments_get_bool_specialization_existing);
+TEST(test_Arguments_get_bool_specialization_missing);
 
 #endif

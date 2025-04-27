@@ -16,7 +16,7 @@ namespace tools::cmd {
 
 #ifdef TEST
 
-#include "../utils/Test.hpp"
+// #include "../utils/Test.hpp"
 
 using namespace tools::cmd;
 

@@ -465,7 +465,7 @@ namespace nlohmann {
 
 #ifdef TEST
 
-#include "Test.hpp"
+// #include "Test.hpp"
 
 #include "../str/str_diffs_show.hpp"
 #include "../str/str_contains.hpp"
@@ -611,6 +611,12 @@ void test_json_fix_malformed_json() {
     assert(str_diffs_show(actual, expected).empty() && "Malformed JSON should still remove trailing commas");
 }
 
+void test_json_fix_escaped_backslash() {
+    string input = R"({"key": "value\\",})";
+    string expected = R"({"key": "value\\"})";
+    string actual = json_fix(input);
+    assert(str_diffs_show(actual, expected).empty() && "Escaped backslash should be preserved and trailing comma removed");
+}
 
 void test_json_selector_empty() {
     json::json_pointer actual = _json_selector("");
@@ -1311,6 +1317,7 @@ void test_JSON_set() {
 }
 
 
+
 TEST(test_json_remove_comments_no_comments);
 TEST(test_json_remove_comments_single_line_comment);
 TEST(test_json_remove_comments_multi_line_comment);
@@ -1326,6 +1333,7 @@ TEST(test_json_fix_with_comments);
 TEST(test_json_fix_empty_input);
 TEST(test_json_fix_nested_objects_and_arrays);
 TEST(test_json_fix_malformed_json);
+TEST(test_json_fix_escaped_backslash);
 TEST(test_json_selector_empty);
 TEST(test_json_selector_simple_key);
 TEST(test_json_selector_nested_keys);

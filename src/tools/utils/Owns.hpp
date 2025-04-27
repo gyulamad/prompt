@@ -90,29 +90,7 @@ namespace tools::utils {
             return true;
         }
     };
-
-    class OList {
-    public:
-        OList(Owns& owns): owns(owns) {}
-        
-        virtual ~OList() {
-            for (void* plug: plugs)
-                owns.release(this, plug);
-        }
-
-        vector<void*> getPlugs() const { return plugs; }
-
-        template<typename T>
-        void push(void* plug) {
-            owns.reserve<T>(this, plug, FILELN);
-            this->plugs.push_back(plug);
-        }
-        
-    private:
-        Owns& owns;
-        vector<void*> plugs;
-    };
-
+    
 } // namespace tools::utils
 
 #ifdef TEST

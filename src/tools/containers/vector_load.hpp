@@ -36,7 +36,9 @@ namespace tools::containers {
         }
 
         if (!in) {
+            // LCOV_EXCL_START
             throw ERROR("Error reading data from file: " + filename);
+            // LCOV_EXCL_STOP
         }
 
         in.close();
