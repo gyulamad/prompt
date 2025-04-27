@@ -34,9 +34,10 @@ namespace tools::str {
                         in_tokens = false;
                         if (inner.size() >= stop_token.size()) {
                             cb(inner.substr(0, inner.size() - stop_token.size()));
-                        } else {
-                            cb(""); // Should not happen if stop_token is not empty
-                        }
+                        } 
+                        // else {
+                        //     cb(""); // Should not happen if stop_token is not empty
+                        // }
                         inner = "";
                         potential_token_start_index = string::npos; // Reset potential start
                     }
@@ -422,6 +423,23 @@ void test_FrameTokenParser_parse_short_inner() {
     // assert(!parser.in_tokens && "Short Inner: Should be out of tokens state");
     assert(parser.buffer == chunk && "Short Inner: Buffer should contain the chunk");
     assert(parser.inner == "" && "Short Inner: Inner should be empty after reset");
+}
+
+void test_FrameTokenParser_parse_empty_stop_token() {
+    FrameTokenParser parser;
+    string extracted_content;
+    auto callback = [&](const string& content) { extracted_content = content; };
+    string start_token = "<start>";
+    string stop_token = ""; // Empty stop token
+
+    string chunk = "<start>some data";
+    string clean_output = parser.parse(chunk, start_token, stop_token, callback);
+
+    assert(extracted_content == "" && "Empty Stop Token: Callback should be called with empty string");
+    assert(clean_output == "" && "Empty Stop Token: Clean output should be empty");
+    assert(parser.in_tokens == true && "Empty Stop Token: Should remain in tokens state");
+    assert(parser.inner == "some data" && "Empty Stop Token: Inner should contain data");
+    assert(parser.buffer == chunk && "Empty Stop Token: Buffer should contain the chunk");
 }
 
 // Register tests
