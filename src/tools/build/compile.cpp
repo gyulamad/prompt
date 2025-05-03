@@ -7,7 +7,8 @@
 #include "../str/str_replace.hpp"
 #include "../utils/foreach.hpp"
 #include "../utils/Settings.hpp"
-#include "../utils/Test.hpp"
+#include "../utils/Stopper.hpp"
+#include "../utils/run_tests.hpp"
 
 #include "inc/build.hpp"
 
@@ -19,6 +20,8 @@ using namespace tools::build;
 
 int safe_main(int argc, char* argv[]) {
     try {
+        Stopper stopper;
+        stopper.start();
 
         mutex mtx;
         
@@ -125,6 +128,8 @@ int safe_main(int argc, char* argv[]) {
                 throw ERROR("Build failed, see more on standard error...");
             }
         }
+
+        cout << "Elapsed " << stopper.stop() << "ms" << endl; 
 
     } catch (exception& e) {
         cerr << "Error: " << e.what() << endl;

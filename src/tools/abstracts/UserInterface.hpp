@@ -24,7 +24,7 @@ namespace tools::abstracts {
             readln(input);
             return input;
         }
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
 
         virtual void print(const T& output) {
             lock_guard<mutex> lock(output_mutex);

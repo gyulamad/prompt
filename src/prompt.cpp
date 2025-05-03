@@ -417,7 +417,7 @@ int safe_main(int argc, char* argv[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-       "test_FrameTokenParser_parse_empty_stop_token",
+    //    "test_TTS_speak_pause",
     });
     
     return safe_main<string>(argc, argv);

@@ -38,7 +38,7 @@ void test_foo() {
 
 #include "assert.hpp"
 #include "Test.hpp"
-
+#include "Stopper.hpp"
 
 #define TEST_SIGN_NONE ANSI_FMT_RESET "[ ]"
 #define TEST_SIGN_PASS ANSI_FMT_RESET "[" ANSI_FMT_SUCCESS "✔" ANSI_FMT_RESET "]"
@@ -73,13 +73,18 @@ string for_test_implode(const string& delimiter, const vector<string>& elements)
 
 // Test runner
 inline int run_tests(const vector<string>& filters = {}, bool failure_throws = false, bool failure_exits = false) {
+    Stopper stopper;
+    stopper.start();
+
     struct failure_s {
         Test test;
         string errmsg;
     };
     vector<failure_s> failures;
 
+#ifdef TEST_VERBOSE
     size_t n = 0;
+#endif
     size_t passed = 0;
     size_t warned = 0;
     string test_outputs = "";
@@ -105,13 +110,17 @@ inline int run_tests(const vector<string>& filters = {}, bool failure_throws = f
         }
         if (skip) continue;
         
+#ifdef TEST_VERBOSE
         cout 
             << TEST_SIGN_NONE " [.............] Testing: " 
             << to_string(tests.size()) << "/" << ++n << " " 
             << ANSI_FMT_CALL(test.name, test.file, test.line) << flush;
+#else
+        cout << "." << flush;
+#endif
             
         string tick_or_warn = TEST_SIGN_PASS;
-        auto start = chrono::high_resolution_clock::now(); // Start timing
+        auto start = chrono::high_resolution_clock::now(); // Start timing TODO: use Stopper class
         try {
             string test_output = capture_cout_cerr([&test]() {
                 test.run();
@@ -151,13 +160,18 @@ inline int run_tests(const vector<string>& filters = {}, bool failure_throws = f
                 tick_or_warn = TEST_SIGN_WARN;
                 warned++;
             }
-
+#ifdef TEST_VERBOSE
             cout << "\r" << tick_or_warn << " [" << duration.count() << "ns" << endl; // Show time
+#endif
             passed++;
         } catch (exception &e) {
             auto end = chrono::high_resolution_clock::now(); // End timing
             auto duration = chrono::duration_cast<chrono::nanoseconds>(end - start);
+#ifndef TEST_VERBOSE
             cout << "\r" << TEST_SIGN_FAIL " [" << duration.count() << "ns" << endl; // Show time
+#else
+            cout << endl;
+#endif
             string errmsg = 
                 ANSI_FMT(ANSI_FMT_ERROR, "Error: ") +
                 ANSI_FMT(ANSI_FMT_HIGHLIGHT, e.what());
@@ -171,10 +185,14 @@ inline int run_tests(const vector<string>& filters = {}, bool failure_throws = f
             exit(1);
 #endif
 #endif
-        }
+        }        
     }
 
+#ifndef TEST_VERBOSE
+    cout << endl;
+#endif
     cout << endl << "=====[ TESTING FINISHED ]=====" << endl;
+    cout << "Elapsed " << stopper.stop() << "ms" << endl;
 
     if (!test_outputs.empty())
         cout << ANSI_FMT(ANSI_FMT_WARNING, "Warning: Some test(s) left outputs:") << endl << test_outputs << flush;

@@ -6,8 +6,10 @@
 #include "str_diff_t.hpp"
 #include "str_get_diffs.hpp"
 #include "str_show_diff.hpp"
+#include "../utils/io.hpp"
 
 using namespace std;
+using namespace tools::utils;
 
 namespace tools::str {
 

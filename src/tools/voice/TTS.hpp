@@ -47,14 +47,19 @@ namespace tools::voice {
         {
             t = thread([&]() {
                 while (!closing) {
-                    // set pause_ends_at to a ms_t timepoint to timeout a resume
-                    // set pause_ends_at to 0 to pause indefinitely
+                    sleep_ms(100);
+
                     while (!pause_ends_at || get_time_ms() <= pause_ends_at) {
                         sleep_ms(100);
                         if (closing) return;
                     }
-                    pause_ends_at = 0;
-                    speak_resume();
+                    // // set pause_ends_at to a ms_t timepoint to timeout a resume
+                    // // set pause_ends_at to 0 to pause indefinitely
+                    // if (pause_ends_at) {
+                    //     pause_ends_at = 0;
+                        speak_resume();
+                    // }
+                    // sleep_ms(100);
                 }
             });
         }
@@ -79,6 +84,7 @@ namespace tools::voice {
 
         [[nodiscard]]
         bool speak(const string& text, bool async = false, bool beep = false, bool think = false) {
+            // lock_guard<mutex> lock(speak_paused_mutex);
             string _text = str_replace(speak_replacements, text);
             if (think && !think_cmd.empty()) 
                 proc->writeln(think_cmd + " & ");
@@ -106,30 +112,52 @@ namespace tools::voice {
             if (!beep_cmd.empty()) Process::execute(beep_cmd); // proc.writeln(beep_cmd);
         }
 
-        void speak_pause(time_t ms = 0) {
-            // Send SIGSTOP to pause the espeak process
-            if (!speak_paused) {
-                proc->writeln("pkill -STOP espeak"); // Now uses tts.proc
-                speak_paused = true;
-            }
+        // protected:
+        virtual void execute(const string& cmd) {
+            if (owns_proc) Process::execute(cmd);
+            else proc->writeln(cmd);
+        }
 
-            //if (ms) cout << Process::execute("timeout " + to_string((float)ms / 1000) + "s pkill -CONT espeak") << flush;
+        void speak_pause(time_t ms = 0) {
+            if (speak_paused) return;
+            this->execute("pkill -STOP espeak");
+            speak_paused = true;
+            // speak_resume_at = get_time_ms() + ms;
             pause_ends_at = ms ? (get_time_ms() + ms) : 0;
+            // if (speak_paused) return;
+            // // Send SIGSTOP to pause the espeak process
+            // // if (!speak_paused) {
+            //     Process::execute("pkill -STOP espeak");
+            //     // proc->writeln("pkill -STOP espeak"); // Now uses tts.proc
+            //     speak_paused = true;
+            // // }
+
+            // //if (ms) cout << Process::execute("timeout " + to_string((float)ms / 1000) + "s pkill -CONT espeak") << flush;
+            // // pause_ends_at = ms ? (get_time_ms() + ms) : 0;
         }
 
         void speak_resume() {
+            if (!speak_paused) return;
+            this->execute("pkill -CONT espeak");
+            // Process::execute("pkill -CONT espeak");
+            speak_paused = false;
+            pause_ends_at = 0;
             // Send SIGCONT to continue the espeak process
-            if (speak_paused) { // TODO: thread safe pause!!
-                proc->writeln("pkill -CONT espeak"); // Now uses tts.proc
-                speak_paused = false;
-                pause_ends_at = 0;
-            }
+            // if (speak_paused) { // TODO: thread safe pause!!
+            //     Process::execute("pkill -CONT espeak");
+            //     // proc->writeln("pkill -CONT espeak"); // Now uses tts.proc
+            //     speak_paused = false;
+            //     pause_ends_at = 0;
+            // }
         }
 
         //bool is_speak_paused() { return speak_paused; }
 
+        // atomic<bool> speak_paused = false;
+        // mutex speak_paused_mutex;
         bool speak_paused = false;
         time_t pause_ends_at = 0;
+        // time_t speak_resume_at = 0;
 
 
         void speak_stop() {

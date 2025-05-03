@@ -196,8 +196,8 @@ namespace tools::agency::agents {
                     // recs++;
                     micView.incRecs();
                     // DEBUG("inc recs to:" + to_string(micView.getRecs()));
-                    if (micView.getRecs() >= 1) tts.speak_pause(3000);
-                    if (micView.getRecs() >= 2) tts.speak_stop();
+                    // if (micView.getRecs() >= 1) tts.speak_pause(/*3000*/);
+                    // if (micView.getRecs() >= 2) tts.speak_stop();
                     
 
 
@@ -249,8 +249,10 @@ namespace tools::agency::agents {
                     commander.getCommandLineRef().setPrompt(out + " ");
 
                     // interruption check starts...
+                    // TODO: we need a vol_pc_to_resume to config that is may higher than vol_pc
                     if (micView.getRecs() >= 1 || (vol_pc > threshold_pc && tts.is_speaking())) {
-                        tts.speak_pause(3000);
+                        // tts.speak_pause(/*3000*/);
+                        tts.speak_pause(3000); // TODO: to config
                     }
 
                 } catch (const exception& e) {

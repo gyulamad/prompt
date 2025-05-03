@@ -1,9 +1,0 @@
-Főbb emlékek:
-- web_browse, file_manager, bash terminal (kérni!)
-- mindentudó nagypapa
-- Google kereső javítva
-- Model Context Protocol (MCP)
-- közvetlen forrásból tájékozódni!
-
-Fontos:
-- SOHA NE TÖRÖLD A .gitkeep-et!
