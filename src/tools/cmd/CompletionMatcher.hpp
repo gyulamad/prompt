@@ -406,12 +406,12 @@ void test_CompletionMatcher_switch_handler_no_match() {
 void test_CompletionMatcher_filename_handler() {
     CompletionMatcher cm;
     // Create some test files
-    system("mkdir -p test_dir");
-    system("touch test_dir/file1.txt");
-    system("touch test_dir/file2.txt");
+    assert(!system("mkdir -p test_dir"));
+    assert(!system("touch test_dir/file1.txt"));
+    assert(!system("touch test_dir/file2.txt"));
     
     // Change to test directory
-    chdir("test_dir");
+    assert(!chdir("test_dir"));
     
     vector<string> actual = cm.handlers.at("filename")("file");
     assert(actual.size() == 2 && "filename handler should return all matching files");
@@ -419,9 +419,9 @@ void test_CompletionMatcher_filename_handler() {
     assert(find(actual.begin(), actual.end(), "file2.txt") != actual.end() && "Should include 'file2.txt'");
     
     // Clean up
-    system("rm file1.txt file2.txt");
-    system("rmdir ../test_dir");
-    chdir("..");
+    assert(!system("rm file1.txt file2.txt"));
+    assert(!chdir(".."));
+    assert(!system("rmdir test_dir"));
 }
 
 void test_CompletionMatcher_filename_handler_no_match() {
@@ -433,13 +433,13 @@ void test_CompletionMatcher_filename_handler_no_match() {
 void test_CompletionMatcher_filename_handler_error() {
     CompletionMatcher cm;
     // Change to non-existent directory
-    chdir("/nonexistent");
+    assert(chdir("/nonexistent") != 0);
     
     vector<string> actual = cm.handlers.at("filename")("file");
     assert(actual.empty() && "filename handler should return empty vector when directory cannot be opened");
     
     // Change back to original directory
-    chdir("/mnt/windows/llm/prompt");
+    assert(chdir(".prompt") == 0);
 }
 
 void test_CompletionMatcher_parse_input_escape_handling() {

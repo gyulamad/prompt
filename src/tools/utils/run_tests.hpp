@@ -167,10 +167,10 @@ inline int run_tests(const vector<string>& filters = {}, bool failure_throws = f
         } catch (exception &e) {
             auto end = chrono::high_resolution_clock::now(); // End timing
             auto duration = chrono::duration_cast<chrono::nanoseconds>(end - start);
-#ifndef TEST_VERBOSE
-            cout << "\r" << TEST_SIGN_FAIL " [" << duration.count() << "ns" << endl; // Show time
-#else
+#ifdef TEST_VERBOSE
             cout << endl;
+#else
+            cout << "\r" << TEST_SIGN_FAIL " [" << duration.count() << "ns" << endl; // Show time
 #endif
             string errmsg = 
                 ANSI_FMT(ANSI_FMT_ERROR, "Error: ") +
@@ -188,11 +188,12 @@ inline int run_tests(const vector<string>& filters = {}, bool failure_throws = f
         }        
     }
 
-#ifndef TEST_VERBOSE
-    cout << endl;
-#endif
+#ifdef TEST_VERBOSE
     cout << endl << "=====[ TESTING FINISHED ]=====" << endl;
     cout << "Elapsed " << stopper.stop() << "ms" << endl;
+#else
+    cout << endl;
+#endif
 
     if (!test_outputs.empty())
         cout << ANSI_FMT(ANSI_FMT_WARNING, "Warning: Some test(s) left outputs:") << endl << test_outputs << flush;
