@@ -1,15 +1,23 @@
 #pragma once
 
 #include "../../../../utils/JSON.h"
-#include "../../../../utils/files.hpp"
+// #include "../../../../utils/files.hpp"
 #include "../../../../utils/Process.hpp"
 #include "../../../../str/trim.hpp"
 #include "../../../../str/is_valid_filepath.hpp"
 #include "../../../../containers/array_keys.hpp"
+#include "../../../../files/file_put_contents.hpp"
+#include "../../../../files/file_exists.hpp"
+#include "../../../../files/remove.hpp"
+#include "../../../../files/rename.hpp"
+#include "../../../../files/is_dir.hpp"
+#include "../../../../files/mkdir.hpp"
+#include "../../../../files/is_empty_dir.hpp"
 #include "../../UserAgentInterface.hpp"
 #include "../Tool.hpp"
 
 using namespace tools::utils;
+using namespace tools::files;
 using namespace tools::str;
 using namespace tools::containers;
 using namespace tools::agency::agents;
@@ -164,7 +172,7 @@ namespace tools::agency::agents::plugins::ai_tools {
             );
             if (!errors.empty()) return errors;
 
-            if (!utils::remove(filepath, false))
+            if (!files::remove(filepath, false))
                 return "File remove failed: " + filepath; 
 
             string ret = "File removed: " + filepath;
@@ -198,7 +206,7 @@ namespace tools::agency::agents::plugins::ai_tools {
             );
             if (!errors.empty()) return errors;
 
-            if (!utils::rename(old_filepath, new_filepath, false))
+            if (!files::rename(old_filepath, new_filepath, false))
                 return "File rename failed: " + to; 
 
             string ret = "File renamed: " + to;
@@ -350,7 +358,7 @@ namespace tools::agency::agents::plugins::ai_tools {
             string output = "Files and folders in " + base_folder + directory + (keyword.empty() ? "" : " (matching '" + keyword + "')") + ":\n";
             for (const auto& item_name : files_and_folders) {
                 string full_path = base_folder + directory + item_name;
-                string type_indicator = utils::is_dir(full_path) ? "[DIR] " : "[FILE] ";
+                string type_indicator = files::is_dir(full_path) ? "[DIR] " : "[FILE] ";
                 output += type_indicator + item_name + "\n";
             }
             cout << output << flush;
@@ -374,7 +382,7 @@ namespace tools::agency::agents::plugins::ai_tools {
             );
             if (!errors.empty()) return errors;
 
-            if (!utils::mkdir(dirpath, true))
+            if (!files::mkdir(dirpath, true))
                 return "Dir create failed: " + dirpath; 
 
             string ret = "Dir created: " + dirpath;
@@ -388,7 +396,7 @@ namespace tools::agency::agents::plugins::ai_tools {
             string dirpath = base_folder + args.get<string>("dirname");
             if (!is_valid_filepath(dirpath)) return "Dirname is invalid: " + dirpath;
             if (!file_exists(dirpath)) return "Dir not exists: " + dirpath;
-            if (!utils::is_empty_dir(dirpath)) return "Dir is not empty: " + dirpath;
+            if (!files::is_empty_dir(dirpath)) return "Dir is not empty: " + dirpath;
 
             errors += this->get_user_confirm_error(
                 [&](const string& prmpt) { 
@@ -400,7 +408,7 @@ namespace tools::agency::agents::plugins::ai_tools {
             );
             if (!errors.empty()) return errors;
 
-            if (!utils::remove(dirpath))
+            if (!files::remove(dirpath))
                 return "Dir remove failed: " + dirpath; 
 
             string ret = "Dir removed: " + dirpath;
@@ -430,7 +438,7 @@ namespace tools::agency::agents::plugins::ai_tools {
             );
             if (!errors.empty()) return errors;
 
-            if (!utils::rename(old_dirpath, new_dirpath, true))
+            if (!files::rename(old_dirpath, new_dirpath, true))
                 return "Dir rename failed: " + to; 
 
             string ret = "Dir renamed: " + to;

@@ -58,8 +58,53 @@ esac
 # Ensure the build directory exists
 mkdir -p "$BUILD_PATH"
 
+# Array to store object files
+OBJ_FILES=()
+
+# Function to compile a single dependency
+dep() {
+    local src="$1"
+    local obj="$BUILD_PATH/$(basename "${src%.cpp}.o")"
+    
+    # Compile the dependency into an object file
+    local cmd="g++ -c \"$src\" -o \"$obj\" $FLAGS"
+    echo "$cmd"
+    eval "$cmd" || { echo "Error compiling $src"; exit 1; }
+    
+    # Add object file to the list
+    OBJ_FILES+=("$obj")
+}
+
+# Specify dependencies
+# dep "$SCRIPT_DIR/../files/filemtime_duration.cpp"
+# dep "$SCRIPT_DIR/../files/file_get_contents.cpp"
+# dep "$SCRIPT_DIR/../files/file_put_contents.cpp"
+dep "$SCRIPT_DIR/../str/explode.cpp"
+dep "$SCRIPT_DIR/../str/implode.cpp"
+dep "$SCRIPT_DIR/../str/remove_path.cpp"
+dep "$SCRIPT_DIR/../str/remove_extension.cpp"
+dep "$SCRIPT_DIR/../str/replace_extension.cpp"
+dep "$SCRIPT_DIR/../str/str_starts_with.cpp"
+dep "$SCRIPT_DIR/../str/str_replace.cpp"
+dep "$SCRIPT_DIR/../str/str_cut_end.cpp"
+dep "$SCRIPT_DIR/../str/compare_diff_vectors.cpp"
+dep "$SCRIPT_DIR/../str/str_get_diffs.cpp"
+dep "$SCRIPT_DIR/../str/str_show_diff.cpp"
+dep "$SCRIPT_DIR/../str/str_diffs_show.cpp"
+dep "$SCRIPT_DIR/../str/parse.cpp"
+dep "$SCRIPT_DIR/../str/get_hash.cpp"
+dep "$SCRIPT_DIR/../str/str_contains.cpp"
+dep "$SCRIPT_DIR/../utils/ANSI_FMT.cpp"
+dep "$SCRIPT_DIR/../utils/Arguments.cpp"
+dep "$SCRIPT_DIR/../utils/ERROR.cpp"
+dep "$SCRIPT_DIR/../utils/JSON.cpp"
+dep "$SCRIPT_DIR/../utils/JSONExts.cpp"
+dep "$SCRIPT_DIR/../utils/Settings.cpp"
+dep "$SCRIPT_DIR/../utils/io.cpp"
+dep "$SCRIPT_DIR/../utils/Test.cpp"
+
 # Compile with the specified or default build path and flags
-CMD="g++ \"$SCRIPT_DIR/compile.cpp\" -o \"$BUILD_PATH/compile\" $FLAGS"
+CMD="g++ \"$SCRIPT_DIR/compile.cpp\" -o \"$BUILD_PATH/compile\" ${OBJ_FILES[*]} $FLAGS"
 echo "$CMD"
 eval "$CMD"
 

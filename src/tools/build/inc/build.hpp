@@ -6,29 +6,40 @@
 
 #include "../../str/get_absolute_path.hpp"
 #include "../../str/get_path.hpp"
-#include "../../str/replace_extension.hpp"
-#include "../../str/remove_path.hpp"
-#include "../../str/str_replace.hpp"
+#include "../../str/replace_extension.h"
+#include "../../str/remove_path.h"
+#include "../../str/str_replace.h"
 #include "../../str/explode.h"
 #include "../../str/implode.h"
-#include "../../str/parse.hpp"
+#include "../../str/parse.h"
+#include "../../str/get_hash.h"
 #include "../../regx/regx_match.hpp"
 #include "../../containers/array_keys.hpp"
 #include "../../containers/array_merge.hpp"
 #include "../../containers/array_key_exists.hpp"
 #include "../../containers/array_unique.hpp"
+#include "../../files/file_exists.hpp"
+#include "../../files/is_dir.hpp"
+#include "../../files/file_get_contents.hpp"
+#include "../../files/file_put_contents.hpp"
+#include "../../files/mkdir.hpp"
+#include "../../files/filemtime_ms.hpp"
 #include "../../utils/foreach.hpp"
-#include "../../utils/files.hpp"
+// #include "../../utils/files.hpp"
+#include "../../utils/time.hpp"
 #include "../../utils/execute.hpp"
-#include "../../utils/Arguments.hpp"
-#include "../../utils/JSON.hpp"
-#include "../../utils/Settings.hpp"
+#include "../../utils/Arguments.h"
+#include "../../utils/JSON.h"
+#include "../../utils/Settings.h"
+#include "../../utils/ERROR.h"
+#include "../../utils/io.h"
 
 using namespace std;
 using namespace tools::str;
 using namespace tools::regx;
 using namespace tools::containers;
 using namespace tools::utils;
+using namespace tools::files;
 
 namespace tools::build {
 
@@ -569,8 +580,9 @@ namespace tools::build {
 
 #ifdef TEST
 
-#include "../../str/str_contains.hpp"
-#include "../../utils/Test.hpp"
+#include "../../str/str_contains.h"
+#include "../../utils/Test.h"
+#include "../../utils/assert.hpp"
 #include "../../containers/sort.hpp"
 #include "../tests/test_fs.hpp"
 

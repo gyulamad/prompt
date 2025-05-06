@@ -1,4 +1,6 @@
 #include "str_diffs_show.h"
+#include "str_get_diffs.h"
+#include "str_show_diff.h"
 #include "../utils/io.h"
 
 using namespace std;

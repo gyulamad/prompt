@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "explode.hpp"
-#include "implode.hpp"
+#include "explode.h"
+#include "implode.h"
 
 using namespace std;
 

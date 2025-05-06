@@ -21,7 +21,11 @@ namespace tools::str {
 
 #ifdef TEST
 
+#include "../utils/Test.h"
+#include "../utils/assert.hpp"
+
 using namespace tools::str;
+using namespace tools::utils;
 
 void test_tools_str_to_string_bool_basic() {
     string result = to_string(true);

@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "remove_extension.hpp"
-#include "str_starts_with.hpp"
+#include "remove_extension.h"
+#include "str_starts_with.h"
 
 using namespace std;
 

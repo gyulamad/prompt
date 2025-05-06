@@ -1,8 +1,10 @@
 #pragma once
 
 #include "../../../utils/ERROR.h"
+#include "../../../files/file_put_contents.hpp"
 
 using namespace std;
+using namespace tools::files;
 using namespace tools::cmd;
 using namespace tools::agency;
 using namespace tools::agency::agents;

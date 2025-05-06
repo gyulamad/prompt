@@ -82,7 +82,8 @@ namespace tools::utils {
 
 #ifdef TEST
 
-// #include "Test.hpp"
+#include "Test.h"
+#include "assert.hpp"
 
 #include "../str/str_contains.h"
 

@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-#include "../str/str_replace.hpp"
+#include "../str/str_replace.h"
 #include "../str/escape.hpp"
 #include "../str/str_contains.h"
 #include "../utils/Process.hpp"

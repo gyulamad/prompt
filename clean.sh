@@ -16,3 +16,7 @@ echo "Cleaned builds/ directory, preserving .gitkeep files"
 # Delete all *.o files in src/ recursively
 echo "Deleting *.o files in src/..."
 find ../src -type f -name "*.o" -delete && echo "OK"
+
+# Delete all *.gcno files in src/ recursively
+echo "Deleting *.gcno files in src/..."
+find ../src -type f -name "*.gcno" -delete && echo "OK"

@@ -264,7 +264,8 @@ namespace tools::utils {
 
 #ifdef TEST
 
-// #include "Test.hpp"
+#include "../utils/Test.h"
+#include "../utils/assert.hpp"
 
 using namespace tools::utils;
 

@@ -1,6 +1,9 @@
 #pragma once
 
+#include "../../../files/file_get_contents.hpp"
 #include "CommonPersitor.hpp"
+
+using namespace tools::files;
 
 namespace tools::agency::agents::commands {
 

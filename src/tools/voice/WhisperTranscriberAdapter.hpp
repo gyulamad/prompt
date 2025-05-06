@@ -2,9 +2,11 @@
 
 #include "../containers/vector_save.hpp"
 #include "../containers/vector_load.hpp"
+#include "../files/file_exists.hpp"
 #include "STT.hpp"
 
 using namespace tools::containers;
+using namespace tools::files;
 
 namespace tools::voice {
 

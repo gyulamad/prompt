@@ -11,7 +11,7 @@
 #include "../str/implode.h"
 
 #include "str_cut_end.h"
-#include "str_replace.hpp"
+#include "str_replace.h"
 #include "str_contains.h"
 
 using namespace std;

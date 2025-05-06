@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "ERROR.hpp"
+#include "ERROR.h"
 
 using namespace std;
 
@@ -29,7 +29,8 @@ namespace tools::utils {
 
 #ifdef TEST
 
-#include "Test.hpp"
+#include "Test.h"
+#include "assert.hpp"
 
 using namespace tools::utils;
 

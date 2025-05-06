@@ -3,10 +3,12 @@
 // then: $ ./src/tools/build/gencov.sh ./src/tools/build/compile.cpp ./builds/compile
 
 #include <mutex>
+#include <sstream>
 
-#include "../str/str_replace.hpp"
+#include "../str/str_replace.h"
+#include "../str/to_string.hpp"
 #include "../utils/foreach.hpp"
-#include "../utils/Settings.hpp"
+#include "../utils/Settings.h"
 #include "../utils/Stopper.hpp"
 #include "../utils/run_tests.hpp"
 
