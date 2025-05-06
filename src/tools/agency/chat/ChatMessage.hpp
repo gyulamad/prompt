@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "../../abstracts/JSONSerializable.hpp"
+#include "../../abstracts/JSONSerializable.h"
 
 using namespace std;
 

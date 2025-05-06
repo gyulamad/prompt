@@ -30,7 +30,7 @@ namespace tools::utils {
 
 #ifdef TEST
 
-#include "../str/str_contains.hpp"
+#include "../str/str_contains.h"
 #include "tests/OwnsSpy.hpp"
 
 using namespace tools::utils;

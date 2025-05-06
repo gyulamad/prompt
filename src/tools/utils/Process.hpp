@@ -11,7 +11,7 @@
 #include <sys/wait.h>
 #include <sys/select.h>
 
-#include "ERROR.hpp"
+#include "ERROR.h"
 #include "system.hpp"
 
 #include "../datetime/get_time_ms.hpp"

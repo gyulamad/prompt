@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <termios.h> // For tcgetattr(), tcsetattr()
 
-#include "ERROR.hpp"
+#include "ERROR.h"
 
 using namespace std;
 

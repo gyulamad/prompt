@@ -5,7 +5,7 @@
 #include "CompletionMatcher.hpp"
 
 #include "../containers/array_filter.hpp"
-#include "../str/explode.hpp"
+#include "../str/explode.h"
 
 using namespace std;
 using namespace tools::containers;

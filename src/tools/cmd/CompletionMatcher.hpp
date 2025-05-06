@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <dirent.h>
 
-#include "../str/str_starts_with.hpp"
+#include "../str/str_starts_with.h"
 #include "../str/split.hpp"
 #include "../str/escape.hpp"
 #include "../containers/array_merge.hpp"
@@ -259,7 +259,7 @@ namespace tools::cmd {
 
 // #include "../utils/Test.hpp"
 
-#include "../containers/in_array.hpp"
+#include "../containers/in_array.h"
 
 using namespace tools::cmd;
 using namespace tools::containers;

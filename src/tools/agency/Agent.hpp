@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../str/str_contains.hpp"
+#include "../str/str_contains.h"
 #include "../str/tpl_replace.hpp"
-#include "../str/implode.hpp"
+#include "../str/implode.h"
 #include "../utils/system.hpp"
-#include "../utils/ERROR.hpp"
+#include "../utils/ERROR.h"
 
 #include "Worker.hpp"
 #include "PackQueueHolder.hpp"

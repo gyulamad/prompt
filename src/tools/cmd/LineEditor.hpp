@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "../utils/ERROR.hpp"
+#include "../utils/ERROR.h"
 
 using namespace std;
 using namespace tools::utils;

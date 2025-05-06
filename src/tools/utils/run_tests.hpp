@@ -37,7 +37,7 @@ void test_foo() {
 }
 
 #include "assert.hpp"
-#include "Test.hpp"
+#include "Test.h"
 #include "Stopper.hpp"
 
 #define TEST_SIGN_NONE ANSI_FMT_RESET "[ ]"
@@ -54,12 +54,13 @@ void test_foo() {
 // #define JSON_ASSERT(x) TEST_ASSERT_OVERRIDE(x)
 
 
-
-#include "ANSI_FMT.hpp"
-#include "ERROR.hpp"
+#include "Test.h"
+#include "ANSI_FMT.h"
+#include "ERROR.h"
 #include "system.hpp"
 
 using namespace tools::utils;
+using namespace tools::testing;
 
 
 string for_test_implode(const string& delimiter, const vector<string>& elements) {

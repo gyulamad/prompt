@@ -5,7 +5,7 @@
 #include <memory>
 #include <iostream>
 
-#include "../str/implode.hpp"
+#include "../str/implode.h"
 
 #include "LineEditor.hpp"
 #include "CompletionMatcher.hpp"

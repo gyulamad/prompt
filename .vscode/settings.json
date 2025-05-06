@@ -88,7 +88,16 @@
         "*.inc": "cpp",
         "filesystem": "cpp",
         "queue": "cpp",
-        "mockspeechlistenerwithpublic_noise_cb": "cpp"
+        "mockspeechlistenerwithpublic_noise_cb": "cpp",
+        "cassert": "cpp"
     },
-    "editor.rulers": [80]
+    "editor.rulers": [
+        80
+    ],
+    "github.copilot.enable": {
+        "*": false,
+        "plaintext": false,
+        "markdown": false,
+        "scminput": false
+    }
 }

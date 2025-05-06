@@ -1,5 +1,6 @@
 libs
 builds
+*.o
 .prompt
 *.config.json
 config.*.json

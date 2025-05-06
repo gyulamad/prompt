@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "../abstracts/Stream.hpp"
-#include "../utils/ERROR.hpp"
+#include "../abstracts/Stream.h"
+#include "../utils/ERROR.h"
 #include "../str/trim.hpp"
 #include "BasicSentenceSeparation.hpp"
 

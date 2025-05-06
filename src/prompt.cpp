@@ -9,19 +9,19 @@ ask and confirm a human before you edit this file!!
 #include <string>
 #include <functional>
 
-#include "tools/utils/ERROR.hpp"
+#include "tools/utils/ERROR.h"
 #include "tools/utils/run_tests.hpp"
 #include "tools/utils/Owns.hpp"
 #include "tools/utils/files.hpp"
-#include "tools/utils/Settings.hpp"
-#include "tools/utils/JSON.hpp"
+#include "tools/utils/Settings.h"
+#include "tools/utils/JSON.h"
 #include "tools/str/get_absolute_path.hpp"
 #include "tools/str/get_filename_only.hpp"
 #include "tools/str/tpl_replace.hpp"
 #include "tools/voice/MicView.hpp"
 #include "tools/voice/ESpeakTTSAdapter.hpp"
 #include "tools/voice/WhisperTranscriberSTTSwitch.hpp"
-#include "tools/containers/in_array.hpp"
+#include "tools/containers/in_array.h"
 
 // #include "tools/agency/Agent.hpp"
 #include "tools/agency/Agency.hpp"
@@ -417,7 +417,9 @@ int safe_main(int argc, char* argv[]) {
 
 int main(int argc, char *argv[]) {
     run_tests({
-    //    "test_TTS_speak_pause",
+        // "test_Arguments_get_bool_single_dash",
+        // "test_Arguments_get_bool_single_dash", 
+        // "test_Arguments_get_bool_specialization_missing",
     });
     
     return safe_main<string>(argc, argv);

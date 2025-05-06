@@ -8,7 +8,7 @@
 #include "../../voice/STTSwitch.hpp"
 #include "../../voice/WhisperTranscriberSTTSwitch.hpp"
 #include "../../utils/InputPipeInterceptor.hpp"
-#include "../../utils/io.hpp"
+#include "../../utils/io.h"
 #include "../../containers/array_shift.hpp"
 #include "../Agent.hpp"
 #include "../Agency.hpp"

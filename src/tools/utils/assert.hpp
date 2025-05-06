@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ERROR.hpp"
+#include "ERROR.h"
 
 namespace tools::utils { // TODO it should goes to the namespace tools::testing
 

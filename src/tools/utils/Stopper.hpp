@@ -84,8 +84,9 @@ namespace tools::utils {
 
 // #include "Test.hpp"
 
-#include "../str/str_contains.hpp"
+#include "../str/str_contains.h"
 
+using namespace tools::str;
 using namespace tools::utils;
 
 void test_Stopper_start_stop_basic() {

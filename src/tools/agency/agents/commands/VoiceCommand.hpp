@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "../../../str/parse.hpp"
+#include "../../../str/parse.h"
 #include "../../../voice/STT.hpp"
 #include "../../../cmd/Usage.hpp"
 #include "../../../cmd/Parameter.hpp"

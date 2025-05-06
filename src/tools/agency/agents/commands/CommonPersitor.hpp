@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "../../../utils/ERROR.hpp"
+#include "../../../utils/ERROR.h"
 #include "../../../utils/foreach.hpp"
 #include "../../../containers/array_key_exists.hpp"
 #include "../../../str/str_ends_with.hpp"

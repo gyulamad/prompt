@@ -4,7 +4,7 @@
 #include <sstream>
 #include <iomanip>
 
-#include "../utils/ERROR.hpp"
+#include "../utils/ERROR.h"
 #include "is_numeric.hpp"
 
 using namespace std;

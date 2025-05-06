@@ -3,7 +3,7 @@
 #include <string>
 
 #include "../../../str/tpl_replace.hpp"
-#include "../../../str/implode.hpp"
+#include "../../../str/implode.h"
 #include "../../../str/FrameTokenParser.hpp"
 #include "../../chat/ChatPlugin.hpp"
 

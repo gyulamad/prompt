@@ -25,9 +25,11 @@ public:
         return patterns;
     }
 
+    // LCOV_EXCL_START
     string getName() const override { return ""; }
     string getDescription() const override { return ""; }
     string getUsage() const override { return ""; }
+    // LCOV_EXCL_STOP
 
     void run(void*, const vector<string>& args) override {
         last_args = args;

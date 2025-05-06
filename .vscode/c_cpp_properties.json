@@ -14,7 +14,8 @@
                 "/usr/local/include/**",
                 // Example for Windows paths (like yours)
                 "${workspaceFolder}/libs/ggerganov/whisper.cpp/include",
-                "${workspaceFolder}/libs/ggerganov/whisper.cpp/ggml/include"
+                "${workspaceFolder}/libs/ggerganov/whisper.cpp/ggml/include",
+                "/usr/lib/llvm-18/include"
             ],
             "defines": [
                 // "USE_CANDLES_AS_FLOAT"

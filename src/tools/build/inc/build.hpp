@@ -9,7 +9,8 @@
 #include "../../str/replace_extension.hpp"
 #include "../../str/remove_path.hpp"
 #include "../../str/str_replace.hpp"
-#include "../../str/explode.hpp"
+#include "../../str/explode.h"
+#include "../../str/implode.h"
 #include "../../str/parse.hpp"
 #include "../../regx/regx_match.hpp"
 #include "../../containers/array_keys.hpp"
@@ -383,7 +384,7 @@ namespace tools::build {
             string incfile = str_starts_with(matches[1], "/") 
                 ? matches[1] 
                 : get_absolute_path(srcpath + "/" + matches[1]);
-            vector<string> tries = { incfile };
+            vector<string> tries = { incfile }; // TODO: potential bug here, it's only checks the full absolute path of the relative path to the include file but misses the inlude-path + '/' relative path to include. For example #include "path/file.h" checks the "{{include-path}}/file.h" and "absolute/file.h" but misses the {{include-path}}/path/file.h"
             if (!file_exists(incfile)) foreach (idirs, [&](const string& idir) {
                 incfile = get_absolute_path(idir + "/" + remove_path(incfile));
                 tries.push_back(incfile);

@@ -3,8 +3,8 @@
 #include <string>
 
 #include "../../utils/Owns.hpp"
-#include "../../utils/JSON.hpp"
-#include "../../utils/ERROR.hpp"
+#include "../../utils/JSON.h"
+#include "../../utils/ERROR.h"
 #include "../PackQueue.hpp"
 
 using namespace std;

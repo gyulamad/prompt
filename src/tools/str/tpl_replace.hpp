@@ -3,16 +3,16 @@
 #include <string>
 #include <map>
 
-#include "../utils/ERROR.hpp"
+#include "../utils/ERROR.h"
 #include "../regx/regx_match.hpp"
 #include "../regx/regx_match_all.hpp"
 #include "../containers/array_keys.hpp"
-#include "../containers/in_array.hpp"
-#include "../str/implode.hpp"
+#include "../containers/in_array.h"
+#include "../str/implode.h"
 
-#include "str_cut_end.hpp"
+#include "str_cut_end.h"
 #include "str_replace.hpp"
-#include "str_contains.hpp"
+#include "str_contains.h"
 
 using namespace std;
 using namespace tools::utils;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../utils/ERROR.hpp"
+#include "../utils/ERROR.h"
 #include "NoiseMonitor.hpp"
 
 using namespace tools::utils;

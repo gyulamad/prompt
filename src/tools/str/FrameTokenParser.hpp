@@ -458,5 +458,6 @@ TEST(test_FrameTokenParser_parse_frame_at_boundaries);
 TEST(test_FrameTokenParser_parse_fake_start_token);
 TEST(test_FrameTokenParser_parse_fake_stop_token);
 TEST(test_FrameTokenParser_parse_short_inner);
+TEST(test_FrameTokenParser_parse_empty_stop_token);
 
 #endif // TEST

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Arguments.hpp"
-#include "JSON.hpp"
+#include "Arguments.h"
+#include "JSON.h"
 #include "files.hpp"
 #include "str/get_path.hpp"
 
@@ -33,15 +33,15 @@ namespace tools::utils {
 
         // Default case: assume types are not containers
         template<typename T>
-        struct is_container : std::false_type {};
+        struct is_container : false_type {};
 
-        // Specialization for std::vector
+        // Specialization for vector
         template<typename T>
-        struct is_container<std::vector<T>> : std::true_type {};
+        struct is_container<vector<T>> : true_type {};
         
-        // Specialization for std::map
+        // Specialization for map
         template<typename K, typename V>
-        struct is_container<std::map<K, V>> : std::true_type {};
+        struct is_container<map<K, V>> : true_type {};
 
         template<typename T>
         T get(const string& key) {

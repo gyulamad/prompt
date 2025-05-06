@@ -17,8 +17,8 @@
 #include <dirent.h>
 #include <sys/types.h>
 
-#include "ERROR.hpp"
-#include "io.hpp"
+#include "ERROR.h"
+#include "io.h"
 
 #include "../str/get_path.hpp"
 

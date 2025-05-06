@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "../utils/Owns.hpp"
-#include "../abstracts/Closable.hpp"
-#include "../abstracts/JSONSerializable.hpp"
+#include "../abstracts/Closable.h"
+#include "../abstracts/JSONSerializable.h"
 #include "../containers/array_merge.hpp"
 #include "../containers/array_diff.hpp"
 
@@ -180,7 +180,7 @@ namespace tools::agency {
 
 #ifdef TEST
 
-#include "../str/str_contains.hpp"
+#include "../str/str_contains.h"
 #include "chat/Chatbot.hpp"
 #include "chat/ChatHistory.hpp"
 #include "tests/helpers.hpp"

@@ -16,7 +16,7 @@
 
 #include "../str/str_cut_begin.hpp"
 #include "../str/to_string.hpp"
-#include "ERROR.hpp"
+#include "ERROR.h"
 #include "time.hpp"
 
 using namespace std;

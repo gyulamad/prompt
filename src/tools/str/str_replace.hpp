@@ -3,7 +3,7 @@
 #include <string>
 #include <map>
 
-#include "../utils/ERROR.hpp"
+#include "../utils/ERROR.h"
 
 using namespace std;
 using namespace tools::utils;

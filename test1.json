@@ -1,0 +1,178 @@
+{
+    "chatbot": {
+        "history": {
+            "messages": [
+                {
+                    "sender": "user",
+                    "text": "System information: Application reloaded, Please check the current date and time."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Persze, semmi gond! Pillantsunk rá a naptárra és az órára.\n\n[AI_MAGIC_ABRAKADABRA]\n{\n  \"call_id\": \"datetime_check\",\n  \"function_name\": \"datetime\"\n}\n[AI_MAGIC_ALAKAZAM]\n"
+                },
+                {
+                    "sender": "tool",
+                    "text": "Call ID: datetime_check (funtion: `datetime`)\nResult(s):\n2025-05-03 14:38:15.539"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Oké, szóval most 2025 május 3., 14:38 van. Köszi, hogy szóltál, néha nekem is elszáll az időérzékem! Van még valamiben segíthetek?\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "[szállt]"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, \"elszállt\" volt a szó. Javítva! Van valami másban is segíthetek?\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "A lesz engem!"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Sajnálom, nem igazán értem, mit szeretnél. Tudnál egy kicsit pontosabban fogalmazni?\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Az kéldesztem, hogy hallod el a mit mondok."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Aha, értem! Tehát azt kérdezed, hogy hallom-e jól, amit mondasz? Igen, igyekszem a lehető legjobban értelmezni, amit írsz, de néha a szövegfelolvasó szoftver hibázhat. Ha valami nem világos, inkább rákérdezek, hogy ne legyen félreértés. Remélem, ez így érthető!\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Igen, éjtettő köszönöm, szóval akkor halludom mit mondok ezek szerint."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem én, próbálok a lehető legjobban figyelni! Szóval nyugodtan kérdezz, mondd el, amire szükséged van, és én igyekszem segíteni. Ne aggódj, ha néha nem tökéletes a szöveg, lényeg, hogy megértjük egymást valahogy, nem igaz? :)\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Jérez meg nekem az alábbi szavokat lécives."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Persze, mi az a két szó, amire kíváncsi vagy?\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Nem csak kettősok van!"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, több szóról van szó. Kérlek, sorold fel a szavakat, amikre kíváncsi vagy, és segítek, amiben tudok!\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Csik annyit kéra kényedje az majd megőket, az írán bámvon, mennyi fog."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, szeretnéd, hogy leírjam a szavakat, amiket kérsz, és megmondjam, hány szó összesen? Ha jól értem, kérlek, sorold fel a szavakat!\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Azért is jövőző az mobil telefon."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, tehát azért is használod a mobiltelefont. Van valami konkrét d"
+                },
+                {
+                    "sender": "user",
+                    "text": "['chatbot1' interrupted by 'user']"
+                },
+                {
+                    "sender": "user",
+                    "text": "a második pedig legyen a szürkel el a fán."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Oké, a szavak tehát: \"chatbot\" és \"szürke elefánt a fán\". Összesen 5 szóból áll a második kifejezés, plusz egy a \"chatbot\", azaz összesen 6 szó.\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Nem egyáltalán nem ezeket mondtam az két szót mondtam az egyik az volt, hogy mobiltelefon, a második pedig az, hogy szür kell lefánt."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "É"
+                },
+                {
+                    "sender": "user",
+                    "text": "['chatbot1' interrupted by 'user']"
+                },
+                {
+                    "sender": "user",
+                    "text": "Azzalában a lehet, hogy két szóde érted. Egy pontalistaában."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, szóval pontosítunk:\n1.  Mobiltelefon\n2.  Szürke elefánt\n\nJól értem most?\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Igen, most jól élted a harvalik az lesz, hogy pétyos laptal a negyedik pedig az, hogy csigabig a."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Oké, akkor a lista így néz ki:\n\n1. Mobiltelefon\n2. Szürke elefánt\n3. Pöttyös labda\n4. Csigabiga\n\nJól értem? Van még valami, amiben segíthetek ezzel kapcsolatban?\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Igen, az ötödik szópa, de gledjen az, hódj ezt."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, az ötödik szó: \"Hód ejtés\". Akkor a teljes lista:\n\n1. Mobiltelefon\n2. Szürke elefánt\n3. Pöttyös labda\n4. Csigabiga\n5. Hód ejtés\n\nHány szót szeretnél, hogy megvizsgáljak összesen?\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Nem húdejtis, tejföl, tehát ami a tények a teteínvon. Halló, tejföl!"
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, szóval nem \"hód ejtés\", hanem \"tejföl\". Akkor a teljes lista:\n\n1. Mobiltelefon\n2. Szürke elefánt\n3. Pöttyös labda\n4. Csigabiga\n5. Tejföl\n\nMost már minden helyes? Mit szeretnél ezekkel a szavakkal?\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Szemmit eszek egy test volt, illetve még mindig tartott ezt, de a nefelésde la szavakat az az adni."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, nem szeretnéd, hogy elemezzem a szavakat. Akkor törölhetem a listát? Tudsz mondani valamit, amiben segíthetek?\n"
+                },
+                {
+                    "sender": "user",
+                    "text": "Nem, pont az mondta."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Oké, akkor mit szeretnél a szavakkal csinálni? Például szeretnéd, ha leírnám őket, megszámolnám a"
+                },
+                {
+                    "sender": "user",
+                    "text": "['chatbot1' interrupted by 'user']"
+                },
+                {
+                    "sender": "user",
+                    "text": "Pont azt mondtam, hogy naturel a listát hanem ilyezd megmert ez egy teszt."
+                },
+                {
+                    "sender": "chatbot1",
+                    "text": "Értem, nem törölhetem a listát, mert ez egy teszt. Mit szeretnél, hogy csináljak a listával? Azt szeretnéd, hogy elemezzem a szavakat valamilyen szempontból? Mondd el, mi a feladat, és én megpróbálok segíteni!\n"
+                }
+            ]
+        },
+        "talks": true
+    },
+    "name": "chatbot1",
+    "recipients": [
+        "user"
+    ],
+    "role": "chat"
+}

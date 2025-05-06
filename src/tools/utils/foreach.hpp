@@ -188,23 +188,23 @@ namespace tools::utils {
         }
     };// Specialization for const map
     template<typename K, typename V>
-    struct ContainerTraits<const std::map<K, V>> {
+    struct ContainerTraits<const map<K, V>> {
         using KeyType = const K;
         using ItemType = const V&;
 
-        static void iterate(const std::map<K, V>& data, std::function<void(ItemType)> callback) {
+        static void iterate(const map<K, V>& data, function<void(ItemType)> callback) {
             for (const auto& pair : data) {
                 callback(pair.second);
             }
         }
 
-        static void iterate(const std::map<K, V>& data, std::function<void(ItemType, KeyType)> callback) {
+        static void iterate(const map<K, V>& data, function<void(ItemType, KeyType)> callback) {
             for (const auto& pair : data) {
                 callback(pair.second, pair.first);
             }
         }
 
-        static void iterate(const std::map<K, V>& data, std::function<bool(ItemType)> callback) {
+        static void iterate(const map<K, V>& data, function<bool(ItemType)> callback) {
             for (const auto& pair : data) {
                 if (!callback(pair.second)) {
                     break;
@@ -212,7 +212,7 @@ namespace tools::utils {
             }
         }
 
-        static void iterate(const std::map<K, V>& data, std::function<bool(ItemType, KeyType)> callback) {
+        static void iterate(const map<K, V>& data, function<bool(ItemType, KeyType)> callback) {
             for (const auto& pair : data) {
                 if (!callback(pair.second, pair.first)) {
                     break;

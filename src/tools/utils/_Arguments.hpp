@@ -4,9 +4,9 @@
 #include <string>
 #include <algorithm>
 
-#include "../str/str_starts_with.hpp"
-#include "../str/parse.hpp"
-#include "ERROR.hpp"
+#include "../str/str_starts_with.h"
+#include "../str/parse.h"
+#include "ERROR.h"
 
 using namespace std;
 using namespace tools::str;
@@ -165,7 +165,7 @@ namespace tools::utils {
             return has(at) ? defval : parse<double>(args[at]);
         }
 
-        //  =================================== Templated getters ===================================
+        // =================================== Templated getters ===================================
 
         // Templated getter for key-based lookup
         template<typename T>

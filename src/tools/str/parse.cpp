@@ -1,33 +1,15 @@
-#pragma once
-
-#include <string>
-#include <vector>
+#include "parse.h"
+#include "../utils/ERROR.h"
+#include "../str/str_cut_end.h"
+#include "../str/str_contains.h"
+#include <sstream>
 #include <algorithm>
-
-#include "../utils/ERROR.hpp"
-#include "../str/str_cut_end.hpp"
-#include "../containers/in_array.hpp"
+#include <vector>
 
 using namespace std;
-using namespace tools::utils;
-using namespace tools::str;
-using namespace tools::containers;
 
 namespace tools::str {
-
-    template <typename T>
-    T parse(const string& str) {
-        if constexpr (is_same_v<T, string>) {
-            return str; // Return the string directly
-        } else {
-            static_assert(is_arithmetic<T>::value, "T must be an arithmetic type");
-            stringstream ss(str);
-            T num;
-            if (ss >> num) return num;
-            throw ERROR("Invalid input string (not a number): " + (str.empty() ? "<empty>" : str_cut_end(str)));
-        }
-    }
-
+    
     // Specialization for bool
     template <>
     bool parse<bool>(const string& str) {
@@ -37,10 +19,13 @@ namespace tools::str {
         if (in_array(lower, vector<string>({ "false", "off", "0", "no"}))) return false;
         throw ERROR("Invalid input string (not a boolean): " + (str.empty() ? "<empty>" : str_cut_end(str)));
     }
-    
-}
+
+} // namespace tools::str
 
 #ifdef TEST
+
+#include "../utils/Test.h"
+#include "../utils/assert.hpp"
 
 using namespace tools::str;
 
@@ -92,12 +77,12 @@ void test_parse_whitespace_only() {
     assert(thrown && "test_parse_whitespace_only failed");
 }
 
-void test_parse_trailing_characters() {    
+void test_parse_trailing_characters() {
     int actual = parse<int>("42abc");
     assert(actual == 42 && "test_parse_trailing_characters failed");
 }
 
-void test_parse_trailing_characters_negative() {    
+void test_parse_trailing_characters_negative() {
     int actual = parse<int>("-42abc");
     assert(actual == -42 && "test_parse_trailing_characters_negative failed");
 }
@@ -123,23 +108,20 @@ void test_parse_large_number() {
 void test_parse_invalid_boolean() {
     bool thrown = false;
     string expectedError = "Invalid input string (not a boolean): ";
-    
+
     try {
-        // Try to parse an invalid boolean string
         parse<bool>("maybe");
     } catch (const exception& e) {
         thrown = true;
         string what = e.what();
-        // Check if the error message contains the expected text
         assert(str_contains(what, expectedError) && "Error message doesn't contain expected text");
-        // Check if the error message contains the input string
         assert(str_contains(what, "maybe") && "Error message doesn't contain input string");
     }
-    
+
     assert(thrown && "test_parse_invalid_boolean failed - no exception was thrown");
 }
 
-
+// Test registrations
 TEST(test_parse_valid_integer);
 TEST(test_parse_valid_double);
 TEST(test_parse_negative_number);
@@ -153,4 +135,4 @@ TEST(test_parse_zero);
 TEST(test_parse_large_number);
 TEST(test_parse_invalid_boolean);
 
-#endif
+#endif // TEST

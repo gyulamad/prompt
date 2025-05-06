@@ -1,17 +1,11 @@
-#pragma once
-
-#include <string>
-#include <vector>
-
-#include "../utils/ERROR.hpp"
+#include "explode.h"
 
 using namespace std;
-using namespace tools::utils;
 
 namespace tools::str {
 
     vector<string> explode(const string& delimiter, const string& str) {
-        if (delimiter.empty()) throw ERROR("Delimeter can not be empty.");
+        if (delimiter.empty()) throw ERROR("Delimiter can not be empty.");
         vector<string> result;
         size_t start = 0;
         size_t end = str.find(delimiter);
@@ -28,10 +22,13 @@ namespace tools::str {
 
         return result;
     }
-    
-}
+
+} // namespace tools::str
 
 #ifdef TEST
+
+#include "../utils/Test.h"
+#include "../utils/assert.hpp"
 
 using namespace tools::str;
 
@@ -92,4 +89,5 @@ TEST(test_explode_consecutive_delimiters);
 TEST(test_explode_only_delimiters);
 TEST(test_explode_empty_input);
 TEST(test_explode_invalid_delimiter);
-#endif
+
+#endif // TEST

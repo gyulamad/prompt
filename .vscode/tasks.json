@@ -85,6 +85,7 @@
                 "${workspaceFolder}/src/prompt.cpp",
                 "--config=test",
                 "--verbose",
+                "-DTEST_VERBOSE",
                 // "--depcache"
                 // "-std=c++20",
                 // // "-pthread",

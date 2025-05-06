@@ -9,7 +9,7 @@
 #include <chrono>
 #include <thread>
 
-#include "ERROR.hpp"
+#include "ERROR.h"
 
 using namespace std;
 

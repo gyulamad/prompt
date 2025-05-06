@@ -1,6 +1,10 @@
 #pragma once
 
-#include "../../utils/ERROR.hpp"
+#include "../../utils/ERROR.h"
+// #include "../Worker.hpp"
+
+using namespace std;
+using namespace tools::agency;
 
 class MockWorker : public Worker<string> {
 public:
@@ -11,12 +15,14 @@ public:
         const string& name
     ) : Worker<string>(owns, agency, queue, name), throwInTick(false) {}
 
+    // LCOV_EXCL_START
     void handle(const string& /*sender*/, const string& /*item*/) override {}
     string type() const override { return "MockWorker"; }
+    // LCOV_EXCL_STOP
 
     void tick() override {
         if (throwInTick) throw ERROR("Tick failed!");
-        Worker<string>::tick();
+        // Worker<string>::tick();
     }
 
     virtual void hoops(const string& errmsg = "") {

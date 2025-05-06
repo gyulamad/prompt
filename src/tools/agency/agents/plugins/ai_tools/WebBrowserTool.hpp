@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../../utils/JSON.hpp"
+#include "../../../../utils/JSON.h"
 #include "../../../../utils/Process.hpp"
 #include "../../../../str/escape.hpp"
 #include "../../UserAgentInterface.hpp"

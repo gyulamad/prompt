@@ -4,9 +4,9 @@
 
 #include "../str/str_replace.hpp"
 #include "../str/escape.hpp"
-#include "../str/str_contains.hpp"
+#include "../str/str_contains.h"
 #include "../utils/Process.hpp"
-#include "../abstracts/Closable.hpp"
+#include "../abstracts/Closable.h"
 
 using namespace std;
 using namespace tools::str;

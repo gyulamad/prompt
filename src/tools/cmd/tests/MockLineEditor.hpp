@@ -8,7 +8,7 @@
 // #include "../CommandLine.hpp"
 
 #include "../../str/str_ends_with.hpp"
-#include "../../str/explode.hpp"
+#include "../../str/explode.h"
 
 using namespace std;
 using namespace tools::cmd;
@@ -45,28 +45,30 @@ public:
             return false;
         }
         line = "";
-        if (useQueue) {
-            if (inputs.empty()) return true;
-            line = inputs.front();
-            inputs.pop();
-            return line == "ctrl+c";
-        }
+        // if (useQueue) {
+        //     if (inputs.empty()) return true;
+        //     line = inputs.front();
+        //     inputs.pop();
+        //     return line == "ctrl+c";
+        // }
         line = next_input;
         return should_exit;
     }
     void wipeLine() override { wiped = true; }
     void refreshLine() override { refreshed = true; }
     
-    void queueInput(const string& input) { useQueue = true; inputs.push(input); }
+    // void queueInput(const string& input) { useQueue = true; inputs.push(input); }
     bool wasWiped() const { return wiped; }
     bool wasRefreshed() const { return refreshed; }
     void resetFlags() { wiped = false; refreshed = false; }
 
+    // LCOV_EXCL_START
     void setPrompt(const char* /*prompt*/) override  {}
     void setPrompt(string& /*prompt*/) override {}
+    // LCOV_EXCL_STOP
     
 private:
-    bool useQueue = false;
+    // bool useQueue = false;
     string prompt;
     queue<string> inputs;
     bool refreshed = false;

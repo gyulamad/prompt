@@ -9,8 +9,8 @@
 #include <functional>
 #include <cstring>
 
-#include "../abstracts/Closable.hpp"
-#include "ERROR.hpp"
+#include "../abstracts/Closable.h"
+#include "ERROR.h"
 #include "foreach.hpp"
 
 using namespace std;
@@ -80,7 +80,7 @@ namespace tools::utils {
                 // Wait for input or timeout
                 int ret = poll(&fds, 1, timeout);
                 if (ret < 0) {
-                    std::cerr << "Poll error: " << strerror(errno) << "\n";
+                    cerr << "Poll error: " << strerror(errno) << "\n";
                     break;
                 }
                 if (ret == 0) {
@@ -91,7 +91,7 @@ namespace tools::utils {
                 // Input is available, read it
                 ssize_t n = read(STDIN_FILENO, &c, 1);
                 if (n <= 0) {
-                    if (n == -1) std::cerr << "Read error: " << strerror(errno) << "\n";
+                    if (n == -1) cerr << "Read error: " << strerror(errno) << "\n";
                     continue;
                 }
         

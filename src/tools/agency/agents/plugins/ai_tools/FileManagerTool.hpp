@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../../utils/JSON.hpp"
+#include "../../../../utils/JSON.h"
 #include "../../../../utils/files.hpp"
 #include "../../../../utils/Process.hpp"
 #include "../../../../str/trim.hpp"
